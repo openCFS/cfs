@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.828s" wall="0.828" cpu="0.826093" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2124" peak="2146"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:26:52" host="shady"/>
+    <progOpts problem="ConstPolarizedQuarterSphere" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Electrostatics/ConstPolarizedQuarterSphere/ConstPolarizedQuarterSphere.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.143s" wall="0.143" cpu="0.143048" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="15447" nodes="20975"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="extern" id="0" type="volume" regular="no" hom="yes" nodes="18475" elems="12405" isQuadratic="yes"/>
+        <region name="intern" id="1" type="volume" regular="no" hom="yes" nodes="3495" elems="1757" isQuadratic="yes"/>
+        <region name="boundary_surrounding" id="2" type="surface" regular="no" hom="yes" nodes="2632" elems="1285" isQuadratic="yes"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser Pol="1e-07" dt="0" eps_0="8.8542e-12" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.027s" wall="0.027" cpu="0.029891" calls="10"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.121s" wall="0.121" cpu="0.120954" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <electrostatic>
+        <header>
+          <region name="intern" damping="none"/>
+          <region name="extern" damping="mapping"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionConst" region="intern">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_double" region="extern">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="PermanentPolarizationInt">
+                <entities name="intern" size="1757" region="intern"/>
+                <row pde="electrostatic" result="elecPotential" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Vacuum">
+          <regionList>
+            <region name="extern"/>
+            <region name="intern"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.854187e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.854187e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.854187e-12
+              </real>
+            </tensor>
+          </property>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.854187e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.854187e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.854187e-12
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <extern/>
+                <default order="2"/>
+                <intern/>
+              </regionList>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="boundary_surrounding" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="18343" totalNumFreeEqns="18343" totalNumDirichlet="0">
+            <function id="0" name="elecPotential" numEqns="18343" lastFreeEqn="18343" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="18343" lastFreeIndex="18343"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.175s" wall="0.175" cpu="0.175971" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.006s" wall="0.006" cpu="0.006539" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.11248" wall="0.112" peakMem="14724" permanentMem="13084"/>
+                <numfact cpu="0.063283" wall="0.063" peakMem="35533"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0.059s" wall="0.059" cpu="0.058921" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.306s" wall="0.306" cpu="0.306094" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.302s" wall="0.302" cpu="0.301451" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0.004s" wall="0.004" cpu="0.004638" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

@@ -1,0 +1,378 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="10" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.281s" wall="0.281" cpu="0.280404" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2078" peak="2090"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:27:15" host="shady"/>
+    <progOpts problem="ElecForcesConductingSpheres" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Coupledfield/ElecMech/ElecForcesConductingSpheres/ElecForcesConductingSpheres.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.04s" wall="0.04" cpu="0.040246" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="6791" nodes="6688"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="S_spring" id="0" type="volume" regular="no" hom="yes" nodes="405" elems="320" isQuadratic="no"/>
+        <region name="S_upper_sphere" id="1" type="volume" regular="no" hom="yes" nodes="1276" elems="1203" isQuadratic="no"/>
+        <region name="S_lower_sphere" id="2" type="volume" regular="no" hom="yes" nodes="1327" elems="1254" isQuadratic="no"/>
+        <region name="S_air" id="3" type="volume" regular="no" hom="yes" nodes="3975" elems="3802" isQuadratic="no"/>
+        <region name="L_fix" id="4" type="surface" regular="yes" hom="yes" nodes="5" elems="4" isQuadratic="no"/>
+        <region name="L_lower_sphere" id="5" type="surface" regular="no" hom="yes" nodes="105" elems="104" isQuadratic="no"/>
+        <region name="L_upper_sphere" id="6" type="surface" regular="no" hom="yes" nodes="105" elems="104" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="sensor" count="1" coord="(0,0.005)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.002027" calls="10"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <electrostatic>
+        <header>
+          <region name="S_spring" damping="none"/>
+          <region name="S_air" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" region="S_spring">
+                <coef type="CoefFunctionConst" value="[[8.85e-12, 0],[0, 8.85e-12]]"/>
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" region="S_air">
+                <coef type="CoefFunctionConst" value="[[8.85e-12, 0],[0, 8.85e-12]]"/>
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_air"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.850000e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.850000e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.850000e-12
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <material name="spring">
+          <regionList>
+            <region name="S_spring"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.850000e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.850000e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.850000e-12
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <S_air order="2" polyMapType="serendipity"/>
+                <default/>
+                <S_spring order="2" polyMapType="serendipity"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="12711">
+                <FACE numEntitiies="4122" numVirtualNodes="0"/>
+                <EDGE numEntitiies="8416" numVirtualNodes="8416"/>
+                <VERTEX numEntitiies="4295" numVirtualNodes="4295"/>
+              </virtualNodes>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="L_lower_sphere" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="L_upper_sphere" dofs="" value="1"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="12502" totalNumFreeEqns="12293" totalNumDirichlet="209">
+            <function id="0" name="elecPotential" numEqns="12502" lastFreeEqn="12293" numDirichlet="209">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="12502" lastFreeIndex="12293"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.037s" wall="0.037" cpu="0.037747" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001859" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.030933" wall="0.03" peakMem="6456" permanentMem="5990"/>
+                <numfact cpu="0.006733" wall="0.006" peakMem="5922"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0.013s" wall="0.013" cpu="0.013522" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.018s" wall="0.018" cpu="0.017198" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.018s" wall="0.018" cpu="0.017196" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="S_spring" damping="none"/>
+          <region name="S_upper_sphere" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_spring">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_upper_sphere">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="TractionIntegrator">
+                <entities name="L_upper_sphere" size="104" region="L_upper_sphere"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="solid">
+          <regionList>
+            <region name="S_upper_sphere"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.000000e+05  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+05  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+05  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+04  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+04  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+04
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(100000,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0,0)"/>
+          <property name="Density" value="(10500,0)"/>
+          <subtensor type="axi">
+            <tensor dim1="4" dim2="4">
+              <real>
+                 1.000000e+05  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  5.000000e+04  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  1.000000e+05
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <material name="spring">
+          <regionList>
+            <region name="S_spring"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.000000e+02  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+02  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+02  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e+01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(100,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0,0)"/>
+          <property name="Density" value="(10500,0)"/>
+          <subtensor type="axi">
+            <tensor dim1="4" dim2="4">
+              <real>
+                 1.000000e+02  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+02  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  5.000000e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  1.000000e+02
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <S_upper_sphere order="2" polyMapType="serendipity"/>
+                <default/>
+                <S_spring order="2" polyMapType="serendipity"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="4874">
+                <FACE numEntitiies="1523" numVirtualNodes="0"/>
+                <EDGE numEntitiies="3198" numVirtualNodes="3198"/>
+                <VERTEX numEntitiies="1676" numVirtualNodes="1676"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="L_fix" dofs="r z"/>
+            <elemList name="S_spring" dofs="r"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="8610" totalNumFreeEqns="8610" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="8610" lastFreeEqn="8610" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="8610" lastFreeIndex="8610"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.023s" wall="0.023" cpu="0.023738" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001422" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.017598" wall="0.017" peakMem="6256" permanentMem="5873"/>
+                <numfact cpu="0.006054" wall="0.006" peakMem="6307"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.012s" wall="0.012" cpu="0.012365" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.008s" wall="0.008" cpu="0.008496" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.008s" wall="0.008" cpu="0.008059" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0.000434" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <init_multiSequence>
+    <timer wall-clock="0s" wall="0" cpu="6e-06" calls="1"/>
+  </init_multiSequence>
+  <warning lineNum="3044" fileName="/home/fwein/code/cfs/source/PDE/MechPDE.cc" message="No implementation for principal strain in axi-formulation yet."/>
+</cfsInfo>

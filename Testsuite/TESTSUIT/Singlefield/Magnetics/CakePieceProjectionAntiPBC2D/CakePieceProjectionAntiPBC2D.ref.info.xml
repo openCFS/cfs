@@ -1,0 +1,294 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.06s" wall="0.06" cpu="0.059454" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2050" peak="2055"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:26:55" host="shady"/>
+    <progOpts problem="CakePieceProjectionAntiPBC2D" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Magnetics/CakePieceProjectionAntiPBC2D/CakePieceProjectionAntiPBC2D.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002872" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="308" nodes="155"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="S_coil" id="0" type="volume" regular="no" hom="yes" nodes="47" elems="66" isQuadratic="no"/>
+        <region name="S_iron" id="1" type="volume" regular="no" hom="yes" nodes="115" elems="191" isQuadratic="no"/>
+        <region name="L_fix" id="2" type="surface" regular="no" hom="yes" nodes="12" elems="11" isQuadratic="no"/>
+        <region name="L_p1" id="3" type="surface" regular="yes" hom="yes" nodes="21" elems="20" isQuadratic="no"/>
+        <region name="L_p2" id="4" type="surface" regular="yes" hom="yes" nodes="21" elems="20" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001262" calls="10"/>
+    </results>
+  </header>
+  <warning lineNum="671" fileName="/home/fwein/code/cfs/source/Domain/Mesh/NcInterfaces/MortarInterface.cc" message="Non-conforming interface 'pbcMag1' is assumed to be curved even as the two planar surfaces that are not coplanar!
+This might lead to errors!"/>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.005398" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <magnetic>
+        <header>
+          <region name="S_iron" damping="none"/>
+          <region name="S_coil" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="flux_DPhiP_PsiP" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperator2D" region="S_coil">
+                <coef type="CoefFunctionConst" value="[[795773, 0],[0, 795773]]"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperator2D" region="S_iron">
+                <coef type="CoefFunctionConst" value="[[1090.17, -7.00649e-46],[-7.00649e-46, 1090.17]]"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="pnlt_PhiP_PsiP" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="-1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_PhiS_DPsiP" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="pnlt_PhiS_PsiS" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="-1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="pnlt_PhiP_PsiS" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_DPhiP_PsiS" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="-1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_PhiP_DPsiP" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="-1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="pnlt_PhiS_PsiP" type="ABInt" complex="no" region="pbcMag1">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="CoilIntegrator">
+                <entities name="S_coil" size="66" region="S_coil"/>
+                <row pde="magnetic" result="magPotential" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="AIR">
+          <regionList>
+            <region name="S_coil"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256640e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256640e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256640e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.25664e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957729e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957729e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957729e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(795773,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="iron">
+          <regionList>
+            <region name="S_iron"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 9.172900e-04  0.000000e+00  0.000000e+00
+                 0.000000e+00  9.172900e-04  0.000000e+00
+                 0.000000e+00  0.000000e+00  9.172900e-04
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(0.00091729,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.090168e+03  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.090168e+03  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.090168e+03
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(1090.17,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.000000e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(100000,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <magPotential>
+            <h1Nodal>
+              <regionList>
+                <S_coil/>
+                <default order="1"/>
+                <S_iron/>
+              </regionList>
+            </h1Nodal>
+          </magPotential>
+        </feSpaces>
+        <feFunctions>
+          <magPotential/>
+          <homDirichletBC>
+            <surfElemList name="L_fix" dofs="z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </magnetic>
+    </PDE>
+    <OLAS>
+      <magnetic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="143" totalNumFreeEqns="143" totalNumDirichlet="0">
+            <function id="0" name="magPotential" numEqns="143" lastFreeEqn="143" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="143" lastFreeIndex="143"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000503" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="8.1e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000332" wall="0" peakMem="234" permanentMem="212"/>
+                <numfact cpu="0.000138" wall="0" peakMem="34"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <GetRidOfZeros zeros_removed="78" cpu="6.1e-05" wall="0"/>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </magnetic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000304" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.004s" wall="0.004" cpu="0.003863" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.004s" wall="0.004" cpu="0.003772" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="8.9e-05" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

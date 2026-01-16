@@ -1,0 +1,287 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="10" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="1.566s" wall="1.566" cpu="1.56488" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2235" peak="2235"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:26:53" host="shady"/>
+    <progOpts problem="ConstPolarizedElectrode3D" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Electrostatics/ConstPolarizedElectrode3D/ConstPolarizedElectrode3D.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="40" ny="5" nz="40">
+      <grids>
+        <timer wall-clock="0.225s" wall="0.225" cpu="0.22527" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="11600" nodes="38171"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="polarized_mat" id="0" type="volume" regular="yes" hom="yes" nodes="38171" elems="8000" isQuadratic="yes"/>
+        <region name="ground_boundary" id="1" type="surface" regular="yes" hom="yes" nodes="9922" elems="3200" isQuadratic="yes"/>
+        <region name="side_boundary" id="2" type="surface" regular="yes" hom="yes" nodes="1382" elems="400" isQuadratic="yes"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser a="0.001" beta="314.16" dt="0" f="0" nx="40" ny="5" nz="40" rho_0="1e-07" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.045s" wall="0.045" cpu="0.046653" calls="12"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <electrostatic>
+        <header>
+          <region name="polarized_mat" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionConst" region="polarized_mat">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="PermanentPolarizationInt">
+                <entities name="polarized_mat" size="8000" region="polarized_mat"/>
+                <row pde="electrostatic" result="elecPotential" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Vacuum">
+          <regionList>
+            <region name="polarized_mat"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.854187e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.854187e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.854187e-12
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <polarized_mat/>
+                <default order="2"/>
+              </regionList>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="ground_boundary" dofs=""/>
+            <surfElemList name="side_boundary" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="27191" totalNumFreeEqns="27191" totalNumDirichlet="0">
+            <function id="0" name="elecPotential" numEqns="27191" lastFreeEqn="27191" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="27191" lastFreeIndex="27191"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.261s" wall="0.261" cpu="0.26146" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.014s" wall="0.014" cpu="0.014585" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.16458" wall="0.164" peakMem="30067" permanentMem="27566"/>
+                <numfact cpu="0.0964" wall="0.096" peakMem="62054"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0.088s" wall="0.088" cpu="0.088831" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.231s" wall="0.231" cpu="0.230422" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.126s" wall="0.126" cpu="0.124863" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0.105s" wall="0.105" cpu="0.105555" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <static/>
+    <PDE>
+      <electrostatic>
+        <header>
+          <region name="polarized_mat" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElecIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionConst" region="polarized_mat">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ChargeDensityInt">
+                <entities name="polarized_mat" size="8000" region="polarized_mat"/>
+                <row pde="electrostatic" result="elecPotential" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Vacuum">
+          <regionList>
+            <region name="polarized_mat"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.854187e-12  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.854187e-12  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.854187e-12
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <polarized_mat/>
+                <default order="2"/>
+              </regionList>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="ground_boundary" dofs=""/>
+            <surfElemList name="side_boundary" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="27191" totalNumFreeEqns="27191" totalNumDirichlet="0">
+            <function id="0" name="elecPotential" numEqns="27191" lastFreeEqn="27191" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="27191" lastFreeIndex="27191"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.267s" wall="0.267" cpu="0.267155" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.014s" wall="0.014" cpu="0.014484" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.17027" wall="0.17" peakMem="30067" permanentMem="27566"/>
+                <numfact cpu="0.096429" wall="0.096" peakMem="62054"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0.073s" wall="0.073" cpu="0.073203" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.213s" wall="0.213" cpu="0.214587" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.123s" wall="0.123" cpu="0.123638" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0.09s" wall="0.09" cpu="0.090946" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <init_multiSequence>
+    <timer wall-clock="0s" wall="0" cpu="4e-06" calls="1"/>
+  </init_multiSequence>
+</cfsInfo>

@@ -107,16 +107,21 @@ namespace CoupledField {
     //! regions have to be reconstructed from the previously read node groups.
     void GenerateVolRegionsFromNodeComponents();
 
-    //! Set containing  all ANSYS  element number,  which are  referenced from
-    //! regions and element groups. 
-    boost::unordered_set<UInt> referencedElems_;
+    //! Set containing  all ANSYS  element number,  which are  referenced from regions and element groups. 
+    // This must not be an unordered_set, as otherwise generated elements, e.g. via GridCFS::GenerateExternalLayer() 
+    // have different/undefined ordering. See discussion in https://gitlab.com/openCFS/cfs/-/merge_requests/338
+    // TODO: std::set is quite slow with respect to memory layout and complexity. Probably a vector
+    // would be faster if one does not need to check uniqueness too often. The read elements do not need to be sorted
+    // (which set provides), but just need to be deterministic. So a vector would also work. 
+    // But if the cdb file is not sorted by chance, one would again have to generate new reference files.
+    std::set<UInt> referencedElems_;
 
     typedef std::vector< std::vector<UInt> > ElemFacesType;
     typedef std::map<Elem::FEType, ElemFacesType > FEType2ElemFacesType;
     typedef std::map<Elem::FEType, std::vector< Elem::FEType > > FEType2FacesFEType;
     
     typedef std::pair<Elem::FEType, std::vector<UInt> > FaceType;
-    typedef boost::unordered_multimap<std::size_t, FaceType > FacesType;
+    typedef std::multimap<std::size_t, FaceType > FacesType;
 
     FEType2ElemFacesType elemFaces_;
     FEType2FacesFEType elemFaceTypes_;

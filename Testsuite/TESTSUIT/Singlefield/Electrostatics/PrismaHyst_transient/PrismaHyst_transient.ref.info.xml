@@ -1,0 +1,1358 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="205" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="1.173s" wall="1.173" cpu="1.17192" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2048" peak="2053"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-20 10:57:44" host="shady" estimatedEnd="2026-Jan-20 10:57:45" remainingTime="0" timePerStep="0.0054171"/>
+    <progOpts problem="PrismaHyst_transient" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Electrostatics/PrismaHyst_transient/PrismaHyst_transient.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001899" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="120" nodes="150"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="Vol" id="0" type="volume" regular="no" hom="yes" nodes="150" elems="80" isQuadratic="no"/>
+        <region name="S_large" id="1" type="surface" regular="yes" hom="yes" nodes="30" elems="20" isQuadratic="no"/>
+        <region name="S_small" id="2" type="surface" regular="yes" hom="yes" nodes="30" elems="20" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser P="6.283" Step="200" dt="0.094245" f="0" iterationCounter="2" step="200" t="18.849" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.071s" wall="0.071" cpu="0.216607" calls="1600"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <transient>
+      <header unit="s"/>
+      <init_transient>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002038" calls="1"/>
+      </init_transient>
+    </transient>
+    <PDE>
+      <electrostatic>
+        <header>
+          <region name="Vol" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="NonLinElecIntegrator" type="BBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionMaterialModel" region="Vol">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="PZT-4">
+          <regionList>
+            <region name="Vol"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 6.570430e-07  0.000000e+00  0.000000e+00
+                 0.000000e+00  6.570430e-07  0.000000e+00
+                 0.000000e+00  0.000000e+00  6.570430e-07
+              </real>
+            </tensor>
+          </property>
+          <property name="Electric_Permittivity_Scalar" value="(6.57043e-07,0)"/>
+          <property name="elec_Ps_Jiles" value="0.42499999999999999"/>
+          <property name="elec_alpha_Jiles" value="4000000"/>
+          <property name="elec_a_Jiles" value="580000"/>
+          <property name="elec_k_Jiles" value="510000"/>
+          <property name="elec_c_Jiles" value="0.5"/>
+          <property name="nonLinDependency" value="ElectricField"/>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <Vol/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="S_large" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="S_small" dofs="" value="( (t lt P)? 100000*t/P : 500000 - 400000*cos(t) ) "/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="120" totalNumFreeEqns="90" totalNumDirichlet="30">
+            <function id="0" name="elecPotential" numEqns="120" lastFreeEqn="90" numDirichlet="30">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="120" lastFreeIndex="90"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.026528" calls="786"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.013191" calls="786"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.000477" wall="0" peakMem="194" permanentMem="192"/>
+                <numfact cpu="2.5e-05" wall="0" peakMem="28"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000187" calls="786"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000283" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.038s" wall="0.038" cpu="0.815652" calls="1972"/>
+          <assemble_matrices>
+            <timer wall-clock="0.038s" wall="0.038" cpu="0.814685" calls="1772" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="5.2e-05" calls="200" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+      <setup method="newton" lineSearch="none" maxIter="200" incStopCrit="0.001" residualStopCrit="0.001" logging="yes"/>
+      <solStep value="1" analysis="step:1_time:0.094245">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.7109e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="5.7157e-06" incrementalErr="0.0037347" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="9.991e-07" incrementalErr="0.019209" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="2.0181e-07" incrementalErr="0.0030482" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="4.1849e-08" incrementalErr="0.00060878" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="2" analysis="step:2_time:0.18849">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.6325e-07" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="9.2365e-08" incrementalErr="0.00091558" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="3" analysis="step:3_time:0.282735">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.3869e-07" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="8.1066e-08" incrementalErr="0.00062304" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="4" analysis="step:4_time:0.37698">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.7254e-07" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="8.8222e-08" incrementalErr="0.00033573" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="5" analysis="step:5_time:0.471225">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.2209e-07" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.087e-07" incrementalErr="0.0002618" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="6" analysis="step:6_time:0.56547">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.0716e-07" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.3497e-07" incrementalErr="0.00022831" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="7" analysis="step:7_time:0.659715">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.0176e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.6759e-07" incrementalErr="0.00021101" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="8" analysis="step:8_time:0.75396">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.1527e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.0724e-07" incrementalErr="0.00020189" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="9" analysis="step:9_time:0.848205">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.3128e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.5415e-07" incrementalErr="0.00019776" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="10" analysis="step:10_time:0.94245">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.498e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.0835e-07" incrementalErr="0.00019695" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="11" analysis="step:11_time:1.0367">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.7083e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.698e-07" incrementalErr="0.00019853" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="12" analysis="step:12_time:1.13094">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.9437e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.3841e-07" incrementalErr="0.00020186" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="13" analysis="step:13_time:1.22518">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.2042e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="5.141e-07" incrementalErr="0.00020654" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="14" analysis="step:14_time:1.31943">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.4896e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="5.968e-07" incrementalErr="0.00021227" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="15" analysis="step:15_time:1.41367">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.777e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="6.8812e-07" incrementalErr="0.0002147" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="16" analysis="step:16_time:1.50792">
+        <iteration pdeName="electrostatic" nr="1" residualErr="3.0735e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.7149e-07" incrementalErr="0.0002159" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="17" analysis="step:17_time:1.60216">
+        <iteration pdeName="electrostatic" nr="1" residualErr="3.3906e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="8.6024e-07" incrementalErr="0.00021775" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="18" analysis="step:18_time:1.69641">
+        <iteration pdeName="electrostatic" nr="1" residualErr="3.7218e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="9.5947e-07" incrementalErr="0.00021918" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="19" analysis="step:19_time:1.79065">
+        <iteration pdeName="electrostatic" nr="1" residualErr="4.0522e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.0557e-06" incrementalErr="0.00021821" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="20" analysis="step:20_time:1.8849">
+        <iteration pdeName="electrostatic" nr="1" residualErr="4.3977e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.1465e-06" incrementalErr="0.00021729" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="21" analysis="step:21_time:1.97914">
+        <iteration pdeName="electrostatic" nr="1" residualErr="4.7646e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.2419e-06" incrementalErr="0.00021726" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="22" analysis="step:22_time:2.07339">
+        <iteration pdeName="electrostatic" nr="1" residualErr="5.1068e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.3494e-06" incrementalErr="0.00021722" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="23" analysis="step:23_time:2.16763">
+        <iteration pdeName="electrostatic" nr="1" residualErr="5.4201e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.4311e-06" incrementalErr="0.00021697" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="24" analysis="step:24_time:2.26188">
+        <iteration pdeName="electrostatic" nr="1" residualErr="5.7364e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.5137e-06" incrementalErr="0.00021685" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="25" analysis="step:25_time:2.35612">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.064e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.5983e-06" incrementalErr="0.00021693" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="26" analysis="step:26_time:2.45037">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.36e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.7049e-06" incrementalErr="0.00021652" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="27" analysis="step:27_time:2.54461">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.6193e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.7704e-06" incrementalErr="0.00021572" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="28" analysis="step:28_time:2.63886">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.8746e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.8348e-06" incrementalErr="0.00021501" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="29" analysis="step:29_time:2.7331">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.1347e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.8994e-06" incrementalErr="0.00021446" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="30" analysis="step:30_time:2.82735">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.3987e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.9636e-06" incrementalErr="0.00021405" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="31" analysis="step:31_time:2.92159">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.6669e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.0277e-06" incrementalErr="0.00021378" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="32" analysis="step:32_time:3.01584">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.9396e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.0915e-06" incrementalErr="0.00021364" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="33" analysis="step:33_time:3.11008">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.217e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.1552e-06" incrementalErr="0.00021363" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="34" analysis="step:34_time:3.20433">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.4993e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.2186e-06" incrementalErr="0.00021375" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="35" analysis="step:35_time:3.29857">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.7868e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.2819e-06" incrementalErr="0.00021399" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="36" analysis="step:36_time:3.39282">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.0796e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.345e-06" incrementalErr="0.00021435" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="37" analysis="step:37_time:3.48706">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.378e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.4079e-06" incrementalErr="0.00021483" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="38" analysis="step:38_time:3.58131">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.6822e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.4706e-06" incrementalErr="0.00021542" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="39" analysis="step:39_time:3.67555">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.9924e-06" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.5331e-06" incrementalErr="0.00021611" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="40" analysis="step:40_time:3.7698">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.0309e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.5954e-06" incrementalErr="0.00021692" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="41" analysis="step:41_time:3.86404">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.0632e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.6576e-06" incrementalErr="0.00021783" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="42" analysis="step:42_time:3.95829">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.0961e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.7196e-06" incrementalErr="0.00021884" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="43" analysis="step:43_time:4.05253">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.1298e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.7815e-06" incrementalErr="0.00021995" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="44" analysis="step:44_time:4.14678">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.1641e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.8432e-06" incrementalErr="0.00022115" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="45" analysis="step:45_time:4.24102">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.1992e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.9047e-06" incrementalErr="0.00022245" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="46" analysis="step:46_time:4.33527">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.235e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.966e-06" incrementalErr="0.00022384" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="47" analysis="step:47_time:4.42951">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.2716e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.0272e-06" incrementalErr="0.00022532" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="48" analysis="step:48_time:4.52376">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.309e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.0882e-06" incrementalErr="0.00022688" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="49" analysis="step:49_time:4.618">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.3472e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.149e-06" incrementalErr="0.00022853" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="50" analysis="step:50_time:4.71225">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.3855e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.2165e-06" incrementalErr="0.00022997" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="51" analysis="step:51_time:4.80649">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.423e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.2959e-06" incrementalErr="0.00023098" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="52" analysis="step:52_time:4.90074">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.4606e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.359e-06" incrementalErr="0.00023202" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="53" analysis="step:53_time:4.99498">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.4991e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.4097e-06" incrementalErr="0.00023314" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="54" analysis="step:54_time:5.08923">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.5382e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.4598e-06" incrementalErr="0.00023431" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="55" analysis="step:55_time:5.18347">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.5781e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.5094e-06" incrementalErr="0.00023554" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="56" analysis="step:56_time:5.27772">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.6187e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.5585e-06" incrementalErr="0.00023683" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="57" analysis="step:57_time:5.37196">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.6601e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.6071e-06" incrementalErr="0.00023817" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="58" analysis="step:58_time:5.46621">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.7023e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.6551e-06" incrementalErr="0.00023956" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="59" analysis="step:59_time:5.56045">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.7453e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.7025e-06" incrementalErr="0.00024101" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="60" analysis="step:60_time:5.6547">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.789e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.7494e-06" incrementalErr="0.00024251" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="61" analysis="step:61_time:5.74894">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.832e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.8132e-06" incrementalErr="0.00024349" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="62" analysis="step:62_time:5.84319">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.8748e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.877e-06" incrementalErr="0.00024445" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="63" analysis="step:63_time:5.93743">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.9185e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.9343e-06" incrementalErr="0.00024548" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="64" analysis="step:64_time:6.03168">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.963e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.9679e-06" incrementalErr="0.00024655" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="65" analysis="step:65_time:6.12592">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.0084e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.0008e-06" incrementalErr="0.00024768" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="66" analysis="step:66_time:6.22017">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.0546e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.033e-06" incrementalErr="0.00024886" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="67" analysis="step:67_time:6.31441">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.862e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.0504e-06" incrementalErr="0.00021871" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="68" analysis="step:68_time:6.40866">
+        <iteration pdeName="electrostatic" nr="1" residualErr="3.2033e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.8584e-06" incrementalErr="0.00038981" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="69" analysis="step:69_time:6.5029">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.2196e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.4535e-05" incrementalErr="0.00085214" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="70" analysis="step:70_time:6.59715">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.4033e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.6151e-05" incrementalErr="0.0012384" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="4.2789e-06" incrementalErr="0.00028078" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="71" analysis="step:71_time:6.69139">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00011292" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.9607e-05" incrementalErr="0.0016828" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="4.6392e-06" incrementalErr="0.00034419" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="72" analysis="step:72_time:6.78564">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00014797" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.1604e-05" incrementalErr="0.0020727" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="4.3278e-06" incrementalErr="0.00035302" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="73" analysis="step:73_time:6.87988">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00020346" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.3287e-05" incrementalErr="0.0025586" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="3.6682e-06" incrementalErr="0.00032847" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="74" analysis="step:74_time:6.97413">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00028642" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.255e-05" incrementalErr="0.0030877" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="2.4076e-06" incrementalErr="0.00024333" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="75" analysis="step:75_time:7.06837">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00040639" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.3302e-05" incrementalErr="0.0035636" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="9.2404e-07" incrementalErr="0.00013183" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="76" analysis="step:76_time:7.16262">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00056533" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.5334e-05" incrementalErr="0.0037678" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="4.8764e-06" incrementalErr="0.0002019" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="77" analysis="step:77_time:7.25686">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00074193" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.8657e-05" incrementalErr="0.0034866" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="1.2136e-05" incrementalErr="0.00026708" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="78" analysis="step:78_time:7.35111">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00089936" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.99e-05" incrementalErr="0.003012" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="1.0463e-05" incrementalErr="0.00022249" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="79" analysis="step:79_time:7.44535">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0010242" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.8482e-05" incrementalErr="0.0031175" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="3.6523e-06" incrementalErr="8.0946e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="80" analysis="step:80_time:7.5396">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0010948" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00011368" incrementalErr="0.0036228" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="1.6004e-05" incrementalErr="0.00040775" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="81" analysis="step:81_time:7.63384">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0010938" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00021883" incrementalErr="0.0039047" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="5.6976e-05" incrementalErr="0.00083716" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="82" analysis="step:82_time:7.72809">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0010523" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00028297" incrementalErr="0.0038862" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00010082" incrementalErr="0.0011866" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="3.7829e-05" incrementalErr="0.00040225" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="83" analysis="step:83_time:7.82233">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0010007" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00032598" incrementalErr="0.0037856" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00014091" incrementalErr="0.0014456" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="6.4126e-05" incrementalErr="0.00059839" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="84" analysis="step:84_time:7.91658">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00092559" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00033738" incrementalErr="0.0035092" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00016438" incrementalErr="0.0015592" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="8.4437e-05" incrementalErr="0.00073504" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="85" analysis="step:85_time:8.01082">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00085227" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00033953" incrementalErr="0.0032148" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00017968" incrementalErr="0.0015898" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00010021" incrementalErr="0.00082123" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="86" analysis="step:86_time:8.10507">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00078428" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00033487" incrementalErr="0.0029271" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00018807" incrementalErr="0.0015661" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00011125" incrementalErr="0.00086548" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="87" analysis="step:87_time:8.19931">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00072154" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00032561" incrementalErr="0.0026579" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00019132" incrementalErr="0.0015098" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0001183" incrementalErr="0.00087881" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="88" analysis="step:88_time:8.29356">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00066471" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00031323" incrementalErr="0.0024092" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00019064" incrementalErr="0.0014342" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00012204" incrementalErr="0.00086978" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="89" analysis="step:89_time:8.3878">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00061193" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029792" incrementalErr="0.0021801" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00018642" incrementalErr="0.0013469" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00012268" incrementalErr="0.00084426" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="90" analysis="step:90_time:8.48205">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00056314" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00028053" incrementalErr="0.0019665" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00017943" incrementalErr="0.0012517" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00012075" incrementalErr="0.00080619" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="91" analysis="step:91_time:8.5763">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00051353" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00026364" incrementalErr="0.0017473" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00017192" incrementalErr="0.0011569" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00011818" incrementalErr="0.00077489" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="92" analysis="step:92_time:8.67054">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0004662" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00024163" incrementalErr="0.0015322" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00016372" incrementalErr="0.001054" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00011759" incrementalErr="0.00074149" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="93" analysis="step:93_time:8.76479">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00041722" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00022107" incrementalErr="0.001326" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00015222" incrementalErr="0.00095164" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="94" analysis="step:94_time:8.85903">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00038365" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00021643" incrementalErr="0.0012532" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00015406" incrementalErr="0.00092257" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="95" analysis="step:95_time:8.95328">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032967" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00019099" incrementalErr="0.0010623" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00013828" incrementalErr="0.00079169" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="96" analysis="step:96_time:9.04752">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027998" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00016536" incrementalErr="0.00088264" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="97" analysis="step:97_time:9.14177">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00024089" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00015777" incrementalErr="0.00082327" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="98" analysis="step:98_time:9.23601">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00018113" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012378" incrementalErr="0.00064156" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="99" analysis="step:99_time:9.33026">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00011849" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="8.3934e-05" incrementalErr="0.00044349" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="100" analysis="step:100_time:9.4245">
+        <iteration pdeName="electrostatic" nr="1" residualErr="6.1261e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.6669e-05" incrementalErr="0.00024092" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="101" analysis="step:101_time:9.51875">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.4299e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.1465e-05" incrementalErr="7.3021e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="102" analysis="step:102_time:9.61299">
+        <iteration pdeName="electrostatic" nr="1" residualErr="4.7408e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.5317e-05" incrementalErr="7.4655e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="103" analysis="step:103_time:9.70724">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.7657e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="6.4381e-05" incrementalErr="0.00016302" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="104" analysis="step:104_time:9.80148">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00013962" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010193" incrementalErr="0.00025614" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="105" analysis="step:105_time:9.89573">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00019483" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00014586" incrementalErr="0.0003395" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="106" analysis="step:106_time:9.98997">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00024979" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0001914" incrementalErr="0.00042655" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="107" analysis="step:107_time:10.0842">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00029977" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0002341" incrementalErr="0.0005054" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="108" analysis="step:108_time:10.1785">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00033694" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00027206" incrementalErr="0.00055179" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="109" analysis="step:109_time:10.2727">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00035176" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029558" incrementalErr="0.00054872" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="110" analysis="step:110_time:10.367">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00035649" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00030189" incrementalErr="0.00051934" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="111" analysis="step:111_time:10.4612">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0003517" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.000299" incrementalErr="0.00046212" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="112" analysis="step:112_time:10.5554">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00033836" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0002876" incrementalErr="0.00039729" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="113" analysis="step:113_time:10.6497">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00031889" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00026979" incrementalErr="0.00037554" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="114" analysis="step:114_time:10.7439">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00029768" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00024969" incrementalErr="0.00045362" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="115" analysis="step:115_time:10.8382">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00028057" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00023315" incrementalErr="0.00062386" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="116" analysis="step:116_time:10.9324">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027144" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00022493" incrementalErr="0.00084936" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="117" analysis="step:117_time:11.0267">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027626" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00023086" incrementalErr="0.001104" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00020656" incrementalErr="0.0010138" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00018682" incrementalErr="0.00092592" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="118" analysis="step:118_time:11.1209">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00026623" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00022066" incrementalErr="0.0012015" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00019748" incrementalErr="0.0011032" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00017869" incrementalErr="0.001006" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00016215" incrementalErr="0.00091552" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="119" analysis="step:119_time:11.2152">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00026118" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00021825" incrementalErr="0.0012484" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00019604" incrementalErr="0.0011453" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00017783" incrementalErr="0.0010426" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00016174" incrementalErr="0.00094728" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="120" analysis="step:120_time:11.3094">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027516" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00023238" incrementalErr="0.0013505" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00020928" incrementalErr="0.0012377" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00019012" incrementalErr="0.0011251" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00017316" incrementalErr="0.0010209" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00015793" incrementalErr="0.00092635" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="121" analysis="step:121_time:11.4036">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00028417" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00024117" incrementalErr="0.001413" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00021753" incrementalErr="0.0012946" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00019784" incrementalErr="0.0011762" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00018039" incrementalErr="0.0010669" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00016473" incrementalErr="0.00096777" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="122" analysis="step:122_time:11.4979">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00030597" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00026166" incrementalErr="0.0015472" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00023645" incrementalErr="0.0014178" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00021533" incrementalErr="0.0012886" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0001966" incrementalErr="0.0011695" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00017978" incrementalErr="0.0010615" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00016463" incrementalErr="0.00096384" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="123" analysis="step:123_time:11.5921">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032081" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00027609" incrementalErr="0.001645" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00025017" incrementalErr="0.0015095" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00022836" incrementalErr="0.001374" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.000209" incrementalErr="0.0012491" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00019161" incrementalErr="0.0011358" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00017591" incrementalErr="0.0010332" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00016171" incrementalErr="0.00094037" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="124" analysis="step:124_time:11.6864">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00033456" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029002" incrementalErr="0.0017389" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00026377" incrementalErr="0.0015993" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0002416" incrementalErr="0.0014596" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00022187" incrementalErr="0.0013306" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00020411" incrementalErr="0.0012133" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00018806" incrementalErr="0.0011069" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00017351" incrementalErr="0.0010104" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00016028" incrementalErr="0.00092286" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="125" analysis="step:125_time:11.7806">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00034973" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00030589" incrementalErr="0.0018418" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00027957" incrementalErr="0.0016994" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00025722" incrementalErr="0.0015565" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00023727" incrementalErr="0.0014242" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00021927" incrementalErr="0.0013036" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00020296" incrementalErr="0.0011938" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00018813" incrementalErr="0.001094" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.0001746" incrementalErr="0.0010031" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00016224" incrementalErr="0.00092034" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="126" analysis="step:126_time:11.8749">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00036587" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00032333" incrementalErr="0.0019487" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.0002973" incrementalErr="0.0018051" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00027506" incrementalErr="0.0016606" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00025513" incrementalErr="0.0015264" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00023709" incrementalErr="0.0014035" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00022068" incrementalErr="0.0012913" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.0002057" incrementalErr="0.0011888" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00019199" incrementalErr="0.0010952" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00017941" incrementalErr="0.0010096" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00016784" incrementalErr="0.00093121" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="127" analysis="step:127_time:11.9691">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00038085" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00034029" incrementalErr="0.0020426" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00031509" incrementalErr="0.0019008" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00029341" incrementalErr="0.0017574" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0002739" incrementalErr="0.0016236" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00025616" incrementalErr="0.0015007" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00023995" incrementalErr="0.0013879" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00022509" incrementalErr="0.0012844" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00021143" incrementalErr="0.0011895" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00019883" incrementalErr="0.0011023" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.0001872" incrementalErr="0.0010222" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00017642" incrementalErr="0.00094845" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="128" analysis="step:128_time:12.0634">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00039136" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00035353" incrementalErr="0.0020986" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00032983" incrementalErr="0.0019628" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00030934" incrementalErr="0.0018245" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0002908" incrementalErr="0.0016948" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00027387" incrementalErr="0.0015751" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00025832" incrementalErr="0.0014647" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00024399" incrementalErr="0.0013631" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00023075" incrementalErr="0.0012693" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00021849" incrementalErr="0.0011828" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00020709" incrementalErr="0.001103" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00019647" incrementalErr="0.0010292" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00018657" incrementalErr="0.00096093" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="129" analysis="step:129_time:12.1576">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00039298" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00035863" incrementalErr="0.0020848" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00033723" incrementalErr="0.0019605" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00031866" incrementalErr="0.0018323" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00030177" incrementalErr="0.0017116" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00028626" incrementalErr="0.0015995" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00027194" incrementalErr="0.0014957" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00025868" incrementalErr="0.0013996" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00024635" incrementalErr="0.0013106" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00023487" incrementalErr="0.0012281" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00022413" incrementalErr="0.0011515" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00021408" incrementalErr="0.0010805" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00020464" incrementalErr="0.0010145" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00019576" incrementalErr="0.00095311" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="130" analysis="step:130_time:12.2519">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0003802" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00035" incrementalErr="0.0019658" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00033169" incrementalErr="0.0018591" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00031579" incrementalErr="0.0017471" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00030127" incrementalErr="0.0016407" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00028786" incrementalErr="0.0015415" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.0002754" incrementalErr="0.0014492" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00026378" incrementalErr="0.0013633" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00025292" incrementalErr="0.0012834" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00024273" incrementalErr="0.001209" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00023316" incrementalErr="0.0011397" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00022414" incrementalErr="0.001075" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00021561" incrementalErr="0.0010147" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00020754" incrementalErr="0.00095841" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="131" analysis="step:131_time:12.3461">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00035632" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00033034" incrementalErr="0.0017635" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00031537" incrementalErr="0.0016775" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00030242" incrementalErr="0.0015846" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00029053" incrementalErr="0.0014957" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00027947" incrementalErr="0.0014121" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00026913" incrementalErr="0.0013341" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00025941" incrementalErr="0.0012612" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00025026" incrementalErr="0.0011931" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00024162" incrementalErr="0.0011294" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00023345" incrementalErr="0.0010698" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00022569" incrementalErr="0.001014" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00021831" incrementalErr="0.00096167" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="132" analysis="step:132_time:12.4403">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00031642" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029498" incrementalErr="0.0014587" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00028371" incrementalErr="0.0013975" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00027387" incrementalErr="0.0013276" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00026478" incrementalErr="0.001259" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00025625" incrementalErr="0.0011942" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.0002482" incrementalErr="0.0011334" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00024058" incrementalErr="0.0010763" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00023333" incrementalErr="0.0010227" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00022644" incrementalErr="0.00097233" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="133" analysis="step:133_time:12.5346">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00026814" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00025321" incrementalErr="0.0011108" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00024572" incrementalErr="0.0010746" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00023925" incrementalErr="0.0010309" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00023317" incrementalErr="0.00098726" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="134" analysis="step:134_time:12.6288">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00022195" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00021576" incrementalErr="0.00084409" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="135" analysis="step:135_time:12.7231">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00017826" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00017378" incrementalErr="0.00057618" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="136" analysis="step:136_time:12.8173">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00014498" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00013553" incrementalErr="0.00031042" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="137" analysis="step:137_time:12.9116">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00013644" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012334" incrementalErr="0.00025465" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="138" analysis="step:138_time:13.0058">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00018911" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00017482" incrementalErr="0.00075488" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="139" analysis="step:139_time:13.1001">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00029797" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00028202" incrementalErr="0.0014262" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00027174" incrementalErr="0.0013874" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00026255" incrementalErr="0.0013442" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00025391" incrementalErr="0.0013017" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00024569" incrementalErr="0.0012605" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00023784" incrementalErr="0.0012207" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00023034" incrementalErr="0.0011824" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00022317" incrementalErr="0.0011455" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00021631" incrementalErr="0.0011099" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00020974" incrementalErr="0.0010756" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00020343" incrementalErr="0.0010426" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00019739" incrementalErr="0.0010108" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00019158" incrementalErr="0.00098007" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="140" analysis="step:140_time:13.1943">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00033102" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.000316" incrementalErr="0.0016616" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00030544" incrementalErr="0.0016105" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00029566" incrementalErr="0.0015568" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00028632" incrementalErr="0.0015045" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00027737" incrementalErr="0.0014542" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.0002688" incrementalErr="0.0014057" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00026057" incrementalErr="0.0013591" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00025268" incrementalErr="0.0013143" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00024509" incrementalErr="0.0012712" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.0002378" incrementalErr="0.0012297" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00023078" incrementalErr="0.0011898" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00022402" incrementalErr="0.0011513" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00021751" incrementalErr="0.0011142" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="15" residualErr="0.00021123" incrementalErr="0.0010785" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="16" residualErr="0.00020517" incrementalErr="0.001044" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="17" residualErr="0.00019932" incrementalErr="0.0010108" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="18" residualErr="0.00019367" incrementalErr="0.00097872" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="141" analysis="step:141_time:13.2885">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032727" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00031384" incrementalErr="0.0016641" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00030311" incrementalErr="0.0016033" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0002929" incrementalErr="0.0015427" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0002831" incrementalErr="0.0014844" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.0002737" incrementalErr="0.0014285" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00026468" incrementalErr="0.001375" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00025603" incrementalErr="0.0013238" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00024771" incrementalErr="0.0012746" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00023972" incrementalErr="0.0012275" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00023203" incrementalErr="0.0011822" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00022463" incrementalErr="0.0011388" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00021751" incrementalErr="0.0010971" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00021064" incrementalErr="0.001057" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="15" residualErr="0.00020401" incrementalErr="0.0010185" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="16" residualErr="0.00019762" incrementalErr="0.00098155" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="142" analysis="step:142_time:13.3828">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032825" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00031439" incrementalErr="0.0017083" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00030188" incrementalErr="0.0016305" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00028994" incrementalErr="0.0015565" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00027856" incrementalErr="0.0014866" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00026773" incrementalErr="0.0014201" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.0002574" incrementalErr="0.001357" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00024755" incrementalErr="0.0012969" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00023815" incrementalErr="0.0012397" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00022916" incrementalErr="0.0011852" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00022056" incrementalErr="0.0011333" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00021233" incrementalErr="0.0010839" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00020444" incrementalErr="0.0010367" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00019687" incrementalErr="0.00099166" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="143" analysis="step:143_time:13.477">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032747" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00031215" incrementalErr="0.0017523" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00029706" incrementalErr="0.0016529" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00028274" incrementalErr="0.0015622" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00026926" incrementalErr="0.0014777" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00025655" incrementalErr="0.0013984" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00024458" incrementalErr="0.0013237" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00023326" incrementalErr="0.0012534" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00022256" incrementalErr="0.0011871" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00021243" incrementalErr="0.0011245" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00020282" incrementalErr="0.0010654" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.0001937" incrementalErr="0.0010096" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00018504" incrementalErr="0.00095691" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="144" analysis="step:144_time:13.5713">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00031471" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029791" incrementalErr="0.0017266" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.0002804" incrementalErr="0.0016061" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00026393" incrementalErr="0.0015005" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00024861" incrementalErr="0.0014035" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00023437" incrementalErr="0.0013136" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.0002211" incrementalErr="0.0012299" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00020871" incrementalErr="0.0011519" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00019713" incrementalErr="0.0010792" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00018628" incrementalErr="0.0010114" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00017611" incrementalErr="0.00094804" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="145" analysis="step:145_time:13.6655">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00030853" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00028951" incrementalErr="0.001722" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00026913" incrementalErr="0.0015774" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00025016" incrementalErr="0.0014549" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00023276" incrementalErr="0.0013441" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00021678" incrementalErr="0.0012428" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00020209" incrementalErr="0.0011497" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00018856" incrementalErr="0.0010639" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00017606" incrementalErr="0.00098499" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="146" analysis="step:146_time:13.7598">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00030881" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00028668" incrementalErr="0.0017352" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00026309" incrementalErr="0.0015638" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0002414" incrementalErr="0.0014231" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00022175" incrementalErr="0.0012979" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00020395" incrementalErr="0.0011847" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00018779" incrementalErr="0.0010821" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00017307" incrementalErr="0.00098884" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="147" analysis="step:147_time:13.854">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00029853" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0002735" incrementalErr="0.0016753" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00024775" incrementalErr="0.0014837" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00022438" incrementalErr="0.0013315" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00020349" incrementalErr="0.0011982" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.0001848" incrementalErr="0.0010793" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00016803" incrementalErr="0.00097293" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="148" analysis="step:148_time:13.9483">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00028337" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00025506" incrementalErr="0.0015753" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00022799" incrementalErr="0.0013692" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00020382" incrementalErr="0.0012115" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00018248" incrementalErr="0.0010754" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00016362" incrementalErr="0.00095581" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="149" analysis="step:149_time:14.0425">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00026732" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00023476" incrementalErr="0.0014546" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00020702" incrementalErr="0.0012398" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00018273" incrementalErr="0.0010816" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00016156" incrementalErr="0.0009474" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="150" analysis="step:150_time:14.1368">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00025281" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00021456" incrementalErr="0.0013233" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00018673" incrementalErr="0.0011054" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00016284" incrementalErr="0.00095218" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="151" analysis="step:151_time:14.231">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00024186" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00019607" incrementalErr="0.0011896" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00016815" incrementalErr="0.00097255" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="152" analysis="step:152_time:14.3252">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00023524" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00018117" incrementalErr="0.0010584" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00015306" incrementalErr="0.00084856" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="153" analysis="step:153_time:14.4195">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00021864" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00015262" incrementalErr="0.00083581" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="154" analysis="step:154_time:14.5137">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00021233" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00013888" incrementalErr="0.00067129" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="155" analysis="step:155_time:14.608">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00020887" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012189" incrementalErr="0.0004851" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="156" analysis="step:156_time:14.7022">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00020892" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010968" incrementalErr="0.00033788" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="157" analysis="step:157_time:14.7965">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00021136" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0001046" incrementalErr="0.00028995" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="158" analysis="step:158_time:14.8907">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00021204" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010518" incrementalErr="0.00031667" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="159" analysis="step:159_time:14.985">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00020558" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010754" incrementalErr="0.00035412" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="160" analysis="step:160_time:15.0792">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00019268" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010613" incrementalErr="0.00038152" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="161" analysis="step:161_time:15.1734">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00017748" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00010333" incrementalErr="0.00039409" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="162" analysis="step:162_time:15.2677">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00016092" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="9.8907e-05" incrementalErr="0.00038652" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="163" analysis="step:163_time:15.3619">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0001419" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="9.2331e-05" incrementalErr="0.00036067" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="164" analysis="step:164_time:15.4562">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00011151" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.525e-05" incrementalErr="0.00031041" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="165" analysis="step:165_time:15.5504">
+        <iteration pdeName="electrostatic" nr="1" residualErr="8.0253e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="5.6041e-05" incrementalErr="0.00025169" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="166" analysis="step:166_time:15.6447">
+        <iteration pdeName="electrostatic" nr="1" residualErr="5.3364e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="3.9692e-05" incrementalErr="0.00018604" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="167" analysis="step:167_time:15.7389">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.9431e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.4306e-05" incrementalErr="0.00011607" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="168" analysis="step:168_time:15.8332">
+        <iteration pdeName="electrostatic" nr="1" residualErr="1.3733e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.1153e-05" incrementalErr="6.0663e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="169" analysis="step:169_time:15.9274">
+        <iteration pdeName="electrostatic" nr="1" residualErr="2.4076e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="1.1561e-05" incrementalErr="5.0603e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="170" analysis="step:170_time:16.0217">
+        <iteration pdeName="electrostatic" nr="1" residualErr="4.5535e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="2.6615e-05" incrementalErr="9.3212e-05" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="171" analysis="step:171_time:16.1159">
+        <iteration pdeName="electrostatic" nr="1" residualErr="7.2163e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="4.7911e-05" incrementalErr="0.00016802" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="172" analysis="step:172_time:16.2101">
+        <iteration pdeName="electrostatic" nr="1" residualErr="9.9908e-05" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="7.1007e-05" incrementalErr="0.00024899" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="173" analysis="step:173_time:16.3044">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00012767" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="9.4946e-05" incrementalErr="0.00033509" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="174" analysis="step:174_time:16.3986">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00015116" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00011624" incrementalErr="0.00040479" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="175" analysis="step:175_time:16.4929">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00016723" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00013239" incrementalErr="0.00044429" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="176" analysis="step:176_time:16.5871">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00017174" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0001423" incrementalErr="0.00044109" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="177" analysis="step:177_time:16.6814">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00016565" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00014125" incrementalErr="0.00039035" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="178" analysis="step:178_time:16.7756">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00015556" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00013553" incrementalErr="0.00030032" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="179" analysis="step:179_time:16.8699">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00014573" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012781" incrementalErr="0.00019429" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="180" analysis="step:180_time:16.9641">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00014107" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012216" incrementalErr="0.00018049" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="181" analysis="step:181_time:17.0583">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00014683" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00012396" incrementalErr="0.00033552" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="182" analysis="step:182_time:17.1526">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00016576" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00013741" incrementalErr="0.00055512" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="183" analysis="step:183_time:17.2468">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00019699" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00016316" incrementalErr="0.00080073" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="184" analysis="step:184_time:17.3411">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00023793" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00019917" incrementalErr="0.0010631" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00017743" incrementalErr="0.00097159" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="185" analysis="step:185_time:17.4353">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027143" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00022774" incrementalErr="0.0012501" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00020374" incrementalErr="0.0011423" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00018397" incrementalErr="0.0010341" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0001666" incrementalErr="0.00093426" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="186" analysis="step:186_time:17.5296">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00027856" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00023411" incrementalErr="0.0012843" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00021043" incrementalErr="0.001174" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00019091" incrementalErr="0.0010628" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00017369" incrementalErr="0.00096029" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="187" analysis="step:187_time:17.6238">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.0003036" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00025754" incrementalErr="0.0014076" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00023251" incrementalErr="0.0012868" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0002117" incrementalErr="0.0011653" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00019329" incrementalErr="0.0010535" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00017677" incrementalErr="0.0009524" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="188" analysis="step:188_time:17.7181">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00032356" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00027671" incrementalErr="0.0015061" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00025088" incrementalErr="0.0013783" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00022928" incrementalErr="0.0012496" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00021011" incrementalErr="0.0011313" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00019287" incrementalErr="0.0010243" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00017728" incrementalErr="0.00092785" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="189" analysis="step:189_time:17.8123">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00034268" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00029557" incrementalErr="0.0016052" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.0002692" incrementalErr="0.0014716" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00024703" incrementalErr="0.001337" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00022731" incrementalErr="0.0012131" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00020953" incrementalErr="0.0011009" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00019341" incrementalErr="0.00099973" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="190" analysis="step:190_time:17.9066">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00037856" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00033073" incrementalErr="0.001797" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00030289" incrementalErr="0.0016508" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00027927" incrementalErr="0.001504" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00025818" incrementalErr="0.0013687" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00023912" incrementalErr="0.0012461" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00022179" incrementalErr="0.0011352" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00020598" incrementalErr="0.001035" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00019152" incrementalErr="0.00094426" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="191" analysis="step:191_time:18.0008">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00039288" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00034667" incrementalErr="0.00187" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00031949" incrementalErr="0.0017241" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00029633" incrementalErr="0.001577" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00027557" incrementalErr="0.0014411" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00025674" incrementalErr="0.0013175" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00023957" incrementalErr="0.0012053" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00022384" incrementalErr="0.0011036" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00020939" incrementalErr="0.0010113" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00019608" incrementalErr="0.00092742" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="192" analysis="step:192_time:18.095">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00041615" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00037152" incrementalErr="0.0019871" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00034478" incrementalErr="0.0018394" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00032184" incrementalErr="0.0016901" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00030121" incrementalErr="0.0015516" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00028244" incrementalErr="0.0014253" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00026525" incrementalErr="0.0013102" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00024944" incrementalErr="0.0012055" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00023487" incrementalErr="0.0011101" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00022138" incrementalErr="0.0010231" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00020886" incrementalErr="0.00094372" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="193" analysis="step:193_time:18.1893">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00044341" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00040098" incrementalErr="0.00211" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00037504" incrementalErr="0.001962" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00035264" incrementalErr="0.0018118" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0003324" incrementalErr="0.0016721" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00031391" incrementalErr="0.0015441" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00029691" incrementalErr="0.0014271" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00028121" incrementalErr="0.0013201" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00026667" incrementalErr="0.0012222" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00025314" incrementalErr="0.0011326" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00024052" incrementalErr="0.0010505" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00022872" incrementalErr="0.00097512" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="194" analysis="step:194_time:18.2835">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00047053" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00043113" incrementalErr="0.0022056" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00040667" incrementalErr="0.0020611" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00038542" incrementalErr="0.0019138" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00036613" incrementalErr="0.0017761" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00034842" incrementalErr="0.0016493" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00033207" incrementalErr="0.0015329" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00031689" incrementalErr="0.0014261" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00030275" incrementalErr="0.0013279" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00028953" incrementalErr="0.0012376" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00027713" incrementalErr="0.0011545" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00026547" incrementalErr="0.0010779" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00025447" incrementalErr="0.0010072" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00024408" incrementalErr="0.00094194" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="195" analysis="step:195_time:18.3778">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00048137" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.0004464" incrementalErr="0.0021791" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00042482" incrementalErr="0.0020479" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.000406" incrementalErr="0.0019124" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00038885" incrementalErr="0.0017851" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00037302" incrementalErr="0.0016673" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00035833" incrementalErr="0.0015587" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00034462" incrementalErr="0.0014585" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00033177" incrementalErr="0.001366" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00031969" incrementalErr="0.0012805" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00030829" incrementalErr="0.0012015" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.0002975" incrementalErr="0.0011283" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00028727" incrementalErr="0.0010605" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00027753" incrementalErr="0.00099765" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="196" analysis="step:196_time:18.472">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00050329" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00047247" incrementalErr="0.0021685" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00045351" incrementalErr="0.0020486" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00043692" incrementalErr="0.0019234" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00042171" incrementalErr="0.0018051" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.0004076" incrementalErr="0.0016951" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00039442" incrementalErr="0.0015932" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00038206" incrementalErr="0.0014988" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00037041" incrementalErr="0.0014113" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00035939" incrementalErr="0.0013301" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00034894" incrementalErr="0.0012547" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00033898" incrementalErr="0.0011846" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00032948" incrementalErr="0.0011194" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.00032039" incrementalErr="0.0010587" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="15" residualErr="0.00031168" incrementalErr="0.0010021" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="16" residualErr="0.0003033" incrementalErr="0.00094921" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="197" analysis="step:197_time:18.5663">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00049471" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00046947" incrementalErr="0.0019439" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00045458" incrementalErr="0.0018476" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00044154" incrementalErr="0.0017447" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.0004295" incrementalErr="0.0016464" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00041826" incrementalErr="0.0015545" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00040767" incrementalErr="0.001469" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.00039766" incrementalErr="0.0013894" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00038815" incrementalErr="0.0013152" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00037909" incrementalErr="0.0012462" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00037042" incrementalErr="0.0011818" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.0003621" incrementalErr="0.0011216" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00035411" incrementalErr="0.0010654" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="14" residualErr="0.0003464" incrementalErr="0.0010129" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="15" residualErr="0.00033896" incrementalErr="0.00096365" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="198" analysis="step:198_time:18.6605">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00048759" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00046714" incrementalErr="0.0017031" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00045561" incrementalErr="0.0016284" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.0004455" incrementalErr="0.0015456" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00043611" incrementalErr="0.0014657" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00042725" incrementalErr="0.0013906" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00041883" incrementalErr="0.0013204" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.0004108" incrementalErr="0.0012547" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.0004031" incrementalErr="0.0011933" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.0003957" incrementalErr="0.0011359" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="11" residualErr="0.00038856" incrementalErr="0.0010821" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="12" residualErr="0.00038167" incrementalErr="0.0010317" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="13" residualErr="0.00037499" incrementalErr="0.00098439" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="199" analysis="step:199_time:18.7548">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00046612" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00045094" incrementalErr="0.00137" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="3" residualErr="0.00044323" incrementalErr="0.0013201" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="4" residualErr="0.00043616" incrementalErr="0.0012615" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="5" residualErr="0.00042909" incrementalErr="0.0012035" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="6" residualErr="0.00042236" incrementalErr="0.0011478" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="7" residualErr="0.00041592" incrementalErr="0.0010968" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="8" residualErr="0.0004097" incrementalErr="0.0010495" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="9" residualErr="0.00040366" incrementalErr="0.0010047" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="10" residualErr="0.00039779" incrementalErr="0.00096247" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="200" analysis="step:200_time:18.849">
+        <iteration pdeName="electrostatic" nr="1" residualErr="0.00042614" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="electrostatic" nr="2" residualErr="0.00041704" incrementalErr="0.00099549" eta_linesearch="1"/>
+      </solStep>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

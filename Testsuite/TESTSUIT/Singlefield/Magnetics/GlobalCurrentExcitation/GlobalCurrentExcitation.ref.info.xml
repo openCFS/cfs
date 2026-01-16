@@ -1,0 +1,649 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="22" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="3.57s" wall="3.57" cpu="3.56693" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2187" peak="2192"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:26:58" host="shady" estimatedEnd="2026-Jan-19 12:27:02" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="GlobalCurrentExcitation" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Magnetics/GlobalCurrentExcitation/GlobalCurrentExcitation.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.127s" wall="0.127" cpu="0.127987" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="15894" nodes="12572"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="V_air" id="0" type="volume" regular="no" hom="yes" nodes="11552" elems="8532" isQuadratic="no"/>
+        <region name="V_coil" id="1" type="volume" regular="no" hom="yes" nodes="1244" elems="846" isQuadratic="no"/>
+        <region name="S_air_out" id="2" type="surface" regular="no" hom="yes" nodes="128" elems="96" isQuadratic="no"/>
+        <region name="S_gamma_c" id="3" type="surface" regular="no" hom="yes" nodes="224" elems="168" isQuadratic="no"/>
+        <region name="S_sigma_minus" id="4" type="surface" regular="no" hom="yes" nodes="311" elems="282" isQuadratic="no"/>
+        <region name="S_sigma_plus" id="5" type="surface" regular="no" hom="yes" nodes="311" elems="282" isQuadratic="no"/>
+        <region name="S_z_neg" id="6" type="surface" regular="no" hom="yes" nodes="2888" elems="2844" isQuadratic="no"/>
+        <region name="S_z_pos" id="7" type="surface" regular="no" hom="yes" nodes="2888" elems="2844" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser dt="0" f="1000" step="5" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.817s" wall="0.817" cpu="0.867392" calls="188"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <elecConduction>
+        <header>
+          <region name="V_coil" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElecCurrentIntegrator" type="BDBInt" complex="no" BOp="GradientOperator" region="V_coil">
+                <coef type="CoefFunctionConst" value="[[1, 0, 0],[0, 1, 0],[0, 0, 1]]"/>
+                <row pde="elecConduction" functionId="0" result="elecPotential"/>
+                <column pde="elecConduction" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="copper_unitConduc_4_elecConduction">
+          <regionList>
+            <region name="V_coil"/>
+          </regionList>
+          <property name="Electric_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Electric_Conductivity_Scalar" value="(1,0)"/>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <V_coil order="1" polyMapType="serendipity"/>
+                <default/>
+              </regionList>
+              <virtualNodes numVirtualNodes="1244">
+                <FACE numEntitiies="2904" numVirtualNodes="0"/>
+                <EDGE numEntitiies="3301" numVirtualNodes="0"/>
+                <VERTEX numEntitiies="1244" numVirtualNodes="1244"/>
+              </virtualNodes>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <surfElemList name="S_sigma_plus" dofs="" value="1"/>
+            <surfElemList name="S_sigma_minus" dofs="" value="0"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </elecConduction>
+    </PDE>
+    <OLAS>
+      <elecConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="1244" totalNumFreeEqns="622" totalNumDirichlet="622">
+            <function id="0" name="elecPotential" numEqns="1244" lastFreeEqn="622" numDirichlet="622">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="1244" lastFreeIndex="622"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001863" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000216" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.001339" wall="0.001" peakMem="485" permanentMem="463"/>
+                <numfact cpu="0.000489" wall="0" peakMem="248"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </elecConduction>
+      <graph_setup>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.001913" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.009s" wall="0.009" cpu="0.008269" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.009s" wall="0.009" cpu="0.008265" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="10" end="1000" numFreq="5"/>
+    </harmonic>
+    <PDE>
+      <magneticEdgeSpecialAV>
+        <header>
+          <region name="V_air" damping="none"/>
+          <region name="V_coil" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="V_coil">
+                <coef type="CoefFunctionConst" value="56700000"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="LowerDiagIntegrator" type="no bilinear form type" complex="yes" region="">
+                <row pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <column pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CoilVoltCouplInt" type="BiLinWarappenLinForm" complex="yes" region="V_coil">
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="no" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="V_air">
+                <coef type="CoefFunctionConst" value="796178.34394904459"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="V_air">
+                <coef type="CoefFunctionConst" value="0.79617834394904452"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="V_coil">
+                <coef type="CoefFunctionConst" value="796178.34394904459"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="CoilCurrentLoadInt">
+                <entities name="coil1" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="(10,0)"/>
+                <row pde="magneticEdgeSpecialAV" result="coilVoltageIntegral" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="V_air"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256000e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256000e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256000e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.256e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.961783e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.961783e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.961783e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(796178,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="copper_unitConduc_4_elecConduction">
+          <regionList>
+            <region name="V_coil"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256000e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256000e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256000e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.256e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.961783e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.961783e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.961783e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(796178,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 5.670000e+07  0.000000e+00  0.000000e+00
+                 0.000000e+00  5.670000e+07  0.000000e+00
+                 0.000000e+00  0.000000e+00  5.670000e+07
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(5.67e+07,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <magPotential>
+            <hCurlHierarchical>
+              <regionList>
+                <V_air order="0"/>
+                <default/>
+                <V_coil order="0"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="34501">
+                <INTERIOR numEntitiies="15726" numVirtualNodes="0"/>
+                <FACE numEntitiies="31308" numVirtualNodes="0"/>
+                <EDGE numEntitiies="34501" numVirtualNodes="34501"/>
+                <VERTEX numEntitiies="12572" numVirtualNodes="0"/>
+              </virtualNodes>
+            </hCurlHierarchical>
+          </magPotential>
+          <coilVoltage/>
+        </feSpaces>
+        <feFunctions>
+          <magPotential/>
+          <homDirichletBC>
+            <surfElemList name="S_air_out" dofs="x"/>
+            <surfElemList name="S_z_pos" dofs="x"/>
+            <surfElemList name="S_z_neg" dofs="x"/>
+            <surfElemList name="S_sigma_plus" dofs="x"/>
+            <surfElemList name="S_sigma_minus" dofs="x"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+          <coilVoltageIntegral/>
+        </feFunctions>
+      </magneticEdgeSpecialAV>
+    </PDE>
+    <OLAS>
+      <magneticEdgeSpecialAV>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="21806" totalNumFreeEqns="21806" totalNumDirichlet="0">
+            <function id="0" name="magPotential" numEqns="21805" lastFreeEqn="21805" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+            <function id="1" name="coilVoltageIntegral" numEqns="1" lastFreeEqn="1" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="21806" lastFreeIndex="21806"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.447s" wall="0.447" cpu="0.449761" calls="5"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.065s" wall="0.065" cpu="0.067819" calls="5"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.094863" wall="0.094" peakMem="15757" permanentMem="14297"/>
+                <numfact cpu="0.068655" wall="0.068" peakMem="54867"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="5e-06" calls="5"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </magneticEdgeSpecialAV>
+      <graph_setup>
+        <timer wall-clock="0.061s" wall="0.061" cpu="0.061099" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.495s" wall="0.495" cpu="0.497956" calls="10"/>
+          <assemble_matrices>
+            <timer wall-clock="0.495s" wall="0.495" cpu="0.497922" calls="5" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="2.1e-05" calls="5" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="3">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="10" end="1000" numFreq="5"/>
+    </harmonic>
+    <PDE>
+      <magneticEdgeSpecialAV>
+        <header>
+          <region name="V_air" damping="none"/>
+          <region name="V_coil" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="CoilVoltCouplInt" type="BiLinWarappenLinForm" complex="yes" region="V_coil">
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="no" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="LowerDiagIntegrator" type="no bilinear form type" complex="yes" region="">
+                <row pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <column pde="magneticEdgeSpecialAV" functionId="1" result="coilVoltageIntegral"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="V_coil">
+                <coef type="CoefFunctionConst" value="56700000"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="V_air">
+                <coef type="CoefFunctionConst" value="0.79617834394904452"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="V_coil">
+                <coef type="CoefFunctionConst" value="796178.34394904459"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="V_air">
+                <coef type="CoefFunctionConst" value="796178.34394904459"/>
+                <row pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <column pde="magneticEdgeSpecialAV" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="CoilCurrentLoadInt">
+                <entities name="coil1" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="(10,0)"/>
+                <row pde="magneticEdgeSpecialAV" result="coilVoltageIntegral" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="V_air"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256000e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256000e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256000e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.256e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.961783e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.961783e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.961783e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(796178,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="copper_unitConduc_4_elecConduction">
+          <regionList>
+            <region name="V_coil"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256000e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256000e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256000e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.256e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.961783e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.961783e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.961783e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(796178,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 5.670000e+07  0.000000e+00  0.000000e+00
+                 0.000000e+00  5.670000e+07  0.000000e+00
+                 0.000000e+00  0.000000e+00  5.670000e+07
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(5.67e+07,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <magPotential>
+            <hCurlHierarchical>
+              <regionList>
+                <V_air order="0"/>
+                <default/>
+                <V_coil order="0"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="34501">
+                <INTERIOR numEntitiies="15726" numVirtualNodes="0"/>
+                <FACE numEntitiies="31308" numVirtualNodes="0"/>
+                <EDGE numEntitiies="34501" numVirtualNodes="34501"/>
+                <VERTEX numEntitiies="12572" numVirtualNodes="0"/>
+              </virtualNodes>
+            </hCurlHierarchical>
+          </magPotential>
+          <coilVoltage/>
+        </feSpaces>
+        <feFunctions>
+          <magPotential/>
+          <homDirichletBC>
+            <surfElemList name="S_air_out" dofs="x"/>
+            <surfElemList name="S_z_pos" dofs="x"/>
+            <surfElemList name="S_z_neg" dofs="x"/>
+            <surfElemList name="S_sigma_plus" dofs="x"/>
+            <surfElemList name="S_sigma_minus" dofs="x"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+          <coilVoltageIntegral/>
+        </feFunctions>
+      </magneticEdgeSpecialAV>
+    </PDE>
+    <OLAS>
+      <magneticEdgeSpecialAV>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="21806" totalNumFreeEqns="21806" totalNumDirichlet="0">
+            <function id="0" name="magPotential" numEqns="21805" lastFreeEqn="21805" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+            <function id="1" name="coilVoltageIntegral" numEqns="1" lastFreeEqn="1" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="21806" lastFreeIndex="21806"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.448s" wall="0.448" cpu="0.451367" calls="5"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.065s" wall="0.065" cpu="0.066941" calls="5"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.097716" wall="0.097" peakMem="15757" permanentMem="14297"/>
+                <numfact cpu="0.068557" wall="0.068" peakMem="54867"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="6e-06" calls="5"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </magneticEdgeSpecialAV>
+      <graph_setup>
+        <timer wall-clock="0.055s" wall="0.055" cpu="0.055199" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.497s" wall="0.497" cpu="0.499512" calls="10"/>
+          <assemble_matrices>
+            <timer wall-clock="0.497s" wall="0.497" cpu="0.499479" calls="5" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="2.2e-05" calls="5" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <init_multiSequence>
+    <timer wall-clock="0s" wall="0" cpu="5e-06" calls="1"/>
+  </init_multiSequence>
+  <warning lineNum="551" fileName="/home/fwein/code/cfs/source/FeBasis/FeFunctions.cc" message="The interpolation operator for FeSpaceConst is not initialized."/>
+</cfsInfo>

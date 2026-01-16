@@ -161,7 +161,7 @@ namespace CoupledField {
     }
 
     // Now for the elements...
-    boost::unordered_set<UInt>::iterator reIt, reEnd;
+    std::set<UInt>::iterator reIt, reEnd;
     reIt = referencedElems_.begin();
     reEnd = referencedElems_.end();
 
@@ -544,7 +544,7 @@ namespace CoupledField {
     std::vector<UInt> faceTopo(10);
     std::vector<UInt> faceTopoSorted(10);
 
-    boost::unordered_set<UInt>::const_iterator reIt, reEnd;
+    std::set<UInt>::const_iterator reIt, reEnd;
     reIt = referencedElems_.begin();
     reEnd = referencedElems_.end();
     for( ; reIt!=reEnd; reIt++)

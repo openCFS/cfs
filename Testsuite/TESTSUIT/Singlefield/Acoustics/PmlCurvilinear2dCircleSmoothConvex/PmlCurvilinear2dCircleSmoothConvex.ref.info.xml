@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.061s" wall="0.061" cpu="0.060137" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2050" peak="2070"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-19 12:26:50" host="shady" estimatedEnd="2026-Jan-19 12:26:50" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="PmlCurvilinear2dCircleSmoothConvex" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Acoustics/PmlCurvilinear2dCircleSmoothConvex/PmlCurvilinear2dCircleSmoothConvex.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.003021" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="279" nodes="248"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="ring" id="0" type="volume" regular="no" hom="yes" nodes="248" elems="217" isQuadratic="no"/>
+        <region name="ifPML" id="1" type="surface" regular="no" hom="yes" nodes="31" elems="31" isQuadratic="no"/>
+        <region name="src" id="2" type="surface" regular="no" hom="yes" nodes="31" elems="31" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser c="1" dt="0" f="0.1" r0="0.25" step="1" t="0" t0="0" x0="0.4" y0="0.3" z0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001494" calls="14"/>
+    </results>
+  </header>
+  <warning lineNum="4948" fileName="/home/fwein/code/cfs/source/Domain/Mesh/GridCFS/GridCFS.cc" message="A total number of 124 elements had a wrong orientation and were reoriented.
+ Usually this does not lead to further errors."/>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="frequency list given" start="0" end="0.1" numFreq="1"/>
+      <init_harmonic>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.003779" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="PML" damping="pml"/>
+          <region name="ring" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="TensorScaledGradientOperator" coef="CoefFunctionCompound_complex" region="PML">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="PML">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="ring">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" region="ring">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="fakefluid">
+          <regionList>
+            <region name="ring"/>
+            <region name="PML"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(1,0)"/>
+          <property name="Acoustic_Sound_Speed" value="1"/>
+          <property name="Density" value="(1,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(1,0)"/>
+          <property name="Acoustic_Sound_Speed" value="1"/>
+          <property name="Density" value="(1,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <ring/>
+                <default order="1"/>
+                <PML/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+        <feFunctions>
+          <acouPressure/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <surfElemList name="src" dofs="" value="(1,0)"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="372" totalNumFreeEqns="341" totalNumDirichlet="31">
+            <function id="0" name="acouPressure" numEqns="372" lastFreeEqn="341" numDirichlet="31">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="372" lastFreeIndex="341"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000752" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="9.6e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000416" wall="0" peakMem="282" permanentMem="275"/>
+                <numfact cpu="0.000312" wall="0" peakMem="175"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000403" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.004s" wall="0.004" cpu="0.003846" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.004s" wall="0.004" cpu="0.003844" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

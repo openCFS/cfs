@@ -1,0 +1,460 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="20" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.586s" wall="0.586" cpu="0.573401" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2052" peak="2060"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-20 10:55:09" host="shady"/>
+    <progOpts problem="CylinderMH_IDBC" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Electrostatics/CylinderMH_IDBC/CylinderMH_IDBC.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001485" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="80" nodes="68"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="V_all" id="0" type="volume" regular="no" hom="yes" nodes="68" elems="24" isQuadratic="no"/>
+        <region name="S_bot" id="1" type="surface" regular="no" hom="yes" nodes="34" elems="24" isQuadratic="no"/>
+        <region name="S_mantle" id="2" type="surface" regular="no" hom="yes" nodes="18" elems="8" isQuadratic="no"/>
+        <region name="S_top" id="3" type="surface" regular="no" hom="yes" nodes="34" elems="24" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="L_mid" count="2"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser cacheResult="1023" dt="0" f="7" finishCash="1" harmonicHandle="7" iterationCounter="5" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.008114" calls="90"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <multiharmonic>
+      <header unit="Hz"/>
+      <init_multiharmonic>
+        <timer wall-clock="0.015s" wall="0.015" cpu="0.005619" calls="1"/>
+      </init_multiharmonic>
+    </multiharmonic>
+    <PDE>
+      <electrostatic load_factor="1">
+        <header>
+          <region name="V_all" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="NonLinElecIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionHarmBalance" region="V_all">
+                <row pde="electrostatic" functionId="0" result="elecPotential"/>
+                <column pde="electrostatic" functionId="0" result="elecPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="PZT-4">
+          <regionList>
+            <region name="V_all"/>
+          </regionList>
+          <property name="Electric_Permittivity_Tensdor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.306000e-08  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.306000e-08  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.306000e-08
+              </real>
+            </tensor>
+          </property>
+          <property name="Electric_Permittivity_Scalar" value="(1.306e-08,0)"/>
+          <property name="nonLinDependency" value="ElectricField"/>
+        </material>
+        <feSpaces>
+          <elecPotential>
+            <h1Nodal>
+              <regionList>
+                <V_all/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </elecPotential>
+        </feSpaces>
+        <feFunctions>
+          <elecPotential/>
+          <homDirichletBC>
+            <surfElemList name="S_mantle" dofs=""/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <nodeList name="L_mid" dofs="" value="(2000,0)"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </electrostatic>
+    </PDE>
+    <OLAS>
+      <electrostatic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="50" totalNumFreeEqns="48" totalNumDirichlet="2">
+            <function id="0" name="elecPotential" numEqns="50" lastFreeEqn="48" numDirichlet="2">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="50" lastFreeIndex="48"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <gmres>
+            <summary>
+              <setup>
+                <timer label="setup_gmres" wall-clock="0s" wall="0" cpu="2.8e-05" calls="6"/>
+              </setup>
+              <solve>
+                <timer label="solve_gmres" wall-clock="0.02s" wall="0.02" cpu="0.02146" calls="6"/>
+              </solve>
+            </summary>
+            <process>
+              <solver numIter="1" numGlobalIter="1" finalNorm="8.3287e-22" solutionIsOkay="8.3287e-22"/>
+              <solver numIter="3" numGlobalIter="9" finalNorm="5.6126e-17" solutionIsOkay="5.6126e-17"/>
+              <solver numIter="3" numGlobalIter="9" finalNorm="4.3309e-17" solutionIsOkay="4.3309e-17"/>
+              <solver numIter="3" numGlobalIter="9" finalNorm="4.5344e-17" solutionIsOkay="4.5344e-17"/>
+              <solver numIter="3" numGlobalIter="9" finalNorm="4.544e-17" solutionIsOkay="4.544e-17"/>
+              <solver numIter="3" numGlobalIter="9" finalNorm="4.5404e-17" solutionIsOkay="4.5404e-17"/>
+            </process>
+          </gmres>
+        </solver>
+        <precond>
+          <SBMPrecond>
+            <block num="1">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000219" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="2.5e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="2">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000127" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.4e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="3">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000127" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="4">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000122" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="5">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000116" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="6">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.00012" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.1e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="7">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000115" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.1e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="8">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000118" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="9">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000107" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="10">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000125" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="11">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000115" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.1e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="12">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000118" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.1e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="13">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000121" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="14">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000104" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.2e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <block num="15">
+              <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+                <summary>
+                  <precond_noPrecond_setup>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_setup>
+                  <precond_noPrecond_run>
+                    <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                  </precond_noPrecond_run>
+                </summary>
+                <process>
+                  <call number="1">
+                    <symbfact cpu="0.000108" wall="0" peakMem="187" permanentMem="173"/>
+                    <numfact cpu="1.1e-05" wall="0" peakMem="28"/>
+                  </call>
+                </process>
+                <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+              </pardiso>
+            </block>
+            <summary>
+              <precond_SBMDiag_setup>
+                <timer wall-clock="0.002s" wall="0.002" cpu="0.003864" calls="6"/>
+              </precond_SBMDiag_setup>
+              <precond_SBMDiag_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_SBMDiag_run>
+            </summary>
+          </SBMPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </electrostatic>
+      <graph_setup>
+        <timer wall-clock="0.012s" wall="0.012" cpu="0.003598" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.525s" wall="0.525" cpu="0.521819" calls="27"/>
+          <assemble_matrices>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+      <setup method="fixPoint" lineSearch="none" maxIter="100" incStopCrit="0.001" residualStopCrit="1e-05" logging="no"/>
+      <solStep value="1">
+        <timer wall-clock="0.503s" wall="0.503" cpu="0.501706" calls="1"/>
+      </solStep>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <warning lineNum="4611" fileName="/home/fwein/code/cfs/source/OLAS/algsys/AlgebraicSys.cc" message="The implementation of this section is not yet finished"/>
+</cfsInfo>
