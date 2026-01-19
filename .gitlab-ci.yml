@@ -7,6 +7,7 @@
 
 # include common stuff to make this file shorter
 include:
+  - local: .gitlab/ci/hidden_jobs.yml
   - local: .gitlab/ci/linux.yml
   - local: .gitlab/ci/windows.yml
   # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
@@ -829,7 +830,9 @@ generate_performance_jobs:
     # Step 2: Start generating the child pipeline YAML
     # -------------------------------------------
     - echo "Automatically adding ${#perf_tests[@]} performance tests"
-    - echo "stages:" > generated-perf-jobs.yml
+    - echo "include:" >> generated-perf-jobs.yml
+    - echo "  - local: .gitlab/ci/hidden_jobs.yml" >> generated-perf-jobs.yml
+    - echo "stages:" >> generated-perf-jobs.yml
     - echo "  - performance_test" >> generated-perf-jobs.yml
 
     # -------------------------------------------
