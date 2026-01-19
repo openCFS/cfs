@@ -1303,7 +1303,7 @@ ${job_name}:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-R '$test'"
+    CTEST_OPTIONS: "-R ${test}"
   needs:
     - linux:gcc14-musl
 EOF
