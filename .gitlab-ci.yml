@@ -1258,6 +1258,8 @@ python:linux:
 
 #Generate dynamic child pipeline in test stage
 generate_performance_jobs:
+  tags:
+    - saas-linux-small-amd64
   stage: test
   variables:
     IMAGE: ubuntu22.04
@@ -1280,7 +1282,6 @@ generate_performance_jobs:
     # -------------------------------------------
     - pwd
     - ls
-    - cd build
     - echo "stages:" > generated-perf-jobs.yml
     - echo "  - performance_test" >> generated-perf-jobs.yml
 
