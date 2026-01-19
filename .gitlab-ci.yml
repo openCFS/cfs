@@ -1286,29 +1286,24 @@ generate_performance_jobs:
     # -------------------------------------------
     - |
       for test in "${perf_tests[@]}"; do
-        # Sanitize: replace non-alphanumeric with underscores
+        # Sanitize the job name
         base_name=$(echo "$test" | tr -c 'a-zA-Z0-9' '_')
-        # Truncate to 50 chars to avoid GitLab job name limit
         short_name=$(echo "$base_name" | cut -c1-50)
-        # Append hash of full test name for uniqueness
         hash=$(echo -n "$test" | md5sum | cut -c1-6)
         job_name="${short_name}_${hash}"
 
-        # Use a heredoc to safely write multi-line YAML
-        # Quoting the variables with single quotes inside YAML prevents special characters from breaking it
-        cat >> generated-perf-jobs.yml <<EOF
-${job_name}:
-  stage: performance_test
-  extends: .test_generic
-  variables:
-    IMAGE: ubuntu22.04
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-R ${test}"
-  needs:
-    - linux:gcc14-musl
-EOF
+        # Append job lines with echo
+        echo "${job_name}:" >> generated-perf-jobs.yml
+        echo "  stage: performance_test" >> generated-perf-jobs.yml
+        echo "  extends: .test_generic" >> generated-perf-jobs.yml
+        echo "  variables:" >> generated-perf-jobs.yml
+        echo "    IMAGE: ubuntu22.04" >> generated-perf-jobs.yml
+        echo "    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2" >> generated-perf-jobs.yml
+        # Use double quotes and escape any special YAML chars
+        echo "    CTEST_OPTIONS: \"-R ${test//\"/\\\"}\"" >> generated-perf-jobs.yml
+        echo "  needs:" >> generated-perf-jobs.yml
+        echo "    - linux:gcc14-musl" >> generated-perf-jobs.yml
       done
-
   artifacts:
     paths:
       - generated-perf-jobs.yml
