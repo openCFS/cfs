@@ -1315,7 +1315,7 @@ generate_performance_jobs:
 # TEST_PERFORMANCE STAGE: Trigger the child pipeline created before
 ###########################################################
 performance_tests:
-  stage: performance_test
+  stage: test_performance
   needs: ["generate_performance_jobs"]
   trigger:
     include: generated-perf-jobs.yml
