@@ -1269,6 +1269,9 @@ generate_performance_jobs:
     # Step 1: Get all performance tests
     # Clean up leading/trailing spaces
     # -------------------------------------------
+    - cd ..
+    - pwd
+    - ls
     - |
       mapfile -t perf_tests < <(
         ctest -N -L performance |
