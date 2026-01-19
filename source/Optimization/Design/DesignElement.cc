@@ -1280,6 +1280,7 @@ void DesignElement::SetEnums()
   detail.Add(MECH_ELEC, "mech_elec");
   // this is a selection of constraints for constraintGradient
   detail.Add(DYNAMIC_OUTPUT, "dynamicOutput");
+  detail.Add(DYNAMIC_OUTPUT_TRACKING, "dynamicOutputTracking");
   detail.Add(REFLECTED_WAVE, "reflectedWave");
   detail.Add(COMPLIANCE, "compliance");
   detail.Add(VOLUME, "volume");

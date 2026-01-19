@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import glob
-import sys
+import datetime
 import argparse
 import collections
 import re
@@ -240,6 +239,7 @@ parser.add_argument("--first", help="extract first iteration data instead of def
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
 parser.add_argument('--skipaborted', help="skip .info.xml files which are aborted", action='store_true')
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
+parser.add_argument("--sum", nargs='+', help="sum the column(s) for the gicen key(s)")
 args = parser.parse_args()
 
 input = clean_input(args.input, abbort=True) 
@@ -308,3 +308,23 @@ for dic in res:
       s = '{:>' + str(size[k]) + '}'
       print(s.format(dic[k]) + ' ',end='')
     print()
+# summing
+if args.sum:
+  # calc sum for given fields
+  dsum = {}
+  for dic in res:
+    for key, v in dic.items():
+      if key not in args.sum:
+        continue
+      if key not in dsum:
+        dsum[key] = 0
+      if key in args.sum:
+        dsum[key] += float(v)
+  # print
+  print("#sum " + (sum(list(size.values())) + len(size) - 5) * "-")
+  for k in dsum.keys():
+    if k in ["wall", "cpu"]:
+      print(f"{k}: {dsum[k] / 3600:.2f}h")
+      continue
+    print(f"{k}: {dsum[k]}")
+  print()

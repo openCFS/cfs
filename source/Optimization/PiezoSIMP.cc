@@ -89,7 +89,7 @@ template <class T>
 double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 {
   // calculate the element sum of p^T K_pp p or p^T K_pp p^*
-  // here we do <K_pp p, p> which is equivalent as K_pp is self adjoined
+  // here we do <K_pp p, p> which is equivalent as K_pp is self adjoint
   // (it is real and K_pp = K_pp^T). As the complex scalar product is
   // <x, y> = \sum x_i y_i^* we have 
   // <K_pp p, p> =  p^T K_pp p in the real case and p^T K_pp p^* in complex 

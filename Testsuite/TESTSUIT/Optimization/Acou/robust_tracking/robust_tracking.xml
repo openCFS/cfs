@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - Robust Tracking</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2026-04-13</date>
+        <description>The tested "dynamicOutputTracking" functional, minimizes the squared distance
+        of dynamicOutput and target value given in parameter="". To achieve nice designs, this is usually
+        combined with robust filtering, which is why we test both in this testcase.
+        The problem itself is an axisymmetric duct with optimization region, we distribute material
+        s.t. the power scaled transmission coefficient is 0.5. This is made possible by normalizing the Neumann excitiation,
+        which results in excitation of an incident pressure wave of 1Pa amplitude.</description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <!--create_mesh_acou.py -lin 0.02 -labh 0.05 -lout 0.02 -win 0.025 -wabh 0.025 -wout 0.025 20-->
+            <!--<mesh fileName="mm_10.mesh"/>-->
+            <hdf5 fileName="robust_tracking.h5ref"/>
+        </input>
+        <output>
+            <hdf5 />
+            <info />
+        </output>
+        <materialData file="mat.xml" format="xml" />
+    </fileFormats>
+
+  <domain geometryType="axi">
+    <regionList>
+      <region material="air" name="S_acou" />
+      <region material="air" name="S_opt" />
+    </regionList>
+  </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>1000</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
+                </regionList>
+                <bcsAndLoads>
+                    <!-- The value for normal velocity excitation is selected s.t. we excite an incident wave with 1Pa amplitude -->
+                    <!-- vn = -2 * p0 / Z0 * WOUT / WIN -->
+                    <!-- p0 = 1, Z0 = rho * sqrt(bulk / rho) = 413.48, WOUT = 0.005, WIN = 0.025 -->
+                    <normalVelocity name="L_in_surf" value="-0.004836960936382358"/>
+                    <absorbingBCs volumeRegion="S_acou" name="L_in_surf" />
+                    <absorbingBCs volumeRegion="S_acou" name="L_out_surf" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="pseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalPseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="slack" task="minimize" multiple_excitation="true">
+            <stopping type="designChange" value="1.0E-3" queue="10"/>
+        </costFunction>
+
+        <constraint type="dynamicOutputTracking" parameter="0.5" value="slack" bound="upperBound" excitation="0"><output><acoustic name="L_out" value="1"/></output></constraint>
+        <constraint type="dynamicOutputTracking" parameter="0.5" value="slack" bound="upperBound" excitation="1"><output><acoustic name="L_out" value="1"/></output></constraint>
+        <constraint type="dynamicOutputTracking" parameter="0.5" value="slack" bound="upperBound" excitation="2"><output><acoustic name="L_out" value="1"/></output></constraint>
+
+        <constraint type="dynamicOutput" access="physical" mode="observation">
+            <output><acoustic name="L_out" value="1"/></output>
+        </constraint>
+
+        <optimizer type="snopt" maxIterations="8"/>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="simp">
+            <designSpace local_element_cache="false"/>
+            <!-- Only converges with external beta continuation!-->
+            <filters>
+                <filter neighborhood="maxEdge" value="3.5" type="density" robust_excitation="0">
+                    <!-- 0 solid heaviside minimum feature, 1 void minimum hole size -->
+                    <density type="tanh" beta="1" eta="0.2" />
+                </filter>
+                <filter neighborhood="maxEdge" value="3.5" type="density" robust_excitation="1">
+                    <density type="tanh" beta="1" eta="0.8" />
+                </filter>
+                <filter neighborhood="maxEdge" value="3.5" type="density" robust_excitation="2">
+                    <density type="tanh" beta="1" eta="0.5" />
+                </filter>
+            </filters>
+
+            <design name="density" initial="0.5" physical_lower="1e-3" upper="1.0" />
+            <design name="slack" initial="100" lower="0" upper="1e5" />
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+
+        <!-- visualize both load cases -->    
+        <commit mode="forward" stride="10" />
+    </optimization>
+  
+</cfsSimulation>

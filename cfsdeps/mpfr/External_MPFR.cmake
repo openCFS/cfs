@@ -7,9 +7,9 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "mpfr")
-set(PACKAGE_VER "4.2.1")
+set(PACKAGE_VER "4.2.2")
 set(PACKAGE_FILE "${PACKAGE_NAME}-${PACKAGE_VER}.tar.xz")
-set(PACKAGE_MD5 "523c50c6318dde6f9dc523bc0244690a")
+set(PACKAGE_MD5 "7c32c39b8b6e3ae85f25156228156061")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 

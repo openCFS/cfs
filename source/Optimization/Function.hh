@@ -74,6 +74,7 @@ class Function
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       SQUARED_OUTPUT,            /*!< Re(u,l)^2 maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
+      DYNAMIC_OUTPUT_TRACKING,   /*!< (u, L conj(u) - T)^2 as DYNAMIC_OUTPUT, but with target calue T and squared */
       REFLECTED_WAVE,            /*!< ((u-z), L conj(u-z)) as DYNAMIC_OUTPUT, but a complex value z is substracted. 
                                       E.g. when u is the total pressure and z is the pressure resulting from a normalVelocity b.c., u-z is the pressure of the reflected wave */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */

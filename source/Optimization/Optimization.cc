@@ -399,6 +399,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::SQUARED_OUTPUT, "squaredOutput");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
+  Function::type.Add(Function::DYNAMIC_OUTPUT_TRACKING, "dynamicOutputTracking");
   Function::type.Add(Function::REFLECTED_WAVE, "reflectedWave");
   Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");

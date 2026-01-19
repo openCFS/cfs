@@ -55,7 +55,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
        
   if len(vals) > x * y * z:
     raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
-                        + " does not match " + str(len(vals)) + " elements in " + filename) 
+                        + " does not match " + str(len(vals)) + " elements in " + filename)
   if len(vals) == x * y * z:
 
     # copy data from linear list
@@ -156,17 +156,17 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None,
     start_id = handler.start_id  
     end_id = handler.end_id
     x, y, z = handler.dim
-    # assuming the classic element numbering 
+    # assuming the classic element numbering
     # (starting on lowest x and y and number row along x-axis
     # when we reach the end we go to the next bigger y-row
     # again starting from the left)
     # we can calculate the actual optimization domain dimensions
-    # from the full domain dimensions (x,y,z) and 
+    # from the full domain dimensions (x,y,z) and
     # start and end element number:
-    crop_x = (end_id-1) % x - (start_id-1) % x + 1
-    crop_y = math.floor(end_id/x)  - math.floor(start_id/x)
+    crop_x = (end_id - 1) % x - (start_id - 1) % x + 1
+    crop_y = round((end_id - start_id + x - crop_x + 1) / x)
     handler.dim = (crop_x, crop_y, 1)
- 
+
   if mesh:
     return handler.values, handler.dim
   else:

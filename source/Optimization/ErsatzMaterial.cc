@@ -269,6 +269,7 @@ void ErsatzMaterial::PostInit()
       break;
 
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       if(!f->ctxt->IsComplex())
@@ -290,6 +291,7 @@ void ErsatzMaterial::PostInit()
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::ABS_OUTPUT:
     {
@@ -1457,6 +1459,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::CONJUGATE_COMPLIANCE:
     case Function::ABS_OUTPUT:
@@ -2038,6 +2041,7 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
       // intentionally no break
 
     case Objective::DYNAMIC_OUTPUT:
+    case Objective::DYNAMIC_OUTPUT_TRACKING:
     case Objective::CONJUGATE_COMPLIANCE:
     {
       // this is <u,L conj(u)> and only defined for the harmonic case!
@@ -2064,7 +2068,14 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
         result += sp;
       }
       LOG_DBG2(em) << "CO: <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
-      result *= excite.GetFactor(f);
+      // in tracking we subtract a constant parameter from the cost function and square
+      if (f->GetType() == Function::DYNAMIC_OUTPUT_TRACKING)
+      {
+        result -= f->GetParameter();
+        result *= result;
+      }
+      // this factor is either 1.0 or omega*omega, but second case is rarely used
+      result *= excite.GetFactor(f); 
       break;
     }
     default: EXCEPTION("Not handled");
@@ -4287,6 +4298,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::ABS_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
@@ -4617,6 +4629,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       // intentionally no break
 
     case Function::DYNAMIC_OUTPUT: // rhs is from "output loads" and set in adjoint...rhs
+    case Function::DYNAMIC_OUTPUT_TRACKING: // tracking uses the same adjoint
       // substract z (this is just nonzero for REFLECTED WAVE)
       // the correct conjugate_output case is -L * (u - z)*, always complex,
       // where z is just nonzero for REFLECTED WAVE!

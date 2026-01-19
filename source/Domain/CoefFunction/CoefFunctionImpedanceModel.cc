@@ -188,7 +188,7 @@ namespace CoupledField{
     shared_ptr<CoefFunctionApprox> coefImag;
     PtrCoefFct frequCoef = CoefFunction::Generate( mp_, Global::REAL, "f");
     if(impNode->Has("dataName_real")) {
-      const std::string& fileName = impNode->Get("dataName_real")->As<std::string>().c_str();
+      const std::string& fileName = impNode->GetAsFilePath("dataName_real");
       LinInterpolate* sp = new LinInterpolate( fileName, ACOU_IMPEDANCE_REAL_VAL );
       Double startVal = 0.0;
       coefReal.reset(new CoefFunctionApprox());
@@ -199,7 +199,7 @@ namespace CoupledField{
     }
     // read name of file with impedance data
     if(impNode->Has("dataName_imag")) {
-      const std::string& fileName = impNode->Get("dataName_imag")->As<std::string>().c_str();
+      const std::string& fileName = impNode->GetAsFilePath("dataName_imag");
       LinInterpolate * sp = new LinInterpolate( fileName, ACOU_IMPEDANCE_IMAG_VAL );
       Double startVal = 0.0;
       coefImag.reset(new CoefFunctionApprox());

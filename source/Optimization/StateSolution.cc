@@ -87,6 +87,11 @@ StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int 
       if(cond->IsAdjointBased())
         size += cond->IsLocal() ? cond->GetLocal()->virtual_elem_map.GetSize() : 1;
 
+    // fixes undersized data_ vector for multi objective case
+    for(auto& obje : em->objectives.data)
+      if(obje->IsAdjointBased())
+        size += 1;
+
     size *= em->GetMultipleExcitation()->excitations.GetSize();
 
     for(unsigned int i = 0; i < em->manager.context.GetSize(); i++)

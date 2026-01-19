@@ -5,7 +5,6 @@
 #include <limits>
 #include <map>
 #include <ostream>
-#include <boost/lexical_cast.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -467,6 +466,8 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       {
         Excitation* ex = ctxt.excitations[i];
         ex->index = base + i;
+        // for this case, overwrite label for clear identification by GetExcitation()
+        ex->label = std::to_string(ex->index);
         // fixes bug for pressure loads
         if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
           // multiple pressure loads not implemented

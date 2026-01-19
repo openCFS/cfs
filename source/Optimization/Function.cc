@@ -539,6 +539,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case DYNAMIC_OUTPUT_TRACKING:
   case REFLECTED_WAVE:
   case ABS_OUTPUT:
   case CONJUGATE_COMPLIANCE:
@@ -690,6 +691,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case DYNAMIC_OUTPUT_TRACKING:
   case REFLECTED_WAVE:
   case ENERGY_FLUX:
   case TRACKING:
@@ -832,6 +834,7 @@ bool Function::IsAdjointBased() const {
   case ABS_OUTPUT:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case DYNAMIC_OUTPUT:
+  case DYNAMIC_OUTPUT_TRACKING:
   case REFLECTED_WAVE:
   case ELEC_ENERGY:
   case ENERGY_FLUX:
@@ -863,6 +866,7 @@ bool Function::NeedsSelectionVector() const {
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case DYNAMIC_OUTPUT_TRACKING:
   case REFLECTED_WAVE:
   case ENERGY_FLUX:
     return true;

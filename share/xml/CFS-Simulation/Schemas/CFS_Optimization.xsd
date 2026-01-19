@@ -2073,6 +2073,7 @@
       <xsd:enumeration value="conjugateCompliance" />
       <xsd:enumeration value="globalDynamicCompliance" />
       <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="dynamicOutputTracking" />
       <xsd:enumeration value="reflectedWave" />
       <xsd:enumeration value="absOutput" />
       <xsd:enumeration value="tracking" />
@@ -2250,6 +2251,7 @@
       <!-- tracking heat temperature at interfaces -->
       <xsd:enumeration value="tempTrackingAtInterface" />
       <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="dynamicOutputTracking" />
       <xsd:enumeration value="reflectedWave" />
     </xsd:restriction>
   </xsd:simpleType>
@@ -2420,6 +2422,7 @@
       <xsd:enumeration value="gap" />
       <xsd:enumeration value="compliance" />
       <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="dynamicOutputTracking" />
       <xsd:enumeration value="reflectedWave" />
       <xsd:enumeration value="greyness" />
       <xsd:enumeration value="realvolume" />
@@ -3348,6 +3351,22 @@
       <xsd:enumeration value="23" />
       <xsd:enumeration value="24" />
       <xsd:enumeration value="25" />
+      <xsd:enumeration value="26" />
+      <xsd:enumeration value="27" />
+      <xsd:enumeration value="28" />
+      <xsd:enumeration value="29" />
+      <xsd:enumeration value="30" />
+      <xsd:enumeration value="31" />
+      <xsd:enumeration value="32" />
+      <xsd:enumeration value="33" />
+      <xsd:enumeration value="34" />
+      <xsd:enumeration value="35" />
+      <xsd:enumeration value="36" />
+      <xsd:enumeration value="37" />
+      <xsd:enumeration value="38" />
+      <xsd:enumeration value="39" />
+      <xsd:enumeration value="40" />
+      <xsd:enumeration value="41" />
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -3681,6 +3700,7 @@
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           <!-- only the globalSlope has a value and only within multiObjective -->
           <xsd:attribute name="parameter" use="optional" type="xsd:float" />
+          <xsd:attribute name="excitation" use="optional" type="xsd:integer" />
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
           <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
