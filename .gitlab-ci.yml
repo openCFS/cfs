@@ -9,8 +9,6 @@
 include:
   - local: .gitlab/ci/linux.yml
   - local: .gitlab/ci/windows.yml
-  # Add the generic test settings (had to be excluded to enable dynamic child pipelines for performance tests)
-  - local: .gitlab/ci/test_generic.yml
   # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
   # see https://docs.gitlab.com/ee/ci/yaml/includes.html#merge-method-for-include
   # and https://docs.gitlab.com/ee/ci/yaml/includes.html#use-nested-includes-with-duplicate-include-entries
@@ -1028,7 +1026,26 @@ windows:msvc2022:
       - build/cmake
 
 
-# Note: test_generic has been outsourced to a file in .gitlab/ci/test_generic.yml due to issues with child pipelines
+# Generic testsuite execution job.
+# - will do junit submission to gitlab
+# - excludes PYTHON since they do not need to be tested for every compiler configuration
+# - the "Install" tests are always excluded
+# Behaviour can be changed with variables:
+# - TEST_CONFIG_OPTIONS: to set Testsuite configure options like threads
+# - CTEST_OPTIONS: to passed to ctest execution, e.g. -LE <label> tor exclude labels
+.test_generic: &test_generic
+  <<: *ctest_default
+  script:
+    # show variables for debug
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
+    # configure and run the testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+
 
 # we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
 .test_no_slow: &test_no_slow
@@ -1282,8 +1299,7 @@ generate_performance_jobs:
         cat >> generated-perf-jobs.yml <<EOF
   ${job_name}:
     stage: performance_test
-    include:
-      - local: test_generic.yml
+    extends: .test_generic
     variables:
       IMAGE: ubuntu22.04
       TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
