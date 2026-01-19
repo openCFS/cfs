@@ -1278,6 +1278,8 @@ generate_performance_jobs:
     # -------------------------------------------
     # Step 2: Start generating the child pipeline YAML
     # -------------------------------------------
+    - pwd
+    - ls
     - cd build
     - echo "stages:" > generated-perf-jobs.yml
     - echo "  - performance_test" >> generated-perf-jobs.yml
