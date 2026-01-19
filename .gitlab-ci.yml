@@ -1297,15 +1297,15 @@ generate_performance_jobs:
         # Use a heredoc to safely write multi-line YAML
         # Quoting the variables with single quotes inside YAML prevents special characters from breaking it
         cat >> generated-perf-jobs.yml <<EOF
-  ${job_name}:
-    stage: performance_test
-    extends: .test_generic
-    variables:
-      IMAGE: ubuntu22.04
-      TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-      CTEST_OPTIONS: "-R '$test'"
-    needs:
-      - linux:gcc14-musl
+${job_name}:
+  stage: performance_test
+  extends: .test_generic
+  variables:
+    IMAGE: ubuntu22.04
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-R '$test'"
+  needs:
+    - linux:gcc14-musl
 EOF
       done
 
