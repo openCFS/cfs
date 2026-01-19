@@ -106,6 +106,7 @@ option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
 
 option(CFS_TESTSUITE "Build the testsuite tree, required BUILD_CFSTOOL" ${CFS_TESTSUITE_DEFAULT}) 
+option(BUILD_TESTING_PERFORMANCE "Enable performance tests" ${BUILD_TESTING_PERFORMANCE_DEFAULT})
 
 # USE_* triggers more or less optional external dependencies.
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
@@ -347,6 +348,7 @@ if(CFS_TESTSUITE OR "$ENV{CI_JOB_STAGE}" MATCHES "build")
   include(CTest)
   enable_testing()
   mark_as_advanced(BUILD_TESTING) # hide this CTests internal option
+  mark_as_advanced(BUILD_TESTING_PERFORMANCE) # hide this CTests internal option
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)  
   if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       message(STATUS "Testsuite from ${TESTSUITE_DIR} will be placed in ${CMAKE_CURRENT_BINARY_DIR}/testsuite")

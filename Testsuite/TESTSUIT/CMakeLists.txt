@@ -1024,7 +1024,9 @@ add_subdirectory(Technical/CoefFunctionGridElem)
 #-------------------------------------------------------------------------------
 # Performance
 #-------------------------------------------------------------------------------
-add_subdirectory(Performance/MovingMeshLoudspeaker2D)
+if(BUILD_TESTING_PERFORMANCE)
+  add_subdirectory(Performance/MovingMeshLoudspeaker2D)
+endif()
 #-------------------------------------------------------------------------------
 # CFSdat
 #-------------------------------------------------------------------------------

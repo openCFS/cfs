@@ -211,7 +211,7 @@
 .windows-test_stable:
   script:
     - *script_windows-test_config-dashboard
-    - ctest -D ExperimentalTest -LE "unstable|broken|performance" --track $CDASH_TRACK --output-junit ctest-junit.xml
+    - ctest -D ExperimentalTest -LE "unstable|broken" --track $CDASH_TRACK --output-junit ctest-junit.xml
 .windows-test_unstable:
   script:
     - *script_windows-test_config-dashboard

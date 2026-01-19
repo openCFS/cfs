@@ -822,7 +822,7 @@ linux:gcc14-musl:
   extends: .default_build_job
   variables:
     IMAGE: alpine
-    CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
+    CFS_CONFIG_OPTIONS: "-DBUILD_TESTING_PERFORMANCE=ON $MUSL_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
     # use Ninja to test if we have dependencies declared properly, standard would be "Unix Makefiles"
