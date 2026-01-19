@@ -134,39 +134,9 @@ workflow:
 # some only get created in certain cases (pipeline-changes) and then fail 
 # to generate a warning (they are allowed to fail)
 
-.check:
-  stage: check
-  tags:
-    - saas-linux-small-amd64
-  # switch off cloning any code
-  variables:
-    GIT_STRATEGY: none
-  cache: {} # disable
-
-## different sets of changes with different conditions
-
-# the revision of the testsuite submodule has changed
-.Testsuite_changes: &Testsuite_changes
-      changes:
-        paths:
-          - "Testsuite/**/*"
-        compare_to: $COMPARE_CHANGES_TO
-
-# changes that require the c++ builds to run
-.require-rebuild-changes: &require-rebuild-changes
-  # works like only/except changes
-  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
-  changes:
-    paths:
-      - "**/CMakeLists.txt"
-      - "**/*.cmake"
-      - "**/*.cmake.in"
-      - source/**/*.{hh,cc,h,c}
-    compare_to: $COMPARE_CHANGES_TO
-
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
-  extends: .check
+  extends: .check #extension can be found in hidden_jobs.yml
   image: 
     name: $BUILD_ENVIRONMENT_REGISTRY/markdown-link-check:$BUILD_ENVIRONMENT_TAG
     entrypoint: ["/bin/sh","-c"]
@@ -188,14 +158,8 @@ markdown-link-check:
 
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
-.pipeline_changes: &pipeline_changes
-      changes:
-        paths:
-        - .gitlab-ci.yml
-        - .gitlab/ci/*.yml
-        compare_to: $COMPARE_CHANGES_TO
 pipeline-changes:
-  extends: .check
+  extends: .check #extension can be found in hidden_jobs.yml
   image:
     name: alpine/git:2.47.1
     entrypoint: ["/bin/sh","-c"]
@@ -215,7 +179,7 @@ pipeline-changes:
     - /the/pipeline/has/changed
 
 runner-debug:
-  extends: .check
+  extends: .check #extension can be found in hidden_jobs.yml
   image: alpine
   tags:
     - saas-linux-small-amd64
@@ -251,7 +215,7 @@ runner-debug:
 
 # this job is created when there is a skip-build in the commit message
 skip-build:
-  extends: .check
+  extends: .check #extension can be found in hidden_jobs.yml
   image: alpine
   tags:
     - saas-linux-small-amd64
@@ -265,7 +229,7 @@ skip-build:
     - /commit/message/contained/skip-build
 
 cpp-code-changes:
-  extends: .check
+  extends: .check #extension can be found in hidden_jobs.yml
   image: alpine
   tags:
     - saas-linux-small-amd64
@@ -287,46 +251,6 @@ cpp-code-changes:
 # and the build instructions (from README.md)
 # all jobs in the stage have no needs, and are manual (one can start them by the play-button)
 
-# Template for the platform builds
-.platform:
-  stage: platform
-  tags:
-    - saas-linux-small-amd64
-  image:
-    name: $IMAGE:$TAG
-  after_script: []
-  rules:
-    # set variable PLATFORM to activate the job for test or nightly pipelines
-    - if: $PLATFORM  && ( $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" ) 
-      when: on_success
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
-  # disable cache
-  cache: {}
-  # install dependencies in the docker image
-  before_script:
-    # ensure build does not exist
-    - rm -rf build
-    # debug output
-    - echo "IMAGE=$IMAGE"
-    - echo "TAG=$TAG"
-    - echo "PLATFORM=$PLATFORM"
-    - cat /etc/*release
-    # run the setup instructions for this IMAGE
-    - ./share/scripts/mdsh --eval "share/doc/developer/build-dependencies/${IMAGE}_${TAG}.md" | bash -e -x
-  # run the README which contains build instructions
-  script:
-    - ./share/scripts/mdsh --eval 'README.md' | bash -l -e -x
-  # store possible error logs as artifacts for debugging
-  artifacts:     
-    paths:       
-      - build/**/*.log
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"     
-    expire_in: 6 hours
-    when: on_failure
-  # run this job immediately, since it has not needs
-  needs: []
 
 # add all platforms we can build on.
 # the IMAGE variable should be set according to the 'image' (docker runner option) and requires
@@ -335,7 +259,7 @@ cpp-code-changes:
 # fedora releases, see https://hub.docker.com/_/fedora
 # latest stable release
 fedora:latest:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "fedora"
     TAG: "latest"
@@ -344,7 +268,7 @@ fedora:latest:
 
 # latest development release
 fedora:rawhide:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "fedora"
     TAG: "rawhide"
@@ -354,14 +278,14 @@ fedora:rawhide:
 # ubuntu releases, see https://hub.docker.com/_/ubuntu
 # latest LTS release 
 ubuntu:latest:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "ubuntu"
     TAG: "latest"
 
 # the latest stable release, regardless of LTS status
 ubuntu:rolling:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "ubuntu"
     TAG: "rolling"
@@ -370,7 +294,7 @@ ubuntu:rolling:
 
 # older LTS releases ...
 ubuntu:20.04:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "ubuntu"
     TAG: "20.04"
@@ -378,14 +302,14 @@ ubuntu:20.04:
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
 debian:latest:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "debian"
     TAG: "latest"
 
 # older releases ... https://www.debian.org/releases/
 debian:11: # (bullseye)
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "debian"
     TAG: "11"
@@ -393,14 +317,14 @@ debian:11: # (bullseye)
 # RHEL derivatives
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "rockylinux"
     TAG: "8"
 
 # rockylinux 9, see https://hub.docker.com/_/rockylinux
 rhel:9:
-  extends: .platform
+  extends: .platform #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: "rockylinux"
     TAG: "9"
@@ -412,174 +336,37 @@ rhel:9:
 # store the precompiled ones as artifacts
 # we need to precompile for all GCC versions independently
 
-.before-script-build:
-  script:
-    # git repo info
-    - export DEBUG_SECTION_TITLE='git repository info'
-    - !reference [.linux-debug-start_collapsed, script]
-    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
-    - git status # debug
-    - !reference [.linux-debug-end, script]
-    # report disk space
-    - export DEBUG_SECTION_TITLE='disk space info'
-    - !reference [.linux-debug-start_collapsed, script]
-    - df -h # disk space debug
-    - du -h --max-depth=1 . # repos space debug
-    - ls -l build/cfsdeps || ls # debug
-    - !reference [.linux-debug-end, script]
-    # setup build directory
-    - mkdir -p build # create if it does not exist
-    - cd build # descend in build
-    - rm -f CMakeCache.txt # clear old cache
-    # show the contents of the caches
-    - !reference [.linux_list_cache, script]
-    # analyze ccache
-    - export DEBUG_SECTION_TITLE='ccache setup and debug info'
-    - !reference [.linux-debug-start_collapsed, script]
-    - ls $CCACHE_DIR || true #debug
-    - ccache --verbose --show-stats || ccache -s || true
-    - ccache --verbose --zero-stats || ccache -z || true
-    - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-    - !reference [.linux-debug-end, script]
-
-# define when csdeps need to be rebuilt based on changes
-.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
-  # changes that require the cfsdeps to be re-built
-  changes:
-    paths:
-      - "cfsdeps/**/*"
-      - "cmake_modules/FindCFSDEPS.cmake"
-    compare_to: $COMPARE_CHANGES_TO
-
-.build_rules: &build_rules
-  rules:
-    # there should be changes (in cfsdeps or cfs) but a user has skipped the build
-    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
-      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
-      when: manual
-    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
-      <<: *require-rebuild-changes
-      when: manual
-      needs: [] # allow to be triggered manually without cfsdeps
-    # builds & tests are required
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *require-rebuild-changes
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *Testsuite_changes
-    # all manual
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
-      when: manual
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
-      when: manual
-      needs: [] # allow to be triggered manually without cfsdeps
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      needs: [] # allow to be triggered manually without cfsdeps
-    # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" 
-      when: manual
-      allow_failure: true
-      needs: [] # allow to be triggered manually without cfsdeps
-    # nightly always builds
-    - if: $CFS_PIPELINE_TYPE == "nightly"
-    # otherwise no builds
-
-.release_build_rules: &release_build_rules
-  rules:
-    - if: $CFS_PIPELINE_TYPE == "release"
-    - !reference [.build_rules, rules]
-
-.cfsdeps: &cfsdeps
-  stage: cfsdeps
-  # the IMAGE variable needs to be defined in the job defintion
-  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables: &cfsdeps-variables
-    RUNNER_SCRIPT_TIMEOUT: 150m # set a script timeout lower than the job timeout to ensure there is time for artifact and cache upload
-  rules:
-    # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS or merge request label "build-cfsdeps"
-    # manual
-    - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
-      when: manual
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ && $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-    # automatic
-    - if: $BUILD_CFSDEPS
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/
-    # we also need the cfsdeps jobs if a clear cache is requested since then we have no precompiled and thus timeout issues
-    - if: ( $CI_MERGE_REQUEST_LABELS =~ /clear-cache/ || $CI_COMMIT_MESSAGE =~ /clear-cache/ || $CLEAR_CACHE != $null || $CACHE_POLICY == "push" ) && $CFS_PIPELINE_TYPE == "manual"
-      when: manual    
-    - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/ || $CI_COMMIT_MESSAGE =~ /clear-cache/ || $CLEAR_CACHE != $null || $CACHE_POLICY == "push"
-    # only add cfsdeps jobs if there are changes
-    # ... in a "test" pipeline
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *cfsdeps-rebuild-changes
-    # ... in a 'manual' pipeline
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *cfsdeps-rebuild-changes
-      when: manual
-  cache: !reference [.cache_linux_cfsdeps-job, cache]
-  before_script:
-    - pwd # debug
-    - !reference [.before-script-build, script]
-  script:
-    - cmake -DCFS_TESTSUITE=OFF $CFS_CONFIG_OPTIONS ..
-    - cmake .
-    - cmake --build . --target cfsdeps --parallel 1
-  after_script:
-    # show the contents of the caches
-    - !reference [.linux_list_cache, script]
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*.zip
-      - build/cfsdeps/cache/sources/
-    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
-    expire_in: 12 hours
-  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
-  # it must not exceed the runner timeout (3h for gitlab hosted runners, https://docs.gitlab.com/ci/runners/hosted_runners/#gitlabcom-hosted-runner-workflow)
-  timeout: 170m
-  # define retry on timeout. A retry should make use of a cache from the previous job
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
-      - job_execution_timeout
-  needs: []
-
 cfsdeps:gcc9:
-  extends: .cfsdeps
+  extends: .cfsdeps #extension can be found in hidden_jobs.yml
   variables:
     <<: *cfsdeps-variables
     IMAGE: centos7-gcc9
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
-  extends: .cfsdeps
+  extends: .cfsdeps #extension can be found in hidden_jobs.yml
   variables:
     <<: *cfsdeps-variables
     IMAGE: rhel8-intel
 
 cfsdeps:clang:
-  extends: .cfsdeps
+  extends: .cfsdeps #extension can be found in hidden_jobs.yml
   variables:
     <<: *cfsdeps-variables
     IMAGE: rhel8-llvm
 
 cfsdeps:gcc14-musl:
-  extends: .cfsdeps
+  extends: .cfsdeps #extension can be found in hidden_jobs.yml
   variables:
     <<: *cfsdeps-variables
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
     IMAGE: alpine
 
 cfsdeps:msvc2022:
-  extends: .windows-shared-build
+  extends: .windows-shared-build #extension can be found in hidden_jobs.yml
   stage: cfsdeps
   rules:
-    - !reference [.cfsdeps,rules]
+    - !reference [.cfsdeps,rules] #extension can be found in hidden_jobs.yml
   variables:
     # we build with ninja and each cfsdeps is build in parallel, so build the deps themselves serially
     # build them in defined order such that already completed ones will be in the cache on a restart
@@ -624,202 +411,49 @@ cfsdeps:msvc2022:
 
 
 #######################################################################
-# BUILD STAGE definitions
-#######################################################################
-# Here we define the build jobs, if one fails we do not need to test
-
-# set environment for URL on CDash
-# see https://docs.gitlab.com/ee/ci/environments/index.html#set-dynamic-environment-urls-after-a-job-finishes
-.save_cdash_buildid:
-  script:
-  - export DEBUG_SECTION_TITLE='Save CDash build ID'
-  - !reference [.linux-debug-start_collapsed, script]
-  - ls -R Testing # debug
-  - cat Testing/*/Done.xml # debug
-  - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
-  # get build ID from file
-  - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
-  # save links as variables
-  - CDASH_BUILD_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
-  - CDASH_TEST_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
-  # output to annotations
-  # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
-  - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
-  - !reference [.linux-debug-end, script]
-  # output to job log
-  - echo "Build on CDash - $CDASH_BUILD_URL"
-  - echo "Tests on CDash - $CDASH_TEST_URL"
-
-.default_build_job: &default_build_job
-  stage: build
-  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    # using the Unix Makefile generator (every Linux but gcc14-musl), this variable builds cfs parallel.
-    # the cfsdeps will be build in sequence but automatically with the availabe number of cores.
-    # currently (04.2025) all gitlab runners seem to run with 2 threads
-    CMAKE_BUILD_PARALLEL_LEVEL: 2
-  cache: !reference [.cache_linux_build-job, cache ]
-  script:
-    # configure once to have dashboard ready
-    - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DCFS_TESTSUITE=OFF ${CFS_CONFIG_OPTIONS} ..
-    # start cdash dashboard
-    - ctest -D ExperimentalStart --track $CDASH_TRACK -V
-    # update to current revision (gives link on CDash)
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
-    # configure
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
-    # build
-    # --parallel 1 beats the environment variable CMAKE_BUILD_PARALLEL_LEVEL
-    - cmake --build . --target cfsdeps --parallel 1
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
-    # install test to create arifacts (first delete stuff to make space for packing)
-    - export DEBUG_SECTION_TITLE='Delete stuff to make space for packing'
-    - !reference [.linux-debug-start_collapsed, script]
-    - df -h # debug
-    - du -h --max-depth=1 . # debug
-    - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
-    - find -name CMakeFiles -type d -exec rm -rf {} + # delete cmake directories
-    - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
-    - du -h --max-depth=1 . # debug
-    - df -h # debug
-    - !reference [.linux-debug-end, script]
-    - ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build # test build and install
-    - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
-  after_script:
-    - export DEBUG_SECTION_TITLE='debug information and cleanup'
-    - !reference [.linux-debug-start_collapsed, script]
-    - git status # debug
-    - ls -la # debug
-    - df -h # debug
-    - du -h --max-depth=1 $CI_PROJECT_DIR # debug
-    - du -h --max-depth=1 $CI_PROJECT_DIR/build # debug
-    # clean up a bit to free disk space for cache-creation, leave artifacts and cache
-    - rm -rf $CI_PROJECT_DIR/build/_CPack_Packages $CI_PROJECT_DIR/build/vtk $CI_PROJECT_DIR/build/include $CI_PROJECT_DIR/build/source $CI_PROJECT_DIR/build/bin $CI_PROJECT_DIR/build/lib
-    - df -h # debug
-    - !reference [.linux-debug-end, script]
-    # show the contents of the caches
-    - !reference [.linux_list_cache, script]
-    # submit test results
-    - cd build
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    - cp CMakeCache.txt CMakeCache_build-stage.txt # rename CMakeCache to avoid conflicts
-    # ccache info & clean
-    - ccache --verbose --show-stats || ccache -s || true
-    - export DEBUG_SECTION_TITLE='ccache details'
-    - !reference [.linux-debug-start_collapsed, script]
-    - ccache --verbose --show-log-stats || true
-    - ccache --verbose --cleanup || ccache -c || true
-    - ccache --verbose --show-stats || ccache -s || true
-    - !reference [.linux-debug-end, script]
-    # save buildid for environment
-    - !reference [.save_cdash_buildid,script]
-  artifacts:
-    paths: # just an example
-      - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
-      - build/CMakeCache_build-stage.txt
-      - build/ccache.log # for debug
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    # show files on the MR page, see https://docs.gitlab.com/ee/ci/yaml/#artifactsexpose_as
-    expose_as: 'job logs'
-    expire_in: 1.2 days            
-
-.except-skip-gcc: &except-skip-gcc
-  # do not add this job if commit message contains 'skip-gcc-builds'
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-gcc-builds/
-
-.except-skip-intel: &except-skip-intel
-  # do not add this job if commit message contains 'skip-intel-builds'
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-
-.gcc_before: &gcc_before
-  before_script:
-    # debug output
-    - gcc --version
-    # general build before script
-    - !reference [.before-script-build, script]
-
-.intel_before: &intel_before
-  before_script:
-    # we assume CC, CXX and FC is set in the image properly (e.g. in the file bash_profile)
-    - (icc -v || icx -v)
-    - (icpc -v || icpx -v)
-    - (ifort -v || ifx -v)
-    - $CC -v
-    - $CXX -v
-    - $FC -v
-    - git status # debug
-    # ensure the testsuite is not there (to save space)
-    - rm -rf Testsuite
-    - git checkout Testsuite
-    # general build before script
-    - !reference [.before-script-build, script]
-
-# ensure maximal build is tested never tested automatically in forks 
-# if someone wants to enable max-builds one has to manually define the variable "DO_MAX_BUILD" and set its value to "ON"
-.max_never_auto_rule: &rule_max_never_auto_rule
-  rules:
-    - if: '$DO_MAX_BUILD != "ON"'
-      when: never
-
-.max_rules: &max_rules
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - !reference [.build_rules, rules]
-
-#######################################################################
 # BUILD STAGE
 #######################################################################
 
-
 # maximal build using as many options as possible
 linux:gcc9max-debug:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7-gcc9
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *max_rules, *gcc_before ]
+  <<: [ *max_rules, *gcc_before ] #extension can be found in hidden_jobs.yml
   needs: 
     - job: cfsdeps:gcc9
       optional: true
 
 # maximal build using as many options as possible
 linux:gcc9max:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7-gcc9
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *max_rules, *gcc_before ]
+  <<: [ *max_rules, *gcc_before ] #extension can be found in hidden_jobs.yml
   needs: 
     - job: cfsdeps:gcc9
       optional: true
 
 linux:gcc9:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7-gcc9
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache    
-  <<: [ *build_rules, *gcc_before ]
+  <<: [ *build_rules, *gcc_before ] #extension can be found in hidden_jobs.yml
   needs: 
     - job: cfsdeps:gcc9
       optional: true
 
 # this is the official release build
 linux:gcc14-musl:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: alpine
     CFS_CONFIG_OPTIONS: "-DBUILD_TESTING_PERFORMANCE=ON $MUSL_CONFIG_OPTIONS"
@@ -827,26 +461,26 @@ linux:gcc14-musl:
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
     # use Ninja to test if we have dependencies declared properly, standard would be "Unix Makefiles"
     CMAKE_GENERATOR: Ninja
-  <<: [ *release_build_rules, *gcc_before ]
+  <<: [ *release_build_rules, *gcc_before ] #extension can be found in hidden_jobs.yml
   needs: 
     - job: cfsdeps:gcc14-musl
       optional: true
 
 linux:gcc9min:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7-gcc9
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *build_rules, *gcc_before ]
+  <<: [ *build_rules, *gcc_before ] #extension can be found in hidden_jobs.yml
   needs:
     - job: cfsdeps:gcc9
       optional: true
 
 # closed build using as many options as possible and containing closed source software AND tests
 linux:gcc9closed:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7-gcc9
     # embedded_python is not closed but technically not that easy deployable
@@ -857,7 +491,7 @@ linux:gcc9closed:
   rules:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
-    - !reference [.build_rules, rules]
+    - !reference [.build_rules, rules] #extension can be found in hidden_jobs.yml
   <<: [*gcc_before]
   # make sure artifacts are not accessible, see https://docs.gitlab.com/ee/ci/yaml/#artifactsaccess
   artifacts:
@@ -868,7 +502,7 @@ linux:gcc9closed:
 
 # intel compiler builds
 linux:intel:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: rhel8-intel
     # use ccache
@@ -879,7 +513,7 @@ linux:intel:
       when: manual
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       when: manual
-    - !reference [.build_rules, rules]
+    - !reference [.build_rules, rules] #extension can be found in hidden_jobs.yml
   <<: [ *intel_before ]
   needs:
     - job: cfsdeps:intel
@@ -887,7 +521,7 @@ linux:intel:
 
 # LLVM clang compiler builds
 linux:clang-debug:
-  extends: .default_build_job
+  extends: .default_build_job #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: rhel8-llvm
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
@@ -897,12 +531,12 @@ linux:clang-debug:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-clang/'
       when: manual
       allow_failure: true
-    - !reference [.build_rules, rules]
+    - !reference [.build_rules, rules] #extension can be found in hidden_jobs.yml
   before_script:
     # ensure clang is installed
     - clang --version
     # general build before script
-    - !reference [.before-script-build, script]
+    - !reference [.before-script-build, script] #extension can be found in hidden_jobs.yml
   cache:
     - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
       paths:
@@ -920,9 +554,9 @@ linux:clang-debug:
 
 # windows build
 windows:msvc2022:
-  extends: .windows-shared-build
+  extends: .windows-shared-build #extension can be found in hidden_jobs.yml
   stage: build
-  <<: *release_build_rules
+  <<: *release_build_rules #extension can be found in hidden_jobs.yml
   variables:
     # see https://yaml-multiline.info/ for multiline info
     # building cfs with ninja we need to make sure to build cfsdeps serially first (practically all from precompiled cfsdeps)
@@ -970,95 +604,6 @@ windows:msvc2022:
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
 
-# test for cmake or install it
-.cmake_test_or_install:
-  script:
-  - export DEBUG_SECTION_TITLE='cmake test or install'
-  - !reference [.linux-debug-start_collapsed, script]
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
-  - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
-  - echo $PATH
-  - ctest --version
-  - cmake --version
-  - !reference [.linux-debug-end, script]
-
-.after_cdash_submit: &after_cdash_submit
-  after_script:
-    - cd build
-    # optionally install cmake if not present
-    - !reference [.cmake_test_or_install,script]
-    # CDash submit, quiet, but do not fail
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log || echo "submit fail, not even submit.log written"
-    # save buildid
-    - !reference [.save_cdash_buildid,script]
-  artifacts:
-    # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
-    reports:
-      junit: build/${CI_JOB_ID}.xml
-      annotations: build/annotations.json
-    when: always
-
-# test preparation starts by extracting the build files from assets
-.ctest_default: &ctest_default
-  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
-  rules:
-    - !reference [.build_rules, rules]
-  before_script:
-    - mkdir -p build
-    - cd build # descend in build
-    - ls # debug
-    # install CFS
-    - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
-    # obtain the build config
-    - ./bin/cfs --dependencies config.cmake
-    # optionally install cmake if not present
-    - !reference [.cmake_test_or_install,script]
-# [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
-# https://docs.gitlab.com/ee/ci/yaml/#coverage
-# in the format '/REGEX/' - one can test REGEX at http://rubular.com/
-  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
-  # after-script
-  <<: *after_cdash_submit
-  # cache the local cmake install
-  cache:
-    key: cmake
-    paths:
-      - build/cmake
-
-
-# Generic testsuite execution job.
-# - will do junit submission to gitlab
-# - excludes PYTHON since they do not need to be tested for every compiler configuration
-# - the "Install" tests are always excluded
-# Behaviour can be changed with variables:
-# - TEST_CONFIG_OPTIONS: to set Testsuite configure options like threads
-# - CTEST_OPTIONS: to passed to ctest execution, e.g. -LE <label> tor exclude labels
-.test_generic: &test_generic
-  <<: *ctest_default
-  script:
-    # show variables for debug
-    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
-    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
-    # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
-    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
-
-
-# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
-.test_no_slow: &test_no_slow
-  <<: *ctest_default
-  script:
-    # show variables for debug
-    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
-    # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
-    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -LE "unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -1071,8 +616,8 @@ stable_ser:gcc9min:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-LE unstable|broken|performance"
-  <<: *test_generic
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:gcc9min
 
@@ -1085,12 +630,12 @@ unstable_ser:gcc9min:linux:
     # is built without opnemp  
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:gcc9min
 
 stable_par:gcc9max:linux:
-  extends: .test_generic
+  extends: .test_generic #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1099,12 +644,12 @@ stable_par:gcc9max:linux:
   variables:
     IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken|performance"
+    CTEST_OPTIONS: "-LE unstable|broken"
   needs:
     - linux:gcc9max
 
 unstable_ser:gcc9max:linux:
-  extends: .test_generic
+  extends: .test_generic #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1118,7 +663,7 @@ unstable_ser:gcc9max:linux:
     - linux:gcc9max
 
 stable_par_opt:gcc9closed:linux:
-  extends: .test_generic
+  extends: .test_generic #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1127,7 +672,7 @@ stable_par_opt:gcc9closed:linux:
   variables:
     IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
-    CTEST_OPTIONS: "-LE unstable|broken|performance -R Opt"
+    CTEST_OPTIONS: "-LE unstable|broken -R Opt"
   needs:
     - linux:gcc9closed
 
@@ -1138,8 +683,8 @@ stable_ser:gcc14-musl:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-LE unstable|broken|performance"
-  <<: *test_generic
+    CTEST_OPTIONS: "-LE unstable|broken|performance" #exclude performance tests here since the gcc14 builds enables them
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:gcc14-musl
 
@@ -1150,8 +695,8 @@ stable_par:gcc14-musl:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken|performance"
-  <<: *test_generic
+    CTEST_OPTIONS: "-LE unstable|broken|performance" #exclude performance tests here since the gcc14 builds enables them
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:gcc14-musl
 
@@ -1162,8 +707,8 @@ stable_par:intel:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken|performance"
-  <<: *test_generic
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:intel
 
@@ -1175,13 +720,13 @@ unstable_ser:intel:linux:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   needs:
     - linux:intel
 
 # windows tests
 stable_ser:msvc2022:windows:
-  extends: .windows-shared-test
+  extends: .windows-shared-test #extension can be found in hidden_jobs.yml
   stage: test
   variables:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1191,7 +736,7 @@ stable_ser:msvc2022:windows:
     - windows:msvc2022
 
 stable_par:msvc2022:windows:
-  extends: .windows-shared-test
+  extends: .windows-shared-test #extension can be found in hidden_jobs.yml
   stage: test
   variables:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
@@ -1201,7 +746,7 @@ stable_par:msvc2022:windows:
     - windows:msvc2022
 
 unstable_ser:msvc2022:windows:
-  extends: .windows-shared-test
+  extends: .windows-shared-test #extension can be found in hidden_jobs.yml
   stage: test
   variables:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1212,7 +757,7 @@ unstable_ser:msvc2022:windows:
 
 python:linux:
   image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
-  extends: .ctest_default
+  extends: .ctest_default #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1247,7 +792,7 @@ python:linux:
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
-  <<: *after_cdash_submit
+  <<: *after_cdash_submit #extension can be found in hidden_jobs.yml
   needs: [] # run as soon as possible
 
 
@@ -1265,7 +810,7 @@ generate_performance_jobs:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L performance"
-  <<: *test_generic
+  <<: *test_generic #extension can be found in hidden_jobs.yml
   script:
     # -------------------------------------------
     # Step 1: Get all performance tests
@@ -1330,7 +875,7 @@ performance_tests:
       artifacts: true
   trigger:
     include:
-      - artifact: build/generated-perf-jobs.yml
+      - artifact: build/generated-perf-jobs.yml # dynamically created
         job: generate_performance_jobs
 
 
@@ -1338,24 +883,12 @@ performance_tests:
 # TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
 #######################################################################
 
-# the extra stage is irrelevant for the merge request (alloed to fail)
+# the extra stage is irrelevant for the merge request (allowed to fail)
 # therefore we set it to manual by default
 # it should auto-run for nightly tests
-.test_extra:
-  <<: *test_generic
-  stage: test_extra
-  # then overwrite rules
-  rules:
-    # Scheduled pipelines run all tests
-    - if: $CFS_PIPELINE_TYPE == "nightly"
-      allow_failure: true
-    # Set the tests to manual for test-pipelines
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      allow_failure: true
 
 broken_ser:gcc9min:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1367,7 +900,7 @@ broken_ser:gcc9min:linux:
     - linux:gcc9min
 
 all_par:gcc14-musl:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1376,7 +909,7 @@ all_par:gcc14-musl:linux:
     - linux:gcc14-musl
 
 unstable_par:gcc9max:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   rules:
@@ -1390,7 +923,7 @@ unstable_par:gcc9max:linux:
     - linux:gcc9max
 
 broken_ser:gcc9max:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   rules:
@@ -1405,14 +938,14 @@ broken_ser:gcc9max:linux:
 
 # debug is compiled without openmp
 no-slow_ser:gcc9max-debug:linux:
-  extends: .test_extra
-  <<: *test_no_slow
+  extends: .test_extra #extension can be found in hidden_jobs.yml
+  <<: *test_no_slow #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   # overwrite rules & variables
   rules:
-    - !reference [.max_never_auto_rule, rules]
-    - !reference [.test_extra, rules]
+    - !reference [.max_never_auto_rule, rules] #extension can be found in hidden_jobs.yml
+    - !reference [.test_extra, rules] #extension can be found in hidden_jobs.yml
   variables:
     IMAGE: centos7
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
@@ -1422,7 +955,7 @@ no-slow_ser:gcc9max-debug:linux:
     - linux:gcc9max-debug
 
 unstable_par:intel:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1433,7 +966,7 @@ unstable_par:intel:linux:
     - linux:intel
 
 unstable_par:gcc14-musl:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1444,7 +977,7 @@ unstable_par:gcc14-musl:linux:
     - linux:gcc14-musl
 
 broken_ser:gcc14-musl:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1455,7 +988,7 @@ broken_ser:gcc14-musl:linux:
     - linux:gcc14-musl
 
 broken_ser:intel:linux:
-  extends: .test_extra
+  extends: .test_extra #extension can be found in hidden_jobs.yml
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1466,10 +999,10 @@ broken_ser:intel:linux:
     - linux:intel
 
 broken_ser:msvc2022:windows:
-  extends: .windows-shared-test
+  extends: .windows-shared-test #extension can be found in hidden_jobs.yml
   stage: test_extra
   rules:
-    - !reference [.test_extra, rules]
+    - !reference [.test_extra, rules] #extension can be found in hidden_jobs.yml
   variables:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
@@ -1539,25 +1072,6 @@ cdash:report:
     auto_stop_in: 1 week
   dependencies: []
 
-.deploy_rules: &deploy_rules
-  only:
-    refs:
-      - master # only for refs pushed to master
-    variables:
-      # use variables to limit deploy jobs for mdmt to pipelines from the corresponding namespace
-      # see the default variales https://docs.gitlab.com/ee/ci/variables/#predefined-variables-environment-variables
-      - $CI_PROJECT_NAMESPACE == "cfs"
-  tags:
-    - linux
-    - mdmt
-  stage: deploy
-  cache: {}
-  after_script: []
-  before_script: []
-  # switch off cloning any code
-  variables:
-    GIT_STRATEGY: none
-
 pages:
   stage: deploy
   tags:
@@ -1588,28 +1102,8 @@ pages:
   after_script: []
   before_script: []
 
-.package-release_common: &package-release_common
-  stage: deploy
-  variables:
-    # switch off cloning any code and add common variables
-    GIT_STRATEGY: none
-    # see https://docs.gitlab.com/ee/user/packages/generic_packages/index.html for PACKAGE_REGISTRY_URL format
-    #                                                    projects/:id/packages/generic/:package_name/:package_version/:file_name
-    PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_TAG}"
-    LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
-    WINDOWS_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Windows.zip"
-  rules:
-    # Run this job when a tag is created
-    - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && ( $CI_PROJECT_NAMESPACE == "openCFS" )
-  cache: {}
-  after_script: []
-  before_script: []
-  needs:
-    - linux:gcc14-musl
-    - windows:msvc2022
-
 repack-release: # publish release packages (when a tag is pushed)
-  extends: .package-release_common
+  extends: .package-release_common #extension can be found in hidden_jobs.yml
   image: alpine
   #rules:
   #  # repack only for tags
@@ -1633,7 +1127,7 @@ repack-release: # publish release packages (when a tag is pushed)
       - build/$WINDOWS_ARCHIVE
 
 package: # publish package for default branch
-  extends: .package-release_common
+  extends: .package-release_common #extension can be found in hidden_jobs.yml
   image: curlimages/curl:latest
   rules:
     # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext> 
@@ -1655,7 +1149,7 @@ package: # publish package for default branch
     - echo "download Windows build at ${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
 
 release:
-  extends: .package-release_common
+  extends: .package-release_common #extension can be found in hidden_jobs.yml
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - package
