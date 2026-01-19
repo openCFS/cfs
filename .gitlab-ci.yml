@@ -1271,6 +1271,7 @@ generate_performance_jobs:
     # Step 1: Get all performance tests
     # Clean up leading/trailing spaces
     # -------------------------------------------
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
     - |
       mapfile -t perf_tests < <(
         ctest -N -L performance |
@@ -1282,8 +1283,7 @@ generate_performance_jobs:
     # -------------------------------------------
     # Step 2: Start generating the child pipeline YAML
     # -------------------------------------------
-    - pwd
-    - ls
+    - echo "Automatically adding ${#perf_tests[@]} performance tests"
     - echo "stages:" > generated-perf-jobs.yml
     - echo "  - performance_test" >> generated-perf-jobs.yml
 
@@ -1312,6 +1312,7 @@ generate_performance_jobs:
         echo "  needs:" >> generated-perf-jobs.yml
         echo "    - linux:gcc14-musl" >> generated-perf-jobs.yml
       done
+    - echo "Added tests!"
   artifacts:
     paths:
       - build/generated-perf-jobs.yml
