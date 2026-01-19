@@ -1259,7 +1259,8 @@ python:linux:
 #Generate dynamic child pipeline in test stage
 generate_performance_jobs:
   stage: test
-  image: ubuntu22.04
+  variables:
+    IMAGE: ubuntu22.04
   script:
     # -------------------------------------------
     # Step 1: Get all performance tests
