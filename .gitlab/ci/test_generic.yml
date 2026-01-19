@@ -1,0 +1,19 @@
+# Generic testsuite execution job.
+# - will do junit submission to gitlab
+# - excludes PYTHON since they do not need to be tested for every compiler configuration
+# - the "Install" tests are always excluded
+# Behaviour can be changed with variables:
+# - TEST_CONFIG_OPTIONS: to set Testsuite configure options like threads
+# - CTEST_OPTIONS: to passed to ctest execution, e.g. -LE <label> tor exclude labels
+.test_generic: &test_generic
+  <<: *ctest_default
+  script:
+    # show variables for debug
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
+    # configure and run the testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
