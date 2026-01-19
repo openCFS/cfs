@@ -1261,6 +1261,7 @@ generate_performance_jobs:
   stage: test
   variables:
     IMAGE: ubuntu22.04
+  <<: *test_generic
   script:
     # -------------------------------------------
     # Step 1: Get all performance tests
