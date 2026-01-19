@@ -1278,6 +1278,7 @@ generate_performance_jobs:
     # -------------------------------------------
     # Step 2: Start generating the child pipeline YAML
     # -------------------------------------------
+    - cd build
     - echo "stages:" > generated-perf-jobs.yml
     - echo "  - performance_test" >> generated-perf-jobs.yml
 
@@ -1308,7 +1309,7 @@ generate_performance_jobs:
       done
   artifacts:
     paths:
-      - generated-perf-jobs.yml
+      - build/generated-perf-jobs.yml
     expire_in: 1h
   needs:
     - linux:gcc14-musl
@@ -1317,10 +1318,14 @@ generate_performance_jobs:
 # TEST_PERFORMANCE STAGE: Trigger the child pipeline created before
 ###########################################################
 performance_tests:
-  stage: test_performance
-  needs: ["generate_performance_jobs"]
+  stage: performance_test
+  needs:
+    - job: generate_performance_jobs
+      artifacts: true
   trigger:
-    include: generated-perf-jobs.yml
+    include:
+      - artifact: build/generated-perf-jobs.yml
+        job: generate_performance_jobs
 
 
 #######################################################################
