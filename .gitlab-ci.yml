@@ -67,6 +67,7 @@ stages:
   - cfsdeps
   - build
   - test # we may have several test configs for one build
+  - test_performance # here we test performance related tests that are too large to include in the standard test environment
   - test_extra # here we test everything that is not required to pass (broken and too unstable stuff)
   - docs
   - deploy
@@ -1249,6 +1250,111 @@ python:linux:
   needs: [] # run as soon as possible
 
 
+
+###########################################################
+# Performance tests (with child pipeline to enabel dynamic parallel execution)
+###########################################################
+
+#Generate dynamic child pipeline in test stage
+generate_performance_jobs:
+  stage: test
+  image: ubuntu22.04
+  script:
+    # -------------------------------------------
+    # Step 1: Get all performance tests
+    # Clean up leading/trailing spaces
+    # -------------------------------------------
+    - mapfile -t perf_tests < <(
+        ctest -N -L performance |
+        grep "Test #" |
+        awk -F': ' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}'
+      )
+    - echo "Found ${#perf_tests[@]} performance tests"
+
+    # -------------------------------------------
+    # Step 2: Start generating the child pipeline YAML
+    # -------------------------------------------
+    - echo "stages:" > generated-perf-jobs.yml
+    - echo "  - performance_test" >> generated-perf-jobs.yml
+
+    # -------------------------------------------
+    # Step 3: Generate one job per performance test
+    # Use a heredoc (<<EOF) for multi-line YAML
+    # Variables are safely expanded inside the heredoc
+    # -------------------------------------------
+    - |
+      for test in "${perf_tests[@]}"; do
+        # Sanitize: replace non-alphanumeric with underscores
+        base_name=$(echo "$test" | tr -c 'a-zA-Z0-9' '_')
+        # Truncate to 50 chars to avoid GitLab job name limit
+        short_name=$(echo "$base_name" | cut -c1-50)
+        # Append hash of full test name for uniqueness
+        hash=$(echo -n "$test" | md5sum | cut -c1-6)
+        job_name="${short_name}_${hash}"
+
+        # Use a heredoc to safely write multi-line YAML
+        # Quoting the variables with single quotes inside YAML prevents special characters from breaking it
+        cat >> generated-perf-jobs.yml <<EOF
+  ${job_name}:
+    stage: performance_test
+    variables:
+      IMAGE: ubuntu22.04
+      TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+      CTEST_OPTIONS: "-R '$test'"
+    <<: *test_generic
+    needs:
+      - linux:gcc14-musl
+EOF
+      done
+
+  artifacts:
+    paths:
+      - generated-perf-jobs.yml
+    expire_in: 1h
+  needs:
+      - linux:gcc14-musl
+
+###########################################################
+# TEST_PERFORMANCE STAGE: Trigger the child pipeline created before
+###########################################################
+performance_tests:
+  stage: performance_test
+  needs: ["generate_performance_jobs"]
+  trigger:
+    include: generated-perf-jobs.yml
+
+
+
+#######################################################################
+# TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
+#######################################################################
+
+# the extra stage is irrelevant for the merge request (alloed to fail)
+# therefore we set it to manual by default
+# it should auto-run for nightly tests
+.test_extra:
+  <<: *test_generic
+  stage: test_extra
+  # then overwrite rules
+  rules:
+    # Scheduled pipelines run all tests
+    - if: $CFS_PIPkELINE_TYPE == "nightly"
+      allow_failure: true
+    # Set the tests to manual for test-pipelines
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+
+all_par:gcc14-musl:linux:
+  extends: .test_extra
+  tags:
+    - saas-linux-small-amd64
+  variables:
+    IMAGE: ubuntu24.04
+  needs:
+    - linux:gcc14-musl
+
+
 #######################################################################
 # TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
 #######################################################################
@@ -1593,3 +1699,31 @@ release:
           url: "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}" # uploaded by 'package' job before
           filepath: '/CFS-Windows.zip' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
           link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
+
+rolling_release:
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - package
+  rules:
+    # Only for default branch release pipelines, NOT for tag releases
+    - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG == null && $CI_PROJECT_NAMESPACE == "openCFS"
+  before_script:
+    - git config --global user.email "ci@opencfs"
+    - git config --global user.name "openCFS CI"
+  script:
+    # Move / create the rolling tag
+    - git fetch --tags
+    - git tag -f rolling "$CI_COMMIT_SHA"
+    - git push -f origin rolling
+
+    # Create or update the rolling release
+    - |
+      release-cli create \
+        --name "Rolling Release" \
+        --tag-name "rolling" \
+        --ref "$CI_COMMIT_SHA" \
+        --prerelease \
+        --description "This is an automatically updated rolling pre-release build.\n\nCommit: ${CI_COMMIT_SHA}\nDate: $(date -u +"%Y-%m-%d %H:%M:%S UTC")\n\nThis release always points to the latest successful build of the default branch." \
+        --assets-link "{\"name\":\"Linux binary (tar.gz)\",\"url\":\"${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}\",\"filepath\":\"/CFS-Linux.tar.gz\",\"link_type\":\"package\"}" \
+        --assets-link "{\"name\":\"Windows binary (zip)\",\"url\":\"${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}\",\"filepath\":\"/CFS-Windows.zip\",\"link_type\":\"package\"}"
