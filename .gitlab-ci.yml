@@ -1321,37 +1321,6 @@ performance_tests:
     include: generated-perf-jobs.yml
 
 
-
-#######################################################################
-# TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
-#######################################################################
-
-# the extra stage is irrelevant for the merge request (alloed to fail)
-# therefore we set it to manual by default
-# it should auto-run for nightly tests
-.test_extra:
-  <<: *test_generic
-  stage: test_extra
-  # then overwrite rules
-  rules:
-    # Scheduled pipelines run all tests
-    - if: $CFS_PIPkELINE_TYPE == "nightly"
-      allow_failure: true
-    # Set the tests to manual for test-pipelines
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      allow_failure: true
-
-all_par:gcc14-musl:linux:
-  extends: .test_extra
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    IMAGE: ubuntu24.04
-  needs:
-    - linux:gcc14-musl
-
-
 #######################################################################
 # TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
 #######################################################################
