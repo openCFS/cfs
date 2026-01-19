@@ -1070,7 +1070,7 @@ stable_ser:gcc9min:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-LE unstable|broken"
+    CTEST_OPTIONS: "-LE unstable|broken|performance"
   <<: *test_generic
   needs:
     - linux:gcc9min
@@ -1098,7 +1098,7 @@ stable_par:gcc9max:linux:
   variables:
     IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
+    CTEST_OPTIONS: "-LE unstable|broken|performance"
   needs:
     - linux:gcc9max
 
@@ -1126,7 +1126,7 @@ stable_par_opt:gcc9closed:linux:
   variables:
     IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
-    CTEST_OPTIONS: "-LE unstable|broken -R Opt"
+    CTEST_OPTIONS: "-LE unstable|broken|performance -R Opt"
   needs:
     - linux:gcc9closed
 
@@ -1137,7 +1137,7 @@ stable_ser:gcc14-musl:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-LE unstable|broken"
+    CTEST_OPTIONS: "-LE unstable|broken|performance"
   <<: *test_generic
   needs:
     - linux:gcc14-musl
@@ -1149,7 +1149,7 @@ stable_par:gcc14-musl:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
+    CTEST_OPTIONS: "-LE unstable|broken|performance"
   <<: *test_generic
   needs:
     - linux:gcc14-musl
@@ -1161,7 +1161,7 @@ stable_par:intel:linux:
   variables:
     IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
+    CTEST_OPTIONS: "-LE unstable|broken|performance"
   <<: *test_generic
   needs:
     - linux:intel
@@ -1264,12 +1264,13 @@ generate_performance_jobs:
     # Step 1: Get all performance tests
     # Clean up leading/trailing spaces
     # -------------------------------------------
-    - mapfile -t perf_tests < <(
+    - |
+      mapfile -t perf_tests < <(
         ctest -N -L performance |
         grep "Test #" |
         awk -F': ' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}'
       )
-    - echo "Found ${#perf_tests[@]} performance tests"
+      echo "Found ${#perf_tests[@]} performance tests"
 
     # -------------------------------------------
     # Step 2: Start generating the child pipeline YAML
