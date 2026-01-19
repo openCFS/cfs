@@ -1298,7 +1298,7 @@ EOF
       - generated-perf-jobs.yml
     expire_in: 1h
   needs:
-      - linux:gcc14-musl
+    - linux:gcc14-musl
 
 ###########################################################
 # TEST_PERFORMANCE STAGE: Trigger the child pipeline created before
