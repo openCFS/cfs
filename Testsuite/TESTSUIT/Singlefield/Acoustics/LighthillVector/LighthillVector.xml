@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
-  
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation 
+  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
   <documentation>
     <title>Lighthill Vector Implementation</title>
     <authors>
@@ -70,7 +72,7 @@
         <bcsAndLoads>               
           <rhsDensityVector name="CAA_Pipe2">
            <grid>
-            <defaultGrid quantity="acouRhsLoadDensityVector" dependtype="GENERAL">
+            <defaultGrid quantity="acouRhsLoadDensityVector" dependtype="GENERAL" definedOn="node">
               <globalFactor>-1</globalFactor>  <!-- the factor -1 is necessary and comes from the weak formulation -->
             </defaultGrid>
            </grid>        
