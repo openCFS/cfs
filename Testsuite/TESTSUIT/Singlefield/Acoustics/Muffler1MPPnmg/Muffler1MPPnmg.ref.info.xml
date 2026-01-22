@@ -1,0 +1,299 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.229s" wall="0.229" cpu="0.206915" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2050" peak="2071"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-23 00:35:18" host="shady" estimatedEnd="2026-Jan-23 00:35:18" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="Muffler1MPPnmg" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Acoustics/Muffler1MPPnmg/Muffler1MPPnmg.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="b654a6185d2f4713eca71cb6402ee516e9e8ecd7" git_branch="fwein_sort_hdf5" compiled="Jan 23 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.006s" wall="0.006" cpu="0.00609" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="594" nodes="572"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="I1master" id="0" type="surface" regular="yes" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+        <region name="I2master" id="1" type="surface" regular="yes" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+        <region name="airEl" id="2" type="volume" regular="no" hom="yes" nodes="430" elems="330" isQuadratic="no"/>
+        <region name="damp" id="3" type="volume" regular="yes" hom="yes" nodes="24" elems="15" isQuadratic="no"/>
+        <region name="excite" id="4" type="surface" regular="yes" hom="yes" nodes="4" elems="3" isQuadratic="no"/>
+        <region name="surfIn" id="5" type="surface" regular="yes" hom="yes" nodes="4" elems="3" isQuadratic="no"/>
+        <region name="surfOut" id="6" type="surface" regular="yes" hom="yes" nodes="4" elems="3" isQuadratic="no"/>
+        <region name="I1slave" id="7" type="surface" regular="yes" hom="yes" nodes="61" elems="60" isQuadratic="no"/>
+        <region name="I2slave" id="8" type="surface" regular="yes" hom="yes" nodes="61" elems="60" isQuadratic="no"/>
+        <region name="mpp" id="9" type="volume" regular="yes" hom="yes" nodes="122" elems="60" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser dt="0" f="1000" step="1" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001732" calls="8"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="1000" end="1000" numFreq="1"/>
+      <init_harmonic>
+        <timer wall-clock="0.108s" wall="0.108" cpu="0.10662" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="mpp" damping="none"/>
+          <region name="airEl" damping="none"/>
+          <region name="damp" damping="pml"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="penalty_v2_u2" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_dv1_u2" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="penalty_v1_u2" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="mpp">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="mpp">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" region="airEl">
+                <coef type="CoefFunctionConst" value="(7.20877e-06,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" region="airEl">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="damp">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="damp">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_dv1_u2" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="penalty_v1_u1" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_dv1_u1" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_v1_du1" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_dv1_u1" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="penalty_v1_u1" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="penalty_v1_u2" type="ABInt" complex="yes" region="i2">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="penalty_v2_u2" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="flux_v1_du1" type="ABInt" complex="yes" region="i1">
+                <coef type="CoefFunctionConst" value="(0.833333,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NormalVelocityIntegrator">
+                <entities name="excite" size="3" region="excite"/>
+                <row pde="acoustic" result="acouPressure" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="airEl"/>
+            <region name="damp"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(138720,0)"/>
+          <property name="Acoustic_Sound_Speed" value="340"/>
+          <property name="Density" value="(1.2,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(138720,0)"/>
+          <property name="Acoustic_Sound_Speed" value="340"/>
+          <property name="Density" value="(1.2,0)"/>
+        </material>
+        <material name="MPP1">
+          <regionList>
+            <region name="mpp"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(sample1D('mppCompR.txt',f,1), sample1D('mppCompI.txt',f,1) )"/>
+          <property name="Acoustic_Sound_Speed" value="(sqrt((sqrt(  ((((  (sample1D('mppCompR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  )+(  (sample1D('mppCompI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))/(  ((  (sample1D('mppDensityR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  ) + (  (sample1D('mppDensityI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))  )))  *  ((((  (sample1D('mppCompR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  )+(  (sample1D('mppCompI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))/(  ((  (sample1D('mppDensityR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  ) + (  (sample1D('mppDensityI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))  )))  +  ((((  (sample1D('mppCompI.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  )-(  (sample1D('mppCompR.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  )) / (  ((  (sample1D('mppDensityR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  ) + (  (sample1D('mppDensityI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))  )))  *  ((((  (sample1D('mppCompI.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  )-(  (sample1D('mppCompR.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  )) / (  ((  (sample1D('mppDensityR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  ) + (  (sample1D('mppDensityI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))  )))  )+  ((((  (sample1D('mppCompR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  )+(  (sample1D('mppCompI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))/(  ((  (sample1D('mppDensityR.txt',f,1))  *  (sample1D('mppDensityR.txt',f,1))  ) + (  (sample1D('mppDensityI.txt',f,1))  *  (sample1D('mppDensityI.txt',f,1))  ))  )))  )/2))"/>
+          <property name="Density" value="(sample1D('mppDensityR.txt',f,1), sample1D('mppDensityI.txt',f,1) )"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <airEl/>
+                <default order="1"/>
+                <damp/>
+                <mpp/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+        <feFunctions>
+          <acouPressure/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="572" totalNumFreeEqns="572" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="572" lastFreeEqn="572" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="572" lastFreeIndex="572"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.00196" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001139" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.001403" wall="0.001" peakMem="394" permanentMem="386"/>
+                <numfact cpu="0.000516" wall="0" peakMem="235"/>
+              </call>
+            </process>
+            <refinement>
+              <warning> PARDISO completed without reaching maximum iterative refinement steps (10).</warning>
+
+            </refinement>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <GetRidOfZeros zeros_removed="2992" cpu="0.000168" wall="0"/>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph_setup>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.001122" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.019s" wall="0.019" cpu="0.008662" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.019s" wall="0.019" cpu="0.00863" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="2.8e-05" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

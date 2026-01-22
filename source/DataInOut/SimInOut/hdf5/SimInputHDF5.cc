@@ -6,8 +6,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
-
-
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Exception.hh"
@@ -826,9 +824,10 @@ namespace CoupledField {
 
     elemGroup.close();
 
-    typedef boost::unordered_set<UInt> RegionSetType;
-    RegionSetType readNodeSet;
-    RegionSetType readElemSet;
+    // This sets needs to have defined order - not necessarily sorted. 
+    // See comment for SimInputCDB::referencedElems_
+    std::set<UInt> readNodeSet;
+    std::set<UInt> readElemSet;
 
     // map for each element number the related region
     StdVector<RegionIdType> elemRegionMap(numElems);
@@ -995,7 +994,7 @@ namespace CoupledField {
     
     UInt idx;
     Vector<Double> p(3);
-    RegionSetType::iterator it, end;
+    std::set<UInt>::iterator it, end;
     
     if( !readAllEntities_ ) {
       numNodes_ = readNodeSet.size();

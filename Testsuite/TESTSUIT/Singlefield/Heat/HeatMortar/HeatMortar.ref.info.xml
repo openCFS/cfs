@@ -1,0 +1,298 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.076s" wall="0.076" cpu="0.072536" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="2050" peak="2054"/>
+  </summary>
+  <header id="">
+    <environment started="2026-Jan-23 00:41:46" host="shady"/>
+    <progOpts problem="HeatMortar" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Heat/HeatMortar/HeatMortar.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="b654a6185d2f4713eca71cb6402ee516e9e8ecd7" git_branch="fwein_sort_hdf5" compiled="Jan 23 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.009s" wall="0.009" cpu="0.009174" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="311" nodes="836"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="coil" id="0" type="volume" regular="yes" hom="yes" nodes="50" elems="24" isQuadratic="yes"/>
+        <region name="heat_inner" id="1" type="volume" regular="yes" hom="yes" nodes="208" elems="156" isQuadratic="yes"/>
+        <region name="left_inner" id="2" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="yes"/>
+        <region name="lower_inner" id="3" type="surface" regular="yes" hom="yes" nodes="16" elems="15" isQuadratic="yes"/>
+        <region name="right_inner" id="4" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="yes"/>
+        <region name="upper_inner" id="5" type="surface" regular="yes" hom="yes" nodes="16" elems="15" isQuadratic="yes"/>
+        <region name="left_outer" id="6" type="surface" regular="yes" hom="yes" nodes="5" elems="2" isQuadratic="yes"/>
+        <region name="lower_outer" id="7" type="surface" regular="yes" hom="yes" nodes="5" elems="2" isQuadratic="yes"/>
+        <region name="outer" id="8" type="volume" regular="no" hom="yes" nodes="241" elems="69" isQuadratic="yes"/>
+        <region name="right_outer" id="9" type="surface" regular="yes" hom="yes" nodes="5" elems="2" isQuadratic="yes"/>
+        <region name="upper_outer" id="10" type="surface" regular="yes" hom="yes" nodes="5" elems="2" isQuadratic="yes"/>
+      </regions>
+      <namedNodes>
+        <nodes name="excite_one" count="17"/>
+        <nodes name="excite_two" count="18"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0s" wall="0" cpu="0.000694" calls="8"/>
+    </results>
+  </header>
+  <warning lineNum="3777" fileName="/home/fwein/code/cfs/source/OLAS/algsys/AlgebraicSys.cc" message="AlgebraicSys::GetRidOfZeros: No zeros to remove with defined tolerance were found"/>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.006s" wall="0.006" cpu="0.004848" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="outer" damping="none"/>
+          <region name="coil" damping="none"/>
+          <region name="heat_inner" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MortarNcInt" type="ABInt" complex="no" region="nciface_upper">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarMassInt" type="BBInt" complex="no" region="upper_outer">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="coil">
+                <coef type="CoefFunctionConst" value="[[80.4, 0],[0, 80.4]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="heat_inner">
+                <coef type="CoefFunctionConst" value="[[0.03, 0],[0, 0.03]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="outer">
+                <coef type="CoefFunctionConst" value="[[0.03, 0],[0, 0.03]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarNcInt" type="ABInt" complex="no" region="nciface_right">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarMassInt" type="BBInt" complex="no" region="right_outer">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarNcInt" type="ABInt" complex="no" region="nciface_left">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarMassInt" type="BBInt" complex="no" region="left_outer">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarMassInt" type="BBInt" complex="no" region="lower_outer">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="MortarNcInt" type="ABInt" complex="no" region="nciface_lower">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="yes" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="Iron">
+          <regionList>
+            <region name="coil"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.040000e+01  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.040000e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.040000e+01
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(80.4,0)"/>
+          <property name="Heat_Capacity" value="444"/>
+          <property name="Density" value="7870"/>
+        </material>
+        <material name="Air">
+          <regionList>
+            <region name="heat_inner"/>
+            <region name="outer"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 3.000000e-02  0.000000e+00  0.000000e+00
+                 0.000000e+00  3.000000e-02  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.000000e-02
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(0.03,0)"/>
+          <property name="Heat_Capacity" value="1005"/>
+          <property name="Density" value="1.1799999999999999"/>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 3.000000e-02  0.000000e+00  0.000000e+00
+                 0.000000e+00  3.000000e-02  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.000000e-02
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(0.03,0)"/>
+          <property name="Heat_Capacity" value="1005"/>
+          <property name="Density" value="1.1799999999999999"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <coil order="2"/>
+                <default/>
+                <heat_inner order="2"/>
+                <outer order="2"/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+          <h1Nodal>
+            <regionList>
+              <lower_outer order="2"/>
+              <default/>
+              <right_outer order="2"/>
+              <upper_outer order="2"/>
+              <left_outer order="2"/>
+            </regionList>
+          </h1Nodal>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="excite_one" dofs="" value="1"/>
+            <nodeList name="excite_two" dofs="" value="-1"/>
+          </inhomDirichletBC>
+          <lagrangeMultiplier/>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="465" totalNumFreeEqns="456" totalNumDirichlet="9">
+            <function id="0" name="heatTemperature" numEqns="449" lastFreeEqn="440" numDirichlet="9">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+            <function id="1" name="lagrangeMultiplier" numEqns="16" lastFreeEqn="16" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="465" lastFreeIndex="456"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001727" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.002235" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.001349" wall="0.001" peakMem="542" permanentMem="431"/>
+                <numfact cpu="0.000349" wall="0" peakMem="211"/>
+              </call>
+            </process>
+            <refinement>
+              <warning> PARDISO completed without reaching maximum iterative refinement steps (100).</warning>
+
+            </refinement>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <GetRidOfZeros zeros_removed="0" cpu="5.9e-05" wall="0"/>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.0007" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.004s" wall="0.004" cpu="0.002103" calls="2"/>
+          <assemble_matrices>
+            <timer wall-clock="0.004s" wall="0.004" cpu="0.0021" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="1" sub="true"/>
+          </assemble_rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>
