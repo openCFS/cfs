@@ -784,13 +784,21 @@ namespace CoupledField {
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << ToString() << "GetElemSolution()";
-    StdVector<Integer> eqns;
+
+    // NOTE: Element solution caching was disabled because it doesn't properly
+    // track when the solution vector changes during nonlinear iterations.
+    // This caused stale values to be returned, leading to incorrect results.
+    // TODO: If caching is needed for performance, add a solution version counter
+    // or invalidation mechanism.
+
+    // Use thread-local work buffer to avoid per-call allocations
+    StdVector<Integer>& eqns = work_eqns_.Mine();
     const Vector<T>& vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
       if( eqns[i] != 0 ) {
-        elemSol[i] = factor_ * vals[std::abs(eqns[i])-1]; 
+        elemSol[i] = factor_ * vals[std::abs(eqns[i])-1];
       } else {
         elemSol[i] = 0.0;
       }
@@ -1173,20 +1181,18 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void FeFunction<T>::GetVector(Vector<T>& vec, 
+  void FeFunction<T>::GetVector(Vector<T>& vec,
                                 const LocPointMapped& lpm ){
-    // get element solution
     Vector<T> elemSol;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it
     BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
     idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
-    LOG_DBG(fefunc) << ToString() << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0]; 
+    LOG_DBG(fefunc) << ToString() << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0];
   }
-  
+
   template<typename T>
-    void FeFunction<T>::GetAvgElemValue(T& vec, const Elem* elem) {
-    // get element solution
+  void FeFunction<T>::GetAvgElemValue(T& vec, const Elem* elem) {
     Vector<T> elemSol;
     GetElemSolution( elemSol, elem);
     // average
@@ -1200,7 +1206,6 @@ namespace CoupledField {
   
   template<typename T>
   void FeFunction<T>::GetScalar(T& scal, const LocPointMapped& lpm ){
-    // get element solution
     Vector<T> elemSol, temp;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it

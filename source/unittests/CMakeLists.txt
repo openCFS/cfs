@@ -17,14 +17,12 @@ set(UNIT_TESTS_SRC
 #  cubicinttests.cc
 )
 
-set(TARGET_LL 
+set(TARGET_LL
   matvec
   design
   cfsgeneral
   utils
   datainout)
-#  paramh
-#  utils)
 
 if(USE_EMBEDDED_PYTHON)
   list(APPEND TARGET_LL ${Python_LIBRARIES})
@@ -47,10 +45,13 @@ endif()
 
 TARGET_LINK_LIBRARIES(cfstest ${TARGET_LL})
 
-# this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)
-# new apple system have no more librt dll, probably same for Windows
+# Linux-specific link flags:
+# - librt is needed for glibc <= 2.17
+# - --start-group fixes circular dependencies between static libraries
+#   (e.g., materials->utils for BiLinInterpolate/TriLinInterpolate).
+#   The linker auto-adds --end-group at the end if missing.
 if(NOT APPLE AND NOT WIN32)
-  set(CFS_LINK_FLAGS "-lrt")
+  set(CFS_LINK_FLAGS "-Wl,--start-group -lrt")
 endif()
 
 # Even if we did not compile openCFS itself with OpenMP enabled, we may have

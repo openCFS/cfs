@@ -21,6 +21,7 @@
       <xsd:documentation>Magnetic PDE solved by edge elements (just for 3D computations); primary dof is the magnetic vector potential
         There are the following formulations available:
         -) A: formulation with reduced magnetic vector potential, sometimes called A* formulation (B-based)
+        -) A-Adj: adjoint of "A" formulation
         -) A-V: formulation with magnetic vector potential and electric scalar potential (B-based formulation)
         -) specialAV: formulation specialized for total current excitation where the scalar potential V is precomputed with a Laplace problem (e.g. elecConductionPDE)
         -) Darwin: Formulation with magnetic vector potential A and electric scalar potential V, neglecting only wave propagation in Maxwell's equations, capacitive-resistive-inductive are included
@@ -57,6 +58,31 @@
             </xsd:annotation>
           </xsd:element>
 
+          <xsd:element name="hysteresisTimeStepping" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Configuration for hysteresis time stepping.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                
+                <xsd:element name="useTimeDerivatives" minOccurs="1" maxOccurs="1">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:string">
+                      <xsd:enumeration value="yes"/>
+                      <xsd:enumeration value="no"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:element>
+          
+                <xsd:element name="deltaT" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+                
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
+
           <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>
@@ -74,10 +100,14 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
@@ -126,6 +156,11 @@
                     <xsd:documentation>Magnetic permeability as function of temperature</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="reluctivity" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic reluctivity as function of magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -166,6 +201,11 @@
                     <xsd:documentation>Specifies the value of the magnetic vector potential (being in the tangential plane)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="fluxNormal" type="DT_BcHomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic field is forced to be normal to the surface. H-formulation: Homogenous Dirichlet boundary condition (ONLY FOR THE H-FORMULATION).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <xsd:element name="elecPotential" type="DT_BcInhomScalar">
                   <xsd:annotation>
@@ -196,7 +236,11 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
-                
+                <xsd:element name="measuredFluxDensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Measured magnetic flux density (will be read from file) </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>   
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -227,6 +271,10 @@
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
+              <xsd:enumeration value="H"/> 
+              <xsd:enumeration value="mixedSFG"/>
+              <xsd:enumeration value="regulSFG"/>
+              <xsd:enumeration value="AStar"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
@@ -363,7 +411,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
       <xsd:enumeration value="magPotentialD1"/>
-      <xsd:enumeration value="magFieldIntensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>      
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensityTransversal"/>
       <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
@@ -416,6 +464,8 @@
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
       <xsd:enumeration value="magJouleLossPower"/>
+      <xsd:enumeration value="magAveragedFluxDensity"/>
+      <xsd:enumeration value="volume"/>
     </xsd:restriction>
   </xsd:simpleType>
 

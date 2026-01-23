@@ -348,7 +348,24 @@ namespace CoupledField{
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::InterpolateVector(Vector<Double> globPoint, Vector<T> & vec){
 
-    Read(scatteredData_.size()!=0);
+    // Thread-safe Read: protect concurrent access during parallel assembly
+    // - Initial read (updateMode=false) is done exactly once via call_once
+    // - Update reads (updateMode=true) for time-varying data are serialized via mutex
+    //   The CSVT reader checks if time step changed internally, so most update calls are no-ops
+    {
+      std::lock_guard<std::mutex> lock(readMutex_);
+      bool updateMode = !scatteredData_.empty();
+      if (!updateMode) {
+        // First read - use call_once to ensure exactly one thread does it
+        std::call_once(readOnce_, [this]() {
+          Read(false);
+        });
+      } else {
+        // Update mode - needed for time-varying data (CSVT)
+        // The reader internally checks if data needs updating for current time step
+        Read(true);
+      }
+    }
 
     StdVector< Vector<Double> > neighbors;
     StdVector< Double > l2dists;

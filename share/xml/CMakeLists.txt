@@ -22,8 +22,10 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMechLin.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMechLin.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEheatConduction.xsd ${DST_DIR}/Schemas/CFS_PDEheatConduction.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagedge.xsd ${DST_DIR}/Schemas/CFS_PDEmagedge.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagedgeAdj.xsd ${DST_DIR}/Schemas/CFS_PDEmagedgeAdj.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEsplit.xsd ${DST_DIR}/Schemas/CFS_PDEsplit.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagnetic.xsd ${DST_DIR}/Schemas/CFS_PDEmagnetic.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmagneticScalarPotentialAdj.xsd ${DST_DIR}/Schemas/PDEmagneticScalarPotentialAdj.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmechanic.xsd ${DST_DIR}/Schemas/CFS_PDEmechanic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEelectricConduction.xsd ${DST_DIR}/Schemas/CFS_PDEelectricConduction.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEelecQuasistatic.xsd ${DST_DIR}/Schemas/CFS_PDEelecQuasistatic.xsd

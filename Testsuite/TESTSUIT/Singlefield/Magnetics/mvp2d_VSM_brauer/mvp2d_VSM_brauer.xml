@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>2D transient magnetic simulation (MVP) with VSM nonlinear material (Brauer)</title>
+    <authors>
+      <author>Lukas Domenig</author>
+    </authors>
+    <date>2025-11-24</date>
+    <keywords>
+      <keyword>transient</keyword>
+      <keyword>nonlinear</keyword>
+      <keyword>invEBHysteresisModel</keyword>
+    </keywords>
+    <references> no references, only functionality test </references>
+    <isVerified>yes</isVerified>
+    <description> Transient analysis of a magnetic field using the A-formulation (Magnetic
+      Vector Potential) on a 2D plane geometry. The setup includes a coil with a constant
+      current source (8e4) and a region defined by a VSM nonlinear material model
+      (iron_VSM_brauer). </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="mvp2d_VSM_brauer.h5ref" />
+    </input>
+    <output>
+      <hdf5 id="hdf5" />
+      <text id="txt" />
+    </output>
+    <materialData file="mat_nonlinear.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_1" material="air" />
+      <region name="S_2" material="iron_VSM_brauer" />
+      <region name="S_3" material="iron_linear" />
+      <region name="S_4" material="air" />
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="Hcurl">
+      <isoOrder> 0 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder>1</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>1</numSteps>
+        <deltaT>0.1</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magnetic formulation="A">
+        <regionList>
+          <region name="S_1" />
+          <region name="S_2" nonLinIds="nonlin_core" />
+          <region name="S_3" />
+          <region name="S_4" />
+        </regionList>
+
+        <nonLinList>
+          <permeability id="nonlin_core" model="invEBHysteresisModel" />
+        </nonLinList>
+
+        <bcsAndLoads>
+          <fluxParallel name="L_outer">
+            <comp dof="z" />
+          </fluxParallel>
+        </bcsAndLoads>
+
+        <coilList>
+          <coil id="coil_S_1">
+            <source type="current" value="8e4" />
+            <part id="1">
+              <regionList>
+                <region name="S_1" />
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1.0" />
+                </analytic>
+              </direction>
+              <wireCrossSection area="1" />
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5" />
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5" />
+          </elemResult>
+        </storeResults>
+      </magnetic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="yes" method="newton">
+              <lineSearch type="Inexact" />
+              <incStopCrit> 1e8</incStopCrit>
+              <resStopCrit> 1e-8</resStopCrit>
+              <maxNumIters> 30 </maxNumIters>
+              <abortOnMaxNumIters>yes</abortOnMaxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+        </solverList>
+      </system>
+    </linearSystems>
+
+
+  </sequenceStep>
+
+
+</cfsSimulation>

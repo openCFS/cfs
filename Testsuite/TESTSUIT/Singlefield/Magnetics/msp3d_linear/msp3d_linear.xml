@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>3D transient linear magnetic simulation with MSP (Psi) and H-formulation coupling</title>
+    <authors>
+      <author>Lukas Domenig</author>
+    </authors>
+    <date>2025-11-24</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references> no references, only functionality test </references>
+    <isVerified>yes</isVerified>
+    <description> Two-step transient analysis on a 3D geometry. Step 1 calculates the source
+      magnetic field using the mixed H-formulation (mixedSFG) with a sinusoidal current source
+      (10*sin(t)). Step 2 solves the magnetic scalar potential (Psi) formulation for linear
+      materials, using the field intensity from Step 1 as an input load. </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="msp3d_linear.h5ref" />
+    </input>
+    <output>
+      <hdf5 id="hdf5" />
+      <text id="txt" />
+    </output>
+    <materialData file="mat_linear.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V_1" material="air" />
+      <region name="V_2" material="iron_linear" />
+      <region name="V_3" material="iron_linear" />
+      <region name="V_4" material="air" />
+    </regionList>
+    <nodeList>
+      <nodes name="N_gauge">
+        <coord x="0" y="0.01e-3" z="0" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="vP">
+      <isoOrder> 0 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder> 1 </isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>1</numSteps>
+        <deltaT>0.1</deltaT>
+        <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magneticEdge formulation="mixedSFG">
+        <regionList>
+          <region name="V_1" VecPolyId="vP" />
+          <region name="V_2" VecPolyId="vP" />
+          <region name="V_3" VecPolyId="vP" />
+          <region name="V_4" VecPolyId="vP" />
+        </regionList>
+
+
+        <coilList>
+          <coil id="coil_S_1">
+            <source type="current" value="10*sin(t)" />
+            <part id="1">
+              <regionList>
+                <region name="V_1" />
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1.0" />
+                </analytic>
+              </direction>
+              <wireCrossSection area="1" />
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5" />
+          </elemResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <ginkgo></ginkgo>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+
+  <sequenceStep index="2">
+    <analysis>
+      <transient initialTime="zero">
+        <numSteps>1</numSteps>
+        <deltaT>0.1</deltaT>
+      </transient>
+    </analysis>
+
+
+    <pdeList>
+      <magnetic formulation="Psi">
+        <regionList>
+          <region name="V_1" polyId="H1" />
+          <region name="V_2" polyId="H1" />
+          <region name="V_3" polyId="H1" />
+          <region name="V_4" polyId="H1" />
+        </regionList>
+
+        <bcsAndLoads>
+          <potential name="N_gauge" value="0" />
+          <fieldIntensity name="V_1">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />
+              <timeFreqMapping>
+                <continuous interpolation="linear" />
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="V_2">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />
+              <timeFreqMapping>
+                <continuous interpolation="linear" />
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="V_3">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />
+              <timeFreqMapping>
+                <continuous interpolation="linear" />
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="V_4">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />
+              <timeFreqMapping>
+                <continuous interpolation="linear" />
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="magPotential">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="magFluxDensity">
+            <allRegions />
+          </elemResult>
+          <elemResult type="magFieldIntensity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </magnetic>
+    </pdeList>
+  </sequenceStep>
+
+</cfsSimulation>

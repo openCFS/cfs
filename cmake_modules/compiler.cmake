@@ -55,9 +55,16 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
    set(CFS_CXX_FLAGS "-g -fno-omit-frame-pointer ${CFS_CXX_FLAGS}")
   endif()  
   
-  # we set CFS_OPT_FLAGS for release and CFSDEPS 
+  # we set CFS_OPT_FLAGS for release and CFSDEPS
+  # -m64 is x86_64-specific and must not be used on ARM64
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    set(CFS_M64_FLAG "")
+  else()
+    set(CFS_M64_FLAG "-m64 ")
+  endif()
+
   if(CFS_NATIVE)
-    # -m64 -> 32 bit int and 64 bit pointers and long
+    # -m64 -> 32 bit int and 64 bit pointers and long (x86_64 only)
     # further candidates: https://developer.amd.com/wordpress/media/2020/04/Compiler%20Options%20Quick%20Ref%20Guide%20for%20AMD%20EPYC%207xx2%20Series%20Processors.pdf
     # -march=native - has up to 20% boost against nonsense k8 and slight different results on some tests
     # -Ofast Maximize performance - almost no additional effect
@@ -65,9 +72,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # -flto Link time optimization - extremely slow linking on gcc with almost no effect
     # -param prefetch-latency=300 - Generate memory preload in structions - negative effect
     # some more for AMD Clang in the link above
-    set(CFS_OPT_FLAGS "-m64 -march=native -Ofast ") 
+    set(CFS_OPT_FLAGS "${CFS_M64_FLAG}-march=native -Ofast ")
   else()
-    set(CFS_OPT_FLAGS "-m64 -O3 ")
+    set(CFS_OPT_FLAGS "${CFS_M64_FLAG}-O3 ")
   endif()
    
   if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # no need for AppleClang
@@ -80,12 +87,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # linker issue with xcode 15 on mac
     # https://developer.apple.com/forums/thread/735426
     if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld64") # was -ld_classic and for >= 16 -ld64 is preferred and shall also work with clang 15 
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld64") # was -ld_classic and for >= 16 -ld64 is preferred and shall also work with clang 15
+    endif()
+
+    # Determine the macOS architecture for cfsdeps builds
+    # CMAKE_OSX_ARCHITECTURES may be empty, so fall back to CMAKE_SYSTEM_PROCESSOR
+    if(CMAKE_OSX_ARCHITECTURES)
+      set(CFS_OSX_ARCH "${CMAKE_OSX_ARCHITECTURES}")
+    else()
+      set(CFS_OSX_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
     endif()
 
     # warning! don't do -Wl,-nowarn_compact_unwind to prevent unwind warnings! This kills exception catching!
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES} -isysroot ${CMAKE_OSX_SYSROOT}")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES} -isysroot ${CMAKE_OSX_SYSROOT}")
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CFS_OSX_ARCH} -isysroot ${CMAKE_OSX_SYSROOT}")
+    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CFS_OSX_ARCH} -isysroot ${CMAKE_OSX_SYSROOT}")
   endif() # apple
 
   # some compilers ignore -w, others ignore -Wno-everything - both have the same purpose to disable all warning

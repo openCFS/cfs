@@ -11,11 +11,12 @@ DEFINE_LOG(feHi, "feHi")
 
   FeHi::FeHi(Elem::FEType feType  ) {
     myFeType_ = feType;
-    elemShape_ = Elem::shapes[feType]; 
-    
+    elemShape_ = Elem::shapes[feType];
+
     updateUnknowns_ = true;
     isoOrder_ = 0;
     maxOrder_ = 0;
+    isIsotropic_ = false;  // Must initialize to false so SetIsoOrder() doesn't early-exit before orderEdge_ is set
   }
 
   FeHi::FeHi(const FeHi& other){
@@ -41,13 +42,12 @@ DEFINE_LOG(feHi, "feHi")
   
   void FeHi::SetIsoOrder( UInt order ) {
      
-     LOG_DBG3(feHi) << "SetIsoOrder " << order 
-         << " for H1Hi elem of type " 
+     LOG_DBG3(feHi) << "SetIsoOrder " << order
+         << " for H1Hi elem of type "
          << Elem::feType.ToString(myFeType_);
      // just change, if order is different from previously set one
-//     if( order == this->isoOrder_ &&
-//         isIsotropic_ ) return;
-     
+     if( order == this->isoOrder_ && isIsotropic_ ) return;
+
      orderEdge_.Resize(elemShape_.numEdges);
      orderFace_.Resize(elemShape_.numFaces);
      maxOrder_ = 0;
