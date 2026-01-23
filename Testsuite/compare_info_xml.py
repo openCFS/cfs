@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # we refrain from using cfs_utils.py and optimization_tools.py, hece we need to reimplement a lot :(
 # use lxml as it can be used from python2 and python3. It is based on libxml2 but the libxml2 python interface is not available for python3
 import lxml

@@ -28,6 +28,7 @@
     <xsd:attribute name="pdeFormulation" type="DT_FeFormulationBasic" use="optional"
       default="default"/>
     <xsd:attribute name="systemId" type="xsd:token" use="optional" default="default"/>
+    <xsd:attribute name="isAdjoint" type="xsd:boolean" use="optional" default="false"/>
   </xsd:complexType>
 
 
@@ -498,6 +499,7 @@
           <xsd:element name="quantity">
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
@@ -516,6 +518,7 @@
           <xsd:element name="quantity">
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
@@ -537,6 +540,7 @@
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -602,6 +606,7 @@
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
 

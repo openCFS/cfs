@@ -611,7 +611,10 @@ template<typename T> class ElemStoreSol;
     //! This method adds to the entry of the vector at position i the
     //! specified value val.
     void AddToEntry( UInt i, const T &val );
-    
+
+    //! Add val to the value of a vector entry (atomic/thread-safe version)
+    void AddToEntryAtomic( UInt i, const T &val );
+
     //! Add element of the same type at the end of the vector
     void Push_back( const T & y );
 

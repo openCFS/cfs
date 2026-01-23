@@ -438,10 +438,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                                    BaseFE::EntityType entType){
     nodes.Clear(true);
 
-    EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
-    EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
-    EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
-    EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+    // Use .find() for thread-safe read-only access (safe even if key missing)
+    static const EntityNodesType emptyEntityNodes;
+    auto vIt = vNodesCont_.find(BaseFE::VERTEX);
+    auto eIt = vNodesCont_.find(BaseFE::EDGE);
+    auto fIt = vNodesCont_.find(BaseFE::FACE);
+    auto iIt = vNodesCont_.find(BaseFE::INTERIOR);
+    const EntityNodesType& vNodes = (vIt != vNodesCont_.end()) ? vIt->second : emptyEntityNodes;
+    const EntityNodesType& eNodes = (eIt != vNodesCont_.end()) ? eIt->second : emptyEntityNodes;
+    const EntityNodesType& fNodes = (fIt != vNodesCont_.end()) ? fIt->second : emptyEntityNodes;
+    const EntityNodesType& iNodes = (iIt != vNodesCont_.end()) ? iIt->second : emptyEntityNodes;
 
     // Get hold of element
     BaseFE * ptFe = this->GetFe(ptElem->elemNum);
@@ -451,9 +457,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt numNodes = ptElem->connect.GetSize();
       if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
         for( UInt i = 0; i < numNodes; ++i ) {
-          const StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
-          for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
-            nodes.Push_back(vertexNodes[j]);
+          auto it = vNodes.find(ptElem->connect[i]);
+          if( it != vNodes.end() ) {
+            const StdVector<UInt>& vertexNodes = it->second;
+            for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
+              nodes.Push_back(vertexNodes[j]);
+            }
           }
         }
       }
@@ -468,17 +477,23 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
-            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
-            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-              nodes.Push_back(edgeNodes[perm[j]]);
+            auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+            if( it != eNodes.end() ) {
+              const StdVector<UInt>& edgeNodes = it->second;
+              ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
+              for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+                nodes.Push_back(edgeNodes[perm[j]]);
+              }
             }
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
-            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-              nodes.Push_back(edgeNodes[j]);
+            auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+            if( it != eNodes.end() ) {
+              const StdVector<UInt>& edgeNodes = it->second;
+              for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+                nodes.Push_back(edgeNodes[j]);
+              }
             }
           }
         }
@@ -492,17 +507,23 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
-            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[perm[j]]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[perm[j]]);
+              }
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[j]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[j]);
+              }
             }
           }
         }
@@ -513,12 +534,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     {
       if( iNodes.size() ) {
         if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-          StdVector<UInt>& intNodes = iNodes[ptElem->elemNum];
-          for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
-            nodes.Push_back(intNodes[j]);
+          auto it = iNodes.find(ptElem->elemNum);
+          if( it != iNodes.end() ) {
+            const StdVector<UInt>& intNodes = it->second;
+            for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
+              nodes.Push_back(intNodes[j]);
+            }
           }
         }
-      } 
+      }
     }
 
     // Ensure, that at least one virtual node is present
@@ -1351,20 +1375,33 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       //Get "dimension" of one Unknown
       UInt dofsPerUnknown = GetNumDofs();
 
-      StdVector<UInt> nodes;
-      //this function uses hash maps... pretty dangerous for concurrent access
-#pragma omp critical (FeSpace_GetNodesOfElementCall)
-      {
-      this->GetNodesOfElement(nodes,elem);
+      // Thread-local caching: check if we already have results for this element
+      UInt& lastElemNum             = lastElemNum_.Mine();
+      StdVector<Integer>& lastEqns  = lastEqns_.Mine();
+      StdVector<UInt>& eqnNodes     = eqnNodes_.Mine();
+
+      UInt elemNum = elem->elemNum;
+      if( elemNum == lastElemNum && lastEqns.GetSize() > 0 ) {
+        eqns = lastEqns;
+        return;
       }
-      eqns.Resize( nodes.GetSize() * dofsPerUnknown );
-      eqns.Init();
-      for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+      // GetNodesOfElement now uses .at() for thread-safe read-only access
+      this->GetNodesOfElement(eqnNodes,elem);
+      UInt nrNodes = eqnNodes.GetSize();
+      eqns.Resize( nrNodes * dofsPerUnknown );
+      UInt pos = 0;
+      for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
+        const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes[iNode]];
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-          eqns[(iNode*dofsPerUnknown) + iDof] = 
-              nodeMap_[nodes[iNode]][iDof];
+          eqns[pos + iDof] = nodeEqns[iDof];
         }
+        pos += dofsPerUnknown;
       }
+
+      // Store in thread-local cache
+      lastElemNum = elemNum;
+      lastEqns = eqns;
     }
     
     void FeSpace::GetEntityListEqns(StdVector<Integer>& eqns, 

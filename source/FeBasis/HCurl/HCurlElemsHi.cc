@@ -36,6 +36,7 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 //!
 //!     curl(b*(grad(a)) = grad(b) x grad(a) = Cross(b,a)
 //!
+
 //! This second term is calculated within this method.
 inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
                                  const AutoDiff<Double,3> & v)
@@ -330,6 +331,9 @@ class Xpr_Diff_UV<D, FeHCurlHi::CURL> {
 
 
 
+
+
+
 FeHCurlHi::FeHCurlHi(Elem::FEType feType ) 
  :  FeHCurl(), FeHi(feType ){
   feType_ = feType;
@@ -471,6 +475,24 @@ void FeHCurlHi::SetFaceGradient(UInt faceNum, bool useGrad) {
 }
 
 
+
+// ========================================================================
+//  FeHCurlHi explicit element definition 
+// ========================================================================
+
+// =======================
+//  LINE ELEMENT 
+// =======================
+
+FeHCurlHiLine::FeHCurlHiLine() : FeHCurlHi( Elem::ET_LINE2 ) {
+}
+
+
+FeHCurlHiLine::~FeHCurlHiLine() {
+  
+}
+
+
 // ========================================================================
 //  FeHCurlHi explicit element definition 
 // ========================================================================
@@ -545,7 +567,8 @@ void FeHCurlHiTria::GetShFnc( Matrix<Double>& shape,
                              const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locShape;
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
@@ -562,12 +585,16 @@ void FeHCurlHiTria::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;
-  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
 
-  // Perform local->global curl transformation
-  curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
+  curl.Resize(1,3); 
+  for( UInt i = 0; i < 3; ++i ) {
+      if ( elem->extended->edges[i] < 0 ){
+        curl[0][i] = 2.0;
+      }else{
+        curl[0][i] = -2.0;
+      }
+  }
+  curl = curl*(1.0/ lpm.jacDet);
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -596,7 +623,7 @@ void FeHCurlHiTria::CalcLocShFnc2( Matrix<Double>& shape,
     // === a) standard Nedelec shape functions ===
     //Xpr_Diff_SVGradU<2,DIFF_TYPE> xpr( lambda[index1], lambda[index2], 1.0);
     for( UInt k = 0; k < 2; ++k ){
-      shape[k][i] = lambda[index1].DVal(k) * lambda[index2].Val() + lambda[index2].DVal(k) * lambda[index1].Val();
+      shape[k][i] = -lambda[index1].DVal(k) * lambda[index2].Val() + lambda[index2].DVal(k) * lambda[index1].Val();
     }
 
     // === b) gradient functions
@@ -678,11 +705,12 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
 
 }
   
-void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape, 
+void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape,
                              const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
-  
-  Matrix<Double> locShape;
+
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
@@ -695,11 +723,12 @@ void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape,
     }
 }
 
-void FeHCurlHiQuad::GetCurlShFnc( Matrix<Double>& curl, 
+void FeHCurlHiQuad::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;    
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locCurl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
   
   // Perform local->global curl transformation
@@ -1612,30 +1641,25 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
 }
 
 
-//! Return HCurl shape functions 
+//! Return HCurl shape functions
 void FeHCurlHiHex::GetShFnc( Matrix<Double>& shape, const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
-  // Perform local->global gradient transformation
-  Matrix<Double> locShape;
-  //this->CalcLocShFnc( locShape, lpm, elem, comp );
-  //std::cerr << "Old local shape\n" << locShape << std::endl;
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
-  //std::cerr << "New local shape\n" << locShape << std::endl;
+  // Perform local->global gradient transformation
   shape =  Transpose(lpm.jacInv) * locShape;
 }
 
 //! Return global curl of shape functions
 void FeHCurlHiHex::GetCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
-  // Perform local->global curl transformation
-  Matrix<Double> locCurl;    
-  
-  //this->CalcLocCurlShFnc( locCurl, lpm, elem, comp );
-  //std::cerr << "Old local curl\n" << locCurl << std::endl;
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locCurl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
+  // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::fabs(lpm.jacDet) );
-
 }
 
 
@@ -1651,24 +1675,26 @@ FeHCurlHiWedge::~FeHCurlHiWedge() {
 
 }
 
-void FeHCurlHiWedge::GetShFnc( Matrix<Double>& shape, 
+void FeHCurlHiWedge::GetShFnc( Matrix<Double>& shape,
                              const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
-  
-  Matrix<Double> locShape;
+
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
   shape =  Transpose(lpm.jacInv) * locShape;
 }
 
-void FeHCurlHiWedge::GetCurlShFnc( Matrix<Double>& curl, 
+void FeHCurlHiWedge::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;    
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locCurl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
-  
+
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::fabs(lpm.jacDet) );
@@ -2147,24 +2173,26 @@ FeHCurlHiTet::~FeHCurlHiTet() {
 
 }
 
-void FeHCurlHiTet::GetShFnc( Matrix<Double>& shape, 
+void FeHCurlHiTet::GetShFnc( Matrix<Double>& shape,
                              const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
-  
-  Matrix<Double> locShape;
+
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
   shape =  Transpose(lpm.jacInv) * locShape;
 }
 
-void FeHCurlHiTet::GetCurlShFnc( Matrix<Double>& curl, 
+void FeHCurlHiTet::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;    
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locCurl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
-  
+
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::fabs(lpm.jacDet) );
@@ -2499,11 +2527,12 @@ FeHCurlHiPyra::~FeHCurlHiPyra() {
 
 }
 
-void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape, 
+void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape,
                              const LocPointMapped& lpm,
                              const Elem* elem, UInt comp ) {
-  
-  Matrix<Double> locShape;
+
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locShape;
   CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
 
   // Perform local->global gradient transformation
@@ -2594,13 +2623,14 @@ void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape,
 #endif
 }
 
-void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl, 
+void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;    
+  // Use thread-local work buffer to avoid per-call allocation
+  thread_local Matrix<Double> locCurl;
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
-  
+
   // Perform local->global curl transformation
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::fabs(lpm.jacDet) );

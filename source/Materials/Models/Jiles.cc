@@ -101,6 +101,7 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
   isFirstTime_.Init(1);
 
   isFirstTimeFinished_ = false;
+  numInitialized_.store(0);
 
   currentDirection_.Resize(3);
   currentDirection_.Init(0);
@@ -115,16 +116,20 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
 
 Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNum) {
 
-  if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-    //if there is a new iteration, save the values from the previous iteration
-    LOG_DBG3(ja) << "Trigger new iteration"<< std::endl;
-    for(UInt i = 0; i <numElems_; i++){
-      LOG_DBG3(ja) << "Overwritting for idx_: " << i << std::endl;
-      E0it_[i]=E1_[i];
-      P0it_[i]=P1_[i];
-      Pi0it_[i]=Pi1_[i];
-      Pa0it_[i]=Pa1_[i];
+  // OpenMP fix: Use critical section to ensure only one thread updates iteration state
+  #pragma omp critical (Jiles_iteration_update)
+  {
+    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      //if there is a new iteration, save the values from the previous iteration
+      LOG_DBG3(ja) << "Trigger new iteration"<< std::endl;
+      for(UInt i = 0; i <numElems_; i++){
+        LOG_DBG3(ja) << "Overwritting for idx_: " << i << std::endl;
+        E0it_[i]=E1_[i];
+        P0it_[i]=P1_[i];
+        Pi0it_[i]=Pi1_[i];
+        Pa0it_[i]=Pa1_[i];
+      }
     }
   }
 
@@ -142,29 +147,34 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
   currentDirection_ = EVec;
   currentDirection_.ScalarDiv(E);
 
+  // OpenMP fix: Use critical section to ensure thread-safe first-time initialization
+  // Each element should only be initialized once, even with parallel execution
   if (!isFirstTimeFinished_ && (isFirstTime_[idx_])) {
-
-    //Register intial direction
-    initialDirection_[idx_]=currentDirection_;
-
-    //Evaluate the anhysteretic curve to give a better starting point for P
-    P0_[idx_] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
-
-    //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
-    RampUp(512, E, idx_);
-
-    //Set first time for element to false
-    isFirstTime_[idx_] = 0;
-
-    // if last idx_ is reached, do a double check control
-    if (idx_==numElems_-1){
-      // Double checking if each element is initalized once. eg each element has its index.
-      for(UInt i = 0; i < isFirstTime_.GetSize();i++){
-        if(isFirstTime_[i]){
-          EXCEPTION("This should not happen!");
-        }
+    bool shouldInit = false;
+    #pragma omp critical (Jiles_first_time_init)
+    {
+      // Double-check inside critical section to avoid race condition
+      if (!isFirstTimeFinished_ && isFirstTime_[idx_]) {
+        isFirstTime_[idx_] = 0;  // Mark as initialized inside critical section
+        shouldInit = true;
       }
-      isFirstTimeFinished_=true;
+    }
+
+    if (shouldInit) {
+      //Register intial direction
+      initialDirection_[idx_]=currentDirection_;
+
+      //Evaluate the anhysteretic curve to give a better starting point for P
+      P0_[idx_] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
+
+      //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
+      RampUp(512, E, idx_);
+
+      // Atomically increment initialized count and check if all done
+      UInt count = numInitialized_.fetch_add(1) + 1;
+      if (count == numElems_) {
+        isFirstTimeFinished_ = true;
+      }
     }
   }
 
@@ -232,7 +242,7 @@ void Jiles::RampUp(Integer Nt, Double E, Integer idx) {
   tmp_E = E / Nt;
   for (int i = 1; i < Nt-1; i++) {
     Evaluate(tmp_E * i, idx);
-    saveValues(true);
+    saveValues(true, -1);  // Use -1 to trigger full vector copy (original behavior)
   }
 }
 double Jiles::Evaluate(Double E, Integer idx) {
@@ -278,21 +288,53 @@ double Jiles::Evaluate(Double E, Integer idx) {
   return P;
 }
 
-void Jiles::saveValues(bool InstantSave){
+void Jiles::saveValues(bool InstantSave, Integer idx){
+  // OpenMP fix: InstantSave=true is called from RampUp during element initialization.
+  // Only save values for the specific element to avoid race conditions with parallel processing.
+  if (InstantSave) {
+    if (idx >= 0 && idx < static_cast<Integer>(numElems_)) {
+      // Only save the specific element's values
+      Pa0_[idx] = Pa1_[idx];
+      Pi0_[idx] = Pi1_[idx];
+      P0_[idx] = P1_[idx];
+      E0_[idx] = E1_[idx];
 
-  //varHandle_ is different for transient/mh analysis
-  if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)) || InstantSave){
-    Pa0_=Pa1_;
-    Pi0_=Pi1_;
-    P0_=P1_;
-    E0_=E1_;
+      Pa1_[idx] = 0;
+      Pi1_[idx] = 0;
+      P1_[idx] = 0;
+      E1_[idx] = 0;
+    } else {
+      // Fallback to original behavior if no valid idx provided
+      Pa0_=Pa1_;
+      Pi0_=Pi1_;
+      P0_=P1_;
+      E0_=E1_;
 
-    Pa1_.Init(0);
-    Pi1_.Init(0);
-    P1_.Init(0);
-    E1_.Init(0);
+      Pa1_.Init(0);
+      Pi1_.Init(0);
+      P1_.Init(0);
+      E1_.Init(0);
+    }
+    return;
+  }
 
-    timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+  // OpenMP fix: Use critical section for timestep change detection
+  #pragma omp critical (Jiles_timestep_update)
+  {
+    //varHandle_ is different for transient/mh analysis
+    if(timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)){
+      Pa0_=Pa1_;
+      Pi0_=Pi1_;
+      P0_=P1_;
+      E0_=E1_;
+
+      Pa1_.Init(0);
+      Pi1_.Init(0);
+      P1_.Init(0);
+      E1_.Init(0);
+
+      timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+    }
   }
 }
 }

@@ -16,6 +16,7 @@
 #include <def_use_flann.hh>
 
 #include "CoefFunction.hh"
+#include <mutex>
 
 #ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
@@ -305,6 +306,10 @@ namespace CoupledField {
                          StdVector< Double >& l2Distances,
                          StdVector< Vector<T> >& vectors);
 #endif
+
+    //! Thread-safety for Read() during parallel assembly
+    mutable std::once_flag readOnce_;
+    mutable std::mutex readMutex_;
 
   };
 }

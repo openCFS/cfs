@@ -130,13 +130,9 @@ poisson estimated to 0.49-->
       </electricConductivity>
       <permeability>
         <linear>
-          <tensor dim1="3" dim2="3">
-            <real>
-              6.2832e-05           0           0
-                       0  6.2832e-05           0
-                       0           0  6.2832e-05
-            </real>
-          </tensor>
+          <isotropic>
+            <real>6.2832e-05</real>
+          </isotropic>
         </linear>
       </permeability>
       <!-- Fuer iterative kopplung von mechanik zu magnetik -->
@@ -211,13 +207,9 @@ poisson estimated to 0.49-->
       </electricConductivity>
       <permeability>
         <linear>
-          <tensor dim1="3" dim2="3">
-            <real>
-              6.2832e-05           0           0
-                       0  6.2832e-05           0
-                       0           0  6.2832e-05
-            </real>
-          </tensor>
+          <isotropic>
+            <real>6.2832e-05</real>
+          </isotropic>
         </linear>
       </permeability>
       <magnetoStrictionTensor_h_mag dim1="3" dim2="6">

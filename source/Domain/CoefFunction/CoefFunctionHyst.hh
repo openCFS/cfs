@@ -8,6 +8,8 @@
 #include "Utils/Timer.hh"
 #include "Utils/helperStructs.hh"
 //#include "Materials/Models/Preisach.hh"
+#include <mutex>
+#include <atomic>
 
 namespace CoupledField {
 
@@ -2668,8 +2670,10 @@ namespace CoupledField {
 
     /*
      * static member for tracking traced hyst data over multiple instances
+     * Protected by tracedDataMutex_ for thread-safe access during parallel assembly
      */
     static std::map< std::string, TracedData > tracedOperatorData_;
+    static std::mutex tracedDataMutex_;
 
 
   private:
@@ -3136,9 +3140,10 @@ namespace CoupledField {
       
     /*
      * For performance measurement
+     * totalCallingCounter_ is atomic for thread-safe increment during parallel assembly
      */
     Timer* timer_;
-    UInt totalCallingCounter_;
+    std::atomic<UInt> totalCallingCounter_;
     UInt totalEvaluationCounter_;
     Double avgEvaluationTime_;
     Double totalEvaluationTime_;
