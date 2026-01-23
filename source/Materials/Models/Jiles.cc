@@ -19,9 +19,9 @@ namespace CoupledField {
 DEFINE_LOG(ja, "Jiles")
 
 Jiles::Jiles() : Model(),
-numElems_{0}, MaxE_{0},
+numElems_{0}, MaxE_{0},  idx_{0},
 Ps_{0}, a_{0}, alpha_{0}, k_{0},c_{0},
-mp_{nullptr},
+mp_{nullptr}, isFirstTimeFinished_{0},
 timeStep_{0}, globalIter_{0},
 isMH_{false}
 {}
@@ -109,6 +109,14 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
   isFirstTime_.Resize(numElems_);
   isFirstTime_.Init(1);
 
+  isFirstTimeFinished_ = false;
+  numInitialized_.store(0);
+
+  currentDirection_.Resize(3);
+  currentDirection_.Init(0);
+
+  initialDirection_.clear();
+
   timeStep_ = 1;
 
   mp_ = domain->GetMathParser();
@@ -117,20 +125,8 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
 
 Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNum) {
 
-  // JilesAtherton is a serial model: the per-iteration / per-timestep bookkeeping
-  // (globalIter_ swap, saveValues, first-time RampUp init) mutates shared,
-  // all-element state, and the per-element math reads/writes the same shared
-  // vectors. It also has lazy init (within first run) - TODO: refactor it
-  // 
-  // With the critical below we fix double free and the PrismHist_MH runs, other
-  // JA tests can produce wrong numerical results when assembled in parallel.
-  const UInt idx = ElemNum2Idx_[ElemNum-1];
-  const Double E = EVec.NormL2();
-
-  Double epsilon;
-  const Double epsilon0 = 8.854187e-12;
-
-  #pragma omp critical (jiles_transition)
+  // OpenMP fix: Use critical section to ensure only one thread updates iteration state
+  #pragma omp critical (Jiles_iteration_update)
   {
     if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
       globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
@@ -144,49 +140,92 @@ Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNu
         Pa0it_[i]=Pa1_[i];
       }
     }
+  }
 
-    // advance the timestep (global E0_=E1_ swap + reset inside saveValues)
-    saveValues(false);
+  idx_=ElemNum2Idx_[ElemNum-1];
 
-    if(E == 0){
-      epsilon = 4.028353e-07;
-    } else {
-      if (isFirstTime_[idx]) {
+  saveValues(false);
 
-        //Evaluate the anhysteretic curve to give a better starting point for P
-        P0_[idx] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
+  Double E, P;
 
-        //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
-        RampUp(512, E, idx);
+  E = EVec.NormL2();
+  if(E == 0){
+    return 4.028353e-07;
+  }
 
-        // Set first time for element to false. Each element initializes itself exactly once
-        // note that with parallel assembly the order of element evaluation is not deterministic
-        isFirstTime_[idx] = 0;
+  currentDirection_ = EVec;
+  currentDirection_.ScalarDiv(E);
+
+  // OpenMP fix: Use critical section to ensure thread-safe first-time initialization
+  // Each element should only be initialized once, even with parallel execution
+  if (!isFirstTimeFinished_ && (isFirstTime_[idx_])) {
+    bool shouldInit = false;
+    #pragma omp critical (Jiles_first_time_init)
+    {
+      // Double-check inside critical section to avoid race condition
+      if (!isFirstTimeFinished_ && isFirstTime_[idx_]) {
+        isFirstTime_[idx_] = 0;  // Mark as initialized inside critical section
+        shouldInit = true;
       }
+    }
 
-      //if timestep == 0 -> new iteration, reset the values, only for multiharmonic
-      if(timeStep_==0){
-        E0_[idx]=E0it_[idx];
-        P0_[idx]=P0it_[idx];
-        Pi0_[idx]=Pi0it_[idx];
-        Pa0_[idx]=Pa0it_[idx];
+    if (shouldInit) {
+      //Register intial direction
+      initialDirection_[idx_]=currentDirection_;
+
+      //Evaluate the anhysteretic curve to give a better starting point for P
+      P0_[idx_] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
+
+      //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
+      RampUp(512, E, idx_);
+
+      // Atomically increment initialized count and check if all done
+      UInt count = numInitialized_.fetch_add(1) + 1;
+      if (count == numElems_) {
+        isFirstTimeFinished_ = true;
       }
-
-      Double P = Evaluate(E, idx);
-      epsilon = epsilon0 + P / E;
     }
   }
 
+  //Check if direction has changed
+//  double innerProduct = 0;
+//  innerProduct = currentDirection_.Inner(initialDirection_[idx_]);
+//  if (abs(innerProduct)<0.95){
+//    EXCEPTION("Dependend Vector rotates to much. This should not occur. This is a scalar hysteresis model.");
+//  }
+
+
+  //if timestep == 0 -> new iteration, reset the values, only for multiharmonic
+
+  if(timeStep_==0){
+    E0_[idx_]=E0it_[idx_];
+    P0_[idx_]=P0it_[idx_];
+    Pi0_[idx_]=Pi0it_[idx_];
+    Pa0_[idx_]=Pa0it_[idx_];
+  }
+
+  P = Evaluate(E, idx_);
+//  std::cout << "P = " << P << std::endl;
+  Double epsilon, epsilon0;
+  epsilon0 = 8.854187e-12;
+
+//  if(E == 0 ){
+//    epsilon = 4.028353e-07;
+//  } else{
+//    epsilon = epsilon0 + P / E;
+//  }
+  epsilon = epsilon0 + P / E;
+
   if(std::isinf(epsilon) || std::isnan(epsilon) ){
-    std::cout << "E0: "<< E0_[idx] << std::endl;
-    std::cout << "E1: "<< E1_[idx]<< std::endl;
-    std::cout << "dE: " <<  E1_[idx] - E0_[idx] << std::endl;
-    std::cout << "P0: "<< P0_[idx] << std::endl;
-    std::cout << "P1: "<< P1_[idx]<< std::endl;
-    std::cout << "Pa0: "<< Pa0_[idx] << std::endl;
-    std::cout << "Pa1: "<< Pa1_[idx]<< std::endl;
-    std::cout << "Pi0: "<< Pi0_[idx] << std::endl;
-    std::cout << "Pi1: "<< Pi1_[idx]<< std::endl;
+    std::cout << "E0: "<< E0_[idx_] << std::endl;
+    std::cout << "E1: "<< E1_[idx_]<< std::endl;
+    std::cout << "dE: " <<  E1_[idx_] - E0_[idx_] << std::endl;
+    std::cout << "P0: "<< P0_[idx_] << std::endl;
+    std::cout << "P1: "<< P1_[idx_]<< std::endl;
+    std::cout << "Pa0: "<< Pa0_[idx_] << std::endl;
+    std::cout << "Pa1: "<< Pa1_[idx_]<< std::endl;
+    std::cout << "Pi0: "<< Pi0_[idx_] << std::endl;
+    std::cout << "Pi1: "<< Pi1_[idx_]<< std::endl;
 
     EXCEPTION("Epsilon is inifite or NaN...")
   }
@@ -212,7 +251,7 @@ void Jiles::RampUp(Integer Nt, Double E, Integer idx) {
   tmp_E = E / Nt;
   for (int i = 1; i < Nt-1; i++) {
     Evaluate(tmp_E * i, idx);
-    saveValues(true);
+    saveValues(true, -1);  // Use -1 to trigger full vector copy (original behavior)
   }
 }
 double Jiles::Evaluate(Double E, Integer idx) {
@@ -258,21 +297,53 @@ double Jiles::Evaluate(Double E, Integer idx) {
   return P;
 }
 
-void Jiles::saveValues(bool InstantSave){
+void Jiles::saveValues(bool InstantSave, Integer idx){
+  // OpenMP fix: InstantSave=true is called from RampUp during element initialization.
+  // Only save values for the specific element to avoid race conditions with parallel processing.
+  if (InstantSave) {
+    if (idx >= 0 && idx < static_cast<Integer>(numElems_)) {
+      // Only save the specific element's values
+      Pa0_[idx] = Pa1_[idx];
+      Pi0_[idx] = Pi1_[idx];
+      P0_[idx] = P1_[idx];
+      E0_[idx] = E1_[idx];
 
-  //varHandle_ is different for transient/mh analysis
-  if((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)) || InstantSave){
-    Pa0_=Pa1_;
-    Pi0_=Pi1_;
-    P0_=P1_;
-    E0_=E1_;
+      Pa1_[idx] = 0;
+      Pi1_[idx] = 0;
+      P1_[idx] = 0;
+      E1_[idx] = 0;
+    } else {
+      // Fallback to original behavior if no valid idx provided
+      Pa0_=Pa1_;
+      Pi0_=Pi1_;
+      P0_=P1_;
+      E0_=E1_;
 
-    Pa1_.Init(0);
-    Pi1_.Init(0);
-    P1_.Init(0);
-    E1_.Init(0);
+      Pa1_.Init(0);
+      Pi1_.Init(0);
+      P1_.Init(0);
+      E1_.Init(0);
+    }
+    return;
+  }
 
-    timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+  // OpenMP fix: Use critical section for timestep change detection
+  #pragma omp critical (Jiles_timestep_update)
+  {
+    //varHandle_ is different for transient/mh analysis
+    if(timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)){
+      Pa0_=Pa1_;
+      Pi0_=Pi1_;
+      P0_=P1_;
+      E0_=E1_;
+
+      Pa1_.Init(0);
+      Pi1_.Init(0);
+      P1_.Init(0);
+      E1_.Init(0);
+
+      timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+    }
   }
 }
 }

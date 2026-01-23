@@ -868,20 +868,413 @@
   </xsd:complexType>  
 
 
+  <!-- ******************************************************************* -->
+  <!--   Energy-Based - Hysteresis                                         -->
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_EBHysteresis_JacobianType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="FD">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via finite differences
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="Broyden">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via Broyden's update formula
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="SimpleFD">
+        <xsd:annotation>
+          <xsd:documentation>
+            Simple finite difference version, where the k-1 step is the previous timestep
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="BFGS">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via BFGS update formula
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <xsd:simpleType name="DT_EBHysteresis_ApproxType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="fullEB"/>
+      <xsd:enumeration value="approxVPM"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <xsd:complexType name="DT_EBHysteresisModel">
-     <xsd:annotation>
-      <xsd:documentation xml:lang="en">
-        Parameters for Energy Based vectorhysteresis model;
-      </xsd:documentation>
-    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="Approx_type" type="DT_EBHysteresis_ApproxType" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Choose between the full energy based model including an optimization
+            or the explicitely approximated version, the vector play model (VPM)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:choice minOccurs="1" maxOccurs="1">
+        <xsd:element name="Anhysteresis_model" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:element name="analytic_anhysteresis" type="DT_EBHysteresis_AnhysteresisModel_AnalyticFunction" minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="multiscale_anhysteresis" type="DT_EBHysteresis_AnhysteresisModel_MultiscaleModel" minOccurs="0" maxOccurs="1"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>        
+      </xsd:choice>
+      <xsd:element name="Jacobian_type" type="DT_EBHysteresis_JacobianType" minOccurs="1"/>
+      <xsd:element name="pinning_forces_weights_file" type="xsd:string" minOccurs="0" maxOccurs="1">
+      <xsd:annotation>
+        <xsd:documentation>
+          file containing all pinning forces and weights in .txt format
+        </xsd:documentation>
+      </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="deriv_A" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="deriv_Ps" type="xsd:string" minOccurs="0" maxOccurs="1"/>      
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+    
+
+  <xsd:complexType name="DT_EBHysteresis_AnhysteresisModel_AnalyticFunction">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="atan" type="DT_EBHysteresis_AnhystType_Atan">
+          <xsd:annotation>
+            <xsd:documentation>
+              The formula is
+              2*Ps/pi*atan(h/A)
+              it needs the parameters A and Ps
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="pacejka" type="DT_EBHysteresis_AnhystType_Pacejka">
+          <xsd:annotation>
+            <xsd:documentation>
+              pacejka formula - parameters m_sat, a, b, c
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_EBHysteresis_AnhystType_Atan">
+    <xsd:sequence>
+      <xsd:element name="Ps" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Saturation polarization (mu0 times saturation magnetization)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="A" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Initial steepness of the anhysteretic curve (determines the initial permeability)
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_EBHysteresis_AnhystType_Pacejka">
+    <xsd:sequence>
+      <xsd:element name="m_sat" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            satturation magnetization of the material
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="a" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the satturated region of the BH curve
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="b" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the region between linear and satturated region
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="c" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the linear region
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_EBHysteresis_AnhysteresisModel_MultiscaleModel">
     <xsd:all>
-      <xsd:element name="Ps" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="mu0" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="Ps" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Saturation polarization (mu0 times saturation magnetization)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="AS" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="K1" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Crystal anisotropy constant K1
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="K2" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Crystal anisotropy constant K2
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="lambda100" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Magnetostriction constant lamba in 100 direction
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="lambda111" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Magnetostriction constant lambda in 111 direction
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:all>
-  </xsd:complexType>  
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   inverse Energy-Based - Hysteresis                                 -->
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_invEBHysteresis_JacobianType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="Broyden">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via Broyden's update formula
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="BFGS">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via BFGS update formula
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_invEBHysteresis_ApproxType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="fullInvEB"/>
+      <xsd:enumeration value="approxVSM"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <xsd:complexType name="DT_invEBHysteresisModel">
+    <xsd:sequence>
+      <xsd:element name="Approx_type" type="DT_invEBHysteresis_ApproxType" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Choose between the full energy based model including an optimization
+            or the explicitely approximated version, the vector stop model (VSM)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:choice minOccurs="1" maxOccurs="1">
+        <xsd:element name="Anhysteresis_model" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:choice>
+              <xsd:element name="analytic_anhysteresis" type="DT_invEBHysteresis_AnhysteresisModel_AnalyticFunction" minOccurs="0" maxOccurs="1"/>
+            </xsd:choice>
+          </xsd:complexType>
+        </xsd:element>        
+      </xsd:choice>
+      <xsd:element name="Jacobian_type" type="DT_invEBHysteresis_JacobianType" minOccurs="1"/>
+      <xsd:element name="pinning_forces_weights_file" type="xsd:string" minOccurs="1"></xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_AnalyticFunction">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="tan" type="DT_invEBHysteresis_AnhysteresisModel_Tan">
+          <xsd:annotation>
+            <xsd:documentation>
+              tan() function as inverse anhysteretic function
+              H = A * tan((pi * J)/(2*Js))
+              DOI: 10.1109/TMAG.2025.3544507
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="atan" type="DT_invEBHysteresis_AnhysteresisModel_Atan">
+          <xsd:annotation>
+            <xsd:documentation>
+              atan() function as anhysteretic function
+              M = (2*Ms/pi)*atan(H/A)
+              DOI: 10.1109/TMAG.2016.2599143
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="pacejka" type="DT_invEBHysteresis_AnhysteresisModel_Pacejka">
+          <xsd:annotation>
+            <xsd:documentation>
+              pacejka formula - parameters m_sat, a, b, c
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="brauer" type="DT_invEBHysteresis_AnhysteresisModel_Brauer">
+          <xsd:annotation>
+            <xsd:documentation>
+              Brauer formula for H = H(B). (No hysteresis possible with this model)
+              DOI: 10.1109/TMAG.1975.1058555 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="lookuptable" type="DT_invEBHysteresis_AnhysteresisModel_LUT">
+          <xsd:annotation>
+            <xsd:documentation>
+              A lookup table is provided to describe the anhysteretic function J = J(H)
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+
+    
+    <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Tan">
+    <xsd:all>
+      <xsd:element name="Js" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Saturation polarization (mu0 times saturation magnetization)
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="A" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Initial steepness of the anhysteretic curve (determines the initial permeability)
+          </xsd:documentation>
+        </xsd:annotation>  
+    </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Atan">
+    <xsd:all>
+      <xsd:element name="Ms" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Saturation magnetisation
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="A" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Initial steepness of the anhysteretic curve (determines the initial permeability)
+          </xsd:documentation>
+        </xsd:annotation>  
+    </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Pacejka">
+    <xsd:all>
+      <xsd:element name="Ms" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Saturation magnetisation
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="a" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            fitting parameter
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="b" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            fitting parameter
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="c" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            fitting parameter
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Brauer">
+    <xsd:all>
+      <xsd:element name="p_0" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            parameter p_0
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="p_1" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            parameter p_1
+          </xsd:documentation>
+        </xsd:annotation>  
+    </xsd:element>
+    <xsd:element name="p_2" type="xsd:double" minOccurs="1">
+      <xsd:annotation>
+        <xsd:documentation>
+          parameter p_2
+        </xsd:documentation>
+      </xsd:annotation>  
+  </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_LUT">
+    <xsd:all>
+      <xsd:element name="lookup_table_file" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Absolute path of the file containing to .txt file that contains all JH values of the anhysteretic curve
+          </xsd:documentation>
+        </xsd:annotation>
+        </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
 
 
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">

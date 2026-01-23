@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/material https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd">
+
+ <material name="air">
+  <magnetic>
+   <electricConductivity>
+    <linear>
+     <isotropic>
+      <real>0</real>
+     </isotropic>
+    </linear>
+   </electricConductivity>
+   <permeability>
+    <linear>
+     <isotropic>
+      <real> 1.256637061E-06 </real>
+     </isotropic>
+    </linear>
+   </permeability>
+  </magnetic>
+ </material>
+
+ <material name="iron_linear">
+  <magnetic>
+   <electricConductivity>
+    <linear>
+     <isotropic>
+      <real>0</real>
+     </isotropic>
+    </linear>
+   </electricConductivity>
+   <permeability>
+    <linear>
+     <isotropic>
+      <real> 1000*1.256637061E-06 </real>
+     </isotropic>
+    </linear>
+   </permeability>
+  </magnetic>
+ </material>
+
+ <material name="iron_VSM_brauer">
+  <magnetic>
+   <electricConductivity>
+    <linear>
+     <isotropic>
+      <real>0</real>
+     </isotropic>
+    </linear>
+   </electricConductivity>
+   <permeability>
+    <linear>
+     <isotropic>
+      <real> 1*1.2566E-06 </real>
+     </isotropic>
+    </linear>
+    <model>
+     <isotropic>
+      <invEBHysteresisModel>
+       <Approx_type>approxVSM</Approx_type>
+       <Anhysteresis_model>
+        <analytic_anhysteresis>
+         <brauer>
+          <p_0>150</p_0>
+          <p_1>5</p_1>
+          <p_2>4</p_2>
+         </brauer>
+        </analytic_anhysteresis>
+       </Anhysteresis_model>
+       <Jacobian_type>BFGS</Jacobian_type>
+       <pinning_forces_weights_file>omega_kappa_VSM.txt</pinning_forces_weights_file>
+      </invEBHysteresisModel>
+     </isotropic>
+    </model>
+   </permeability>
+  </magnetic>
+ </material>
+ <material name="iron_VSM_pacejka">
+  <magnetic>
+   <electricConductivity>
+    <linear>
+     <isotropic>
+      <real>0</real>
+     </isotropic>
+    </linear>
+   </electricConductivity>
+   <permeability>
+    <linear>
+     <isotropic>
+      <real> 1*1.2566E-06 </real>
+     </isotropic>
+    </linear>
+    <model>
+     <isotropic>
+      <invEBHysteresisModel>
+       <Approx_type>approxVSM</Approx_type>
+       <Anhysteresis_model>
+        <analytic_anhysteresis>
+         <pacejka>
+          <Ms>1.23e6</Ms>
+          <a>0.006</a>
+          <b>0.5</b>
+          <c>0.022</c>
+         </pacejka>
+        </analytic_anhysteresis>
+       </Anhysteresis_model>
+       <Jacobian_type>BFGS</Jacobian_type>
+       <pinning_forces_weights_file>omega_kappa_VSM.txt</pinning_forces_weights_file>
+      </invEBHysteresisModel>
+     </isotropic>
+    </model>
+   </permeability>
+  </magnetic>
+ </material>
+</cfsMaterialDataBase>

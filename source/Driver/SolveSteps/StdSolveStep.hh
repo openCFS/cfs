@@ -258,24 +258,26 @@ namespace CoupledField
     bool recalc_ = false;               //!< flag indicating reassembling of system matrix
 
     std::string lineSearch_;            //!< switch for lineSearch
-    bool nonLin_ = false;               //!< flag for nonlinear calculations
-    bool nonLinMaterial_ = false;       //!< flag for nonlinear material calculations
-    bool isHyst_ = false;               //!< flag for hystersis modeling
-    Double incStopCrit_ = 0.0;          //!< stopping criterion for incremental error
-    Double residualStopCrit_ = 0.0;     //!< stopping criterion for residual error
-    Double lastError_ = 0.0;            //!< So it stops if residuum gets bigger!
-    UInt consideredH_ = 1;              //!< So it stops if residuum gets bigger!
+    Double lineSearchTolerance_; //!< tolerance for line search convergence (default: 1e-3)
+    UInt lineSearchMaxIter_;      //!< max iterations for line search (default: 1000)
+    bool nonLin_;               //!< flag for nonlinear calculations
+    bool nonLinMaterial_;       //!< flag for nonlinear material calculations
+    bool isHyst_;               //!< flag for hystersis modeling
+    Double incStopCrit_;          //!< stopping criterion for incremental error
+    Double residualStopCrit_;     //!< stopping criterion for residual error
+    Double lastError_;            //!< So it stops if residuum gets bigger!
+    UInt consideredH_;              //!< So it stops if residuum gets bigger!
 
-    Double minValidValue_ = 0.0;        //! stopping if any value in the region exceeds value
-    Double maxValidValue_ = 0.0;        //! stopping if any value in the region exceeds value
-    SolutionType solutionLimit_ = INVALID_SOLUTION_TYPE; //! solution type for which a limit is set
+    Double minValidValue_;        //! stopping if any value in the region exceeds value
+    Double maxValidValue_;        //! stopping if any value in the region exceeds value
+    SolutionType solutionLimit_; //! solution type for which a limit is set
     RegionIdType solutionLimitReg_ = NO_REGION_ID; //! region in which to check the min/max values for non convergence
 
-    UInt nonLinMaxIter_ = 0;             //!< maximal number of NL-iterations
+    UInt nonLinMaxIter_;             //!< maximal number of NL-iterations
     std::string nonLinMethod_;           //!< method for handling the non-linearity
     bool nonLinLogging_ = false;         //!< log progress of non-linear iterations
     UInt minLoggingToTerminal_ = 0;
-    bool nonLinTotalFormulation_ = false;//!< flag for total or incremental NL formulation
+    bool nonLinTotalFormulation_;//!< flag for total or incremental NL formulation
     bool abortOnMaxIter_ = true;         //!< flag for aborting simulation if maximum number of iterations is hit
 
     //! map for each region the type of nonlinearity

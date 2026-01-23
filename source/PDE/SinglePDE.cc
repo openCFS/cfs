@@ -7,6 +7,7 @@
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 #include "Domain/CoefFunction/CoefFunctionFileData.hh"
+#include "Domain/CoefFunction/CoefFunctionFileDataMeas.hh"
 #include "Domain/CoefFunction/CoefFunctionPython.hh"
 
 #include "PDE/SinglePDE.hh"
@@ -120,7 +121,6 @@ namespace CoupledField {
     PtrParamNode ls = myParam_->GetParent()
         ->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
-    
   }
 
   // **************
@@ -1335,22 +1335,29 @@ namespace CoupledField {
     LOG_DBG(singlepde) <<  pdename_ << ": Requesting coefficient function for solution type " << SolutionTypeEnum.ToString(type);
     
     PtrCoefFct ret;
-    // 1) look in fieldCoefs
-    if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
-      if( matCoefs_.find(type) == matCoefs_.end() ) {
-//      EXCEPTION( "No coefficient function for result type '"
-//          << SolutionTypeEnum.ToString( type ) << "' found");
+    // HACK!!!!!!!!!!!!!!!!!
+    if ( type == MAG_MAGNETIZATION ) {
+      if ( domain_->GetRegion4Hyst() != NO_REGION_ID )
+        ret = matModelCoefm_[domain_->GetRegion4Hyst()];
+    }
+    else {
+      // 1) look in fieldCoefs
+      if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
+        if( matCoefs_.find(type) == matCoefs_.end() ) {
+//        EXCEPTION( "No coefficient function for result type '"
+//            << SolutionTypeEnum.ToString( type ) << "' found");
+        } else {
+          ret = matCoefs_[type];
+       }
       } else {
-        ret = matCoefs_[type];
+        ret = fieldCoefs_[type];
       }
-    } else {
-      ret = fieldCoefs_[type];
     }
     if( !ret ) {
       LOG_DBG(singlepde) << pdename_ << ": \t=> NOT FOUND";
     } else {
       LOG_DBG(singlepde) << pdename_ << ": \t=> SUCCESS!";
-    }
+    }    
     return ret;
   }
   
@@ -2871,7 +2878,8 @@ namespace CoupledField {
     ReadUserFieldValues(list, valueNode, compNames, type, isComplex, coef, definedDofs, updateGeo);
   }
 
-  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
+  void SinglePDE::
+  ReadUserFieldValues( shared_ptr<EntityList> list,
                             PtrParamNode valueNode,
                             const StdVector<std::string>& compNames,
                             ResultInfo::EntryType type,
@@ -2895,6 +2903,8 @@ namespace CoupledField {
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
+    std::string dofString = "";
+
     vals.Init("0.0");
     phases.Init("0.0");
     definedDofs.clear();
@@ -2941,8 +2951,7 @@ namespace CoupledField {
           }
 
       } while (iss);
-
-
+    
       // here we assume no updated geometry
       updateGeo = false;
       
@@ -2966,6 +2975,9 @@ namespace CoupledField {
       std::string quantityName = qNode->Get("name")->As<std::string>();
       std::string pdeName = qNode->Get("pdeName")->As<std::string>();
       SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+      
+      //read in the defined dofs
+      dofString = qNode->Get("dofs")->As<std::string>();
       
       try {
         Domain * inDomain = NULL;
@@ -3181,6 +3193,9 @@ namespace CoupledField {
         definedDofs.insert(i);
       }
 
+      //read in the defined dofs
+      dofString = cplNode->Get("quantity")->Get("dofs")->As<std::string>();
+
     }
     else if(valueNode->Has("scatteredData"))
     {
@@ -3220,9 +3235,13 @@ namespace CoupledField {
 
       PtrParamNode pnfd = valueNode->Get("fileData");
       int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
-      coef.reset(new CoefFunctionFileData(pnfd, mydim));
       for(unsigned int i = 0; i < numComp; ++i )
         definedDofs.insert(i);
+      if (compNames[0] == "Hx" || compNames[0] == "Bx") {
+        coef.reset(new CoefFunctionFileDataMeas(domain_, pdename_, pnfd, mydim));  
+      } else {
+        coef.reset(new CoefFunctionFileData(pnfd, mydim));
+      }
     }
     else if(valueNode->Has("python"))
     {
@@ -3383,12 +3402,16 @@ namespace CoupledField {
       updateGeo = updatedGeo_;
     }
 
+
     // obtain coordinate system and set it at coefficient function
     std::string coordSysId = "default";
     valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
     if( coordSysId != "default" ) {
       coef->SetCoordinateSystem( domain_->GetCoordSystem(coordSysId) );
     }
+
+    //defined in xml, set dof names
+    coef->SetDofNames(dofString);
 
     // return 
   }

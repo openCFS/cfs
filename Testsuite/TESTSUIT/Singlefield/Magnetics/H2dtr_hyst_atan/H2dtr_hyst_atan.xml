@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation
+ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>2D transient magnetic field simulation with hysteresis and quasistatic materials</title>
+    <authors>
+     <author>Lukas Domenig</author>
+    </authors>
+    <date>2025-11-24</date>
+    <keywords>
+     <keyword>magneticEdge</keyword>
+     <keyword>transient</keyword>
+     <keyword>hysteresis</keyword>
+     <keyword>nonlinear</keyword>
+     <keyword>EBHysteresisModel</keyword>
+    </keywords>
+    <references>
+      no references, only functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+     Transient analysis of a magnetic field using the H-formulation (magneticEdge)
+     on a 2D plane geometry with quasistatic material definitions. The setup includes
+     a coil with a sinusoidal current source (8e4*sin(t)), a nonlinear hysteresis region,
+     and calculation of electric field intensity.
+    </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="H2dtr_hyst_atan.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat_hyst.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_1" material="air_quasistatic" />
+      <region name="S_2" material="iron_hyst_BFGS_quasistatic"/>
+      <region name="S_3" material="iron_linear_quasistatic" />
+      <region name="S_4" material="air_quasistatic" />
+    </regionList>
+    <nodeList>
+      <nodes name="N_gauge">
+        <coord x="0.0" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="vP">
+      <isoOrder> 0 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder> 1 </isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>2</numSteps>
+        <deltaT>0.1</deltaT>
+        <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magneticEdge formulation="H">
+        <hysteresisTimeStepping>
+          <useTimeDerivatives>yes</useTimeDerivatives>
+          <deltaT>0.1</deltaT>
+        </hysteresisTimeStepping>
+        <regionList>
+          <region name="S_1" VecPolyId="vP" />
+          <region name="S_2" VecPolyId="vP" nonLinIds="nl1"/>
+          <region name="S_3" VecPolyId="vP" />
+          <region name="S_4" VecPolyId="vP" />
+        </regionList>
+
+        <nonLinList>
+          <permeability id="nl1" model="EBHysteresisModel"/>
+        </nonLinList>
+
+
+        <coilList>
+          <coil id="coil_S_1">
+            <source type="current" value="8e4*sin(t)"/>
+            <part id="1">
+              <regionList>
+                <region name="S_1"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1.0"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+      <solutionStrategy>
+        <standard>
+          <nonLinear logging="yes" method="fixPoint" >
+                <lineSearch type="minEnergy"/>
+                <incStopCrit>100000</incStopCrit>
+                <resStopCrit>1e-1</resStopCrit>
+                <maxNumIters>40</maxNumIters>
+                <abortOnMaxNumIters>yes</abortOnMaxNumIters>
+          </nonLinear>
+        </standard>
+      </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+</cfsSimulation>

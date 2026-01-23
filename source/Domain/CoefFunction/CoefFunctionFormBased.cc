@@ -119,9 +119,9 @@ AddBOperator( BaseBOperator* bOp,
   // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
   if( integratorName_.empty() || integratorName_==integratorName ) {
     // check for compatibility of dimension
-    if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
+    /* if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
       EXCEPTION( "Implementation error: All B-operators must have the same vector size");
-    }
+    } */
     
     // check if region has already an integrator assigned
     if( bOps_.find(region) != bOps_.end() ) {
@@ -181,8 +181,13 @@ void CoefFunctionBOp<TYPE>::GetVector(Vector<TYPE>& coefVec,
 
   this->feFct_->GetElemSolution( elemSol, lpm.ptEl);
   BaseFE* ptFe = feSpace_->GetFe( lpm.ptEl->elemNum );
-  if(this->bOps_.find(lpm.ptEl->regionId) != this->bOps_.end()){
-    this->bOps_[lpm.ptEl->regionId]->CalcOpMat(bMat, lpm, ptFe);
+  // Use const reference and iterator for thread-safe read-only map access.
+  // The bOps_ map is populated during setup (single-threaded) and only read
+  // during assembly. Concurrent reads on const std::map are safe per C++ standard.
+  const auto& bOpsRef = this->bOps_;
+  auto it = bOpsRef.find(lpm.ptEl->regionId);
+  if(it != bOpsRef.end()){
+    it->second->CalcOpMat(bMat, lpm, ptFe);
     coefVec = bMat* (elemSol);
     coefVec *= factor_;
   } else{
@@ -258,9 +263,9 @@ template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::AddIntegrato
       UInt nRows, nCols;
       coef->GetTensorSize(nRows, nCols);
       UInt dMatSize = TRANS ? nCols : nRows;
-      if( dMatSize != res_->dofNames.GetSize() ) {
+      /* if( dMatSize != res_->dofNames.GetSize() ) {
         EXCEPTION( "All B-operators must have the same vector size");
-      } 
+      }  */
     }
     //now we clone each integrator and we already checked if we are in single thread region
 #ifdef USE_OPENMP

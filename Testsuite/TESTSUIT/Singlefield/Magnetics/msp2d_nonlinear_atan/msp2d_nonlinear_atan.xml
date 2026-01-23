@@ -1,0 +1,201 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation
+ ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>2D transient nonlinear magnetic simulation (Atan) with MSP (Psi) and H-formulation coupling</title>
+    <authors>
+     <author>Lukas Domenig</author>
+    </authors>
+    <date>2025-11-24</date>
+    <keywords>
+     <keyword>magneticEdge</keyword>
+     <keyword>transient</keyword>
+     <keyword>nonlinear</keyword>
+     <keyword>EBHysteresisModel</keyword>
+    </keywords>
+    <references>
+      no references, only functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+     Two-step transient analysis. Step 1 calculates the source magnetic field using
+     the regularized H-formulation (regulSFG) with a constant current source (8e4).
+     Step 2 solves the magnetic scalar potential (Psi) formulation for a nonlinear
+     material (iron_nonlin_atan), using the field intensity from Step 1 as an input load.
+    </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="msp2d_nonlinear_atan.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat_nonlinear.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_1" material="air" />
+      <region name="S_2" material="iron_nonlin_atan" />
+      <region name="S_3" material="iron_linear" />
+      <region name="S_4" material="air" />
+    </regionList>
+    <nodeList>
+      <nodes name="N_gauge">
+        <coord x="0.0" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="vP">
+      <isoOrder> 0 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder> 1 </isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>1</numSteps>
+        <deltaT>1</deltaT>
+        <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magneticEdge formulation="regulSFG">
+        <regionList>
+          <region name="S_1" VecPolyId="vP" />
+          <region name="S_2" VecPolyId="vP" />
+          <region name="S_3" VecPolyId="vP" />
+          <region name="S_4" VecPolyId="vP" />
+        </regionList>
+
+
+        <coilList>
+          <coil id="coil_S_1">
+            <source type="current" value="8e4"/>
+            <part id="1">
+              <regionList>
+                <region name="S_1"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1.0"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+  </sequenceStep>
+
+
+
+  <sequenceStep index="2">
+    <analysis>
+      <transient initialTime="zero">
+        <numSteps>1</numSteps>
+        <deltaT>1</deltaT>
+      </transient>
+    </analysis>
+
+
+    <pdeList>
+      <magnetic formulation="Psi">
+        <regionList>
+          <region name="S_1" polyId="H1"/>
+          <region name="S_2" polyId="H1" nonLinIds="nl1"/>
+          <region name="S_3" polyId="H1"/>
+          <region name="S_4" polyId="H1"/>
+        </regionList>
+
+        <nonLinList>
+          <permeability id="nl1" model="EBHysteresisModel" />
+        </nonLinList>
+
+        <bcsAndLoads>
+          <potential name="N_gauge" value="0"/>
+          <fieldIntensity name="S_1">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
+              <timeFreqMapping>
+                <continuous  interpolation="linear"/>
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="S_2">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
+              <timeFreqMapping>
+                <continuous  interpolation="linear"/>
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="S_3">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
+              <timeFreqMapping>
+                <continuous  interpolation="linear"/>
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+          <fieldIntensity name="S_4">
+            <sequenceStep index="1">
+              <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
+              <timeFreqMapping>
+                <continuous  interpolation="linear"/>
+              </timeFreqMapping>
+            </sequenceStep>
+          </fieldIntensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="magPotential">
+           <allRegions />
+          </nodeResult>
+          <elemResult type="magFluxDensity">
+           <allRegions />
+          </elemResult>
+          <elemResult type="magFieldIntensity">
+           <allRegions />
+          </elemResult>
+        </storeResults>
+      </magnetic>
+    </pdeList>
+    <linearSystems>
+      <system>
+      <solutionStrategy>
+        <standard>
+          <nonLinear logging="yes" method="fixPoint" >
+                <lineSearch type="minEnergy"/>
+                <incStopCrit>100000</incStopCrit>
+                <resStopCrit>1e-5</resStopCrit>
+                <maxNumIters>100</maxNumIters>
+                <abortOnMaxNumIters>no</abortOnMaxNumIters>
+          </nonLinear>
+        </standard>
+      </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+</cfsSimulation>

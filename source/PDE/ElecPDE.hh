@@ -196,6 +196,9 @@ namespace CoupledField
     shared_ptr<CoefFunction> multiHarmCoef_;
 
     //stores the flux for hystersis and nonlinear models
+    //std::map<RegionIdType, shared_ptr<CoefFunctionMulti> >  nlFluxCoefm_;
+
+    //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
   };
   

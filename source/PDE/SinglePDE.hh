@@ -653,6 +653,7 @@ namespace CoupledField
 
     //@}
   private:
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

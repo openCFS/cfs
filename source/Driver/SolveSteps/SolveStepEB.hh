@@ -24,10 +24,10 @@ namespace CoupledField
 
     //! Constructor
     SolveStepEB(StdPDE& apde);
+    SolveStepEB(StdPDE& apde, UInt is_pseudo_time_stepping);
 
     //! Destructor
     virtual ~SolveStepEB();
-
 
     //! base method for solving one transient step 
     void SolveStepTrans();
@@ -37,20 +37,31 @@ namespace CoupledField
 
     void StepTransNonLin();
 
+    Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
+    Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, SBM_Vector& Linform_nm1);
 
-    // Heavy linesearch checks the eta space from (0,1) for the
-    // smallest residual
+    Double InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
+
+    Double LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol);
+
+    //! Original discrete line search (searches eta in {0.1, 0.2, ..., 1.0})
     void LineSearchHeavy(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch);
+    void LineSearchHeavy(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, SBM_Vector& Linform_nm1);
 
-    void LineSearchArmijoRegularization(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, UInt iterationCounter);
+    double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
+    double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta, SBM_Vector& Linform_nm1);
 
-    void LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, UInt iterationCounter);
+    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b);
+    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b, SBM_Vector& Linform_nm1);
+
+  protected:
+
+    UInt pseudo_time_stepping_ = 0;
 
   private:
 
     // Coefficient function for material model
-    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
-
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >  matModelCoefm_;
   };
 } // end of namespace
 

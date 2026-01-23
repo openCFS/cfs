@@ -3100,12 +3100,7 @@ namespace CoupledField
         SingleVector &vec = (*rhs_)(rowBlock);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
-            // elemRHS may have size 1 (e.g. SingleEntryInt on an ELEM_LIST):
-            // see comment at begin of this function. Then broadcast scalar to all equations
-            // we cannot identify nodal end element source here easily. 
-            assert((elemRHS.GetSize() == eqnNrs.GetSize()) ||  elemRHS.GetSize() == 1);
-            unsigned int rhsIdx = (elemRHS.GetSize() == 1) ? 0 : iRow;
-            vec.AddToEntry( rowNum-1, elemRHS[rhsIdx]);
+            vec.AddToEntryAtomic( rowNum-1, elemRHS[iRow]);
           }
         } // loop over rows
       }

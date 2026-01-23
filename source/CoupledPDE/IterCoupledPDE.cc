@@ -37,7 +37,7 @@ namespace CoupledField
       pdename_ += singlePdes[actPDE] -> GetName() + "+";
     pdename_ += singlePdes[singlePdes.GetSize()-1] -> GetName();
 
-    
+    std::cout << "++ Iterative " << pdename_ << std::endl;
     // Create IterSolveStep instance
     IterSolveStep * solveStep =
         new IterSolveStep( *this, myParam_, infoNode_ ); 

@@ -121,6 +121,19 @@ protected:
   //! dimension of b-operator
   UInt Bdim_ = 0;
 
+  // ---- Work buffers (reused across CalcElemVector calls to avoid allocations) ----
+  // These are mutable because CalcElemVector is logically const but needs to reuse buffers
+  // Since forms are cloned per-thread in parallel assembly, these are effectively thread-local
+  mutable Matrix<Double> work_bMat_;
+  mutable Vector<VEC_DATA_TYPE> work_cVec_;
+  mutable StdVector<LocPoint> work_intPoints_;
+  mutable StdVector<Double> work_weights_;
+  mutable Vector<VEC_DATA_TYPE> work_pt1_;
+  mutable Vector<VEC_DATA_TYPE> work_pt2_;
+  mutable Matrix<Double> work_JacT_;
+  mutable Matrix<Double> work_TF_;
+  mutable Matrix<Double> work_TFinv_;
+
 };
 
 }

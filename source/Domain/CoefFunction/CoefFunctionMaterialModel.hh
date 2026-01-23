@@ -16,6 +16,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "Materials/Models/Jiles.hh"
 #include "Materials/Models/EBHysteresis.hh"
+#include "Materials/Models/invEBHysteresis.hh"
 #include "Materials/Models/Model.hh"
 
 namespace CoupledField  {
@@ -77,12 +78,25 @@ public:
 
   void InitModel(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList);
 
+  void InitModel(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList);
+
+
+  // Register stress dependence of multiscale modle
+  void RegisterStressDependence(PtrCoefFct stressCoef){
+    stressCoef_ = stressCoef;
+  };
+
+  // Currently only used in EBHysteresis and invEBHysteresis to update values for hysteretic computations and save the new values for the next timestep
+  void UpdateHistoryValues();
+  void AllowUpdates(bool allow);
+
 protected:
 
   // Spatial dimension of the problem
   UInt spaceDim_;
   
   // object for the model
+  //shared_ptr<Model> matModel_;
   Model* matModel_;
 
   // modelname
@@ -90,6 +104,9 @@ protected:
 
   //Coeffunction, which is used to evalute the model
   PtrCoefFct depCoef_ ;
+
+  // Multiscale hysteresis model requires mechanical stress input
+  PtrCoefFct stressCoef_ ;
 };
 } //end of namespace
 
