@@ -13,6 +13,7 @@
 #include <list>
 
 #include "MatVec/Vector.hh"
+#include "CoefFunctionMaterialModel.hh"
 
 namespace CoupledField {
 
@@ -48,22 +49,22 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
   if (modelName_ == "JilesAthertonModel") {
 
     dimType_ = SCALAR;
-
-    static Jiles JilesModel;
-    matModel_ = &JilesModel;
-
-    std::cout << "Initialized Model: " << modelName_ << std::endl;
+    //static ,means that all objects get the same matModel"!
+    //static Jiles JilesModel;
+    matModel_ = new Jiles();
   } else if(modelName_ == "EBHysteresisModel"){
     dimType_ = TENSOR;
-
-    static EBHysteresis EBHysteresisModel;
-    matModel_ = &EBHysteresisModel;
-
-    std::cout << "Initialized Model: " << modelName_ << std::endl;
+    matModel_ = new EBHysteresis(); 
+  } else if(modelName_ == "invEBHysteresisModel"){
+    dimType_ = TENSOR;
+    //static ,means that all objects get the same matModel"!
+    //static invEBHysteresis invEBHysteresisModel;
+    matModel_ = new invEBHysteresis();
   } else {
 
     EXCEPTION("Model not implemented! ("<< modelName_<<")")
   }
+
 }
 
 template<class TYPE> CoefFunctionMaterialModel<TYPE>::~CoefFunctionMaterialModel() {
@@ -83,30 +84,53 @@ template<class T> void CoefFunctionMaterialModel<T>::InitModel(
 
 }
 
-template<class T> void CoefFunctionMaterialModel<T>::GetScalar(
-    Double &coefScalar, const LocPointMapped &lpm) {
-  Vector<Complex> DependentVec;
+template<class T> void CoefFunctionMaterialModel<T>::InitModel(
+  std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList) {
 
-  depCoef_->GetVector(DependentVec, lpm);
+matModel_->Init(ParameterMap, StringParameterMap, entityList, spaceDim_);
 
-  //Can i do this in less codelines? Complex vector to Real Vector??
-  Vector<Double> RealDependentVec;
+}
 
-  RealDependentVec.Resize(3);
-  RealDependentVec.Init(0);
 
-  RealDependentVec[0] = std::real(DependentVec[0]);
-  RealDependentVec[1] = std::real(DependentVec[1]);
-  RealDependentVec[2] = std::real(DependentVec[2]);
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::UpdateHistoryValues()
+{
+  matModel_->UpdateStates();
+}
 
-  coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::AllowUpdates(bool allow)
+{
+  matModel_->AllowUpdates(allow);
+}
 
-  LOG_DBG(cfjc)
-  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
-  LOG_DBG(cfjc)
-  << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
-  LOG_DBG(cfjc)
-  << "Epsilon = :" << coefScalar << std::endl;
+
+template <class T>
+void CoefFunctionMaterialModel<T>::GetScalar(
+    Double &coefScalar, const LocPointMapped &lpm)
+{
+    Vector<Complex> DependentVec;
+
+    depCoef_->GetVector(DependentVec, lpm);
+
+    // Can i do this in less codelines? Complex vector to Real Vector??
+    Vector<Double> RealDependentVec;
+
+    RealDependentVec.Resize(3);
+    RealDependentVec.Init(0);
+
+    RealDependentVec[0] = std::real(DependentVec[0]);
+    RealDependentVec[1] = std::real(DependentVec[1]);
+    RealDependentVec[2] = std::real(DependentVec[2]);
+
+    coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+
+    LOG_DBG(cfjc)
+        << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+    LOG_DBG(cfjc)
+        << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
+    LOG_DBG(cfjc)
+        << "Epsilon = :" << coefScalar << std::endl;
 }
 
 template<class T> void CoefFunctionMaterialModel<T>::GetTensor(
@@ -147,7 +171,20 @@ template<class T> void CoefFunctionMaterialModel<T>::GetVector(
   for(UInt i = 0 ; i < spaceDim_; ++i){
     RealDependentVec[i] = std::real(DependentVec[i]); 
   }
-  coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  if (modelName_ == "EBHysteresisModel") {
+    if(stressCoef_){
+      // multiscale version, which requires mechanical stress input
+      coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum, lpm, stressCoef_);
+    }else{
+      coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+    }
+  } else if (modelName_ == "invEBHysteresisModel")  {
+    coefVector = matModel_->GetFieldIntensity(RealDependentVec, lpm.ptEl->elemNum);
+  } else {
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  }
+
+
   
   LOG_DBG(cfjc)
   << "NrElem = :" << lpm.ptEl->elemNum << std::endl;

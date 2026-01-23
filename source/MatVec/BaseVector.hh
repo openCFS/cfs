@@ -155,6 +155,11 @@ namespace CoupledField {
       EXCEPTION( "BaseVector::AddToEntry: Not over-written by derived class");
     }
 
+    //! Thread-safe atomic version of AddToEntry
+    virtual void AddToEntryAtomic( UInt i, const Double &val ) {
+      EXCEPTION( "BaseVector::AddToEntryAtomic: Not over-written by derived class");
+    }
+
     //! Query the value of a vector entry
 
     //! This method queries the entry of the vector at position i. The method
@@ -178,12 +183,14 @@ namespace CoupledField {
     }
 
 
-    // Get/Set/AddToEntry versions for non-Double entry 
+    // Get/Set/AddToEntry versions for non-Double entry
 #define DECL_ENTRY_FCN(TYPE) \
 virtual void SetEntry( UInt i, const TYPE &val ){                \
 EXCEPTION( "BaseVector::SetEntry: Not over-written by derived class");  } \
 virtual void AddToEntry( UInt i, const TYPE &val ){              \
 EXCEPTION( "BaseVector::AddToEntry: Not over-written by derived class");} \
+virtual void AddToEntryAtomic( UInt i, const TYPE &val ){        \
+EXCEPTION( "BaseVector::AddToEntryAtomic: Not over-written by derived class");} \
 virtual void GetEntry( UInt i, TYPE &val ) const {               \
 EXCEPTION( "BaseVector::GetEntry: Not over-written by derived class" );}
 

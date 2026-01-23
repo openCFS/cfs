@@ -246,17 +246,24 @@ namespace CoupledField {
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ, "magPotentialAdj");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_GRAD_ADJ, "magPotentialGradAdj");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ_DERIV1, "magPotentialAdjD1");
     SolutionTypeEnum.Add(MAG_TOTAL_POTENTIAL, "magTotalPotential");
     SolutionTypeEnum.Add(MAG_REDUCED_POTENTIAL, "magReducedPotential");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+        SolutionTypeEnum.Add(MAG_RHS_LOAD_ADJ, "magRhsLoadAdj");
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY_SURF, "magFluxDensitySurf");
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
+    SolutionTypeEnum.Add(MAG_AVERAGED_FLUX_DENSITY, "magAveragedFluxDensity"); 
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
+    SolutionTypeEnum.Add(MAG_FIELD_INTENSITY_CURL, "magFieldIntensityCurl");
+    SolutionTypeEnum.Add(MAG_AVERAGED_FIELD_INTENSITY, "magAveragedFieldIntensity");       
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
@@ -264,6 +271,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES, "magJouleLossPowerDensityOnNodes");
     SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER, "magJouleLossPower");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_GRAD, "magPotentialGrad");
+    SolutionTypeEnum.Add(MAG_CURL_ADJ, "magCurlAdj");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_STATIC, "magForceLorentzDensityStatic");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_HARMONIC, "magForceLorentzDensityHarmonic");    
@@ -274,6 +283,11 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
     SolutionTypeEnum.Add(MAG_CORE_LOSS_DENSITY, "magCoreLossDensity");
     SolutionTypeEnum.Add(MAG_CORE_LOSS, "magCoreLoss");
+    SolutionTypeEnum.Add(MAG_GRAD_ADJ_PARAM, "magGradAdjParam");
+    SolutionTypeEnum.Add(MAG_GRAD_ADJ_PARAM1, "magGradAdjParam1");
+    SolutionTypeEnum.Add(MAG_GRAD_ADJ_PARAM2, "magGradAdjParam2");
+    SolutionTypeEnum.Add(MAG_GRAD_ADJ_PARAM3, "magGradAdjParam3");
+    SolutionTypeEnum.Add(MAG_GRAD_ADJ_PARAM4, "magGradAdjParam4");
 
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
@@ -377,6 +391,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_AVERAGED_PRESSURE, "fluidMechAveragedPressure");
 
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
+    SolutionTypeEnum.Add(VOLUME, "volume");
 
     // TEST PDE
     SolutionTypeEnum.Add(TEST_DOF, "testDof");
@@ -514,6 +529,14 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_TENSOR, "Magnetic_Reluctivity_Tensor" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_SCALAR, "Magnetic_Reluctivity_Scalar" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_Reluctivity_Derivative" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P1, "Magnetic_Reluctivity_DerivativeP1" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P1, "Magnetic_Anhyst_DerivativeP1" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P2, "Magnetic_Anhyst_DerivativeP2" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P3, "Magnetic_Anhyst_DerivativeP3" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P4, "Magnetic_Anhyst_DerivativeP4" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P2, "Magnetic_Reluctivity_DerivativeP2" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P3, "Magnetic_Reluctivity_DerivativeP3" );
+    MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P4, "Magnetic_Reluctivity_DerivativeP4" );    
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_TENSOR, "Magnetic_Conductivity_Tensor" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY_SCALAR, "Magnetic_Conductivity_Scalar" );
     MaterialTypeEnum.Add( MAG_PERMITTIVITY_SCALAR, "Magnetic_Permittivity_Scalar" );
@@ -535,9 +558,46 @@ namespace CoupledField {
     // Magnetic EB Hysteresis Parameters
     MaterialTypeEnum.Add(MAG_PS_EB, "mag_Ps_EB");
     MaterialTypeEnum.Add(MAG_A_EB, "mag_A_EB");
+    MaterialTypeEnum.Add(MAG_MSAT_PACEJKA_EB, "mag_msat_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_A_PACEJKA_EB, "mag_a_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_B_PACEJKA_EB, "mag_b_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_C_PACEJKA_EB, "mag_c_Pacejka_EB");
     MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
-    MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
-    MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
+    MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");//these two are the old implementation but they are still needed for the invEBHyst
+    MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB"); //these two are the old implementation but they are still needed for the invEBHyst
+    MaterialTypeEnum.Add(MAG_MSM_AS, "mag_msm_AS");
+    MaterialTypeEnum.Add(MAG_APPROX_TYPE, "mag_approx_type");
+    MaterialTypeEnum.Add(MAG_MSM_K1, "mag_msm_K1");
+    MaterialTypeEnum.Add(MAG_MSM_K2, "mag_msm_K2");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA100, "mag_msm_lambda100");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA111, "mag_msm_lambda111");
+    MaterialTypeEnum.Add(MAG_MSM_PS, "mag_msm_Ps");
+    MaterialTypeEnum.Add(MAG_ANHYST_TYPE_EB, "mag_anhyst_type_EB");
+    MaterialTypeEnum.Add(MAG_ANHYST_FORMULA_EB, "mag_anhyst_formula_EB");
+    MaterialTypeEnum.Add(MAG_PINNING_FORCES_WEIGHTS_EB, "mag_pinning_forces_weights_EB");
+    MaterialTypeEnum.Add(MAG_WEIGHTS_FILE_PATH_EB, "mag_weights_file_path_EB");
+
+
+    // Magnetic inverse EB Hysteresis Parameters
+    MaterialTypeEnum.Add(MAG_ANHYST_TYPE_INVEB, "mag_anhyst_type_invEB");
+    MaterialTypeEnum.Add(MAG_ANHYST_FORMULA_INVEB, "mag_anhyst_formula_invEB");
+    MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
+    MaterialTypeEnum.Add(MAG_MS_INVEB, "mag_Ms_invEB");
+    MaterialTypeEnum.Add(MAG_PA_INVEB, "mag_pa_invEB");
+    MaterialTypeEnum.Add(MAG_PB_INVEB, "mag_pb_invEB");
+    MaterialTypeEnum.Add(MAG_PC_INVEB, "mag_pc_invEB");
+    MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");
+    MaterialTypeEnum.Add(MAG_P0_INVEB, "mag_p0_invEB");
+    MaterialTypeEnum.Add(MAG_P1_INVEB, "mag_p1_invEB");
+    MaterialTypeEnum.Add(MAG_P2_INVEB, "mag_p2_invEB");
+    MaterialTypeEnum.Add(MAG_PINNING_FORCES_WEIGHTS_INVEB, "mag_pinning_forces_weights_invEB");
+    MaterialTypeEnum.Add(MAG_WEIGHTS_FILE_PATH_INVEB, "mag_weights_file_path_invEB");
+    MaterialTypeEnum.Add(MAG_LOOKUP_TABLE_FILE_INVEB, "mag_lookup_table_file_invEB");
+
+
+
+    MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
+    MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_INVEB, "mag_jacobian_method_invEB");
 
     // -- Mechanical --
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );
@@ -1178,7 +1238,10 @@ namespace CoupledField {
         break;
         
       case MAG_FIELD_INTENSITY:
+      case MAG_AVERAGED_FIELD_INTENSITY:
       case MAG_MAGNETIZATION:
+      case MAG_POTENTIAL_GRAD:
+      case MAG_FIELD_INTENSITY_CURL:
         return "A/m";
         break;
 
@@ -1192,6 +1255,11 @@ namespace CoupledField {
         break;
 
       case MAG_RHS_LOAD:
+        return "Am";
+        break;
+
+
+      case MAG_RHS_LOAD_ADJ:
         return "Am";
         break;
 
@@ -1214,6 +1282,7 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
       case ELEC_FIELD_INTENSITY_SURF:
       case MAG_POTENTIAL_DERIV1:
+      case MAG_POTENTIAL_ADJ_DERIV1:
         return "V/m";
         break;
 
@@ -1226,9 +1295,19 @@ namespace CoupledField {
       case MAG_POTENTIAL:
         return "Vs/m";
         break;
-        
+
+      case MAG_POTENTIAL_ADJ:
+        return "Vs/m";
+        break;
+
+      case MAG_POTENTIAL_GRAD_ADJ:
+        return "Vs/m^2";
+        break;
+
       case MAG_FLUX_DENSITY:
+      case MAG_AVERAGED_FLUX_DENSITY:
       case MAG_FLUX_DENSITY_SURF:
+      case MAG_CURL_ADJ:
       case MAG_NORMAL_FLUX_DENSITY:
         return "Vs/m^2";
         break;
@@ -1294,6 +1373,9 @@ namespace CoupledField {
       case PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
         return "";
+        break;
+      case VOLUME:
+        return "m^3";
         break;
 
       default:
@@ -1720,6 +1802,8 @@ namespace CoupledField {
       out = PERMEABILITY;
     } else if( in == "permeabilityFrozen" ) {
       out = PERMEABILITY_FROZEN;
+    } else if( in == "reluctivity") {
+      out = RELUCTIVITY;
     } else if( in == "reluctivity_magstrict"){
       out = RELUCTIVITY_MAGSTRICT;
     } else if( in == "heatConductivity") {
@@ -1805,10 +1889,13 @@ namespace CoupledField {
         break;
       case PERMEABILITY:
         out = "permeability";
-        break;        
+        break;
       case PERMEABILITY_FROZEN:
         out = "permeabilityFrozen";
-        break;        
+        break;
+      case RELUCTIVITY:
+        out = "reluctivity";
+        break;
       case RELUCTIVITY_MAGSTRICT:
       out = "reluctivity_magstrict";
       break;

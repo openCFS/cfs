@@ -76,6 +76,8 @@ namespace CoupledField {
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
     
     shared_ptr<CoefFunctionMaterialModel<Complex>> GetModelCoef(){ return matModelCoef_; };
+
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> > GetModelCoefm() { return matModelCoefm_;};
     
     virtual AnalysisType GetAnalysisType() const {
       return analysistype_;
@@ -179,6 +181,7 @@ namespace CoupledField {
     void InitHystCoefs(){
       EXCEPTION("Not implemented in base class");
     }
+
 
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes()
     { return regionNonLinTypes_;};
@@ -375,9 +378,14 @@ namespace CoupledField {
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
 
+    // Coefficient function for material model (per-region map)
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >  matModelCoefm_;
+
     // scalar factor used to influence the non-linearity
     double nonLinScalarFac_;
+
     //@}
+
     
     
     // -----------------------------------------------------------------------

@@ -1629,46 +1629,104 @@ namespace CoupledField
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         } else {
-          // That should be STATIC, TRANSIENT, EIGENFREQUENCY, EIGENVALUE or BUCKLING
+          // STATIC, TRANSIENT, EIGENFREQUENCY, EIGENVALUE or BUCKLING
+#ifdef USE_OPENMP
+          // Parallel RHS assembly with buffered accumulation
+          // Thread-safety fixes applied:
+          // 1. CoefFunctionBOp::bOps_ now uses const reference for thread-safe reads
+          // 2. CoefFunctionHyst::tracedOperatorData_ protected by mutex
+          // 3. CoefFunctionHyst::totalCallingCounter_ is now atomic
+          struct ElemContrib {
+            Vector<Double> elemVec;
+            StdVector<Integer> eqnVec;
+            FeFctIdType fctId;
+            bool hasData;
+            ElemContrib() : fctId(NO_FCT_ID), hasData(false) {}
+          };
+          StdVector<ElemContrib> elemBuffer(size);
+
+          #pragma omp parallel num_threads(CFS_NUM_THREADS)
+          {
+            UInt numT = CFS_NUM_THREADS;
+            UInt aThread = GetThreadNum();
+
+            // Clone form per-thread (mutable work buffers are per-clone)
+            LinearForm* threadForm = form->Clone();
+
+            // Static contiguous chunks
+            UInt chunksize = std::floor(static_cast<Double>(size) / numT);
+            UInt start = chunksize * aThread;
+            UInt end = (aThread == numT - 1) ? size : (chunksize * (aThread + 1));
+
+            // Fresh iterator for this thread's chunk
+            EntityIterator threadEntIt = actContext.GetEntities()->GetIterator();
+            threadEntIt.Begin();
+            threadEntIt += start;
+
+            Vector<Double> localElemVec;
+            StdVector<Integer> localEqnVec;
+            FeFctIdType localFctId;
+
+            for (UInt i = start; i < end && !threadEntIt.IsEnd(); ++i, threadEntIt++) {
+              if (threadForm->IsExtractReal()) {
+                Vector<Complex> tmp;
+                threadForm->CalcElemVector(tmp, threadEntIt);
+                localElemVec = tmp.GetPart(Global::REAL);
+              } else {
+                threadForm->CalcElemVector(localElemVec, threadEntIt);
+              }
+
+              actContext.MapEqns(threadEntIt, localEqnVec, localFctId);
+              ReMapEquations(localEqnVec, localFctId);
+
+              if (!localEqnVec.IsEmpty()) {
+                elemBuffer[i].elemVec = localElemVec;
+                elemBuffer[i].eqnVec = localEqnVec;
+                elemBuffer[i].fctId = localFctId;
+                elemBuffer[i].hasData = true;
+              }
+            }
+            delete threadForm;
+          }
+          // Implicit barrier - all threads done
+
+          // Deterministic accumulation in element order
+          for (UInt i = 0; i < size; ++i) {
+            if (elemBuffer[i].hasData) {
+              algsys_->SetElementRHS(elemBuffer[i].elemVec, elemBuffer[i].fctId,
+                                     elemBuffer[i].eqnVec, h);
+            }
+            if (printProgressBar_) {
+              ++progress;
+              std::cout << progStream.str();
+              progStream.str("");
+            }
+          }
+#else
+          // Serial fallback (no OpenMP)
           Vector<Double> elemVec;
-          // iterate over all entities
-          for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-            // make only output if desired
-            if( printProgressBar_) {
+          for (entIt.Begin(); !entIt.IsEnd(); entIt++) {
+            if (printProgressBar_) {
               ++progress;
               std::cout << progStream.str();
               progStream.str("");
             }
 
-            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
-            LOG_DBG3(assemble) << "ARLF: linform: " << form->ToString();
-
-            // Calculate real valued element vector
-            // check if only the real part of a complex value shall be considered
-            if( form->IsExtractReal() ){
-            	Vector<Complex> tmp;
-            	form->CalcElemVector(tmp, entIt);
-            	elemVec = tmp.GetPart(Global::REAL);
-            }else{
+            if (form->IsExtractReal()) {
+              Vector<Complex> tmp;
+              form->CalcElemVector(tmp, entIt);
+              elemVec = tmp.GetPart(Global::REAL);
+            } else {
               form->CalcElemVector(elemVec, entIt);
             }
-            
-            // Map equation numbers. eqnVec can be empty if nodes are not in system (e.g. not simulated region)
+
             actContext.MapEqns(entIt, eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.GetSize() << " -> " << eqnVec.ToString();
-
-            // Perform remapping
             ReMapEquations(eqnVec, fctId);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
 
-            // elemVec can be independent on equations, e.g. for const or expression form
-            assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
-
-            // Pass element vector to algebraic system only when we have equations
-            if(!eqnVec.IsEmpty())
+            if (!eqnVec.IsEmpty())
               algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
-            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
+#endif
         }
       } catch (Exception& e) {
         RETHROW_EXCEPTION(e, "Could not calculate RHS vector for LinearForm '"

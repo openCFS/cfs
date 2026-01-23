@@ -829,6 +829,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
                          rPDE_.singlePDEs_.End() );
 
+    // std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
+    // for( ; it != uncoupledPdes.end(); ++it ) {
+    //     std::cout << "Name PDE: " << (*it)->GetName() << std::endl;
+    // }
+    
     // loop over all coupled SinglePDEs and remove involved
     // SinglePDEs
     for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
@@ -945,11 +950,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
     
     // In the end print final ordering:
+    std::cout << "++ Final ordering of PDEs: ";
     LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
     for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
       LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
           <<  rPDE_.PDEs_[i]->GetName();
+          std::cout << " " << i+1 << ": " <<  rPDE_.PDEs_[i]->GetName();
     }
+    std::cout << std::endl;
   }
   
   PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,
@@ -966,9 +974,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       LOG_DBG(itersolvestep) << "Calling ::Finalize()";
       Finalize();
     } 
-     PtrCoefFct ret, coef;
+    PtrCoefFct ret, coef;
      
-     
+    
     // Initial implementation: Directly access CoefFct of PDE
     // Later we use the interface, which keeps track of the norm of the coupling quantity
     for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
@@ -994,35 +1002,41 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // wrap the return coefficient function in a CoefFunctionAccumulator
     shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
     
-    // If this is a density quantity (e.g. force density), a possible convergence
-    // criterion might be defined in terms of the absolute force (e.g. force), so we initially try
-    // to find the derived value
-    SolutionType mappedType = type;
-    if( solutionMap_.find(type) != solutionMap_.end() ) {
-      mappedType = solutionMap_[type]; 
-      LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
-          SolutionTypeEnum.ToString(mappedType);
+    if ( type == MAG_MAGNETIZATION ) {
+      return coef;
     }
-
-    // Check, if there was a convergence criterion defined for this quantity.
-    // In this case, we add it to the ConvergenceCriterion instance. If we use the displacement
-    // as Dirichlet BC, we have to skip it here since its already defined for the whole region
-    if ( SolutionTypeEnum.ToString(mappedType) == "mechDisplacement" ) {
-      LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (mechDisplacement)";
-    } else if ( SolutionTypeEnum.ToString(mappedType) == "smoothDisplacement" ) {
-      LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (smoothDisplacement)";
-    } else {
-      if( criterions_.find(mappedType) != criterions_.end() ) {
-
-        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
-        // add accumulated coefficient function to list
-        shared_ptr<ConvCriterionAccu> c
-        = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
-        c->AddCoefFct( list, acc );
+    else {
+      
+      // If this is a density quantity (e.g. force density), a possible convergence
+      // criterion might be defined in terms of the absolute force (e.g. force), so we initially try
+      // to find the derived value
+      SolutionType mappedType = type;
+      if( solutionMap_.find(type) != solutionMap_.end() ) {
+        mappedType = solutionMap_[type]; 
+        LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
+            SolutionTypeEnum.ToString(mappedType);
       }
-    }
+
+      // Check, if there was a convergence criterion defined for this quantity.
+      // In this case, we add it to the ConvergenceCriterion instance. If we use the displacement
+      // as Dirichlet BC, we have to skip it here since its already defined for the whole region
+      if ( SolutionTypeEnum.ToString(mappedType) == "mechDisplacement" ) {
+        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (mechDisplacement)";
+      } else if ( SolutionTypeEnum.ToString(mappedType) == "smoothDisplacement" ) {
+        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (smoothDisplacement)";
+      } else {
+        if( criterions_.find(mappedType) != criterions_.end() ) {
+
+          LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
+          // add accumulated coefficient function to list
+          shared_ptr<ConvCriterionAccu> c
+          = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
+          c->AddCoefFct( list, acc );
+        }
+      }
     
-    return acc;
+      return acc;
+    }
   }
 
   void IterSolveStep::GetUpdateGeoForPDE( SolutionType type,
@@ -1040,7 +1054,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       }
     }
   }
-  
+
   // ========================================================================
   //  STATIC COUPLED ITERATION
   // ========================================================================

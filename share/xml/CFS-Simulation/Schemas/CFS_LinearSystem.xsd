@@ -240,7 +240,7 @@
           <xsd:enumeration value="minResidual">
           <xsd:annotation>
               <xsd:documentation>
-                An array of line search parameters gamma is used to evaluate the residual for 
+                An array of line search parameters gamma is used to evaluate the residual for
                 gamma = [0.1 0.2 0.3 0.4 0.5 0.6 0.6 0.7 0.8 0.9 1] and the one which minimizes the residual
                 is used for the Newton step.
               </xsd:documentation>
@@ -285,13 +285,37 @@
               <xsd:documentation>
                 Advanced linesearch: Improves quality, not neccessary speed. Only available for multiharmonic
                 Analysis.
-                
+
                 Linesearch first consideres only first harmonics, and will increase considered harmonics if error doest decrease.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="Inexact">
+            <xsd:annotation>
+              <xsd:documentation>
+                Inexact line search using backtracking with Armijo-Goldstein condition.
+                Starts with gamma = 1 and reduces it until sufficient decrease is achieved.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
         </xsd:restriction>
       </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="tolerance" type="DT_PosFloat" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Convergence tolerance for iterative line search methods (e.g., Brent method).
+          Default: 1e-3. Lower values give more precise line search but require more iterations.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Maximum iterations for iterative line search methods.
+          Default: 1000.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 

@@ -158,21 +158,23 @@ namespace CoupledField{
   BaseFE* FeSpaceH1Hi::GetFe( const EntityIterator ent ){
 
     // Note: if the element is a surface element, we must omit the regionId
-    // and look for the neighbor. Which one to take? Well, we had the 
+    // and look for the neighbor. Which one to take? Well, we had the
     // discussion already ....
     const Elem * ptEl = GetVolElem(ent.GetElem());
     RegionIdType eRegion = ptEl->regionId;
-    
+
     LOG_DBG3(feSpaceH1Hi) << "Returning FE #" << ent.GetElem()->elemNum
         << " of region "  << ptGrid_->GetRegion().ToString(eRegion);
-    
+
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       LOG_DBG3(feSpaceH1Hi) << "\t-> No reference element found, use default region";
       eRegion = ALL_REGIONS;
     }
 
-    if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(eRegion);
+    if(refElemsRegion.find(ent.GetElem()->type) == refElemsRegion.end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
 
@@ -180,11 +182,11 @@ namespace CoupledField{
 #ifdef USE_OPENMP
     FeH1Hi * myFe;
     if(isFinalized_ && omp_get_num_threads()>1)
-      myFe = TL_RefElems_[eRegion][ent.GetElem()->type];
+      myFe = TL_RefElems_.at(eRegion).Mine().at(ent.GetElem()->type);
     else
-      myFe = refElems_[eRegion][ent.GetElem()->type];
+      myFe = refElems_.at(eRegion).at(ent.GetElem()->type);
 #else
-    FeH1Hi * myFe = refElems_[eRegion][ent.GetElem()->type];
+    FeH1Hi * myFe = refElems_.at(eRegion).at(ent.GetElem()->type);
 #endif
     std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
     assert( it != regionOrder_.end() );
@@ -199,7 +201,7 @@ namespace CoupledField{
   BaseFE* FeSpaceH1Hi::GetFe( UInt elemNum ){
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
-    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
     RegionIdType eRegion = GetVolElem(ptElem)->regionId;
 
     //Check if the region is there, otherwise fall back to default
@@ -207,18 +209,20 @@ namespace CoupledField{
       eRegion = ALL_REGIONS;
     }
 
-    if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(eRegion);
+    if(refElemsRegion.find(ptElem->type) == refElemsRegion.end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is not supported by space");
     }
     // Fetch reference element and set correct order
 #ifdef USE_OPENMP
     FeH1Hi * myFe;
     if(isFinalized_ && omp_get_num_threads()>1)
-      myFe = TL_RefElems_[eRegion][ptElem->type];
+      myFe = TL_RefElems_.at(eRegion).Mine().at(ptElem->type);
     else
-      myFe = refElems_[eRegion][ptElem->type];
+      myFe = refElems_.at(eRegion).at(ptElem->type);
 #else
-    FeH1Hi * myFe = refElems_[eRegion][ptElem->type];
+    FeH1Hi * myFe = refElems_.at(eRegion).at(ptElem->type);
 #endif
     std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
     SetElemOrder( ptElem, myFe, it->second, true );
@@ -330,10 +334,12 @@ namespace CoupledField{
       region = ALL_REGIONS;
     }
 
-    if(refElems_[region].find(type) == refElems_[region].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(region);
+    if(refElemsRegion.find(type) == refElemsRegion.end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    ret = refElems_[region][type]; 
+    ret = refElems_.at(region).at(type);
     return ret;
   }
 

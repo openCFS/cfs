@@ -52,8 +52,14 @@
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagneticScalarPotentialPDE.hh"
+#include "PDE/MagneticScalarPotentialAdjPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/MagEdgeHPDE.hh"
+#include "PDE/MagEdgeAStarPDE.hh"
+#include "PDE/MagEdgeAdjPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
+#include "PDE/MagEdgeMixedSFGPDE.hh"
+#include "PDE/MagEdgeRegulSFGPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
 #include "PDE/MechPDE.hh"
@@ -124,6 +130,9 @@ Domain::Domain(
   
   // register variables defined in "variableList" element
   RegisterVariables();
+
+  //set region ID for hyst operator to -1
+  actRegion4Hyst_ = NO_REGION_ID;
 }
 
 void Domain::CreateGrid()
@@ -741,11 +750,21 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
 
-    std::string actPdeName = pdeNodes[i]->GetName();
+    std::string actPdeName = pdeNodes[i]->GetName();    
     PtrParamNode actPdeNode = pdeNodes[i];
-    if( isParentDomain_) 
-      std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '"
-                << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;
+    if( isParentDomain_) {
+      //check for formulation
+      std::string formulation = "NO";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
+      if ( formulation != "NO" )
+        std::cout << "++ Creating PDE '" + actPdeName + "' with formulation '" + formulation + "' for analysis '" 
+                  << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;    
+      else
+        std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '" 
+                  << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;        
+    }
 
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
@@ -764,33 +783,50 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "magnetic"){
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
       if (formulation == "A") {
         ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }else if(formulation == "Psi") {
         ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      }else{
+      }
+      else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
     }
-
+    else if (actPdeName == "magneticScalarPotentialAdj"){
+      ptSinglePde_[i] = new MagneticScalarPotentialAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
     else if (actPdeName == "magneticEdge"){
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
-      if (formulation == "A") {
-        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      }else{
-        if(formulation == "A-V"){
-          ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "specialA-V"){
-          ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "Darwin" || "Darwin_doubleLagrange"){
-          ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else{
-          EXCEPTION("Formulation of MagEdgePDE not known!");
-        }
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
+      if (formulation == "A") {        
+        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);   
+      } else if (formulation == "A-V"){        
+        ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);  
+      } else if(formulation == "specialA-V"){        
+        ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if((formulation == "Darwin") || (formulation == "Darwin_doubleLagrange")){        
+        ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "mixedSFG"){        
+        ptSinglePde_[i] = new MagEdgeMixedSFGPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "regulSFG"){        
+        ptSinglePde_[i] = new MagEdgeRegulSFGPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "H"){
+        ptSinglePde_[i] = new MagEdgeHPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "AStar"){
+        ptSinglePde_[i] = new MagEdgeAStarPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else{
+        EXCEPTION("Formulation of MagEdgePDE not known!");
       }
     }
-
+    else if (actPdeName == "magneticEdgeAdj") {
+      ptSinglePde_[i] = new MagEdgeAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);  
+    } 
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
@@ -798,8 +834,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
-
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }      
       if (formulation == "perturbed") {
         ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
@@ -840,6 +878,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     // Initialize current PDE
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
+    //std::cout << "Domain Name: " << actPdeName << std::endl;
   }
 }
 
@@ -877,7 +916,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
-    // std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
+    //std::cout << "CreateIterCoupledPDE, PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   

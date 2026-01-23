@@ -79,8 +79,25 @@ set(DEPS_ARGS
   
 if(FORCE_C_CXX)
   list(APPEND DEPS_ARGS -DCMAKE_CXX_COMPILER=${FORCE_C_CXX})
-endif()  
-    
+endif()
+
+# On macOS with Homebrew OpenMP, pass the OpenMP configuration to ginkgo's cmake
+# since FindOpenMP can't locate it without hints
+if(APPLE AND USE_OPENMP)
+  assert_set(OpenMP_CXX_FLAGS)
+  assert_set(OpenMP_CXX_LIB_NAMES)
+  assert_set(OpenMP_libomp_LIBRARY)
+  # Get the include directory from the library path
+  get_filename_component(_OMP_LIB_DIR ${OpenMP_libomp_LIBRARY} DIRECTORY)
+  get_filename_component(_OMP_PREFIX ${_OMP_LIB_DIR} DIRECTORY)
+  set(_OMP_INCLUDE_DIR "${_OMP_PREFIX}/include")
+  # Add the OpenMP include directory to CXXFLAGS since Homebrew OpenMP headers aren't in the default path
+  list(APPEND DEPS_ARGS
+    "-DOpenMP_CXX_FLAGS=${OpenMP_CXX_FLAGS} -I${_OMP_INCLUDE_DIR}"
+    -DOpenMP_CXX_LIB_NAMES=${OpenMP_CXX_LIB_NAMES}
+    -DOpenMP_libomp_LIBRARY=${OpenMP_libomp_LIBRARY})
+endif()
+
 # --- it follows generic final block for cmake packages w/o patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!

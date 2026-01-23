@@ -37,6 +37,14 @@ namespace CoupledField
     isAllowed_.insert( MAG_RELUCTIVITY_TENSOR );
     isAllowed_.insert( MAG_RELUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P1 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P1 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P2 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P3 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P4 );        
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P2 );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P3 );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P4 );            
     isAllowed_.insert( MAG_CONDUCTIVITY_TENSOR );
     isAllowed_.insert( MAG_CONDUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_CONDUCTIVITY_1 );
@@ -56,9 +64,45 @@ namespace CoupledField
     // -- Energy based vectorhysteresis
     isAllowed_.insert( MAG_PS_EB );
     isAllowed_.insert( MAG_A_EB );
+    isAllowed_.insert( MAG_MSAT_PACEJKA_EB );
+    isAllowed_.insert( MAG_A_PACEJKA_EB );
+    isAllowed_.insert( MAG_B_PACEJKA_EB );
+    isAllowed_.insert( MAG_C_PACEJKA_EB );
     isAllowed_.insert( MAG_MU0_EB );
-    isAllowed_.insert( MAG_NUMS_EB );
-    isAllowed_.insert( MAG_CHI_FACTOR_EB );
+    isAllowed_.insert( MAG_NUMS_EB );//these two are the old implementation but they are still needed for the invEBHyst
+    isAllowed_.insert( MAG_CHI_FACTOR_EB ); //these two are the old implementation but they are still needed for the invEBHyst
+    isAllowed_.insert( MAG_MSM_AS );
+    isAllowed_.insert( MAG_APPROX_TYPE );
+    isAllowed_.insert( MAG_MSM_K1 );
+    isAllowed_.insert( MAG_MSM_K2 );
+    isAllowed_.insert( MAG_MSM_LAMBDA100 );
+    isAllowed_.insert( MAG_MSM_LAMBDA111 );
+    isAllowed_.insert( MAG_MSM_PS );
+    isAllowed_.insert( MAG_JACOBIAN_METHOD_EB );
+    isAllowed_.insert( MAG_ANHYST_TYPE_EB );
+    isAllowed_.insert( MAG_ANHYST_FORMULA_EB );
+    isAllowed_.insert( MAG_PINNING_FORCES_WEIGHTS_EB );
+    isAllowed_.insert( MAG_WEIGHTS_FILE_PATH_EB );
+    
+
+    // -- inverse Energy based vectorhysteresis
+    isAllowed_.insert( MAG_ANHYST_TYPE_INVEB );
+    isAllowed_.insert( MAG_ANHYST_FORMULA_INVEB ); 
+    isAllowed_.insert( MAG_JS_INVEB );
+    isAllowed_.insert( MAG_MS_INVEB );
+    isAllowed_.insert( MAG_PA_INVEB );
+    isAllowed_.insert( MAG_PB_INVEB );
+    isAllowed_.insert( MAG_PC_INVEB );
+    isAllowed_.insert( MAG_A_INVEB );
+    isAllowed_.insert( MAG_P0_INVEB );
+    isAllowed_.insert( MAG_P1_INVEB );
+    isAllowed_.insert( MAG_P2_INVEB );
+    isAllowed_.insert( MAG_PINNING_FORCES_WEIGHTS_INVEB );
+    isAllowed_.insert( MAG_WEIGHTS_FILE_PATH_INVEB );
+    isAllowed_.insert( MAG_LOOKUP_TABLE_FILE_INVEB );
+    isAllowed_.insert( MAG_JACOBIAN_METHOD_INVEB );
+
+
 
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION );
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION_X );
@@ -789,6 +833,10 @@ namespace CoupledField
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
     if( matType != MAG_RELUCTIVITY_SCALAR &&
+        matType != MAG_RELUCTIVITY_DERIV_P1 &&
+        matType != MAG_RELUCTIVITY_DERIV_P2 &&
+        matType != MAG_RELUCTIVITY_DERIV_P3 &&
+        matType != MAG_RELUCTIVITY_DERIV_P4 &&
         matType != MAG_PERMEABILITY_SCALAR &&
         matType != MAG_CORE_LOSS_PER_MASS &&
         matType != MAG_CONDUCTIVITY_SCALAR) {
@@ -805,7 +853,8 @@ namespace CoupledField
 
     // TODO: There is so much C&P code, please refactor that!
 
-    if( matType == MAG_RELUCTIVITY_SCALAR ){
+    if( matType == MAG_RELUCTIVITY_SCALAR || matType == MAG_RELUCTIVITY_DERIV_P1 || matType == MAG_RELUCTIVITY_DERIV_P2 || 
+        matType == MAG_RELUCTIVITY_DERIV_P3 || matType == MAG_RELUCTIVITY_DERIV_P4){
       // -----------
       // RELUCTIVITY
       // -----------
@@ -1251,7 +1300,86 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
 
      return ret;
    }
+
   
+  PtrCoefFct ElectroMagneticMaterial:: 
+  GetScalCoefFncNonLinDerivParam(MaterialType matType,
+                                 Global::ComplexPart matDataType,
+                                 PtrCoefFct fluxCoef) {
+    //This method allocates the objects handling the drivatives of the
+    //reluctivity  or magnetic anhysteresis curve w.r.t parameters
+    //needed in adjoint magnetic PDE
+
+    // do check
+    if( matType != MAG_RELUCTIVITY_DERIV_P1 &&
+        matType != MAG_RELUCTIVITY_DERIV_P2 &&
+        matType != MAG_RELUCTIVITY_DERIV_P3 &&
+        matType != MAG_RELUCTIVITY_DERIV_P4 &&
+        matType != MAG_ANHYST_DERIV_P1 &&
+        matType != MAG_ANHYST_DERIV_P2 ) {
+      EXCEPTION("Just derivative of Scalar reluctivity w.r.t. paremeters P1 - P4 or of anhysteresis curve w.r.t. P1 - P4 allowed!");
+    }
+
+    // Ensure that only real-valued parameters are used
+    if ( matDataType != Global::REAL ) {
+      EXCEPTION( "Only real-valued nonlinear parameters are supported");
+    }
+
+    PtrCoefFct ret;
+
+    // check, if nonlinear curve was already calculated
+    MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
+    if ( matNl.approxType == ANALYTIC ) {
+      // this is for describing the reluctivity directly in the xml as analytic formula
+      // basically, all occurences of B_R or H_R are replaced with the CoefFunction fluxDensAbs
+
+      // get Euclidean norm of B or H
+      CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+      PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+      shared_ptr<CoefFunctionCompound<Double> > parFnc(new CoefFunctionCompound<Double>(mp_));
+      std::map<std::string,PtrCoefFct> symbols;
+
+      // get function of B or H
+      std::string fncStr;
+      if ( matType == MAG_RELUCTIVITY_DERIV_P1 ) {
+        fncStr = matNl.analyticExprDerivP1;
+        symbols["B"] = fluxDensAbs;
+      } 
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P2 ) {
+        fncStr = matNl.analyticExprDerivP2;
+        symbols["B"] = fluxDensAbs;
+      }
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P3 ) {
+        fncStr = matNl.analyticExprDerivP3;
+        symbols["B"] = fluxDensAbs;
+      } 
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P4 ) {
+        fncStr = matNl.analyticExprDerivP4;
+        symbols["B"] = fluxDensAbs;
+      } 
+      else if ( matType == MAG_ANHYST_DERIV_P1) {
+        fncStr = matNl.analyticExprDerivP1;
+        symbols["H"] = fluxDensAbs;
+      }   
+      else if ( matType == MAG_ANHYST_DERIV_P2) {
+        fncStr = matNl.analyticExprDerivP2;
+        symbols["H"] = fluxDensAbs;
+      }             
+      else {
+        EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4 or MAG_ANHYST_DERIV_P1 - P2");
+      }
+      
+      fncStr.insert(0,"( ");
+      fncStr.append(" )");
+      parFnc->SetScalar(fncStr,symbols);
+      ret = parFnc;
+    } else {
+      EXCEPTION("Just ANALYTIC functions are allowed")
+    }
+    return ret;
+  }
+
 
   PtrCoefFct ElectroMagneticMaterial::
   GetTensorCoefFncNonLin( MaterialType matType,

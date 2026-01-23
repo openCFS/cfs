@@ -15,6 +15,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 SET(patches
   "vtk-ensight.patch"
+  "vtk-zlib-fdopen.patch"
 )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/vtk")

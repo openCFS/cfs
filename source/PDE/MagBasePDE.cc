@@ -7,6 +7,7 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -86,10 +87,13 @@ namespace CoupledField
     // isHysteresis_ is set in SinglePDE.cc during InitNonLin
 		if(isHysteresis_){
 			solveStep_ = new SolveStepHyst(*this);
+    } else if(nonLin_ && (modelName_ == "invEBHysteresisModel")){
+      solveStep_ = new SolveStepEB(*this); 
 		} else {
 			solveStep_ = new StdSolveStep(*this);
 		}
   }
+
 
   void MagBasePDE::InitNonLin() {
     SinglePDE::InitNonLin();
@@ -104,12 +108,20 @@ namespace CoupledField
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
+    if ( pdename_ == "magneticEdgeAdj" )
+      feFunctions_[MAG_POTENTIAL_ADJ]->SetTimeScheme(myScheme);
+    else
+      feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
     // Important: Create a new time scheme for each additional feFunction
     // NEW: from NACS - copy stepping scheme from mag potential
-    shared_ptr<TimeSchemeGLM> mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
-            feFunctions_[MAG_POTENTIAL]->GetTimeScheme());
+    shared_ptr<TimeSchemeGLM> mainScheme;
+    if ( pdename_ == "magneticEdgeAdj" )
+      mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
+            feFunctions_[MAG_POTENTIAL_ADJ]->GetTimeScheme());
+    else
+      mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
+            feFunctions_[MAG_POTENTIAL]->GetTimeScheme());            
     assert(mainScheme);
 
     if( hasVoltCoils_ ){
@@ -264,7 +276,11 @@ namespace CoupledField
       aVecComponents = "z";
     }
 
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> feFct;
+    if ( pdename_ == "magneticEdgeAdj" )
+      feFct = feFunctions_[MAG_POTENTIAL_ADJ];
+    else 
+      feFct = feFunctions_[MAG_POTENTIAL];
 
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> fluxDens(new ResultInfo);
@@ -273,7 +289,7 @@ namespace CoupledField
     fluxDens->unit = "Vs/m^2";
     fluxDens->definedOn = ResultInfo::ELEMENT;
     fluxDens->entryType = ResultInfo::VECTOR;
-    fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
+    fluxDens->SetFeFunction(feFct); //feFunctions_[MAG_POTENTIAL]);
     availResults_.insert( fluxDens );
     shared_ptr<CoefFunctionFormBased> bFunc;
     if( isComplex_ ) {
@@ -310,7 +326,12 @@ namespace CoupledField
     }
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    shared_ptr<FeSpace> mySpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
+    shared_ptr<FeSpace> mySpace;
+    if ( pdename_ == "magneticEdgeAdj" )
+      mySpace = feFunctions_[MAG_POTENTIAL_ADJ]->GetFeSpace();
+    else 
+      mySpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
+
     // we set the dependency of the hyst operator to the actual
     // quantity that is computed (B) although the standard Preisach
     // as well as the VectorPreisach model need H as input
@@ -475,7 +496,11 @@ namespace CoupledField
          * FIELD INTENSITY
          */
         // define field intensity on non-hysteretic region, too!
-        shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
+        shared_ptr<BaseFeFunction> feFct ;
+        if ( pdename_ == "magneticEdgeAdj" )
+          feFct = feFunctions_[MAG_POTENTIAL_ADJ];
+        else
+          feFct = feFunctions_[MAG_POTENTIAL];
         
         StdVector<std::string> vecComponents;
         if( dim_ == 3 ) {
@@ -532,7 +557,12 @@ namespace CoupledField
     // ============================
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
-    shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<BaseFeFunction> feFunc ;    
+    if ( pdename_ == "magneticEdgeAdj" )
+      feFunc = feFunctions_[MAG_POTENTIAL_ADJ];
+    else 
+      feFunc = feFunctions_[MAG_POTENTIAL];
+
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
     std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;

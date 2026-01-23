@@ -57,7 +57,7 @@ public:
 
   //! Calculate transposed complex valued operator matrix
   virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                   const LocPointMapped& lp, 
+                                   const LocPointMapped& lp,
                                    BaseFE* ptFe ){
     Matrix<Double> realMat;
     this->CalcOpMatTransposed(realMat,lp,ptFe);
@@ -87,7 +87,7 @@ public:
     retVec = bOp * solVec;
 
   }
-  
+
   virtual void ApplyOp(Vector<Complex>& retVec,
                        const LocPointMapped& lp,
                        BaseFE* ptFe,
@@ -106,7 +106,7 @@ public:
     CalcOpMat(bOp,lp,ptFe);
     retVec = Transpose(bOp) * solVec;
   }
-  
+
   //! Apply the transposed operator matrix on a vector
   virtual void ApplyOpTranspose(Vector<Complex>& retVec,
                                 const LocPointMapped& lp,

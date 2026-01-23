@@ -127,15 +127,11 @@ void MathParserOMP::RegisterExternalVar( unsigned int handle,
 void MathParserOMP::SetCoordinates( unsigned int handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord ){
-  if(omp_get_num_threads() == 1){
-    //assume call from serial region
-    for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
-      MathParser::SetCoordinates(threadHandles_[handle].Mine(aT),coosy,globCoord);
-    }
-  }else{
-    //assume from parallel region
-    MathParser::SetCoordinates(threadHandles_[handle].Mine(),coosy,globCoord);
-  }
+  // Performance fix: Only set coordinates for the current thread's slot.
+  // Coordinates are per-element and set right before evaluation, so each thread
+  // will set its own coordinates when needed. The old code did N× work when
+  // CFS_NUM_THREADS=N, causing massive slowdown in line search evaluations.
+  MathParser::SetCoordinates(threadHandles_[handle].Mine(),coosy,globCoord);
 }
 
 boost::signals2::connection

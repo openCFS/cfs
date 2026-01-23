@@ -3122,7 +3122,7 @@ namespace CoupledField {
         SingleVector &vec = (*rhs_)(rowBlock);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
-            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+            vec.AddToEntryAtomic( rowNum-1, elemRHS[iRow]);
           }
         } // loop over rows
       }

@@ -361,7 +361,7 @@ void ApproxData::PerformChecksOnInputData( std::string nlFileName ) {
             "', are not monoton increasing (epsH = 1e-2)! ";
         EXCEPTION( str );
       }
-      if ( y_[k+1] - y_[k] < epsY ) {
+      if ( y_[k+1] - y_[k] < epsY ) {        
         std::string str = "The B-values in file '" + nlFileName +
             "', are not monoton increasing (epsB = 1e-3)!";
         EXCEPTION( str );

@@ -37,6 +37,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   };
 
+  virtual void Init(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList, UInt dim){
+    EXCEPTION( "Not implemented in base class");
+  };
+
   virtual Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum){
     EXCEPTION( "Not implemented in base class");
   };
@@ -49,6 +53,22 @@ public:
     EXCEPTION( "Not implemented in base class");
   };
  
+  virtual Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum,
+                                        LocPointMapped lpm, PtrCoefFct stressCoef){
+    EXCEPTION( "Not implemented in base class");
+  };
+
+  virtual Vector<Double> GetFieldIntensity(Vector<Double> B, Integer ElemNum){
+    EXCEPTION( "Not implemented in base class");
+  };
+
+  virtual void UpdateStates(){
+    EXCEPTION( "Not implemented in base class");
+  }
+  
+  virtual void AllowUpdates(bool allow){
+    EXCEPTION( "Not implemented in base class");
+  }
 };
 
 }

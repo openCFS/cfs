@@ -75,6 +75,18 @@ namespace CoupledField {
       
       //! string for derivative
       std::string analyticExprDeriv;
+
+      //! string for derivative w.r.t parameter 1
+      std::string analyticExprDerivP1;
+
+      //! string for derivative w.r.t parameter 2
+      std::string analyticExprDerivP2;
+
+      //! string for derivative w.r.t parameter 3
+      std::string analyticExprDerivP3;            
+
+      //! string for derivative w.r.t parameter 4
+      std::string analyticExprDerivP4;      
     };
     
     //@{ \name public typedefs
@@ -166,6 +178,13 @@ namespace CoupledField {
                                                SubTensorType type,
                                                Global::ComplexPart matDataType,
                                                PtrCoefFct dependency );
+
+    //! Return scalar-valued coefficient function for derivative w.r.t. parameter 
+    virtual PtrCoefFct GetScalCoefFncNonLinDerivParam(MaterialType matType,
+                                                      Global::ComplexPart matDataType,
+                                                      PtrCoefFct fluxCoef) {
+      EXCEPTION("GetScalCoefFncNonLinDerivParam not implemented");
+    }                                                                                                                                                        
     
     //! Return scalar-valued coefficient function for a matrial model
     //virtual PtrCoefFct GetScalCoefFncModel(shared_ptr<CoefFunction> matModel);
@@ -395,6 +414,15 @@ namespace CoupledField {
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
+
+    //! Set an anhysteretic material model
+    virtual void SetAnhystMagModel( const std::string name );
+    std::string GetAnhystMagModel(){return anhystereticModel_;};
+
+    //! Set an anhysteretic Formula
+    virtual void SetAnhystFormula( const std::string name );
+    std::string GetAnhystFormula(){return anhystereticFormula_;};
+    
     //@}
 
     // ======================================================================
@@ -524,6 +552,15 @@ namespace CoupledField {
 
     //! map storing the temperature-dependent nonlinear material parameters
     NonLinIsoMapTempDependBHcurves nonlinIsoTempDependBHParams_;
+
+    //! name of anhysteretic model version
+    std::string anhystereticModel_;
+    
+    //! name of anhysteretic formula
+    std::string anhystereticFormula_;
+
+    //! name of anhysteretic model version
+    std::string hessiantype_;
 
     // ========================================================
     //  New coefficient based material representation
