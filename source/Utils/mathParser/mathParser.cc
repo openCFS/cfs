@@ -181,8 +181,9 @@ namespace CoupledField {
         
         unsigned int actHandle = *handleIt;
         // check, if variable is in use
-        if( varsInUse_[actHandle].find( varName) 
-            != varsInUse_[actHandle].end() ) {
+        auto viuIt = varsInUse_.find(actHandle);
+        if( viuIt != varsInUse_.end() && viuIt->second.find( varName)
+            != viuIt->second.end() ) {
         
           // check if signal is defined for this variable 
           // -> fire signal
@@ -225,8 +226,9 @@ namespace CoupledField {
           // i.e. the parser instance assumes that the variable is
           // locally defined. In this case we have to register
           // the variable also in the globVarsInUse_ map
-          if( varsInUse_[actHandle].find( varName) !=
-              varsInUse_[actHandle].end() ) {
+          auto viuIt = varsInUse_.find(actHandle);
+          if( viuIt != varsInUse_.end() && viuIt->second.find( varName) !=
+              viuIt->second.end() ) {
             globVarsInUse_[varName].insert(actHandle);
             pools_[actHandle].erase( varName );
           }
@@ -258,13 +260,14 @@ namespace CoupledField {
             it->second.DefineVar( varName, ptVar );
         )
 
-        // We consider the case, that we have in the 
+        // We consider the case, that we have in the
         // child parsers already a "default" value for this variable,
         // i.e. the parser instance assumes that the variable is
         // locally defined. In this case we have to register
         // the variable also in the globVarsInUse_ map
-        if( varsInUse_[actHandle].find( varName) !=
-            varsInUse_[actHandle].end() ) {
+        auto viuIt = varsInUse_.find(actHandle);
+        if( viuIt != varsInUse_.end() && viuIt->second.find( varName) !=
+            viuIt->second.end() ) {
           globVarsInUse_[varName].insert(actHandle);
           pools_[actHandle].erase( varName );
         }
@@ -626,9 +629,10 @@ namespace CoupledField {
     //mu::Parser & actParser = GetParser( handle );
     
     mu::varmap_type variables;
-    //MATHPARSER_EXEC( variables = actParser.GetUsedVar() ); 
+    //MATHPARSER_EXEC( variables = actParser.GetUsedVar() );
     bool isConstant = true;
-    if( varsInUse_[handle].size() != 0 ) {
+    auto viuIt = varsInUse_.find(handle);
+    if( viuIt != varsInUse_.end() && viuIt->second.size() != 0 ) {
       isConstant = false;
     }
     return isConstant;
@@ -638,7 +642,8 @@ namespace CoupledField {
     StdVector<std::string> usedVars;
     //GetExprVars( handle, usedVars );
     bool found = false;
-    if( varsInUse_[handle].find( var) != varsInUse_[handle].end() ) {
+    auto viuIt = varsInUse_.find(handle);
+    if( viuIt != varsInUse_.end() && viuIt->second.find( var) != viuIt->second.end() ) {
       found = true;
     }
     return found;
