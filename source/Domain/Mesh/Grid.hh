@@ -1213,7 +1213,7 @@ namespace CoupledField
   protected:
 
     //! Return for a list of entitylists all element numbers
-    void GetElemNums( boost::unordered_set<UInt>& elemNums, 
+    void GetElemNums( std::set<UInt>& elemNums, 
                       std::set<UInt>& dims,
                       const StdVector<shared_ptr<EntityList> >& entities );
     

@@ -973,7 +973,7 @@ namespace CoupledField
 
   }
 
-  void Grid::GetElemNums( boost::unordered_set<UInt>& elemNums, 
+  void Grid::GetElemNums( std::set<UInt>& elemNums, 
                           std::set<UInt>& dims,
                           const StdVector<shared_ptr<EntityList> >& entities ) {
     elemNums.clear();
@@ -1208,7 +1208,7 @@ namespace CoupledField
     }
     
     // Get all element numbers and their dimension
-    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> elemNums;
     std::set<UInt> dims;
     if( srcEntities.GetSize() != 0 ) {
       GetElemNums(elemNums, dims, srcEntities);
@@ -1553,7 +1553,7 @@ namespace CoupledField {
     
     
     // Get all element numbers and their dimension
-    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> elemNums;
     std::set<UInt> dims;
     if( srcEntities.GetSize() != 0 ) {
       GetElemNums(elemNums, dims, srcEntities);
