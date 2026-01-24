@@ -477,6 +477,78 @@ namespace CoupledField{
       ++regIt1St;
     }
 #endif
+
+    // Build element nodes cache for fast lookup during assembly
+    // This pre-computes the nodes for each element to avoid repeated map lookups
+    // in GetNodesOfElement() which is called frequently (4.6% of runtime)
+    {
+      StdVector<Elem*> allElems;
+      ptGrid_->GetElems(allElems, ALL_REGIONS);
+      UInt numElems = allElems.GetSize();
+
+      // Find max element number to size the cache
+      UInt maxElemNum = 0;
+      for (UInt i = 0; i < numElems; ++i) {
+        if (allElems[i]->elemNum > maxElemNum) {
+          maxElemNum = allElems[i]->elemNum;
+        }
+      }
+
+      // Resize cache (element numbers are 1-based, so index = elemNum - 1)
+      elemNodesCache_.resize(maxElemNum);
+
+      // Get references to entity node maps
+      const EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+      const EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+      const EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+
+      // Build cache for each element
+      for (UInt i = 0; i < numElems; ++i) {
+        const Elem* ptElem = allElems[i];
+        UInt cacheIdx = ptElem->elemNum - 1;  // Convert 1-based to 0-based
+        StdVector<UInt>& cachedNodes = elemNodesCache_[cacheIdx];
+        cachedNodes.Reserve(30);
+
+        // Collect edge nodes
+        UInt numEdges = ptElem->extended->edges.GetSize();
+        for (UInt j = 0; j < numEdges; ++j) {
+          auto it = eNodes.find(std::abs(ptElem->extended->edges[j]));
+          if (it != eNodes.end()) {
+            const StdVector<UInt>& edgeNodes = it->second;
+            for (UInt k = 0; k < edgeNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(edgeNodes[k]);
+            }
+          }
+        }
+
+        // Collect face nodes
+        UInt numFaces = ptElem->extended->faces.GetSize();
+        for (UInt j = 0; j < numFaces; ++j) {
+          auto it = fNodes.find(std::abs(ptElem->extended->faces[j]));
+          if (it != fNodes.end()) {
+            const StdVector<UInt>& faceNodes = it->second;
+            for (UInt k = 0; k < faceNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(faceNodes[k]);
+            }
+          }
+        }
+
+        // Collect interior nodes
+        if (iNodes.size()) {
+          auto it = iNodes.find(ptElem->elemNum);
+          if (it != iNodes.end()) {
+            const StdVector<UInt>& intNodes = it->second;
+            for (UInt k = 0; k < intNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(intNodes[k]);
+            }
+          }
+        }
+
+        // Shrink to fit to minimize memory usage
+        cachedNodes.Trim();
+      }
+    }
+
     isFinalized_ = true;
   }
   
@@ -495,6 +567,23 @@ namespace CoupledField{
   void FeSpaceHCurlHi::GetNodesOfElement( StdVector<UInt>& nodes,
                                           const Elem* ptElem,
                                           BaseFE::EntityType entType){
+    // Fast path: use pre-computed cache for the common case
+    // Cache is valid when: entType == ALL and onlyLowestOrder_ == false
+    // (the cache was built with full node collection in Finalize())
+    if (entType == BaseFE::ALL && !onlyLowestOrder_ && !elemNodesCache_.empty()) {
+      UInt cacheIdx = ptElem->elemNum - 1;  // Convert 1-based to 0-based
+      if (cacheIdx < elemNodesCache_.size()) {
+        const StdVector<UInt>& cachedNodes = elemNodesCache_[cacheIdx];
+        if (cachedNodes.GetSize() > 0) {
+          // Copy from cache
+          nodes = cachedNodes;
+          return;
+        }
+      }
+    }
+
+    // Slow path: original implementation for special cases
+    // (specific entity types or onlyLowestOrder_ mode)
     nodes.Clear();
     nodes.Reserve(30);
     // Use const references and .at() for thread-safe read-only access
@@ -556,9 +645,9 @@ namespace CoupledField{
     } // if: !lowestOrder
 
     // Ensure, that at least one virtual node is present
-    if( nodes.GetSize() == 0 ) { 
+    if( nodes.GetSize() == 0 ) {
       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
-          << ptElem->elemNum << " of region " 
+          << ptElem->elemNum << " of region "
           <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
    }
   }
