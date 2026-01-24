@@ -5,6 +5,7 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "Utils/ThreadLocalStorage.hh"
 
@@ -148,7 +149,15 @@ protected:
   //! Map usage of gradients of adjusted faces (key: face number)
   std::unordered_map<UInt, bool> gradFaces_;
 
-  
+  // ====================================================================
+  // ELEMENT NODES CACHE (Performance optimization)
+  // ====================================================================
+
+  //! Pre-computed element-to-nodes mapping for fast lookup
+  //! Index: element number, Value: virtual node numbers for that element
+  //! Built during Finalize() to avoid repeated map lookups in GetNodesOfElement()
+  std::vector<StdVector<UInt>> elemNodesCache_;
+
 private:
 };
 } // end of namespace
