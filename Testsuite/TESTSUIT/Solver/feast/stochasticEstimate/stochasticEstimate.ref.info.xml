@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.267s" wall="0.267" cpu="0.257541" calls="1"/>
+    <timer wall-clock="0.112s" wall="0.112" cpu="0.078744" calls="1"/>
     <!-- memory in MB-->
-    <memory final="227.36" peak="236.39"/>
+    <memory final="46"/>
   </summary>
   <header id="">
-    <environment started="2023-Jan-17 12:05:43" host="fedora"/>
-    <progOpts problem="stochasticEstimate" parameterFile="/home/manuel/myCFS/test/stochasticEstimate/stochasticEstimate.xml" schemaPath="/home/manuel/myCFS/bin/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="22.12" name="Welcome World" build="Debug" git_commit="f0fb4e3aeef34aa086a06f5d50df099dfa215508" git_branch="master" exe="/home/manuel/myCFS/build/bin/cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    <environment started="2026-Jan-24 00:27:25" host="MacBookPro.fritz.box"/>
+    <progOpts problem="stochasticEstimate" parameterFile="/Users/fwein/code/master/Testsuite/TESTSUIT/Solver/feast/stochasticEstimate/stochasticEstimate.xml" schemaPath="/Users/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="3edf239d01ed79d91b81062655716bc3aa35f4bf" git_branch="master" compiled="Jan 23 2026" exe="cfs_master"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="12" ny="3" nz="1">
       <grids>
-        <timer wall-clock="0.02s" wall="0.02" cpu="0.020688" calls="1"/>
+        <timer wall-clock="0.01s" wall="0.01" cpu="0.004191" calls="1"/>
         <grid gridId="default" dimensions="2" elements="66" nodes="52"/>
       </grids>
       <coordinateSystems>
@@ -36,11 +36,14 @@
       <namedElements/>
       <globalMathParser dt="0" f="0" nx="12" ny="3" nz="1" step="0" t="0" t0="0"/>
     </domain>
+    <results>
+      <timer wall-clock="0s" wall="0" cpu="0.000462" calls="4"/>
+    </results>
   </header>
   <sequenceStep sequence="1">
     <eigenFrequency>
       <init_eigenFrequency>
-        <timer wall-clock="0.042s" wall="0.042" cpu="0.034877" calls="1"/>
+        <timer wall-clock="0.012s" wall="0.012" cpu="0.006042" calls="1"/>
       </init_eigenFrequency>
     </eigenFrequency>
     <PDE>
@@ -71,9 +74,9 @@
           <regionList>
             <region name="surf"/>
           </regionList>
-          <property name="Acoustic_Bulk_Modulus" value="1"/>
+          <property name="Acoustic_Bulk_Modulus" value="(1,0)"/>
           <property name="Acoustic_Sound_Speed" value="1"/>
-          <property name="Density" value="1"/>
+          <property name="Density" value="(1,0)"/>
         </material>
         <feSpaces>
           <acouPressure>
@@ -116,16 +119,26 @@
             </solve_feast>
           </summary>
           <header N_estimated="7"/>
+          <contour>
+            <integrationNodes real="18.1621 90.4118 192.588 264.838 264.838 192.588 90.4118 18.1621" imag="51.0882 123.338 123.338 51.0882 -51.0882 -123.338 -123.338 -51.0882"/>
+            <integrationWeights real="-15.4172 -6.38603 6.38603 15.4172 15.4172 6.38603 -6.38603 -15.4172" imag="6.38603 15.4172 15.4172 6.38603 -6.38603 -15.4172 -15.4172 -6.38603"/>
+          </contour>
         </solve_eigen>
       </acoustic>
       <graph_setup>
-        <timer wall-clock="0.018s" wall="0.018" cpu="0.01109" calls="1" sub="true"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000388" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.007s" wall="0.007" cpu="0.00772" calls="1"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000258" calls="1"/>
+          <assemble_matrices>
+            <timer wall-clock="0s" wall="0" cpu="0.000255" calls="1" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </assemble_rhs>
         </assemble>
       </summary>
     </analysis>
