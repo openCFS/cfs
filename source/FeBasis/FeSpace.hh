@@ -178,10 +178,10 @@ public:
   struct SingleEqnMap{
 
     //! Map for every node (key to map) its equations (values)
-    boost::unordered_map< Integer, StdVector<Integer> > eqns;
+    std::unordered_map< Integer, StdVector<Integer> > eqns;
     
     //! Map for every node (key to map) its boundary conditions types
-    boost::unordered_map< Integer,StdVector<BcType> > BcKeys;
+    std::unordered_map< Integer,StdVector<BcType> > BcKeys;
     
     
     //! Map for storing constraint information
@@ -507,7 +507,7 @@ public:
 
   //! Create a map of equation-index-geometry for AMG-solver/preconditioner
   //! ONLY for single-PDE's with lowest order Lagrange- or edge-elements
-  void CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
+  void CreateEquIndGeomMap(std::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
                           UInt&, UInt&);
 
 protected:

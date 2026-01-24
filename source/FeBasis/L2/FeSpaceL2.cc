@@ -773,8 +773,8 @@ namespace CoupledField{
     // ---------------
     //  NODES
     // ---------------
-    boost::unordered_map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
-    boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+    std::unordered_map< Integer , StdVector<Integer> >::iterator nodeIt = nodeMap_.eqns.begin();
+    std::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
     out << "EQUATION MAPPING" << std::endl << std::endl;
     out << "nodeNr \t|"  << " type  | " <<  std::setw (7)

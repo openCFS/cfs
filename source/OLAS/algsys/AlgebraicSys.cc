@@ -4978,14 +4978,14 @@ namespace CoupledField {
     }
   }
 
-  void AlgebraicSys::SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
-                                     boost::unordered_map< Integer, StdVector<Integer> >& eNodes){
+  void AlgebraicSys::SetEdgeIndexMap(std::unordered_map<Integer, Double>& lengths,
+                                     std::unordered_map< Integer, StdVector<Integer> >& eNodes){
     dim_ = 1;
     edge_ = true;
 
     //loop over all indices
-    boost::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
-    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
+    std::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
+    std::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
     while(lIt != lengths.end() ){
       StdVector<Integer> e = eIt->second;
       Double l = lIt->second;
