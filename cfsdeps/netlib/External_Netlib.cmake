@@ -8,10 +8,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "netlib")
-set(PACKAGE_VER "3.11.0")
+set(PACKAGE_VER "3.12.1")
 set(NETLIB_VER  ${PACKAGE_VER}) # for Dependencies.cc
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "595b064fd448b161cd711fe346f498a7")
+set(PACKAGE_MD5 "2f069617e16b42f5eddcfee85768f204")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # this is the original version. There are variants on gitlab 
