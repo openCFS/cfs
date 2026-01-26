@@ -1,16 +1,11 @@
 # cmake 3.16 is required for essential options of the new FindPython.cmake 
+# once set to 3.24, remove if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24") in DependencyTools.cmake
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
 # Include global definitions for openCFS development server (host name, etc.)
 include("cmake_modules/DevelopmentServer.cmake")
 include(CMakePrintHelpers)
-
-if(POLICY CMP0135)
-  #>= cmake 3.24 wants a policy for DOWNLOAD_EXTRACT_TIMESTAMP with external projects. is demanded
-  # howerver, setting this to NEW makes make always build the complete source
-  cmake_policy(SET CMP0135 OLD)
-endif()
 
 # Note: "Policy CMP0077 is not set: option() honors normal variables." 
 # is likely when the USE_* option is set, e.g. in .cfs_platform_defaults.cmake

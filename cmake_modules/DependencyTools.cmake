@@ -411,17 +411,32 @@ macro(create_external_unpack_precompiled)
   assert_set(PRECOMPILED_PCKG_FILE)
   assert_set(DEPS_PREFIX)
 
-  ExternalProject_Add(${PACKAGE_NAME}
-    PREFIX ${DEPS_PREFIX}
-    DOWNLOAD_COMMAND ""
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-   
-    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
- 
+  # since CMake 3.24 we need cmake_policy(SET CMP0135 OLD) or set DOWNLOAD_EXTRACT_TIMESTAMP ON (since 3.24)
+  # otherwise the timestamp of the extracted precompiled files are set to now and everything recompiles.
+  # remove this guard once we set set the minimal cmake for openCFS sufficiently high.
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+    ExternalProject_Add(${PACKAGE_NAME}
+      PREFIX ${DEPS_PREFIX}
+      DOWNLOAD_COMMAND ""
+      DOWNLOAD_EXTRACT_TIMESTAMP ON
+      PATCH_COMMAND ""
+      UPDATE_COMMAND ""
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
+  else()
+    ExternalProject_Add(${PACKAGE_NAME}
+      PREFIX ${DEPS_PREFIX}
+      DOWNLOAD_COMMAND ""
+      PATCH_COMMAND ""
+      UPDATE_COMMAND ""
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
+  endif()
+
   # we need a step as we need to set WORKING_DIRECTORY
   ExternalProject_Add_Step(${PACKAGE_NAME} pre_download
     COMMAND ${CMAKE_COMMAND} -E echo "unpacking ${PRECOMPILED_PCKG_FILE}"
