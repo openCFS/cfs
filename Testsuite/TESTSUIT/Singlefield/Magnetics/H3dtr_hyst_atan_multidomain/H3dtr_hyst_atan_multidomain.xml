@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org/simulation"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
   <documentation>
     <title>3D transient magnetic field simulation with multi-region hysteresis and quasistatic
