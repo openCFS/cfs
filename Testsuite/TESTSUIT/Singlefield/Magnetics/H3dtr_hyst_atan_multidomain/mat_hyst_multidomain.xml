@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.cfs++.org/material https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd">
+  xsi:schemaLocation="http://www.cfs++.org/material ../../../../../share/xml/CFS-Material/CFS_Material.xsd">
 
  <material name="air_quasistatic">
   <magnetic>

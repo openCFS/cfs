@@ -2,7 +2,7 @@
 <cfsSimulation xmlns="http://www.cfs++.org/simulation"
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://www.cfs++.org/simulation
- https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
   <documentation>
     <title>3D transient linear magnetic field simulation with quasistatic materials</title>
