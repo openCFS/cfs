@@ -13,6 +13,9 @@
   #include <omp.h>
 #endif
 
+#ifdef USE_MKL
+  #include <mkl_service.h>
+#endif
 
 using std::to_string;
 
@@ -2290,6 +2293,17 @@ namespace CoupledField {
       msg+= otherstr + "=" + to_string(other);
     if(msg.size() != org && !quiet)
       cout << ">> " << msg << std::endl;
+#endif
+#ifdef USE_MKL
+    // If we use INTEL MKL, we have to make sure that MKL doesn't spawn threads by itself except solving with PARDISO
+    // Reference: https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2025-0/threading-control.html
+    // std::cout << "I am setting MKL threading. \n";
+    mkl_set_dynamic(0);
+    mkl_domain_set_num_threads(1, MKL_DOMAIN_ALL);
+    mkl_domain_set_num_threads(CFS_NUM_THREADS, MKL_DOMAIN_PARDISO);
+    // std::cout << "Check if the modification works. \n";
+    // std::cout << "In the BLAS routine, I will use " << mkl_domain_get_max_threads(MKL_DOMAIN_BLAS) << " thread(s). \n";
+    // std::cout << "In the PARDISO routine, I will use " << mkl_domain_get_max_threads(MKL_DOMAIN_PARDISO) << " thread(s). \n";
 #endif
   }
 
