@@ -14,6 +14,9 @@
   #include <omp.h>
 #endif
 
+#ifdef USE_MKL
+  #include <mkl_service.h>
+#endif
 
 using std::to_string;
 
@@ -2332,6 +2335,22 @@ namespace CoupledField {
       msg+= otherstr + "=" + to_string(other);
     if(msg.size() != org && !quiet)
       cout << ">> " << msg << std::endl;
+#endif
+#ifdef USE_MKL
+    // If we use INTEL MKL, we have to make sure that MKL doesn't spawn threads by itself except solving with PARDISO
+    // Reference: https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2025-0/threading-control.html
+    // This is done by the MKL_DOMAIN_NUM_THREADS environment variable or associated MKL functions
+    // see: https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2025-2/mkl-domain-num-threads.html
+    if( getenv("MKL_DOMAIN_NUM_THREADS") == nullptr){
+      // ensure BLAS routines are done with one thread
+      // on some AMD machines Intel MKL starts BLAS-Routines otside of OpenMP loops on all available cores, leading to massive overhead
+      mkl_domain_set_num_threads(1, MKL_DOMAIN_BLAS);
+    }
+    else {
+      // if the user has set the evironment variable we do not touch it
+      std::string mkl_dom(getenv("MKL_DOMAIN_NUM_THREADS"));
+      WARN( "MKL_DOMAIN_NUM_THREADS is already set to '" + mkl_dom + "' and not overwritten by CFS; Make sure to set MKL_DOMAIN_BLAS=1 to avoid perfomace degradation on AMD systems!" );
+    }
 #endif
   }
 
