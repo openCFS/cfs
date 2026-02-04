@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="11" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.175s" wall="0.175" cpu="0.218043" calls="1"/>
+    <timer wall-clock="0.255s" wall="0.255" cpu="0.238092" calls="1"/>
     <!-- memory in MB-->
-    <memory final="306.81" peak="371.81"/>
+    <memory final="266" peak="331"/>
   </summary>
   <header id="">
-    <environment started="2021-Dec-07 06:39:40" host="DM-T490s" estimatedEnd="2021-Dec-07 06:39:41" remainingTime="0" timePerStep="0.002"/>
-    <progOpts problem="MechSmoothMWE2D" parameterFile="/home/dominik/Devel/Merges/IterCoupleTestcaseFix/MechSmooth/MechSmoothMWE2D/MechSmoothMWE2D.xml" schemaPath="/home/dominik/Devel/CFS_BIN/build_opt/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="21.11" name="Frohes Fensterln" build="Release" git_commit="1e8a81f25fd8e64e10bade756143e4174f518540" git_branch="LinFlow_ALE_merge" exe="/home/dominik/Devel/CFS_BIN/build_opt/bin/../bin/cfsbin"/>
+    <environment started="2026-Feb-04 08:34:18" host="fedora" estimatedEnd="2026-Feb-04 08:34:19" remainingTime="0" timePerStep="0.004"/>
+    <progOpts problem="MechSmoothMWE2D" parameterFile="/home/dominik/Devel/CFS_SRC_2/cfs/Testsuite/TESTSUIT/Coupledfield/MechSmooth/MechSmoothMWE2D/MechSmoothMWE2D.xml" schemaPath="/home/dominik/Devel/CFS_SRC_2/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="df9ec540dbcfdbae25bb2c20ef99e3e73e4c0a6d" git_branch="master" compiled="Jan 29 2026" exe="/home/dominik/Devel/CFS_BIN/build_opt_master/bin/cfs"/>
       <openmp CFS_NUM_THREADS="2" MKL_NUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="3" ny="1" nz="1">
       <grids>
-        <timer wall-clock="0.007s" wall="0.007" cpu="0.005358" calls="1"/>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.005748" calls="1"/>
         <grid gridId="default" dimensions="2" elements="12" nodes="8"/>
       </grids>
       <coordinateSystems>
@@ -36,14 +36,14 @@
       <globalMathParser dt="2e-05" f="0" nx="3" ny="1" nz="1" step="3" t="5.5e-05" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.003s" wall="0.003" cpu="0.008534" calls="27"/>
+      <timer wall-clock="0.006s" wall="0.006" cpu="0.007093" calls="45"/>
     </results>
   </header>
   <sequenceStep sequence="1">
     <transient>
       <header unit="s"/>
       <init_transient>
-        <timer wall-clock="0.041s" wall="0.041" cpu="0.079965" calls="1"/>
+        <timer wall-clock="0.059s" wall="0.059" cpu="0.049617" calls="1"/>
       </init_transient>
     </transient>
     <PDE>
@@ -109,24 +109,23 @@
             <region name="Air_1" damping="none"/>
             <integrators>
               <matrixBiLinearForms>
-                <bilinearForm integrator="LinElastInt">
-                  <coef value="[[17.1141, 16.443, 3.42114e-49],[16.443, 17.1141, -3.42114e-49],[3.42114e-49, -3.42114e-49, 0.33557]]"/>
-                </bilinearForm>
-                <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="Air_1">
-                  <row pde="mechanic" functionId="0" result="mechDisplacement"/>
-                  <column pde="mechanic" functionId="0" result="mechDisplacement"/>
-                  <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                  <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
-                </bilinearForm>
                 <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="Air_1">
+                  <coef type="CoefFunctionConst" value="[[1, 0, 0],[0, 1, 1.4058e-65],[0, 1.4058e-65, 0.5]]"/>
                   <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                   <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                   <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                   <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
                 </bilinearForm>
+                <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="Air_1">
+                  <coef type="CoefFunctionConst" value="0"/>
+                  <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                  <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                  <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                  <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+                </bilinearForm>
               </matrixBiLinearForms>
               <rhsLinearForms>
-                <linearForm integrator="PressureInt" region="IF">
+                <linearForm integrator="PressureInt">
                   <entities name="IF" size="1" region="IF"/>
                   <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
                 </linearForm>
@@ -140,18 +139,27 @@
             <property name="Mechanic_Stiffness_Tensor">
               <tensor dim1="6" dim2="6">
                 <real>
-                   1.711409e+01  1.644295e+01  1.644295e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   1.644295e+01  1.711409e+01  1.644295e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   1.644295e+01  1.644295e+01  1.711409e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01  0.000000e+00  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01
+                   1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01
                 </real>
               </tensor>
             </property>
             <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
-            <property name="Mechanic_Poisson_Ratio" value="(0.49,0)"/>
+            <property name="Mechanic_Poisson_Ratio" value="(0,0)"/>
             <property name="Density" value="(0,0)"/>
+            <subtensor type="planeStrain">
+              <tensor dim1="3" dim2="3">
+                <real>
+                   1.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  1.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  5.000000e-01
+                </real>
+              </tensor>
+            </subtensor>
           </material>
           <feSpaces>
             <mechDisplacement>
@@ -180,9 +188,10 @@
             <integrators>
               <matrixBiLinearForms>
                 <bilinearForm integrator="LinElastInt">
-                  <coef value="[[17.1141, 16.443, 3.42114e-49],[16.443, 17.1141, -3.42114e-49],[3.42114e-49, -3.42114e-49, 0.33557]]"/>
+                  <coef value="[[1, 0, 0],[0, 1, 1.4058e-65],[0, 1.4058e-65, 0.5]]"/>
                 </bilinearForm>
                 <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="Air_2">
+                  <coef type="CoefFunctionConst" value="[[1, 0, 0],[0, 1, 1.4058e-65],[0, 1.4058e-65, 0.5]]"/>
                   <row pde="smooth" functionId="0" result="smoothDisplacement"/>
                   <column pde="smooth" functionId="0" result="smoothDisplacement"/>
                   <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -196,21 +205,20 @@
             <regionList>
               <region name="Air_2"/>
             </regionList>
-            <property name="Mechanic_Stiffness_Tensor">
+            <property name="Smooth_Stiffness_Tensor">
               <tensor dim1="6" dim2="6">
                 <real>
-                   1.711409e+01  1.644295e+01  1.644295e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   1.644295e+01  1.711409e+01  1.644295e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   1.644295e+01  1.644295e+01  1.711409e+01  0.000000e+00  0.000000e+00  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01  0.000000e+00  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01  0.000000e+00
-                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.355705e-01
+                   1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  1.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01  0.000000e+00  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01  0.000000e+00
+                   0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.000000e-01
                 </real>
               </tensor>
             </property>
-            <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
-            <property name="Mechanic_Poisson_Ratio" value="(0.49,0)"/>
-            <property name="Density" value="(0,0)"/>
+            <property name="Smooth_Elasticity_Modulus" value="(1,0)"/>
+            <property name="Smooth_Poisson_Ratio" value="(0,0)"/>
           </material>
           <feSpaces>
             <smoothDisplacement>
@@ -254,25 +262,26 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0.005s" wall="0.005" cpu="0.006102" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000492" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001284" calls="6"/>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000664" calls="6"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.003906" wall="0.003" peakMem="142" permanentMem="142"/>
-                <numfact cpu="0.001941" wall="0.001" peakMem="0"/>
+                <symbfact cpu="0.000347" wall="0" peakMem="142" permanentMem="142"/>
+                <numfact cpu="7.1e-05" wall="0" peakMem="0"/>
               </call>
             </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
           </pardiso>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -301,16 +310,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000239" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000156" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="5.5e-05" calls="6"/>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000385" calls="6"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="8.2e-05" wall="0" peakMem="142" permanentMem="142"/>
-                <numfact cpu="4.4e-05" wall="0" peakMem="0"/>
+                <symbfact cpu="0.000106" wall="0" peakMem="142" permanentMem="142"/>
+                <numfact cpu="1.1e-05" wall="0" peakMem="0"/>
               </call>
             </process>
           </pardiso>
@@ -319,7 +328,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -332,16 +341,21 @@
         </process>
       </smooth>
       <graph_setup>
-        <timer wall-clock="0s" wall="0" cpu="0.001555" calls="2" sub="true"/>
+        <timer wall-clock="0.009s" wall="0.009" cpu="0.00081" calls="2" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="6.9e-05" calls="12"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000341" calls="12"/>
+          <assemble_matrices>
+            <timer wall-clock="0.007s" wall="0.007" cpu="0.002796" calls="12" sub="true"/>
+          </assemble_matrices>
+          <assemble_rhs>
+            <timer wall-clock="0s" wall="0" cpu="0.000218" calls="12" sub="true"/>
+          </assemble_rhs>
         </assemble>
       </summary>
     </analysis>
   </sequenceStep>
-  <warning lineNum="80" fileName="/home/dominik/Devel/CFS_SRC/CFS/source/Domain/Results/ResultFunctor.cc" message="Evaluation of nodal values is very inefficient at the moment."/>
 </cfsInfo>
