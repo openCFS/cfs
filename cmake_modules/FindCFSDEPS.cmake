@@ -29,6 +29,7 @@ if(USE_EMBEDDED_PYTHON)
   # we don't need the executable for embedded python - the testsuite finds it's own executable
   # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
   # we need at least Python 3.8 but only with cmake 3.19 this requirement can be enforced
+  set(Python_FIND_VIRTUALENV "FIRST")
   find_package(Python COMPONENTS Development NumPy)  
   #dump_variables("Python")
   if(NOT Python_Development_FOUND OR NOT Python_NumPy_FOUND)

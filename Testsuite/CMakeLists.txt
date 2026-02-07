@@ -159,6 +159,7 @@ mark_as_advanced(TESTSUITE_CFS)
 if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES "build" )
   # in case of USE_EMBEDDED_PYTHON, cfs also searched for Python -> see FindCFSDEPS.cmake
   # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
+  set(Python_FIND_VIRTUALENV "FIRST")
   find_package(Python MODULE COMPONENTS Interpreter)
   if(NOT Python_Interpreter_FOUND OR NOT Python_EXECUTABLE)
     message(WARNING "cannot find Python for testsuite - set Python_ROOT_DIR or Python_EXECUTABLE")

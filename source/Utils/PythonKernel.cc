@@ -173,6 +173,10 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
     bool verb = progOpts->DoDetailedInfo();
   #endif
   // PyRun_SimpleString("import sys;print('python sys.path', sys.path, flush=True)");
+  // note that you need for virtual python what you see manual via sysconfig.get_path('platlib')
+  // e.g. /Users/fwein/python3.14/lib/python3.14/site-packages
+  // however, sysconfig.get_path('platlib') in embedded python shows the non-virtual base.
+  // best is to set the path first in PYTHONPATH when you activate your virtual python environment
   if(preload_numpy)
   {
     if(verb) PyRun_SimpleString("print('++ pre-load numpy ... ',flush=True, end='')");
