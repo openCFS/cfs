@@ -8,7 +8,7 @@
 #include <set>
 #include <map>
 
-#include <boost/any.hpp>
+#include <any>
 
 #include <Domain/Mesh/Grid.hh>
 #include <Domain/Results/ResultInfo.hh>

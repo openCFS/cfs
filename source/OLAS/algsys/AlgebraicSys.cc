@@ -711,7 +711,7 @@ namespace CoupledField {
       delete evs;
       // in the end prevent-recalculation of evs by
       //re-setting the value for CalcConditionNumber
-      solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
+      solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( std::any(false) );
     }
     // ======================================================================
 

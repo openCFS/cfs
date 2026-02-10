@@ -5,7 +5,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/tokenizer.hpp>
-#include <boost/any.hpp>
+#include <any>
 
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
@@ -132,7 +132,7 @@ namespace CoupledField
     
     /** Set a valid value (native type, Timer* and Matrix and Vector instances and pointers.
      * Any other type which has no special SetValue() implementation is lost!! */
-    void SetValue(const boost::any& value, bool cerr_warning = true);
+    void SetValue(const std::any& value, bool cerr_warning = true);
 
     /** a string is a string :) */
     void SetValue(const char* value);
@@ -258,8 +258,8 @@ namespace CoupledField
      * this can save a significant amount of time.
      * Logically the strings are written (ToXML() after param node childs but not considered in Getxx(). So it is
      * rather dirty thand fast ! :(.
-     * The fast bulk block, a StdVector of std::string is stored as a boost::any type.
-     * @return create the block if it does not exist already. Exception if boost::any has already another type. */
+     * The fast bulk block, a StdVector of std::string is stored as a std::any type.
+     * @return create the block if it does not exist already. Exception if std::any has already another type. */
     StdVector<std::string>& GetFastBulkBlock();
 
     /** @return converted value
@@ -450,7 +450,7 @@ namespace CoupledField
     void ToStringList(StdVector<std::pair<std::string, std::string> >& list, int max_level, int level) const;
 
     /** The real content (attribute or simple type content) */
-    boost::any value_;
+    std::any value_;
 
     /** the precision for numerical values, to be optionally set! */
     int precision_;
