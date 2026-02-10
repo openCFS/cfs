@@ -1431,7 +1431,7 @@ hsize_t H5IO::maxChunkSize_= 100;
   }
   
   
-  void H5IO::GetAnyConversion( const boost::any& anyType,
+  void H5IO::GetAnyConversion( const std::any& anyType,
                                shared_ptr<BaseHdfTypeConversion>& conv ) {
 
     // query type of any
@@ -1439,7 +1439,7 @@ hsize_t H5IO::maxChunkSize_= 100;
     if( anyType.type() == typeid(TYPE) ){               \
       shared_ptr<HdfTypeConversion< TYPE > >              \
         myConv ( new HdfTypeConversion< TYPE >() );       \
-      myConv->SetNativeData( any_cast< TYPE >(anyType) );       \
+      myConv->SetNativeData( std::any_cast< TYPE >(anyType) );       \
       conv = myConv;                                    \
       return;                                           \
     }

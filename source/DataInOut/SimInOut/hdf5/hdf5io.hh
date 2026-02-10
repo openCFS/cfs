@@ -7,7 +7,7 @@
 
 #include <set>
 #include <map>
-#include <boost/any.hpp>
+#include <any>
 
 #include "General/Environment.hh"
 #include "Domain/Results/ResultInfo.hh"
@@ -25,10 +25,10 @@ namespace CoupledField {
     // =======================================================================
     //  TYPE DEFINITIONS
     // =======================================================================
-    typedef StdVector<std::pair<std::string, boost::any> >
+    typedef StdVector<std::pair<std::string, std::any> >
     CompoundType;
 
-    typedef StdVector<std::pair<std::string, StdVector<boost::any> >  >
+    typedef StdVector<std::pair<std::string, StdVector<std::any> >  >
     CompoundArrayType;
 
     // =======================================================================
@@ -384,8 +384,8 @@ namespace CoupledField {
     };
 
 
-    //! Get conversion object for given boost::any object
-    static void GetAnyConversion( const boost::any& anyType,
+    //! Get conversion object for given std::any object
+    static void GetAnyConversion( const std::any& anyType,
                                   shared_ptr<BaseHdfTypeConversion>& conv );
   }; // end of class H5IO
 

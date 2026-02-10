@@ -195,7 +195,7 @@ namespace CoupledField {
       out->Get("solutionIsOkay")->SetValue(true);
     }
     else {
-      out->Get("solutionIsOkay")->SetValue(boost::any(false));
+      out->Get("solutionIsOkay")->SetValue(std::any(false));
     }
     
     // Calculate average number of iterations and residual error reduction

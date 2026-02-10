@@ -77,9 +77,9 @@ PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& file
  * S E T    M E T H O D S
  *************************************************************************/
 
-void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
+void ParamNode::SetValue(const std::any& value, bool cerr_warning)
 {
-  //std::cout << "ParamNode::SetValue(const boost::any&)" << std::endl;
+  //std::cout << "ParamNode::SetValue(const std::any&)" << std::endl;
   this->value_ = value;
 
   // note that we may not check for valid strings here, as e.g. < or > are valid inputs for attribute values for expressions
@@ -87,7 +87,7 @@ void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
   {
     if(progOpts == nullptr || !progOpts->IsQuiet())
       std::cerr  << std::endl;
-    std::cerr  << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
+    std::cerr  << fg_red << "WARNING: " << std::any_cast<std::string>(value_)<< fg_reset << std::endl;
   }
 }
 void ParamNode::SetValue(const char* value)
@@ -313,7 +313,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       PtrParamNode newChild(new ParamNode(defaultAction_));
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
-      // std::string("").empty() != boost::any(st::string("")).empty()
+      // std::string("").empty() != std::any(st::string("")).empty()
       newChild->parent_ = weak_from_this();
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
@@ -539,16 +539,16 @@ ParamNodeList ParamNode::GetListByVal(const string& parent,
 
 StdVector<std::string>& ParamNode::GetFastBulkBlock()
 {
-  if(value_.empty())
+  if(value_.has_value() == false)
   {
     StdVector<std::string> tmp;
     SetValue(tmp);
-    return boost::any_cast<StdVector<std::string>&>(value_); // As() is const!
+    return std::any_cast<StdVector<std::string>&>(value_); // As() is const!
   }
   else
   {
     if(value_.type() == typeid(StdVector<std::string>))
-      return boost::any_cast<StdVector<std::string>&>(value_);
+      return std::any_cast<StdVector<std::string>&>(value_);
 
     EXCEPTION("cannot provide fast bulk block, value already set to '" << ToString(0) << "'");
   }
@@ -557,31 +557,31 @@ StdVector<std::string>& ParamNode::GetFastBulkBlock()
 template<typename TYPE>
 TYPE ParamNode::As() const
 {
-  return boost::any_cast<TYPE>(value_);
+  return std::any_cast<TYPE>(value_);
 
 }
 #define AS_INTEGRAL( TYPE   )\
   template<>\
   TYPE ParamNode::As<TYPE>() const {\
-    if( value_.empty()) return TYPE();\
+    if( value_.has_value() == false) return TYPE();\
     if( value_.type() == typeid(TYPE) ) {\
-      return boost::any_cast<TYPE>(value_);\
+      return std::any_cast<TYPE>(value_);\
     } else {\
       try {\
         if( value_.type() == typeid(int) ) {\
-          int val = boost::any_cast<int>(value_);\
+          int val = std::any_cast<int>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
         if( value_.type() == typeid(unsigned int) ) {\
-          unsigned int val = boost::any_cast<unsigned int>(value_);\
+          unsigned int val = std::any_cast<unsigned int>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
         if( value_.type() == typeid(double) ) {\
-          double val = boost::any_cast<double>(value_);\
+          double val = std::any_cast<double>(value_);\
           return boost::lexical_cast<TYPE>(val);\
         }\
         if( value_.type() == typeid(std::string) ) {\
-            std::string val = boost::any_cast<std::string>(value_);\
+            std::string val = std::any_cast<std::string>(value_);\
             return boost::lexical_cast<TYPE>(val);\
           } else {\
             EXCEPTION("cannot cast value in XML node '" << name_\
@@ -606,11 +606,11 @@ template<>
 bool ParamNode::As<bool>() const
 {
   if(value_.type() == typeid(bool))
-    return boost::any_cast<bool>(value_);
+    return std::any_cast<bool>(value_);
 
   if(value_.type() == typeid(std::string))
   {
-    std::string str = boost::any_cast<std::string>(value_);
+    std::string str = std::any_cast<std::string>(value_);
     if(str == "yes" || str == "true" || str == "on" || str == "enable" || str == "1")
       return true;
     if(str == "no" || str == "false" || str == "off" || str == "disable" || str == "0" || str == "none")
@@ -623,13 +623,13 @@ bool ParamNode::As<bool>() const
 
 boost::shared_ptr<Timer> ParamNode::AsTimer()
 {
-  if(value_.empty())
+  if(value_.has_value() == false)
     value_ = boost::shared_ptr<Timer>(new Timer());
 
   if(value_.type() != typeid(boost::shared_ptr<Timer>))
     EXCEPTION("param node " << name_ << " cannot be returned as timer");
 
-  return boost::any_cast<boost::shared_ptr<Timer> >(value_);
+  return std::any_cast<boost::shared_ptr<Timer> >(value_);
 }
 
 template<typename TYPE>
@@ -639,9 +639,9 @@ const TYPE& ParamNode::AsConst() const
   try
   {
     // first check, if type is same as returned value
-    return boost::any_cast<const TYPE&>(value_);
+    return std::any_cast<const TYPE&>(value_);
 
-  } catch (boost::bad_any_cast &)
+  } catch (std::bad_any_cast &)
   {
     EXCEPTION("Cannot determine the data type of xml node '" << name_ << "'.");
 
@@ -651,7 +651,7 @@ const TYPE& ParamNode::AsConst() const
 template<typename TYPE>
 TYPE ParamNode::MathParse() const
 {
-  if(value_.empty())
+  if(value_.has_value() == false)
     return TYPE();
 
   // obtain handle
@@ -660,7 +660,7 @@ TYPE ParamNode::MathParse() const
 
   std::string expr = "";
   if(value_.type() == typeid(std::string))
-    expr = boost::any_cast<std::string>(value_);
+    expr = std::any_cast<std::string>(value_);
   else
     EXCEPTION("XML node '" << name_ << "' can not be parsed, as it is no string type.");
 
@@ -889,7 +889,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   // default case for not value (but children)
   if (value_.type() == typeid(std::string))
   {
-    ret = boost::any_cast<std::string>(value_);
+    ret = std::any_cast<std::string>(value_);
     // https://www.w3.org/TR/2006/REC-xml11-20060816/
     std::replace(ret.begin(), ret.end(), '"', '\''); // " -> '
     boost::replace_all(ret, "&", "&amp;");
@@ -899,7 +899,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
   if (value_.type() == typeid(double))
   {
-    double val = boost::any_cast<double>(value_);
+    double val = std::any_cast<double>(value_);
     std::stringstream stream;
     stream.precision(precision_);
     stream << val;
@@ -908,7 +908,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
   if (value_.type() == typeid(Complex))
   {
-    Complex val = boost::any_cast<Complex >(value_);
+    Complex val = std::any_cast<Complex >(value_);
     std::stringstream stream;
     stream.precision(precision_);
     stream << val;
@@ -917,45 +917,45 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
   if (value_.type() == typeid(UInt))
   {
-    UInt val = boost::any_cast<UInt>(value_);
+    UInt val = std::any_cast<UInt>(value_);
     ret = boost::lexical_cast<std::string>(val);
     return;
   }
   if (value_.type() == typeid(Integer))
   {
-    Integer val = boost::any_cast<Integer>(value_);
+    Integer val = std::any_cast<Integer>(value_);
     ret = boost::lexical_cast<std::string>(val);
     return;
   }
   if (value_.type() == typeid(bool))
   {
-    bool val = boost::any_cast<bool>(value_);
+    bool val = std::any_cast<bool>(value_);
     ret = val ? "yes" : "no";
     return;
   }
   // special conversion types for vector
   if (value_.type() == typeid(Vector<Double> ))
   {
-    Vector<Double> vec = boost::any_cast<Vector<Double> >(value_);
+    Vector<Double> vec = std::any_cast<Vector<Double> >(value_);
     ret = vec.ToString();
     return;
   }
   if (value_.type() == typeid(Vector<Complex> ))
   {
-    Vector<Complex> vec = boost::any_cast<Vector<Complex> >(value_);
+    Vector<Complex> vec = std::any_cast<Vector<Complex> >(value_);
     ret = vec.ToString();
     return;
   }
   // special conversion types for matrix
   if (value_.type() == typeid(Matrix<Double> ))
   {
-    Matrix<Double> mat = boost::any_cast<Matrix<Double> >(value_);
+    Matrix<Double> mat = std::any_cast<Matrix<Double> >(value_);
     ret = mat.ToXMLFormat(name_, depth);
     return;
   }
   if (value_.type() == typeid(Matrix<Complex> ))
   {
-    Matrix<Complex> mat = boost::any_cast<Matrix<Complex> >(value_);
+    Matrix<Complex> mat = std::any_cast<Matrix<Complex> >(value_);
     ret = mat.ToXMLFormat(name_, depth);
     return;
   }
@@ -963,26 +963,26 @@ void ParamNode::ToString(std::string& ret, int depth) const
   // special conversion types for vector
   if (value_.type() == typeid(Vector<Double>*))
   {
-    Vector<Double> & vec = *(boost::any_cast<Vector<Double> *>(value_));
+    Vector<Double> & vec = *(std::any_cast<Vector<Double> *>(value_));
     ret = vec.ToString();
     return;
   }
   if (value_.type() == typeid(Vector<Complex>*))
   {
-    Vector<Complex> & vec = *(boost::any_cast<Vector<Complex>*>(value_));
+    Vector<Complex> & vec = *(std::any_cast<Vector<Complex>*>(value_));
     ret = vec.ToString();
     return;
   }
   // special conversion types for matrix
   if (value_.type() == typeid(Matrix<Double>*))
   {
-    Matrix<Double> & mat = *(boost::any_cast<Matrix<Double>*>(value_));
+    Matrix<Double> & mat = *(std::any_cast<Matrix<Double>*>(value_));
     ret = mat.ToXMLFormat(name_, depth);
     return;
   }
   if (value_.type() == typeid(Matrix<Complex>*))
   {
-    Matrix<Complex> & mat = *(boost::any_cast<Matrix<Complex>*>(value_));
+    Matrix<Complex> & mat = *(std::any_cast<Matrix<Complex>*>(value_));
     ret = mat.ToXMLFormat(name_, depth);
     return;
   }
@@ -990,7 +990,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   // special conversion for timer
   if(value_.type() == typeid(boost::shared_ptr<Timer>))
   {
-    boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
+    boost::shared_ptr<Timer> timer = std::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
     ret = timer->ToXMLFormat(name_);
     return;
@@ -1097,7 +1097,7 @@ void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
     else
     {
       // check, if value is set
-      if (!value_.empty())
+      if (value_.has_value())
       {
         assert(true); // this should not be possible and be checked in AdjustType()
         os << "> " << strValue << "</" << name_ << ">" << std::endl;
@@ -1128,7 +1128,7 @@ void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)
     //      } else
     //      if (type_ == ELEMENT ) {
     //        // check, if value is set
-    //        if (!value_.empty() ) {
+    //        if (value_.has_value() ) {
     //          os << string(depth + 2, ' ') << strValue;
     //        }
     //        os << std::endl;
@@ -1228,7 +1228,7 @@ void ParamNode::Dump(int level) const
     break;
   case BULK:
     {
-      const StdVector<std::string>& block = boost::any_cast<const StdVector<std::string>&>(value_);
+      const StdVector<std::string>& block = std::any_cast<const StdVector<std::string>&>(value_);
       for(UInt i = 0, n = block.GetSize(); i < n; i++)
         cout << " bulk: " << block[i] << std::endl;
       break;
@@ -1311,7 +1311,7 @@ void ParamNode::AdjustElementType()
       // if no children are present
       //   value_ not set -> ELEMENT
       //   value_ set     -> ATTRIBUTE
-      if (value_.empty())
+      if (value_.has_value() == false)
       {
         type_ = ELEMENT;
       }
@@ -1323,7 +1323,7 @@ void ParamNode::AdjustElementType()
   }
   // Check if node is ELEMENT, has children and a value
   // -> not possible in an XML tree
-  if (type_ == ELEMENT && children_.GetSize() && !value_.empty() && value_.type() != typeid(StdVector<std::string>))
+  if (type_ == ELEMENT && children_.GetSize() && value_.has_value() && value_.type() != typeid(StdVector<std::string>))
   {
     string value;
     ToString(value, 0);
