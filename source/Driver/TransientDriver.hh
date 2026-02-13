@@ -3,7 +3,6 @@
 
 #include "SingleDriver.hh"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace CoupledField {

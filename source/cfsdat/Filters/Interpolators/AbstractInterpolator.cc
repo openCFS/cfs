@@ -22,7 +22,6 @@
 
 // check if Intel MKL is available
 #include <def_use_blas.hh>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
 #ifdef USE_MKL
   #include <mkl.h>
 #endif

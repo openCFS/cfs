@@ -7,9 +7,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-
 #include <boost/filesystem/fstream.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <def_cfs_stats.hh>
 
@@ -20,6 +18,7 @@
 #include "SimOutputHDF5.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "FeBasis/BaseFE.hh"
+#include "Utils/Timer.hh"
 #include "hdf5io.hh"
 
 namespace CoupledField {
@@ -126,9 +125,7 @@ namespace CoupledField {
     H5IO::Write1DArray( infoGroup, "Version", 1, &versionString, dPropList_ );
 
     // write date / time information
-    using namespace boost::posix_time;
-    using namespace boost::gregorian;
-    std::string now = to_simple_string( second_clock::local_time() );
+    std::string now = Timer::TimeStampYYYYmmDD();
     H5IO::Write1DArray( infoGroup, "Date", 1, &now, dPropList_ );
 
     // write creator

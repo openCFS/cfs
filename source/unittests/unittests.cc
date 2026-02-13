@@ -11,9 +11,9 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 
 #include <boost/test/included/unit_test.hpp>
-
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/mpl/list.hpp>
+#include <chrono>
+#include <thread>
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
@@ -21,6 +21,7 @@
 #undef max // prevent Windows issue
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
+#include "Utils/Timer.hh"
 
 /* Example unit tests for CFS.
  *
@@ -36,15 +37,6 @@
  * Even more output with passed tests:
  * ./cfstest --color_output --log_level=success
  */
-
-// https://kuniganotas.wordpress.com/2011/01/14/measuring-time-with-boost-library/
-typedef boost::posix_time::ptime Time;
-typedef boost::posix_time::time_duration TimeDuration;
-//using boost::posix_time::microsec_clock::local_time;
-
-using boost::posix_time::microsec_clock;
-using boost::posix_time::time_duration;
-
 
 using namespace CoupledField;
 
@@ -145,7 +137,7 @@ BOOST_AUTO_TEST_CASE(vector_compare_performance)
       a[v] = v;
     Vector<double> b = a;
 
-    Time t1(boost::posix_time::microsec_clock::local_time());
+    auto t1 = std::chrono::steady_clock::now();
     for(unsigned int i = 0, n = ops/size; i < n; i++)
     {
       a[0] = i; // make sure the compiler does not cheat
@@ -153,9 +145,9 @@ BOOST_AUTO_TEST_CASE(vector_compare_performance)
       if(!(a == b))
         std::cout << "shall not happen\n";
     }
-    Time t2(boost::posix_time::microsec_clock::local_time());
+    auto t2 = std::chrono::steady_clock::now();
 
-    Time t3(boost::posix_time::microsec_clock::local_time());
+    auto t3 = std::chrono::steady_clock::now();
     for(unsigned int i = 0, n = ops/size; i < n; i++)
     {
       a[0] = i;
@@ -163,11 +155,11 @@ BOOST_AUTO_TEST_CASE(vector_compare_performance)
       if(a != b)
         std::cout << "shall not happen\n";
     }
-    Time t4(boost::posix_time::microsec_clock::local_time());
+    auto t4 = std::chrono::steady_clock::now();
 
-    TimeDuration dt1 = t2 - t1;
-    TimeDuration dt2 = t4 - t3;
-    StdVector<TimeDuration> use;
+    auto dt1 = t2 - t1;
+    auto dt2 = t4 - t3;
+    StdVector<std::chrono::steady_clock::duration> use;
     use.Push_back(dt1);
     use.Push_back(dt2);
     // std::cout << "vector compare: size=" << size << " n=" << (ops/size) << " opt='==' dt=" << dt1 << std::endl;
@@ -217,36 +209,36 @@ BOOST_AUTO_TEST_CASE(loop_vs_copy)
 
      int loops = values / n;
 
-     Time t1(boost::posix_time::microsec_clock::local_time());
+     auto t1 = std::chrono::steady_clock::now();
      for(int l = 0; l < loops; l++)
        loop_copy(s.GetPointer(), t.GetPointer(), n);
-     Time t2(boost::posix_time::microsec_clock::local_time());
+     auto t2 = std::chrono::steady_clock::now();
 
-     Time t3(boost::posix_time::microsec_clock::local_time());
+     auto t3 = std::chrono::steady_clock::now();
      for(int l = 0; l < loops; l++)
        par_loop_copy(s.GetPointer(), t.GetPointer(), n);
-     Time t4(boost::posix_time::microsec_clock::local_time());
+     auto t4 = std::chrono::steady_clock::now();
 
 
-     Time t5(boost::posix_time::microsec_clock::local_time());
+     auto t5 = std::chrono::steady_clock::now();
      for(int l = 0; l < loops; l++)
       std::copy_n(s.GetPointer(), n, t.GetPointer());
-     Time t6(boost::posix_time::microsec_clock::local_time());
+     auto t6 = std::chrono::steady_clock::now();
 
 
-     Time t7(boost::posix_time::microsec_clock::local_time());
+     auto t7 = std::chrono::steady_clock::now();
      for(int l = 0; l < loops; l++)
        std::memcpy(t.GetPointer(), s.GetPointer(), sizeof(double) * n);
-     Time t8(boost::posix_time::microsec_clock::local_time());
+     auto t8 = std::chrono::steady_clock::now();
 
-     TimeDuration loop = t2 - t1;
-     TimeDuration parl = t4 - t3;
-     TimeDuration copy = t6 - t5;
-     TimeDuration memcpy = t8 - t7;
+     auto loop = t2 - t1;
+     auto parl = t4 - t3;
+     auto copy = t6 - t5;
+     auto memcpy = t8 - t7;
 
-     std::cout << p << " \t" << n << " \t"  << loops << " \t" <<  std::setprecision(8) <<  loop.total_microseconds() / 1.0e6
-               << " \t" << parl.total_microseconds() / 1.0e6 << " \t" << copy.total_microseconds() / 1.0e6
-               << " \t" << memcpy.total_microseconds() / 1.0e6 << std::endl;
+     std::cout << p << " \t" << n << " \t"  << loops << " \t" <<  std::setprecision(8) <<  std::chrono::duration_cast<std::chrono::seconds>(loop).count()
+               << " \t" << std::chrono::duration_cast<std::chrono::seconds>(parl).count() << " \t" << std::chrono::duration_cast<std::chrono::seconds>(copy).count()
+               << " \t" << std::chrono::duration_cast<std::chrono::seconds>(memcpy).count() << std::endl;
      std::cout << std::endl;
    }
 }
@@ -432,5 +424,41 @@ BOOST_AUTO_TEST_CASE(signed_omp_loop)
   for(unsigned int i = 0; i < v.GetSize(); i++)
     v[i] = std::sin(v[i]);
 }
+
+BOOST_AUTO_TEST_CASE(timers)
+{
+  std::chrono::high_resolution_clock::time_point thr1 = std::chrono::high_resolution_clock::now();
+
+  //double hr = 3.14;
+  //for(int i = 0; i < 1e6; i++)
+  //  hr *= 1.0000000324;
+
+  std::chrono::high_resolution_clock::time_point thr2 = std::chrono::high_resolution_clock::now();
+
+  //std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(thr2 - thr1);
+  //std::cout << "high_resolution_clock: " << time_span.count() << " seconds: " << hr << std::endl;
+  double elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(thr2 - thr1).count();
+  std::cout << "high_resolution_clock: " <<  elapsed_seconds << " seconds: " << std::endl; 
+
+  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+  auto t2 = std::chrono::steady_clock::now();
+  //const std::chrono::nanoseconds period = t2 - t1;
+  const std::chrono::steady_clock::duration period = t2 - t1;
+  double p = std::chrono::duration<double>(period).count();
+  std::cout << "usable: " << p << " seconds: " << std::endl;
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(150));
+  auto t3 = std::chrono::steady_clock::now();
+  std::cout << "Timer.Duration(): " << Timer::Duration(t3 - t1) << std::endl;
+  double d = std::chrono::duration<double>(t3 - t1).count();
+  int h = (int) (d / 3600);
+  int m = (int) ((d - (h*3600))/60);
+  double s = d - h*3600 - m*60;
+  std::cout << "double d=" << d << " h=" << h << " m=" << m << " s=" << s << " -> " 
+            << std::fixed << std::setprecision(2) << std::setfill('0') << std::setw(5) << s << std::endl;
+
+  std::cout << "Today: " << Timer::Today() << " TimeStamp: " << Timer::TimeStamp() << std::endl;          
+}
+
 
 

@@ -124,8 +124,6 @@ private:
 	TopGrad(const TopGrad &other);
 	TopGrad& operator=(const TopGrad &other);
   
-  //const std::string GetTimeString(const boost::posix_time::time_duration period);
-
   /** \var double max_volume_to_remove_
    * \brief How much volume should be removed in total (from xml) */
   double max_volume_to_remove_;

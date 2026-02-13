@@ -27,7 +27,8 @@ SET(TARGET_LL
   datainout
   matvec
   coordsystems
-  ${BOOST_LIBRARY} )
+  ${BOOST_LIBRARY} 
+  ${ZLIB_LIBRARY} )
 
 TARGET_LINK_LIBRARIES(utils 
   ${TARGET_LL}

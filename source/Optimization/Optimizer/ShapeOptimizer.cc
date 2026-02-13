@@ -15,7 +15,6 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TopGrad.hh"
 #include "PDE/BasePDE.hh"
-#include "Utils/Timer.hh"
 
 namespace CoupledField
 {
@@ -23,8 +22,6 @@ using std::cout;
 using std::endl;
 using std::string;
 
-using boost::posix_time::second_clock;
-using boost::posix_time::time_duration;
 
 ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
   BaseOptimizer(optimization, pn, Optimization::SHAPE_SOLVER),
@@ -32,7 +29,6 @@ ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
   levelset_(false),
   shapeopt_(false)
 {
-  start_time = second_clock::local_time();
   /** ParamNode for reading info from XML-file */
   shoptpn = pn->Get(Optimization::optimizer.ToString(Optimization::SHAPE_SOLVER), ParamNode::PASS);
 
@@ -64,12 +60,6 @@ ShapeOptimizer::ShapeOptimizer(Optimization* optimization, PtrParamNode pn) :
   cout << "\t shapeopt: " << (shapeopt_ ? "yes" : "no") << endl;
 
   PostInitScale(1.0, true);
-}
-
-ShapeOptimizer::~ShapeOptimizer()
-{
-  cout << "*** shapeoptimizer finished after " << Timer::GetTimeString(second_clock::local_time() - start_time) 
-       <<  " ***" << endl;
 }
 
 void ShapeOptimizer::SolveProblem()

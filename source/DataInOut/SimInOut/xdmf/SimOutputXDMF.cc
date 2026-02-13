@@ -3,7 +3,6 @@
 #include <string>
 #include <algorithm>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem/fstream.hpp>
 
 #include "DataInOut/ProgramOptions.hh"

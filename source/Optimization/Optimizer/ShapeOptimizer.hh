@@ -3,7 +3,6 @@
 
 #include <string>
 #include "Optimization/Optimizer/BaseOptimizer.hh"
-#include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/shared_ptr.hpp"
 
 namespace CoupledField
@@ -17,7 +16,7 @@ class ShapeOptimizer : public BaseOptimizer
 {
 public:
   explicit ShapeOptimizer(Optimization* optimization, PtrParamNode pn);
-  virtual ~ShapeOptimizer();
+  virtual ~ShapeOptimizer() {}; 
 
   
   /** pointer to topgrad */
@@ -32,9 +31,6 @@ protected:
   
 private:
   ShapeOptimizer(); // forbid empty standard constructor
-  
-  /** for timing the shape optimizer */
-  boost::posix_time::ptime start_time;
   
   PtrParamNode shoptpn;
   
