@@ -7,11 +7,8 @@
 
 #include <set>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "Domain/Results/BaseResults.hh"
 #include "Domain/Results/ResultInfo.hh"

@@ -261,7 +261,7 @@ shared_ptr<MaterialHandler>
 DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 {
   fs::path root = progOpts->ObtainCFSRootFromSystem();
-  root.normalize();                                                                          // shall be save to remove when the depreciaton hurts
+  root = root.lexically_normal();                                                                          // shall be save to remove when the depreciaton hurts
   string fileName = root.string() + "/share/xml/CFS-Material/Examples/MaterialDataBase.xml"; // shall work also on Windows
   string format = "xml";
 

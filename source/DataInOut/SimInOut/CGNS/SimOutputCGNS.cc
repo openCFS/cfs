@@ -5,10 +5,10 @@
 #include <string>
 #include <iomanip>
 #include <cmath>
+#include <fstream>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -1037,7 +1037,7 @@ namespace CoupledField {
     {
       cg_goto(indexFile_[idx], indexBase_[idx], "end");
       
-      fs::ifstream fin;
+      std::ifstream fin;
       std::ostringstream dumpStr;
       
       // open external Files

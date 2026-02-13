@@ -11,9 +11,7 @@
 
 #include <boost/bind/bind.hpp>
 #include <boost/predef/os.h>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/trim.hpp>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -63,7 +61,7 @@ namespace CoupledField {
   {
   }
 
-  boost::filesystem::path ProgramOptions::ObtainCFSRootFromSystem()
+  std::filesystem::path ProgramOptions::ObtainCFSRootFromSystem()
   {
     // obtaining the path of the current executable is a non-trivial and non-portable task
 
@@ -336,7 +334,7 @@ namespace CoupledField {
        // return path to simulation
        return fs::absolute( simPath.parent_path());
      } else {
-       return fs::initial_path().string();
+       return fs::current_path().string();
      }
    }
 
@@ -354,7 +352,7 @@ namespace CoupledField {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
       fs::path paramPath( varMap_["paramFile"].as<string>());
-      return fs::complete( paramPath ); //
+      return fs::absolute( paramPath ); //
     }
   }
 
@@ -372,7 +370,7 @@ namespace CoupledField {
 #ifdef NDEBUG
       WARN("logging only works for DEBUG builds");
 #endif
-      return fs::system_complete( filePath);
+      return fs::absolute( filePath);
     } else {
       return fs::path();
     }
@@ -426,8 +424,8 @@ namespace CoupledField {
     }
 
     // make a normalized schemaPath - works also in the non-existing case
-    fs::path schemaPath = fs::system_complete(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
-    schemaPath.normalize(); // resolves stuff like bla/../fasel. Is depreciated and should work without
+    fs::path schemaPath = fs::absolute(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
+    schemaPath = schemaPath.lexically_normal(); // resolves stuff like bla/../fasel. Is depreciated and should work without
 
     if(fs::exists(schemaPath))
       return schemaPath;
@@ -438,7 +436,7 @@ namespace CoupledField {
       std::cout << "Warning: given xml schema path '" + schemaPath.string() + "' is invalid. We construct from executable location\n"; // see .info.xml or --version
 
     fs::path root = ObtainCFSRootFromSystem();
-    root.normalize(); // shall be save to remove when the depreciaton hurts
+    root = root.lexically_normal(); // shall be save to remove when the depreciaton hurts
     string exe_schema_root = root.string() + "/share/xml"; // shall work also on Windows
 
     if(fs::exists(exe_schema_root))
@@ -453,7 +451,7 @@ namespace CoupledField {
 
     if( varMap_.count( "meshFile") != 0 ) {
       fs::path meshPath( varMap_["meshFile"].as<string>() );
-      return fs::system_complete( meshPath );
+      return fs::absolute( meshPath );
     } else {
       return fs::path();
     }
@@ -585,8 +583,8 @@ namespace CoupledField {
 
     if(progOpts) 
     {      
-      fs::path fn = fs::system_complete(progOpts->exe_);
-      fn.normalize();
+      fs::path fn = fs::absolute(progOpts->exe_);
+      fn = fn.lexically_normal();
       WriteColoredString(out, trim_size, "executable", fn.string());
       WriteColoredString(out, trim_size, "xml schema", progOpts->GetSchemaPathStr());
       WriteColoredString(out, trim_size, "compiled XMLSCHEMA", XMLSCHEMA);

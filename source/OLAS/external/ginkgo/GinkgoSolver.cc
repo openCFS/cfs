@@ -9,7 +9,7 @@
 #include <string>
 #include <sstream>
 #include <stdio.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/predef.h>
 
 using std::string;
@@ -85,7 +85,7 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
   if(pn->Has("json"))
   {
     json = pn->Get("json")->As<string>();
-    if(!boost::filesystem::exists(json)) // we have compile issues with icpx in the pipeline with std::filesystem
+    if(!std::filesystem::exists(json)) // we have compile issues with icpx in the pipeline with std::filesystem
       throw Exception("cannot open json file '" + json + "'");
     infoNode_->Get("json")->SetValue(json);
     solver_type = ST_JSON;

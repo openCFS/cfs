@@ -7,7 +7,7 @@
 #include <xercesc/util/TransService.hpp>
 #include <xercesc/validators/datatype/InvalidDatatypeValueException.hpp>
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
 
@@ -17,7 +17,7 @@
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace CoupledField
 {
@@ -30,7 +30,7 @@ namespace CoupledField
 
     // create canonical path from native-representation of the
     // the schema path
-    fs::path schemaPath = fs::system_complete( fs::path( schema ) );
+    fs::path schemaPath = fs::absolute( fs::path( schema ) );
 
     if (!schema.empty() && !fs::exists(schemaPath)) {
         EXCEPTION("schema file " << schema << " doesn't exist");
@@ -52,7 +52,7 @@ namespace CoupledField
   {
     // create canonical path from native-representation of the
     // file path
-    fs::path filePath = fs::system_complete( fs::path( file ) );
+    fs::path filePath = fs::absolute( fs::path( file ) );
 
     if (!fs::exists(filePath)) {
       EXCEPTION("xml file " << file << " doesn't exist");

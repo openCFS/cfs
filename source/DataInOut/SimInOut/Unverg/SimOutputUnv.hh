@@ -5,7 +5,7 @@
 #ifndef FILE_CFS_SIM_OUT_UNV_HH
 #define FILE_CFS_SIM_OUT_UNV_HH
 
-#include <iosfwd>
+#include <fstream>
 #include <string>
 
 #include "Domain/Mesh/Grid.hh"

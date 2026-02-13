@@ -2000,7 +2000,7 @@ namespace CFSTool {
                               Double meanVel,
                               Double meanVelCorrectionFactor)
   {
-    boost::filesystem::ofstream csv;
+    std::ofstream csv;
     
     csv.open("output.csv", std::ios_base::binary);
     csv << "freq,u_p_prime_real,u_p_prime_imag,u_p_prime_ampl,"

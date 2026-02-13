@@ -5,10 +5,7 @@
 //#include <boost/program_options/parsers.hpp>
 //#include <boost/program_options/variables_map.hpp>
 #include "DataInOut/ProgramOptions.hh"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 
 #if defined(WIN32)
   #include <shlobj.h>
@@ -20,7 +17,7 @@
   #endif
 #endif
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 #include "General/Exception.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

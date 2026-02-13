@@ -1,7 +1,4 @@
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -15,7 +12,7 @@
 #include "SimInputHDF5.hh"
 #include "hdf5io.hh"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 using boost::char_separator;
 
 namespace CoupledField {
@@ -138,16 +135,16 @@ namespace CoupledField {
     std::string baseName;
     try
     {
-      fs::path fn = fs::system_complete(fileName_);
-      fn.normalize();
-      baseDir_ = fn.branch_path().string();
-      baseName = (fs::change_extension( fn.leaf(), "" )).string();
-      if(fs::extension(fn) == "")
+      fs::path fn = fs::absolute(fileName_);
+      fn = fn.lexically_normal();
+      baseDir_ = fn.parent_path().string();
+      baseName = fn.filename().replace_extension("").string();
+      if(fn.extension() == "")
       {
-        fn = fs::change_extension( fn, ".h5" );
+        fn = fn.replace_extension(".h5");
       }
       fileName_ = fn.string();
-    } catch (fs::filesystem_error& ex)
+    } catch (std::filesystem::filesystem_error& ex)
     {
       EXCEPTION("Received exception: " << ex.what());
       return;

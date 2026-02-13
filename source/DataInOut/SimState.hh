@@ -6,14 +6,14 @@
 #define FILE_CFS_SIM_STATE_HH
 
 #include <map>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/signals2.hpp>
 
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace CoupledField {
 

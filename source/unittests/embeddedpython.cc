@@ -6,7 +6,8 @@
 
 
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <def_use_embedded_python.hh>
 
@@ -164,15 +165,15 @@ BOOST_AUTO_TEST_CASE(embedded_python)
   Py_DecRef(mod_cln);
 
   // assume we are in the build directory
-  boost::filesystem::path test = boost::filesystem::path("../source/unittests/embeddedpython.py");
+  std::filesystem::path test = std::filesystem::path("../source/unittests/embeddedpython.py");
   std::cout << "test filename=" << test.filename() << std::endl;
   std::cout << "test path=" << test.parent_path()  << std::endl; // is "" in case of test = "embeddedpython.py"
-  boost::filesystem::path path = boost::filesystem::absolute(test.parent_path()); // is pwd for ""
+  std::filesystem::path path = std::filesystem::absolute(test.parent_path()); // is pwd for ""
   std::cout << "test absolute path=" << path  << std::endl;
-  std::cout << "test no extension=" << boost::filesystem::change_extension(test.filename(), "") << std::endl;
+  std::cout << "test no extension=" << test.filename().replace_extension("") << std::endl;
 
   // add it to the system path
-  if(boost::filesystem::is_directory(path))
+  if(std::filesystem::is_directory(path))
   {
     PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append
     PyList_Append(sysPath, PyUnicode_FromString(path.string().c_str()));

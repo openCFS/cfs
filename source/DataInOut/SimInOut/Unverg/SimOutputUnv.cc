@@ -9,6 +9,7 @@
 #include <cmath>
 #include <complex>
 #include <exception>
+#include <fstream>
 #include <iomanip>
 #include <map>
 #include <set>
@@ -1033,7 +1034,7 @@ namespace CoupledField {
     std::string name = fileName_ + "." + formatName_;
     fs::path filePath = dirName_ / name;
     output = NULL;
-    output = new fs::ofstream(filePath);
+    output = new std::ofstream(filePath);
     if(!output)
       EXCEPTION("Unv file ' " << name << "' could not be openend!" );
 

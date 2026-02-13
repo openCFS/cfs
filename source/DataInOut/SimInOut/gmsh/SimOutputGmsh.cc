@@ -7,6 +7,7 @@
 #include <string>
 #include <complex>
 #include <ctime>
+#include <fstream>
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -156,10 +157,10 @@ namespace CoupledField {
       fs::path filePath = dirName_ / gridFileName;
       
       if (ascii_) {
-        output_ = new fs::ofstream(filePath, std::ios_base::app);
+        output_ = new std::ofstream(filePath, std::ios_base::app);
       }
       else {
-        output_ = new fs::ofstream(filePath, std::ofstream::binary | std::ios_base::app);
+        output_ = new std::ofstream(filePath, std::ofstream::binary | std::ios_base::app);
       }
       if ( !output_ ) {
         EXCEPTION("Could not open file " << gridFileName
@@ -797,17 +798,17 @@ namespace CoupledField {
   // ***********
   std::ofstream * SimOutputGmsh::OpenFile( const std::string& name ) {
     std::string totalName;
-    fs::ofstream * outFile = NULL;
+    std::ofstream * outFile = NULL;
 
     // Generate basename for output file
     
     fs::path filePath = dirName_ / name;
     
     if (ascii_) {
-      outFile = new fs::ofstream(filePath);
+      outFile = new std::ofstream(filePath);
     }
     else {
-      outFile = new fs::ofstream(filePath, std::ofstream::binary);
+      outFile = new std::ofstream(filePath, std::ofstream::binary);
     }
     if ( !outFile ) {
       EXCEPTION("Could not open file " << totalName

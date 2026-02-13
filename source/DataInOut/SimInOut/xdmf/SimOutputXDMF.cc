@@ -3,7 +3,7 @@
 #include <string>
 #include <algorithm>
 
-#include <boost/filesystem/fstream.hpp>
+#include <fstream>
 
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -630,7 +630,7 @@ namespace CoupledField {
     std::string gridName = fileName_+std::string("_grid.xmf");
     fs::path gridFN = dirName_ / gridName;
     //std::string gridFN = dirName_ + "/" + fileName_ + 
-    fs::ofstream gridFile;
+    std::ofstream gridFile;
 
     // ensure that grid gets only written once
     if(!gridWritten_)
@@ -1164,7 +1164,7 @@ namespace CoupledField {
   void SimOutputXDMF::WriteDTD() 
   {
     fs::path dtdFN = dirName_ / "Xdmf.dtd";
-    fs::ofstream dtdFile(dtdFN);
+    std::ofstream dtdFile(dtdFN);
     
     dtdFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
     dtdFile << "<!--Root element of dataset-->" << std::endl;

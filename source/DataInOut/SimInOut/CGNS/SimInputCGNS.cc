@@ -17,13 +17,10 @@
 #include <string>
 #include <unordered_set>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
-namespace fs=boost::filesystem;
+namespace fs=std::filesystem;
 #include <boost/algorithm/string/predicate.hpp>
 namespace algo=boost::algorithm;
 
@@ -124,7 +121,7 @@ namespace CoupledField {
     std::string baseName;
     try {
       // Get the directory part of the path
-      fs::path absPath = fs::system_complete(fileName_);
+      fs::path absPath = fs::absolute(fileName_);
       fs::path dirPath = absPath.parent_path();
 
       // Get the filename path of the path and turn it into a regex

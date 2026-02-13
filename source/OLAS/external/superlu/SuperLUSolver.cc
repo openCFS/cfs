@@ -4,9 +4,8 @@
 
 #include <fstream>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
-namespace fs = boost::filesystem;
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "MatVec/BaseMatrix.hh"
 #include "MatVec/StdMatrix.hh"

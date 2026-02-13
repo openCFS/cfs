@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include <boost/filesystem/fstream.hpp>
+#include <fstream>
 
 #include "General/Environment.hh"
 #include "DataInOut/SimInput.hh"
@@ -134,7 +134,7 @@ namespace CFSTool
     //! volume integration points. These points can then be read into a CFD code
     //! for evaluation of the mean velocity. The file can also be read into
     //! ParaView for visualization.
-    boost::filesystem::ofstream intPointsFile_;
+    std::ofstream intPointsFile_;
 
     //! Shall we write the integration point file?
     bool writeIntPointsFile_;

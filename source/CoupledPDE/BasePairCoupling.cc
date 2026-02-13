@@ -16,7 +16,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 namespace CoupledField {
 
 
@@ -396,7 +396,7 @@ namespace CoupledField {
         }
 
 
-        if(!boost::filesystem::exists(inFileName)){
+        if(!std::filesystem::exists(inFileName)){
           EXCEPTION("Read coordinate file for sensor array: Could not find coordinate file \"" + inFileName + "\" to read sensor positions!");
           continue;
         }

@@ -17,7 +17,7 @@
 #include <string>
 #include <utility>
 #include <cstdlib>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 using namespace std;
 using namespace boost;
@@ -734,7 +734,7 @@ string ParamNode::GetAsFilePath(const string& name, ActionType action)
         return path;  // fallback: return unchanged if HOME/USERPROFILE not set
 
   // Construct expanded path
-  boost::filesystem::path expanded(home);
+  std::filesystem::path expanded(home);
   expanded /= path.substr(2); // skip the "~/" or "~\" 
   return expanded.string();
 }
