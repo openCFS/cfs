@@ -27,8 +27,9 @@
 #if not defined(WIN32) 
 #  include <unistd.h>
 #endif
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <def_use_petsc.hh>
+#include <chrono>
+#include <ctime>
 
 #ifdef USE_PETSC
 #include "petsc.h"
@@ -50,9 +51,6 @@
 
 using namespace CoupledField;
 using namespace std;
-using namespace boost::posix_time;
-using namespace boost::gregorian;
-
 
 // Create global info node
 PtrParamNode infoNode;
@@ -171,12 +169,10 @@ CFS::CFS(int argc, const char **argv) :
   Exception::SetCallbackWarn(&PrintWarning);
   
   // Print information about program start time and host
-  using namespace boost::posix_time;
-  using namespace boost::gregorian;
 
   // our calculation environment
   PtrParamNode env = infoNode->Get(ParamNode::HEADER)->Get("environment");
-  start_time_ = to_simple_string( second_clock::local_time() );
+  start_time_ = Timer::TimeStamp(); // 11-Feb-26 01:49:59
   env->Get("started")->SetValue(start_time_);
   
   hostname_ = boost::asio::ip::host_name();
@@ -261,9 +257,9 @@ int CFS::Run()
     timer->Stop();
 
     cout << endl;
-    cout << ">> Total wall-clock time: '" << Timer::GetTimeString(timer->GetWallTime())
-                 << "' cpu time: '" << Timer::GetTimeString(timer->GetCPUTime())
-                 << "' at " << to_simple_string(second_clock::local_time()) << endl << endl;
+    cout << ">> Total wall-clock time: '" << Timer::Duration(timer->GetWallTime())
+                 << "' cpu time: '" << Timer::Duration(timer->GetCPUTime())
+                 << "' at " << Timer::TimeStamp() << endl << endl;
 
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
@@ -353,7 +349,7 @@ void CFS::SolveProblem()
  domain->SolveProblem();
  
  if(!progOpts->IsQuiet())
-   cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
+   cout << "\n++ Finished solving the problem at " << Timer::TimeStamp() << endl;
 }
 
 void CFS::ReadXMLFile()

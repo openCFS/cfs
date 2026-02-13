@@ -14,13 +14,8 @@
 #include <set>
 #include <string>
 #include <utility>
-
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/posix_time_io.hpp>
-
-namespace dt = boost::posix_time;
-
 #include "SimOutputUnv.hh"
+#include "Utils/Timer.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "def_cfs_stats.hh"
@@ -134,9 +129,8 @@ namespace CoupledField {
     (*output) << "openCFS (TU Wien, TUGRAZ and FAU)" << std::endl;
 
     std::stringstream sstr;
-    dt::time_facet *facet = new dt::time_facet(" %d-%b-%y  %H:%M:%S");
-    sstr.imbue(std::locale(sstr.getloc(), facet));
-    sstr << dt::second_clock::local_time();
+    sstr << Timer::TimeStamp();
+    
     (*output) << sstr.str();
     (*output) << std::setw(10) << 1 
               << std::setw(10) << 0 

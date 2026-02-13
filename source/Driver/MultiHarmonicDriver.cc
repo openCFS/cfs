@@ -34,9 +34,6 @@
 
 using std::cout;
 using std::endl;
-namespace pt = boost::posix_time;
-
-
 
 namespace CoupledField
 {

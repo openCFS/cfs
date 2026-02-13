@@ -30,7 +30,6 @@
 #include "Utils/Point.hh"
 #include "Utils/tools.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/math/special_functions/sign.hpp"
 #include "boost/lexical_cast.hpp"
 
@@ -39,9 +38,6 @@ using namespace CoupledField;
 
 using std::string;
 using boost::math::sign;
-using boost::posix_time::ptime;
-using boost::posix_time::second_clock;
-using boost::posix_time::microsec_clock;
 
 DEFINE_LOG(desel, "designElement")
 

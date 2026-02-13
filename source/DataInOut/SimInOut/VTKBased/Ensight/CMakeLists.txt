@@ -7,15 +7,13 @@ ADD_LIBRARY(siminensight STATIC ${SIMINENSIGHT_SRCS})
 
 SET(TARGET_LL
   ${TARGET_LL}
-  ${VTK_LIBRARY}
-)
+  ${VTK_LIBRARY} )
 
 SET(TARGET_LL
   ${TARGET_LL}
   ${BOOST_LIBRARY}
-)
+  ${ZLIB_LIBRARY} )
 
 TARGET_LINK_LIBRARIES(siminensight
   ${TARGET_LL}
-  mesh
-)
+  mesh )

@@ -13,7 +13,6 @@
 #include <string>
 #include <cmath>
 #include <boost/lexical_cast.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 // signal handling for catching Ctr-C
 #include <signal.h>

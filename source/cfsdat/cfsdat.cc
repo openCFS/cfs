@@ -43,8 +43,8 @@
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/Timer.hh"
-#include <boost/date_time/posix_time/posix_time.hpp>
-//#include <boost/date_time/posix_time/time_formatters.hpp>
+#include <sstream>
+
 #include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
@@ -105,12 +105,7 @@ int main(int argc, const char** argv)
   std::string start_time;
 
   // Print information about program start time and host
-  using namespace boost::posix_time;
-  using namespace boost::gregorian;
-
-  start_time = to_simple_string( second_clock::local_time() );
-
-  std::cout << "Simulation run started at " << start_time << std::endl;
+  std::cout << "Simulation run started at " << Timer::TimeStamp() << std::endl;
   if(!hostname.empty()) std::cout<< "on " << hostname << std::endl;
 
 

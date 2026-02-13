@@ -3,7 +3,6 @@
 #include <string>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 
 // signal handling for catching Ctr-C
@@ -28,7 +27,6 @@
 
 using std::cout;
 using std::endl;
-namespace pt = boost::posix_time;
 
 
 // Define pointer to transient driver instance, needed for the signal handler
@@ -382,11 +380,11 @@ namespace CoupledField
       Double totalTime = timer_->GetWallTime();
       timePerStep_ = totalTime / (Double) actFreqStep_;
       Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
-      pt::ptime now = pt::second_clock::local_time();
-      now += pt::seconds(static_cast<long int>(remainingTime));
+      auto time = std::chrono::system_clock::now();
+      time += std::chrono::seconds(static_cast<long int>(remainingTime));
 
       PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
-      envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+      envNode->Get("estimatedEnd")->SetValue(Timer::TimeStamp(time));
       envNode->Get("remainingTime")->SetValue(remainingTime);
       envNode->Get("timePerStep")->SetValue(timePerStep_);
     } // loop: frequencies

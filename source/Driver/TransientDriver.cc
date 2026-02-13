@@ -8,7 +8,6 @@
 // signal handling for catching Ctrl-C
 #include <signal.h>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Utils/mathParser/mathParser.hh"
 #include "TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -24,7 +23,6 @@
 
 using std::cout;
 using std::endl;
-namespace pt = boost::posix_time;
 
 namespace CoupledField {
 
@@ -276,12 +274,10 @@ namespace CoupledField {
         Double totalTime = timer_->GetWallTime();
         timePerStep_ = totalTime / (Double) count;
         Double remainingTime = (endStep_ - actTimeStep_) * timePerStep_;
-        pt::ptime now = pt::second_clock::local_time();
-        now += pt::seconds(static_cast<long int>(remainingTime));
-        
-        PtrParamNode envNode = info_->GetRoot()->
-            Get(ParamNode::HEADER)->Get("environment");
-        envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
+        auto time = std::chrono::system_clock::now();
+        time += std::chrono::seconds(static_cast<long int>(remainingTime));
+        PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
+        envNode->Get("estimatedEnd")->SetValue(Timer::TimeStamp(time));
         envNode->Get("remainingTime")->SetValue(remainingTime);
         envNode->Get("timePerStep")->SetValue(timePerStep_);
       }

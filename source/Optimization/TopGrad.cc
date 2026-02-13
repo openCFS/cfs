@@ -28,7 +28,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <chrono>
 
 namespace CoupledField
 {
@@ -41,9 +41,6 @@ using std::cout;
 using std::vector;
 using std::string;
 
-using boost::posix_time::ptime;
-using boost::posix_time::second_clock;
-using boost::posix_time::microsec_clock;
 
 TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   max_volume_to_remove_(0.5),
@@ -172,7 +169,7 @@ void TopGrad::SolveProblemCommon(const unsigned int iter)
 void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> lsptr)
 {
   assert(lsptr != NULL);
-  ptime before_time = second_clock::local_time();
+  auto before_time = std::chrono::steady_clock::now();
   
   SolveProblemCommon(iter);
 
@@ -209,9 +206,9 @@ void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> 
   }
   
   cout << "removed " << c << " elements (in " << 
-    Timer::GetTimeString(second_clock::local_time() - before_time) << ") - ";
+    Timer::Duration(std::chrono::steady_clock::now() - before_time) << ") - ";
   // reset counter
-  before_time = microsec_clock::local_time();
+  before_time = std::chrono::steady_clock::now();
   
   // now, recompute the signed distance function
   lsptr->BuildSignedDistanceFunction();
@@ -219,13 +216,13 @@ void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> 
   lsptr->UpdateDesignForAllLevelSetElements();
   // clock.GetTime(wtime, ctime);
 
-  cout << " (in " << Timer::GetTimeString(microsec_clock::local_time() - before_time) << ")" << endl;
+  cout << " (in " << Timer::Duration(std::chrono::steady_clock::now() - before_time) << ")" << endl;
   return;
 }
 
 void TopGrad::SolveProblem(const unsigned int iter)
 {  
-  ptime before_time = microsec_clock::local_time();
+  auto before_time = std::chrono::steady_clock::now();
   
   SolveProblemCommon(iter);
 
@@ -247,7 +244,7 @@ void TopGrad::SolveProblem(const unsigned int iter)
     topGrads.pop_back();
   }
   
-  cout << Timer::GetTimeString(microsec_clock::local_time() - before_time) << "; removed " << c << " elements - ";
+  cout << Timer::Duration(std::chrono::steady_clock::now() - before_time) << "; removed " << c << " elements - ";
   // reduce number of removed elements in each iteration
   //elems_removed_per_iteration_ -= 40;
 }

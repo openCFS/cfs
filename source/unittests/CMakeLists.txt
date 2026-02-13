@@ -23,8 +23,6 @@ set(TARGET_LL
   cfsgeneral
   utils
   datainout)
-#  paramh
-#  utils)
 
 if(USE_EMBEDDED_PYTHON)
   list(APPEND TARGET_LL ${Python_LIBRARIES})
@@ -34,18 +32,17 @@ endif()
 # Main openCFS Dat executable target.
 add_executable(cfstest ${UNIT_TESTS_SRC})
 
-
 IF(MKL_BLAS_LIB)
   LIST(APPEND TARGET_LL ${MKL_BLAS_LIB})
 ENDIF(MKL_BLAS_LIB)
-
 
 if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   assert_set(LAPACK_LIBRARY)
   list(APPEND TARGET_LL ${LAPACK_LIBRARY};${BLAS_LIBRARY})
 endif()
 
-TARGET_LINK_LIBRARIES(cfstest ${TARGET_LL})
+cmake_print_variables(TARGET_LL)
+target_link_libraries(cfstest ${TARGET_LL})
 
 # this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)
 # new apple system have no more librt dll, probably same for Windows

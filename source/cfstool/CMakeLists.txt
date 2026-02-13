@@ -66,7 +66,8 @@ LIST(APPEND TARGET_LL
   optimization
   logging
   simouttext
-  ${BOOST_LIBRARY} )
+  ${BOOST_LIBRARY}
+  ${ZLIB_LIBRARY} )
 
 IF(NOT WIN32)
   LIST(APPEND TARGET_LL -lpthread ${CFS_FORTRAN_DYNRT_LIBS} )

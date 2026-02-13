@@ -3,8 +3,8 @@
 
 #include <ctime>
 #include <string>
-#include <boost/chrono.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <chrono>
+#include <cassert>
 
 namespace CoupledField
 {
@@ -80,22 +80,44 @@ class Timer
    *        This is the name of the param element in in->Get("timer")->SetValue(timer) */
   std::string ToXMLFormat(const std::string& name) const;
   
-  /** static function; converts a boost time interval
-   *  to a formatted string suitable for command line output 
+  /** Prints the time in human readable format to specified stream */
+  void PrintTime(std::ostream& stream);
+
+  /** convert a std::chrono::steady_clock time interval
+   *  to a formatted string suitable for command line output. 
+   *  With hour, minutes and second handling. 
+   *  On macOS with ARM64 the shortest time period is 4.2e-8 seconds. 
    *  
-   *  Usage:
-   *  1. ptime start_time = microsec_clock::local_time();
-   *    or
-   *     ptime start_time = second_clock::local_time(); 
-   *  2. cout << GetTimeString(second (or microsec)_clock::local_time() - start_time);*/
-  static const std::string GetTimeString(const boost::posix_time::time_duration period);
+   *  Usage if no Timer object is used:
+   *  1. auto start_time = std::chrono::steady_clock::now();
+   *  2. cout << Duration(std::chrono::steady_clock::now() - start_time);*/
+  static const std::string Duration(double seconds);
+  static const std::string Duration(const std::chrono::milliseconds period);
+  static const std::string Duration(const std::chrono::nanoseconds period);
 
-  static const std::string GetTimeString(double seconds);
+  /** today in format 11-Feb-26 */
+  static const std::string Today() { 
+    return Timer::TimeStamp("%d-%b-%y"); 
+  }
+  
+  /** easy human readable time stamp in format 11-Feb-26 01:30:39 */
+  static const std::string TimeStamp() {
+    return Timer::TimeStamp("%d-%b-%y %H:%M:%S"); 
+  }
 
-  /** Prints the time in human readable format to specified stream
-   *  @param (in) stream output stream
-   */
-  void PrintTime(std::ostream & stream);
+  /** easy human readable time stamp in format 2026-Feb-11 01:30:39 */
+  static const std::string TimeStampYYYYmmDD() {
+    return Timer::TimeStamp("%Y-%b-%d %H:%M:%S"); 
+  }
+
+  /** generic format for now(). 
+   * E.g. "%Y-%b-%d %H:%M:%S" for "YYYY-mmm-DD HH:MM:SS"
+   *      "%d-%b-%y %H:%M:%S" for "11-Feb-26 02:03:39"*/
+  static const std::string TimeStamp(const std::string& format);
+
+  /** generic format for time_point */
+  static const std::string TimeStamp(std::chrono::system_clock::time_point, const std::string& format = "%Y-%b-%d %H:%M:%S");
+
 
  private:
   /** The number of Start() calls since construction or the last ResetStart()+1 */
@@ -115,7 +137,7 @@ class Timer
   clock_t sum_clock = 0;
 
   /** wall time: boost time, as time_t is only in seconds */
-  boost::posix_time::ptime start_time_;
+  std::chrono::time_point<std::chrono::steady_clock> start_time_;
   double sum_time_ = 0;
 
   std::string label_;
