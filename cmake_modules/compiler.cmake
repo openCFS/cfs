@@ -160,6 +160,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -std=c++17 -fp-model=precise")
     set(CFSDEPS_C_FLAGS " -fp-model=precise")
     set(CFSDEPS_CXX_FLAGS " -fp-model=precise")
+    # for std::filesystem
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lstdc++fs")
   endif()
   
   set(CFS_OPT_FLAGS "-O3")
