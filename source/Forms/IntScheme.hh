@@ -9,6 +9,7 @@
 #define FILE_INTEGRATION_SCHEME_HH_
 
 #include <boost/array.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <unordered_map>
 #include <functional> // for std::hash
 

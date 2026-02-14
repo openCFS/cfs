@@ -41,7 +41,6 @@ if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   list(APPEND TARGET_LL ${LAPACK_LIBRARY};${BLAS_LIBRARY})
 endif()
 
-cmake_print_variables(TARGET_LL)
 target_link_libraries(cfstest ${TARGET_LL})
 
 # this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)

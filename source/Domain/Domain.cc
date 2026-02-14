@@ -292,7 +292,7 @@ void Domain::ReadGrid(const std::string & gridId,
       // p.filename() does not compile for me!!
       // What should work:
       // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-      std::cout << p.leaf() << " " << std::flush;
+      std::cout << p.filename() << " " << std::flush;
     }
 
     actInFile->ReadMesh(actGrid);

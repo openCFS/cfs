@@ -201,7 +201,8 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   // PyRun_SimpleString("import sys;print('python sys.path', sys.path, flush=True)");
 
   // now load the module which is the python file without extension
-  fs::path name = fs::change_extension(givenname.filename(), "");
+  fs::path name = givenname.filename();
+  name.replace_extension("");
   LOG_DBG(pykernel) << "LPM: name=" << name.string();
 
   ls.module = PyImport_ImportModule(name.string().c_str());

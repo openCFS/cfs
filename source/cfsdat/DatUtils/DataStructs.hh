@@ -43,13 +43,7 @@
 
 using namespace boost::placeholders;
 
-namespace std {
-  template<> struct hash<boost::uuids::uuid> {
-    std::size_t operator()(const boost::uuids::uuid& uid) const {
-      return boost::hash<boost::uuids::uuid>()(uid);
-    }
-  };
-}
+// std::hash<boost::uuids::uuid> is now provided by Boost 1.90+ in boost/uuid/uuid.hpp
 
 namespace CFSDat{
 

@@ -29,7 +29,7 @@ endif()
 
 # Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CFS_CXX_FLAGS "-std=c++17 -ftemplate-depth-100 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  set(CFS_CXX_FLAGS "-std=c++17 -ftemplate-depth-256 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
 
   if(USE_CGAL)
     # CGAL seems to require -frounding-math 
@@ -108,13 +108,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-address -Wno-error=address -Wno-unused-function ")
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-truncation ")
-  endif()
+  # boost 1.90 needs -Wno-deprecated-declarations
+  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-truncation -Wno-deprecated-declarations")
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
-    # -Wno-deprecated-declarations: boost 1.78 hash.hpp: struct std::unary_function’ is deprecated 
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-declarations -Wno-stringop-overflow -Wno-array-bounds")
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS}  -Wno-stringop-overflow -Wno-array-bounds")
   endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
@@ -129,9 +127,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-potentially-evaluated-expression")
     # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-nested-anon-types")
-    # from boost 1.78 warning: 'sprintf' is deprecated: 
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-declarations")
-    # from boost 1.78 with C++17 'warning: 'BOOST_NO_AUTO_PTR' macro redefined'
+    # from boost 1.90 'warning: 'BOOST_NO_AUTO_PTR' macro redefined'
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-macro-redefined") 
     
     # not all gcc options are compatible with clang (mac)
@@ -139,7 +135,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins") # at least AppleClang
-      set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion")
     endif()
 
     # clang >= 18 is missing some standard c++ functions without that flag
@@ -175,7 +170,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
   set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2023)
     # to allow typeid(*fct) we need -Wno-potentially-evaluated-expression
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
     if(WIN32)
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-variable -Wno-unused-private-field -Wno-microsoft-unqualified-friend -Wno-macro-redefined")
     endif()

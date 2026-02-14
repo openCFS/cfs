@@ -1,2 +1,0 @@
-using zlib : @ZLIB_VER@ : <include>"@ZLIB_INCLUDE_DIR@" <search>"@CMAKE_BINARY_DIR@/lib" ;
-using @TOOLSET_NAME@ : cfs : "@CMAKE_CXX_COMPILER@" ;

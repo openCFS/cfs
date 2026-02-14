@@ -80,7 +80,7 @@ namespace CoupledField {
           std::rename(string(file + ".tmp").c_str(), file.c_str());
         }
         else
-          boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_option::overwrite_if_exists);
+          boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_options::overwrite_existing);
       }
     }
 
@@ -157,7 +157,7 @@ namespace CoupledField {
     // detailed run:
     //    the bloch dat file has the iteration number, but we also copy the last one to .bloch.dat
     if(domain->GetOptimization() && progOpts->DoDetailedInfo() && bloch_name_ != "")
-      boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_option::overwrite_if_exists);
+      boost::filesystem::copy_file(bloch_name_, progOpts->GetSimName() + ".bloch.dat", boost::filesystem::copy_options::overwrite_existing);
 
     bloch_name_ = progOpts->GetSimName(); // on change check destructor!
     if(domain->GetOptimization() && progOpts->DoDetailedInfo())

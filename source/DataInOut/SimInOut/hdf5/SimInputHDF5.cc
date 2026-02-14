@@ -1,6 +1,5 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string.hpp>
@@ -138,13 +137,13 @@ namespace CoupledField {
     std::string baseName;
     try
     {
-      fs::path fn = fs::system_complete(fileName_);
-      fn.normalize();
-      baseDir_ = fn.branch_path().string();
-      baseName = (fs::change_extension( fn.leaf(), "" )).string();
-      if(fs::extension(fn) == "")
+      fs::path fn = fs::absolute(fileName_);
+      fn = fn.lexically_normal();
+      baseDir_ = fn.parent_path().string();
+      baseName = fn.filename().replace_extension("").string();
+      if(fn.extension() == "")
       {
-        fn = fs::change_extension( fn, ".h5" );
+        fn.replace_extension(".h5");
       }
       fileName_ = fn.string();
     } catch (fs::filesystem_error& ex)

@@ -21,7 +21,7 @@ DEFINE_LOG(SOS, "streaming")
 SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode, PtrParamNode infoNode, bool isRestart) :
   SimOutput("", outputNode, infoNode, isRestart),
   io_service_thread(SimOutputStreaming::io_service_runner_wrapper, this), // initialize the sending thread
-  io_service_work(boost::make_shared<boost::asio::io_service::work>(io_service))
+  io_context_work(boost::asio::make_work_guard(io_context))
 {
   formatName_ = "streaming";
   capabilities_.insert(MESH_RESULTS);
@@ -52,9 +52,9 @@ SimOutputStreaming::~SimOutputStreaming()
   // set force to true
   TransmitData(true);
 
-  io_service_work.reset(); // tell the dummy work to stop
+  io_context_work.reset(); // tell the dummy work to stop
 
-  io_service.run(); // joining the C++ thread is buggy for some reason
+  io_context.run(); // joining the C++ thread is buggy for some reason
   // this will do it as well
 }
 
@@ -123,7 +123,7 @@ void SimOutputStreaming::TransmitData(bool force) {
       // this client will destroy itself upon finishing
       // is the requests fails, it will lock up and skip sending data
       // (except for the final data which will still be tried)
-      current_client = new Client(io_service, this);
+      current_client = new Client(io_context, this);
       current_client->Send(host_, port_, path_);
     }
   } else {
@@ -238,18 +238,18 @@ void SimOutputStreaming::Transmit(std::ostream& out)
 }
 
 void SimOutputStreaming::io_service_runner(void) {
-  LOG_DBG(SOS) << "++ starting io_service thread ..." << std::endl;
-  io_service.run();
-  LOG_DBG(SOS) << "++ io_service thread ended" << std::endl;
+  LOG_DBG(SOS) << "++ starting io_context thread ..." << std::endl;
+  io_context.run();
+  LOG_DBG(SOS) << "++ io_context thread ended" << std::endl;
 }
 
 void SimOutputStreaming::io_service_runner_wrapper(SimOutputStreaming* this_) {
   this_->io_service_runner();
 }
 
-SimOutputStreaming::Client::Client(boost::asio::io_service& io_service, SimOutputStreaming* base)
-: resolver_(io_service),
-  socket_(io_service) {
+SimOutputStreaming::Client::Client(boost::asio::io_context& io_context, SimOutputStreaming* base)
+: resolver_(io_context),
+  socket_(io_context) {
   base_ = base;}
 
 void SimOutputStreaming::Client::Send(const std::string& server, const std::string& port, const std::string& path)
@@ -275,24 +275,23 @@ void SimOutputStreaming::Client::Send(const std::string& server, const std::stri
 
     // Start an asynchronous resolve to translate the server and service names
     // into a list of endpoints.
-    tcp::resolver::query query(server, port); // we use http anyway
-    resolver_.async_resolve(query,
+    resolver_.async_resolve(server, port,
         boost::bind(&Client::handle_resolve, this,
           boost::asio::placeholders::error,
-          boost::asio::placeholders::iterator));
+          boost::asio::placeholders::results));
 }
 
 void SimOutputStreaming::Client::handle_resolve(const boost::system::error_code& err,
-      tcp::resolver::iterator endpoint_iterator)
+      tcp::resolver::results_type endpoints)
 {
     if (!err)
     {
-      // Attempt a connection to the first endpoint in the list. Each endpoint
+      // Attempt a connection to the endpoints. Each endpoint
       // will be tried until we successfully establish a connection.
-      tcp::endpoint endpoint = *endpoint_iterator;
-      socket_.async_connect(endpoint,
+      boost::asio::async_connect(socket_, endpoints,
           boost::bind(&Client::handle_connect, this,
-            boost::asio::placeholders::error, ++endpoint_iterator));
+            boost::asio::placeholders::error,
+            boost::asio::placeholders::endpoint));
     }
     else
     {
@@ -301,7 +300,7 @@ void SimOutputStreaming::Client::handle_resolve(const boost::system::error_code&
 }
 
 void SimOutputStreaming::Client::handle_connect(const boost::system::error_code& err,
-      tcp::resolver::iterator endpoint_iterator)
+      const tcp::endpoint& endpoint)
 {
     if (!err)
     {
@@ -309,15 +308,7 @@ void SimOutputStreaming::Client::handle_connect(const boost::system::error_code&
       boost::asio::async_write(socket_, request_,
           boost::bind(&Client::handle_write_request, this,
             boost::asio::placeholders::error));
-    }
-    else if (endpoint_iterator != tcp::resolver::iterator())
-    {
-      // The connection failed. Try the next endpoint in the list.
-      socket_.close();
-      tcp::endpoint endpoint = *endpoint_iterator;
-      socket_.async_connect(endpoint,
-          boost::bind(&Client::handle_connect, this,
-            boost::asio::placeholders::error, ++endpoint_iterator));
+      LOG_DBG(SOS) << "Connected to " << endpoint << std::endl;
     }
     else
     {

@@ -5,47 +5,45 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "boost")
-# note that any newer version than 1.78.0 causes > 30 wrong test results, e.g. ExpressionHeatSource
-# probably in conjunction with muparser 2.2.6. There is a branch upgrade_boost which contains changes to compille 1.84
-set(PACKAGE_VER "1.78.0")  
-set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
-set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+set(PACKAGE_VER "1.90.0")  
+set(PACKAGE_FILE "boost_1_90_0.tar.bz2") # does not reflect PACKAGE_VER style
+set(PACKAGE_MD5 "c67feac0b00506632881675c1b39d019") # 1.90.0
 
-set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
-set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
+set(PACKAGE_MIRRORS "https://archives.boost.io/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
-# the following generic code could set a specific compiler, but the question is, how important it is to have the
-# few libs compiled with the exact compiler? Most of boost is header only and most important is that openCFS compiles :)
-# PATCH_COMMAND echo "using <clang/gcc/...> : ${CFS_CXX_COMPILER_VER} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam
-# in case change cfs to version in zlib-toolset-config.jam.in - bjam is unfortuantely a real pain and horrible compared to cmake!
-# set(TOOLSET --user-config=user-config.jam toolset=<clang/gcc/...>)
+if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "IntelLLV")
+  # see TOOLSET setting below
+  force_c_cxx_compiler("cl") # will set FORCE_C_CXX and do NOT set the default compiler options!
+  assert_set(FORCE_C_CXX)
+else()
+  use_c_and_fortran(ON OFF)
+endif() 
+
+# annoying bjam ignores CXX, it is a pain in the ass :(
+# if you have issues with a specific compiler, usually any compiler works to build the lib - most ist heady only anyway
 # see https://www.intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") # matches also AppleClang
-  set(TOOLSET toolset=clang)
-  # macOS Sonoma 14.4 fails to build without flags 
-  set(B2_ARGS "cxxflags=-std=c++14 -Wno-enum-constexpr-conversion")
+  set(TOOLSET clang)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  set(TOOLSET toolset=gcc)
-  # for APPLE and gcc we would need set(TOOLSET_NAME gcc) but the have the version in zlib-toolset-config.jam.in   
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Linux and Windows
-  # https://www.boost.org/doc/libs/1_81_0/tools/build/doc/html/index.html
-  set(TOOLSET_NAME clang) # this triggers to use zlib-toolset-config.jam.in instead of zlib-config.jam.in
-  set(TOOLSET toolset=clang-cfs) # check zlib-toolset-config.jam.in, the cfs is hard coded there
-  set(B2_ARGS "cxxflags=-Wno-enum-constexpr-conversion") # disable compiler error on warning
+  set(TOOLSET gcc)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND UNIX) # Linux as there is no oneAPI for APPLE any more
+  set(TOOLSET intel-linux) 
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND WIN32) # Linux and Windows
+  # works for intel-win32 in theory but not necessarily in reality (error: Supported msvc versions not known for intel win32)
+  # we use force_c_cxx_compiler() for proper .zip naming  
+  set(TOOLSET msvc) 
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel") # no more IntelLLVM but Linux and Windows
-  set(TOOLSET toolset=intel) # seems to first check for icpx (oneAPI LLVM based), then icpcp (classic)
+  set(TOOLSET intel) # seems to first check for icpx (oneAPI LLVM based), then icpcp (classic)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(TOOLSET toolset=msvc)
+  set(TOOLSET msvc)
 else()
-  message(STATUS "no specific boost toolset for ${CMAKE_CXX_COMPILER_ID} implemented, could work anyway ...")
+  message(FATAL "no specific boost toolset for ${CMAKE_CXX_COMPILER_ID} implemented")
 endif()
-
- # we'll disable fortran for lis by not using saamg which is fast, but very sensitive to system condition
-use_c_and_fortran(ON OFF)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
@@ -61,14 +59,10 @@ set(BOOST_THREAD_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_thread${CMAKE_ST
 set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-# create user-config.jam which is either zlib-config.jam.in or zlib-toolset-config.jam.in
+# create user-config.jam from zlib-config.jam.in to make sure boost uses our zlib and does not search the system
 assert_set(ZLIB_VER)
 assert_set(DEPS_PREFIX)
-if(TOOLSET_NAME)
-  configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/zlib-toolset-config.jam.in" "${DEPS_PREFIX}/user-config.jam" @ONLY)
-else()
-  configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/zlib-config.jam.in" "${DEPS_PREFIX}/user-config.jam" @ONLY)
-endif()
+configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/zlib-config.jam.in" "${DEPS_PREFIX}/user-config.jam" @ONLY)
 
 if(UNIX)
   set(BOOTSTRAP ./bootstrap.sh)
@@ -94,13 +88,8 @@ assert_unset(POSTINSTALL_SCRIPT)
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
   create_external_unpack_precompiled()
-
 # if not, build newly and possibly pack the stuff
 else()
-  # even with the list in boostrap a lot of unnecessary stuff would be build
-  # 1.81.0 set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --no-cmake-config) 
-  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave  --no-cmake-config)
-
   if(WIN32)
     # compile cfs with BOOST_ALL_NO_LIB  and make sure _WIN32_WINNT matches cfs 
     set(DEFINE "define=_WIN32_WINNT=0x0A00") # required as we build as system. https://github.com/boostorg/log/issues/172
@@ -108,7 +97,7 @@ else()
     set(DEFINE "define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX") 
   endif()    
 
-  # Windows (cl and icx) needs matching deps to prevent linker errors
+  # Windows (cl and icx) needs matching deps to prevent linker errors but debugging on Windows sucks anyway
   if(DEBUG AND WIN32)
     set(_BUILD "debug")
     set(_DS "on")
@@ -117,8 +106,10 @@ else()
     set(_DS "off")
   endif()
 
-  # some patches are required
-  generate_patches_script()
+  assert_unset(PATCHES_SCRIPT)
+
+  # more and more of boost is header only. Add here the libs which are not required for cfs and some cfsdeps which also use boost
+  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --without-histogram --without-mysql --no-cmake-config) 
 
   # we need to build the package - here in cmake style
   ExternalProject_Add(${PACKAGE_NAME}
@@ -131,18 +122,18 @@ else()
     # in case the mirrors have different file names we always store to the same
     DOWNLOAD_NAME ${PACKAGE_FILE}
     DOWNLOAD_NO_PROGRESS ON 
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
+    PATCH_COMMAND ""
     COMMAND ${CMAKE_COMMAND} -E copy "${DEPS_PREFIX}/user-config.jam" "${DEPS_SOURCE}"
-    # we call bootstap without the system compiler. --with-libraries seems to have no effect (all be default)
-    CONFIGURE_COMMAND ${BOOTSTRAP} 
+    # build b2 with the system compiler. In the pipeline (only) intel-linux fails for missing pthread
+    CONFIGURE_COMMAND ${BOOTSTRAP}
     # on Windows calling b2 might result in security issues (access violation)
     # --threading=multi seems to work even with USE_OPENMP=OFF on all systems?!
-    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=${_BUILD} debug-symbols=${_DS} install
+    BUILD_COMMAND ./b2 cxxstd=17 --toolset=${TOOLSET} --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${DEFINE} link=static address-model=64 threading=multi runtime-link=shared variant=${_BUILD} debug-symbols=${_DS} install
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
     # Wrap build step in script to log output, since it's super long and clutters the pipeline
     # see https://cmake.org/cmake/help/v3.0/module/ExternalProject.html
-    LOG_BUILD 1 ) # see <build>/cfsdeps/boost/src/boost-stamp/boost-build-out.log
+    LOG_BUILD 1) # see <build>/cfsdeps/boost/src/boost-stamp/boost-build-out.log
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
@@ -157,13 +148,5 @@ endif()
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 
-# we depend on zlib
+# we depend on zlib, don't forget to have ZLIB_LIBRARY in LL_TARGET after BOOST_LIBRARY
 add_dependencies(boost zlib)
-
-# with old boost 1.78.0 we have issue with C++17 with the following workaround. Remove with more recent boost! 
-if(APPLE)
-  # https://stackoverflow.com/questions/77133361/no-template-named-unary-function-in-namespace-std-did-you-mean-unary-fun
-  add_compile_definitions(_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
-endif()
-# boost 1.78 by default still uses std::unary_function which is removed in C++17 
-add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE) 

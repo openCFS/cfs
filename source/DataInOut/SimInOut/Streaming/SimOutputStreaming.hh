@@ -76,16 +76,16 @@ namespace CoupledField
     class Client
     {
     public:
-      Client(boost::asio::io_service& io_service, SimOutputStreaming* base);
+      Client(boost::asio::io_context& io_context, SimOutputStreaming* base);
 
       void Send(const std::string& server, const std::string& port, const std::string& path);
 
     private:
       void handle_resolve(const boost::system::error_code& err,
-          tcp::resolver::iterator endpoint_iterator);
+          tcp::resolver::results_type endpoints);
 
       void handle_connect(const boost::system::error_code& err,
-          tcp::resolver::iterator endpoint_iterator);
+          const tcp::endpoint& endpoint);
 
       void handle_write_request(const boost::system::error_code& err);
 
@@ -104,9 +104,9 @@ namespace CoupledField
     };
 
     /** this service will be used by the client **/
-    boost::asio::io_service io_service;
+    boost::asio::io_context io_context;
 
-    /** this is the threaded function that calls io_service.run() to thread the file sending process **/
+    /** this is the threaded function that calls io_context.run() to thread the file sending process **/
     void io_service_runner(void);
 
     /** wrapper that calls the function on the member **/
@@ -115,8 +115,8 @@ namespace CoupledField
     /** this is the according threading object **/
     std::thread io_service_thread;
 
-    /** this pseudowork hinders the io_service.run() to exit immediately after sending first data **/
-    boost::shared_ptr<boost::asio::io_service::work> io_service_work;
+    /** this pseudowork hinders the io_context.run() to exit immediately after sending first data **/
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> io_context_work;
 
     /** the current sending client, used to determine whether stuff is being sent at the moment or not **/
     Client* current_client;
