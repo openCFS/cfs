@@ -332,7 +332,9 @@ namespace CoupledField {
        //std::cout << "abs='" << boost::filesystem::absolute( simPath.parent_path()).string() << "'\n";
 
        // return path to simulation
-       return fs::absolute( simPath.parent_path());
+       // Make absolute first to handle relative paths correctly, then get parent
+       fs::path parentPath = fs::absolute(simPath).parent_path();
+       return parentPath.empty() ? fs::current_path() : parentPath;
      } else {
        return fs::current_path().string();
      }
