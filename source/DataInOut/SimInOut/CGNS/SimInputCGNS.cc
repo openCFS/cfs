@@ -121,7 +121,7 @@ namespace CoupledField {
     std::string baseName;
     try {
       // Get the directory part of the path
-      fs::path absPath = fs::absolute(fileName_);
+      fs::path absPath = fileName_.empty() ? fs::current_path() : fs::absolute(fileName_);
       fs::path dirPath = absPath.parent_path();
 
       // Get the filename path of the path and turn it into a regex

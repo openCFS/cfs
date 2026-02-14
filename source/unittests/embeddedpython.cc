@@ -11,6 +11,11 @@
 #include <iostream>
 #include <def_use_embedded_python.hh>
 
+// Helper function to safely call std::filesystem::absolute() with empty path handling
+inline std::filesystem::path safe_absolute(const std::filesystem::path& p) {
+  return p.empty() ? std::filesystem::current_path() : std::filesystem::absolute(p);
+}
+
 #ifdef USE_EMBEDDED_PYTHON
   #include "MatVec/Vector.hh"
 #endif
@@ -168,7 +173,7 @@ BOOST_AUTO_TEST_CASE(embedded_python)
   std::filesystem::path test = std::filesystem::path("../source/unittests/embeddedpython.py");
   std::cout << "test filename=" << test.filename() << std::endl;
   std::cout << "test path=" << test.parent_path()  << std::endl; // is "" in case of test = "embeddedpython.py"
-  std::filesystem::path path = std::filesystem::absolute(test.parent_path()); // is pwd for ""
+  std::filesystem::path path = safe_absolute(test.parent_path()); // is pwd for ""
   std::cout << "test absolute path=" << path  << std::endl;
   std::cout << "test no extension=" << test.filename().replace_extension("") << std::endl;
 

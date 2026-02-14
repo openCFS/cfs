@@ -16,6 +16,12 @@
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
+// Helper function to safely call fs::absolute() with empty path handling
+// std::filesystem::absolute() throws on empty paths, unlike boost::filesystem
+inline fs::path safe_absolute(const fs::path& p) {
+  return p.empty() ? fs::current_path() : fs::absolute(p);
+}
+
 namespace CoupledField
 {
   class ProgramOptions;

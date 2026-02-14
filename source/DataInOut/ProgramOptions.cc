@@ -333,7 +333,7 @@ namespace CoupledField {
 
        // return path to simulation
        // Make absolute first to handle relative paths correctly, then get parent
-       fs::path parentPath = fs::absolute(simPath).parent_path();
+       fs::path parentPath = safe_absolute(simPath).parent_path();
        return parentPath.empty() ? fs::current_path() : parentPath;
      } else {
        return fs::current_path().string();
@@ -354,7 +354,7 @@ namespace CoupledField {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
       fs::path paramPath( varMap_["paramFile"].as<string>());
-      return fs::absolute( paramPath ); //
+      return safe_absolute( paramPath ); //
     }
   }
 
@@ -372,7 +372,7 @@ namespace CoupledField {
 #ifdef NDEBUG
       WARN("logging only works for DEBUG builds");
 #endif
-      return fs::absolute( filePath);
+      return safe_absolute( filePath);
     } else {
       return fs::path();
     }
@@ -426,7 +426,7 @@ namespace CoupledField {
     }
 
     // make a normalized schemaPath - works also in the non-existing case
-    fs::path schemaPath = fs::absolute(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
+    fs::path schemaPath = safe_absolute(schema); // if it did not start with root inserts current working directory, which is clearly nonsense but does not throw an error
     schemaPath = schemaPath.lexically_normal(); // resolves stuff like bla/../fasel. Is depreciated and should work without
 
     if(fs::exists(schemaPath))
@@ -453,7 +453,7 @@ namespace CoupledField {
 
     if( varMap_.count( "meshFile") != 0 ) {
       fs::path meshPath( varMap_["meshFile"].as<string>() );
-      return fs::absolute( meshPath );
+      return safe_absolute( meshPath );
     } else {
       return fs::path();
     }
@@ -585,7 +585,7 @@ namespace CoupledField {
 
     if(progOpts) 
     {      
-      fs::path fn = fs::absolute(progOpts->exe_);
+      fs::path fn = safe_absolute(progOpts->exe_);
       fn = fn.lexically_normal();
       WriteColoredString(out, trim_size, "executable", fn.string());
       WriteColoredString(out, trim_size, "xml schema", progOpts->GetSchemaPathStr());

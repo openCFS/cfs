@@ -135,7 +135,7 @@ namespace CoupledField {
     std::string baseName;
     try
     {
-      fs::path fn = fs::absolute(fileName_);
+      fs::path fn = fileName_.empty() ? fs::current_path() : fs::absolute(fileName_);
       fn = fn.lexically_normal();
       baseDir_ = fn.parent_path().string();
       baseName = fn.filename().replace_extension("").string();

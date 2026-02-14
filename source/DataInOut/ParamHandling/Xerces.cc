@@ -19,6 +19,11 @@
 using namespace xercesc;
 namespace fs = std::filesystem;
 
+// Helper function to safely call fs::absolute() with empty path handling
+inline fs::path safe_absolute(const fs::path& p) {
+  return p.empty() ? fs::current_path() : fs::absolute(p);
+}
+
 namespace CoupledField
 {
 
@@ -30,7 +35,7 @@ namespace CoupledField
 
     // create canonical path from native-representation of the
     // the schema path
-    fs::path schemaPath = fs::absolute( fs::path( schema ) );
+    fs::path schemaPath = safe_absolute( fs::path( schema ) );
 
     if (!schema.empty() && !fs::exists(schemaPath)) {
         EXCEPTION("schema file " << schema << " doesn't exist");
@@ -52,7 +57,7 @@ namespace CoupledField
   {
     // create canonical path from native-representation of the
     // file path
-    fs::path filePath = fs::absolute( fs::path( file ) );
+    fs::path filePath = safe_absolute( fs::path( file ) );
 
     if (!fs::exists(filePath)) {
       EXCEPTION("xml file " << file << " doesn't exist");
