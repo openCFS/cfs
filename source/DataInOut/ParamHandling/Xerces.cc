@@ -7,17 +7,20 @@
 #include <xercesc/util/TransService.hpp>
 #include <xercesc/validators/datatype/InvalidDatatypeValueException.hpp>
 
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
 
 #include "General/Exception.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
+
+DEFINE_LOG(xerces, "xerces")
 
 namespace CoupledField
 {
@@ -30,9 +33,12 @@ namespace CoupledField
 
     // create canonical path from native-representation of the
     // the schema path
-    fs::path schemaPath = fs::system_complete( fs::path( schema ) );
+    LOG_DBG(xerces) << "X: schema='" + schema + "' url='" + url + "'";
 
-    if (!schema.empty() && !fs::exists(schemaPath)) {
+    // an empty schema is allowed, it leads to a non-validating parser
+    if(!schema.empty()) {
+      fs::path schemaPath = fs::absolute(fs::path(schema));
+      if(!fs::exists(schemaPath)) 
         EXCEPTION("schema file " << schema << " doesn't exist");
     }
 
@@ -50,18 +56,18 @@ namespace CoupledField
 
   void Xerces::SetFile( const std::string& file ) 
   {
-    // create canonical path from native-representation of the
-    // file path
-    fs::path filePath = fs::system_complete( fs::path( file ) );
+    // create canonical path from native-representation of the file path
+    if(file.empty())
+      throw Exception("xml file name must not be empty");
+    fs::path filePath = fs::absolute(fs::path(file));
 
     if (!fs::exists(filePath)) {
-      EXCEPTION("xml file " << file << " doesn't exist");
+      throw Exception("xml file " + file + " doesn't exist");
     }
 
     this->file_  = file;
     delete buf_;
     buf_ = NULL;
-    
   }
   
   void Xerces::SetString( const std::string& text ) {

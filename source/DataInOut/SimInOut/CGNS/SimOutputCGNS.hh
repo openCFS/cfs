@@ -11,7 +11,7 @@
 
 #include <cgnslib.h>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 #if CGNS_VERSION < 3100
 # define cgsize_t int

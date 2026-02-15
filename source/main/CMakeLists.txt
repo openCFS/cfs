@@ -71,12 +71,17 @@ IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
 ENDIF()
 
 # Target link libraries for openCFS executable target.
-#message(STATUS "cfs TARGET_LL=${TARGET_LL}")
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
 if(MKL_LIBS AND CMAKE_VERSION VERSION_GREATER "3.24") # TODO: possibly remove this once legacy_mkl.cmake is removed
   message(STATUS "Setting link group")
   target_link_libraries(cfs "$<LINK_GROUP:RESCAN,${MKL_LIBS}>") # keept the group together
 endif()
+
+# IntelLLVM und RHEL8 chooses a too old lib for std::filesystem. CFS_LINKER_FLAGS does not work
+if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+  target_link_libraries(cfs stdc++fs)
+endif()
+
 SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
 # debug

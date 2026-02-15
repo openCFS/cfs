@@ -1,6 +1,6 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/replace.hpp>
 
 #include "Utils/PythonKernel.hh"
@@ -19,7 +19,7 @@ namespace CoupledField
 using std::string;
 using std::to_string;
 using std::pair;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 // the external definition of PythonKernel* python is in tools.cc as we don't compile and link this file w/o USE_EMBEDDED_PYTHON
 
@@ -152,7 +152,7 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   if(opt_path != "")
     givenname = opt_path == "cfs:share:python" ? share / file : fs::path(opt_path) / file;
   ls.full_file = givenname.string();
-  if(!boost::filesystem::exists(givenname))
+  if(!std::filesystem::exists(givenname))
     throw Exception("cannot find python file '" + givenname.string() + "' for python optimizer");
   LOG_DBG(pykernel) << "LPM: gn=" << givenname.string();
 

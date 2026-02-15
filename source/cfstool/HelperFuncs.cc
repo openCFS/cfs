@@ -10,8 +10,9 @@
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
+#include <fstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>

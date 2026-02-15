@@ -22,7 +22,7 @@
 #include <set>
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Domain/Domain.hh"
@@ -115,7 +115,7 @@ namespace CoupledField {
     UInt fileType = 0;
 
     std::ifstream in(fileName_.c_str(), std::ios::binary);
-    if ( !boost::filesystem::exists( fileName_ ))
+    if ( !std::filesystem::exists( fileName_ ))
     {
       EXCEPTION("Input file does not exist:\n" << fileName_ << std::endl);
     } else if(!in.good()) {

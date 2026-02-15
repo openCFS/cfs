@@ -53,7 +53,7 @@
 #include "PDE/BasePDE.hh"
 #include "Utils/tools.hh"
 #include "Utils/PythonKernel.hh"
-#include "boost/filesystem.hpp"
+#include <filesystem>
 #include "def_use_ipopt.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
@@ -85,7 +85,7 @@
 
 using namespace CoupledField;
 using namespace std;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 DEFINE_LOG(opt, "opt")
 

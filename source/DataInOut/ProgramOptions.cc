@@ -11,8 +11,7 @@
 
 #include <boost/bind/bind.hpp>
 #include <boost/predef/os.h>
-#include <boost/filesystem/exception.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/trim.hpp>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -62,7 +61,7 @@ namespace CoupledField {
   {
   }
 
-  boost::filesystem::path ProgramOptions::ObtainCFSRootFromSystem()
+  std::filesystem::path ProgramOptions::ObtainCFSRootFromSystem()
   {
     // obtaining the path of the current executable is a non-trivial and non-portable task
 
@@ -328,14 +327,13 @@ namespace CoupledField {
      if( varMap_.count( "simName") != 0 ) {
 
        // get complete path
-       //std::cout << "sN='" << varMap_["simName"].as<string>() << "'\n";
        fs::path simPath ( varMap_["simName"].as<string>());
-       //std::cout << "abs='" << boost::filesystem::absolute( simPath.parent_path()).string() << "'\n";
 
        // return path to simulation
-       return fs::absolute( simPath.parent_path());
-     } else {
-       return fs::initial_path().string();
+       fs::path parent = simPath.parent_path();
+       return parent.empty() ? fs::current_path() : fs::absolute(parent);
+    } else {
+       return fs::current_path().string();
      }
    }
 
@@ -371,7 +369,7 @@ namespace CoupledField {
 #ifdef NDEBUG
       WARN("logging only works for DEBUG builds");
 #endif
-      return fs::system_complete( filePath);
+      return fs::absolute( filePath);
     } else {
       return fs::path();
     }
@@ -452,7 +450,7 @@ namespace CoupledField {
 
     if( varMap_.count( "meshFile") != 0 ) {
       fs::path meshPath( varMap_["meshFile"].as<string>() );
-      return fs::system_complete( meshPath );
+      return fs::absolute( meshPath );
     } else {
       return fs::path();
     }

@@ -7,7 +7,8 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include <boost/filesystem/fstream.hpp>
+#include <fstream>
+#include <filesystem>
 
 #include <def_cfs_stats.hh>
 
@@ -1342,7 +1343,7 @@ namespace CoupledField {
     if( isRestart_)
       return;
     
-    fs::ifstream fin;
+    std::ifstream fin;
     std::ostringstream dumpStr;
     H5::Group extFiles;
     try
@@ -1386,7 +1387,7 @@ namespace CoupledField {
     if(isRestart_)
       return;
 
-    fs::ifstream fin;
+    std::ifstream fin;
     std::ostringstream dumpStr;
     H5::Group extFiles;
     meshResultsGroup_ = H5IO::OpenCreateGroup(dbGroup_, "InputFiles");

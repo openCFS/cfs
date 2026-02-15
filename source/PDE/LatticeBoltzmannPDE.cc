@@ -8,7 +8,7 @@
 #include <map>
 #include <string>
 #include <cmath>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
@@ -499,7 +499,7 @@ namespace CoupledField {
 
         ExportCFS2LBM(elements);
 
-        if(!boost::filesystem::exists(executable))
+        if(!std::filesystem::exists(executable))
           EXCEPTION("Could not find executable '" + executable + "', might be not in path");
 
         std::cout << "++ Calling external LBM solver .. \n" << std::endl;

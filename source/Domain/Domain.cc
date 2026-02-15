@@ -6,7 +6,7 @@
 #include <set>
 #include <map>
 #include <memory>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "def_use_openmp.hh"
 
@@ -286,12 +286,7 @@ void Domain::ReadGrid(const std::string & gridId,
     shared_ptr<SimInput> actInFile = inputs[iFile];
 
     if( isParentDomain_) { 
-      boost::filesystem::path p(actInFile->GetFileName());
-      // BOOST PROBLEM!!!
-      // if p.leaf() makes problem, p.filename() would maybe work.
-      // p.filename() does not compile for me!!
-      // What should work:
-      // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
+      std::filesystem::path p(actInFile->GetFileName());
       std::cout << p.filename() << " " << std::flush;
     }
 

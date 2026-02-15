@@ -6,7 +6,7 @@
 #define FILE_CFS_PROGRAM_OPTIONS_HH
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
 // Required for the CFS own data types
 #include "General/Environment.hh"
@@ -14,7 +14,7 @@
 #include "DataInOut/Dependencies.hh"
 
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace CoupledField
 {
@@ -40,7 +40,7 @@ namespace CoupledField
     /** static general purpose helper function which tries to obtain the root of the
      * cfs installation.
      * @return absolute file path to root of bin/share/lib or exception */
-    static boost::filesystem::path ObtainCFSRootFromSystem();
+    static std::filesystem::path ObtainCFSRootFromSystem();
 
     // =======================================================================
     // QUERY METHODS FOR PARAMETERS

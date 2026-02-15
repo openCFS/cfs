@@ -21,16 +21,14 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #define  BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <fstream>
 
 //CFS includes
 #include <def_cfs_stats.hh>

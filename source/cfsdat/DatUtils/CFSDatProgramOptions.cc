@@ -24,7 +24,7 @@
 namespace CFSDat{
 
 namespace po  = boost::program_options;
-namespace fs  = boost::filesystem;
+namespace fs  = std::filesystem;
 using namespace boost::placeholders;
 
 CFSDatProgramOptions::CFSDatProgramOptions( CF::Integer argc, const char **argv )

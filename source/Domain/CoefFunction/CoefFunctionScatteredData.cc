@@ -1,5 +1,5 @@
-#include <boost/filesystem/fstream.hpp>
-#include "boost/filesystem/operations.hpp"
+#include <fstream>
+#include <filesystem>
 #include <boost/tokenizer.hpp>  //TODO
 
 #include "CoefFunctionScatteredData.hh"

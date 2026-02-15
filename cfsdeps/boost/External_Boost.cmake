@@ -49,7 +49,7 @@ endif()
 set_precompiled_pckg_file()
 
 # generate BOOST_LIBRARY=PACKAGE_LIBARAY with os specific list of static libs. 
-set_package_library_list_lib_prefix("boost_atomic;boost_iostreams;boost_program_options;boost_thread;boost_log;boost_regex;boost_unit_test_framework;boost_log_setup;boost_serialization;boost_filesystem") 
+set_package_library_list_lib_prefix("boost_atomic;boost_iostreams;boost_program_options;boost_thread;boost_log;boost_regex;boost_unit_test_framework;boost_log_setup;boost_serialization") 
 
 # to not always need to have all libs from BOOST_LIBRARY - no need for cache variables
 set(BOOST_SERIALIZATION_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_serialization${CMAKE_STATIC_LIBRARY_SUFFIX})

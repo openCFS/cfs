@@ -57,3 +57,9 @@ endif()
 
 SET_TARGET_PROPERTIES(cfstest PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
 
+# IntelLLVM und RHEL8 chooses a too old lib for std::filesystem. CFS_LINKER_FLAGS does not work
+if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+  target_link_libraries(cfstest stdc++fs)
+endif()
+
+

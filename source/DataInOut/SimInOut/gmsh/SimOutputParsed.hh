@@ -188,11 +188,11 @@ namespace CoupledField {
       void PrepareResultFile(shared_ptr<BaseResult> sol);
 
       void WriteDummyResults(const Elem* elem,ElemInterpolation& eInterpol,
-                                shared_ptr<BaseFeFunction> feFnc, fs::fstream* out);
+                                shared_ptr<BaseFeFunction> feFnc, std::fstream* out);
 
       void GetInterpolationString(std::string & interp, ElemInterpolation eInterpol);
 
-      void PutVarsToResultFile(fs::fstream* outfile, fs::fstream* infile, std::string vars,long& destination);
+      void PutVarsToResultFile(std::fstream* outfile, std::fstream* infile, std::string vars,long& destination);
 
       std::map< Elem::ShapeType, GmeshParsedElemTypes > eTypeMap_;
 
@@ -209,8 +209,8 @@ namespace CoupledField {
 
       bool firstStep_;
 
-      std::map<SolutionType, fs::fstream*> outfiles_;
-      std::map<SolutionType, fs::fstream*> infiles_;
+      std::map<SolutionType, std::fstream*> outfiles_;
+      std::map<SolutionType, std::fstream*> infiles_;
 
       Double curTime_;
 

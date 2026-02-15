@@ -1,5 +1,5 @@
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <fstream>
+#include <filesystem>
 #include <boost/tokenizer.hpp>
 
 #include "General/Exception.hh"
@@ -99,7 +99,7 @@ namespace CoupledField
     UInt line = 0;
 
     // Open CSV file
-    boost::filesystem::ifstream myfile(fileName_);
+    std::ifstream myfile(fileName_);
 
     if(!myfile)
     {

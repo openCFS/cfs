@@ -1,6 +1,4 @@
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
@@ -14,7 +12,7 @@
 #include "SimInputHDF5.hh"
 #include "hdf5io.hh"
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 using boost::char_separator;
 
 namespace CoupledField {

@@ -425,6 +425,12 @@ BOOST_AUTO_TEST_CASE(signed_omp_loop)
     v[i] = std::sin(v[i]);
 }
 
+BOOST_AUTO_TEST_CASE(to_string)
+{
+  for (const double f : {1.23456789555555, 23.43, 1e-9, 1e40, 1e-40, 123456789.0})
+    std::cout << "value=" << f << " std::to_string=" << std::to_string(f) << " boost::lexical_cast=" << boost::lexical_cast<std::string>(f) << std::endl;  
+}
+
 BOOST_AUTO_TEST_CASE(timers)
 {
   std::chrono::high_resolution_clock::time_point thr1 = std::chrono::high_resolution_clock::now();

@@ -5,9 +5,7 @@
 //#include <boost/program_options/parsers.hpp>
 //#include <boost/program_options/variables_map.hpp>
 #include "DataInOut/ProgramOptions.hh"
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/exception.hpp>
+#include <filesystem>
 
 #if defined(WIN32)
   #include <shlobj.h>
@@ -19,7 +17,7 @@
   #endif
 #endif
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 #include "General/Exception.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -83,7 +81,7 @@ namespace CFSTool
     
     // added char(0) to end of the read in path to ensure that the path ends correctly
     // reason: during the last build I sometimes encountered errors when starting cfstoolsbin;
-    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstool`
+    // errormsg: std::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstool`
 
     buf[success_] = char(0);
 //    std::cout << "BUFFER AFTER MOD: " << buf << std::endl;    

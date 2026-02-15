@@ -13,9 +13,9 @@
 #include <Domain/Mesh/Grid.hh>
 #include <Domain/Results/ResultInfo.hh>
 #include <DataInOut/SimOutput.hh>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 #include "H5Cpp.h"
 
 namespace CoupledField {
