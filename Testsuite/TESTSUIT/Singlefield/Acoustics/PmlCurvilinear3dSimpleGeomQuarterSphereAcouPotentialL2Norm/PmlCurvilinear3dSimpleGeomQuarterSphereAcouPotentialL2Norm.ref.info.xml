@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.066s" wall="0.066" cpu="0.063041" calls="1"/>
+    <timer wall-clock="0.073s" wall="0.073" cpu="0.070307" calls="1"/>
     <!-- memory in MB-->
-    <memory final="2050" peak="2062"/>
+    <memory final="2054" peak="2070"/>
   </summary>
   <header id="">
-    <environment started="2026-Jan-19 12:26:50" host="shady" estimatedEnd="2026-Jan-19 12:26:50" remainingTime="0" timePerStep="0"/>
-    <progOpts problem="PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Acoustics/PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm/PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+    <environment started="2026-Feb-15 13:34:12" host="shady" estimatedEnd="2026-Feb-15 13:34:12" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm" parameterFile="/home/fwein/code/master/Testsuite/TESTSUIT/Singlefield/Acoustics/PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm/PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm.xml" schemaPath="/home/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="1b45f42a5ea489a85fc19d3f925eb0d635d3d996" git_branch="fwein_SimInputCDB_hash" compiled="Feb 15 2026" exe="cfs_master"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain>
       <grids>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.002092" calls="1"/>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002011" calls="1"/>
         <grid gridId="default" dimensions="3" elements="95" nodes="37"/>
       </grids>
       <coordinateSystems>
@@ -30,14 +30,14 @@
       <globalMathParser c="1" dt="0" f="0.1" r0="0.5" rho="1" step="1" t="0" t0="0" vn="1" x0="0.45639" y0="1.3948" z0="-0.38476"/>
     </domain>
     <results>
-      <timer wall-clock="0.003s" wall="0.003" cpu="0.003892" calls="14"/>
+      <timer wall-clock="0.006s" wall="0.006" cpu="0.007361" calls="14"/>
     </results>
   </header>
   <sequenceStep sequence="1">
     <harmonic>
       <header unit="Hz" sampling="frequency list given" start="0" end="0.1" numFreq="1"/>
       <init_harmonic>
-        <timer wall-clock="0.006s" wall="0.006" cpu="0.003861" calls="1"/>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.003684" calls="1"/>
       </init_harmonic>
     </harmonic>
     <PDE>
@@ -130,16 +130,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000456" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000648" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="4.9e-05" calls="1"/>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="8e-05" calls="1"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.000347" wall="0" peakMem="191" permanentMem="188"/>
-                <numfact cpu="8.5e-05" wall="0" peakMem="54"/>
+                <symbfact cpu="0.000476" wall="0" peakMem="192" permanentMem="190"/>
+                <numfact cpu="0.000139" wall="0" peakMem="56"/>
               </call>
             </process>
             <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
@@ -149,7 +149,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -162,18 +162,18 @@
         </process>
       </acoustic>
       <graph_setup>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.000358" calls="1" sub="true"/>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.000333" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.005s" wall="0.005" cpu="0.00465" calls="2"/>
+          <timer wall-clock="0.008s" wall="0.008" cpu="0.006624" calls="2"/>
           <assemble_matrices>
-            <timer wall-clock="0.005s" wall="0.005" cpu="0.004604" calls="1" sub="true"/>
+            <timer wall-clock="0.008s" wall="0.008" cpu="0.006572" calls="1" sub="true"/>
           </assemble_matrices>
           <assemble_rhs>
-            <timer wall-clock="0s" wall="0" cpu="4.4e-05" calls="1" sub="true"/>
+            <timer wall-clock="0s" wall="0" cpu="4.7e-05" calls="1" sub="true"/>
           </assemble_rhs>
         </assemble>
       </summary>

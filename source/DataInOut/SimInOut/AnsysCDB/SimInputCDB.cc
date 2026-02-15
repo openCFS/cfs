@@ -576,11 +576,15 @@ namespace CoupledField {
         }
         std::sort(&faceTopoSorted[0], &faceTopoSorted[numFaceNodes]);
 
-        // Compute a hash over the range of sorted face nodes.
-        std::size_t hash;
-        hash = boost::hash_range(&faceTopoSorted[0],
-                                 &faceTopoSorted[numFaceNodes]);
-
+        // Compute a hash over the range of sorted face nodes (10 unsigned ints)
+        // The hash is later used as key to insert, hence another boost::hash_range() value gives
+        // another sorting which means same pyhsics but different .cfs files
+        // this happens e.g for boost 1.78 -> 1.90.
+        // Polynomial Rolling Hash with a prime number.
+        std::size_t hash = faceTopoSorted[0];
+        for(unsigned int i = 1; i < numFaceNodes; i++)
+          hash = hash * 65599 + faceTopoSorted[i];
+       
         bool addFace = true;
 
         // Check for a  hash collision. If it not caused  by the same topology

@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="10" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.281s" wall="0.281" cpu="0.280404" calls="1"/>
+    <timer wall-clock="0.308s" wall="0.308" cpu="0.307204" calls="1"/>
     <!-- memory in MB-->
-    <memory final="2078" peak="2090"/>
+    <memory final="2081" peak="2085"/>
   </summary>
   <header id="">
-    <environment started="2026-Jan-19 12:27:15" host="shady"/>
-    <progOpts problem="ElecForcesConductingSpheres" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Coupledfield/ElecMech/ElecForcesConductingSpheres/ElecForcesConductingSpheres.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+    <environment started="2026-Feb-15 13:34:13" host="shady"/>
+    <progOpts problem="ElecForcesConductingSpheres" parameterFile="/home/fwein/code/master/Testsuite/TESTSUIT/Coupledfield/ElecMech/ElecForcesConductingSpheres/ElecForcesConductingSpheres.xml" schemaPath="/home/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="1b45f42a5ea489a85fc19d3f925eb0d635d3d996" git_branch="fwein_SimInputCDB_hash" compiled="Feb 15 2026" exe="cfs_master"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain>
       <grids>
-        <timer wall-clock="0.04s" wall="0.04" cpu="0.040246" calls="1"/>
+        <timer wall-clock="0.039s" wall="0.039" cpu="0.039365" calls="1"/>
         <grid gridId="default" dimensions="2" elements="6791" nodes="6688"/>
       </grids>
       <coordinateSystems>
@@ -36,7 +36,7 @@
       <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.001s" wall="0.001" cpu="0.002027" calls="10"/>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.003763" calls="10"/>
     </results>
   </header>
   <sequenceStep sequence="1">
@@ -139,16 +139,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0.037s" wall="0.037" cpu="0.037747" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0.041s" wall="0.041" cpu="0.04146" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001859" calls="1"/>
+                <timer label="solve_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.002274" calls="1"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.030933" wall="0.03" peakMem="6456" permanentMem="5990"/>
-                <numfact cpu="0.006733" wall="0.006" peakMem="5922"/>
+                <symbfact cpu="0.034063" wall="0.034" peakMem="6460" permanentMem="5984"/>
+                <numfact cpu="0.007289" wall="0.007" peakMem="5991"/>
               </call>
             </process>
             <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
@@ -158,7 +158,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -171,15 +171,15 @@
         </process>
       </electrostatic>
       <graph_setup>
-        <timer wall-clock="0.013s" wall="0.013" cpu="0.013522" calls="1" sub="true"/>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.014789" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.018s" wall="0.018" cpu="0.017198" calls="2"/>
+          <timer wall-clock="0.027s" wall="0.027" cpu="0.026825" calls="2"/>
           <assemble_matrices>
-            <timer wall-clock="0.018s" wall="0.018" cpu="0.017196" calls="1" sub="true"/>
+            <timer wall-clock="0.027s" wall="0.027" cpu="0.026821" calls="1" sub="true"/>
           </assemble_matrices>
           <assemble_rhs>
             <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1" sub="true"/>
@@ -197,13 +197,13 @@
           <region name="S_upper_sphere" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_spring">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_upper_sphere">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_upper_sphere">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperatorAxi" coef="CoefFunctionConst" region="S_spring">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -322,16 +322,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0.023s" wall="0.023" cpu="0.023738" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0.027s" wall="0.027" cpu="0.027991" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001422" calls="1"/>
+                <timer label="solve_pardiso" wall-clock="0.005s" wall="0.005" cpu="0.005443" calls="1"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.017598" wall="0.017" peakMem="6256" permanentMem="5873"/>
-                <numfact cpu="0.006054" wall="0.006" peakMem="6307"/>
+                <symbfact cpu="0.01961" wall="0.019" peakMem="6252" permanentMem="5869"/>
+                <numfact cpu="0.008196" wall="0.008" peakMem="6247"/>
               </call>
             </process>
             <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
@@ -341,7 +341,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -354,25 +354,25 @@
         </process>
       </mechanic>
       <graph_setup>
-        <timer wall-clock="0.012s" wall="0.012" cpu="0.012365" calls="1" sub="true"/>
+        <timer wall-clock="0.013s" wall="0.013" cpu="0.013" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.008s" wall="0.008" cpu="0.008496" calls="2"/>
+          <timer wall-clock="0.008s" wall="0.008" cpu="0.008802" calls="2"/>
           <assemble_matrices>
-            <timer wall-clock="0.008s" wall="0.008" cpu="0.008059" calls="1" sub="true"/>
+            <timer wall-clock="0.008s" wall="0.008" cpu="0.008301" calls="1" sub="true"/>
           </assemble_matrices>
           <assemble_rhs>
-            <timer wall-clock="0s" wall="0" cpu="0.000434" calls="1" sub="true"/>
+            <timer wall-clock="0s" wall="0" cpu="0.000499" calls="1" sub="true"/>
           </assemble_rhs>
         </assemble>
       </summary>
     </analysis>
   </sequenceStep>
   <init_multiSequence>
-    <timer wall-clock="0s" wall="0" cpu="6e-06" calls="1"/>
+    <timer wall-clock="0s" wall="0" cpu="5e-06" calls="1"/>
   </init_multiSequence>
-  <warning lineNum="3044" fileName="/home/fwein/code/cfs/source/PDE/MechPDE.cc" message="No implementation for principal strain in axi-formulation yet."/>
+  <warning lineNum="3044" fileName="/home/fwein/code/master/source/PDE/MechPDE.cc" message="No implementation for principal strain in axi-formulation yet."/>
 </cfsInfo>

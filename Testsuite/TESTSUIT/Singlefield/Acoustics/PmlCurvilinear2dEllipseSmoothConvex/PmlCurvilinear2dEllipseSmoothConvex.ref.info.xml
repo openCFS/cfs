@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.08s" wall="0.08" cpu="0.079678" calls="1"/>
+    <timer wall-clock="0.079s" wall="0.079" cpu="0.07829" calls="1"/>
     <!-- memory in MB-->
-    <memory final="2050" peak="2070"/>
+    <memory final="2053" peak="2074"/>
   </summary>
   <header id="">
-    <environment started="2026-Jan-19 12:26:50" host="shady" estimatedEnd="2026-Jan-19 12:26:50" remainingTime="0" timePerStep="0"/>
-    <progOpts problem="PmlCurvilinear2dEllipseSmoothConvex" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Acoustics/PmlCurvilinear2dEllipseSmoothConvex/PmlCurvilinear2dEllipseSmoothConvex.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="185a77e53aa1c2bcb14255e60ad9364b5afea527" git_branch="fwein_sorted_cdb" compiled="Jan 16 2026" exe="cfs"/>
+    <environment started="2026-Feb-15 13:34:12" host="shady" estimatedEnd="2026-Feb-15 13:34:13" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="PmlCurvilinear2dEllipseSmoothConvex" parameterFile="/home/fwein/code/master/Testsuite/TESTSUIT/Singlefield/Acoustics/PmlCurvilinear2dEllipseSmoothConvex/PmlCurvilinear2dEllipseSmoothConvex.xml" schemaPath="/home/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.01" name="Just Jacobians" build="RELEASE" git_commit="1b45f42a5ea489a85fc19d3f925eb0d635d3d996" git_branch="fwein_SimInputCDB_hash" compiled="Feb 15 2026" exe="cfs_master"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain>
       <grids>
-        <timer wall-clock="0.008s" wall="0.008" cpu="0.008311" calls="1"/>
+        <timer wall-clock="0.008s" wall="0.008" cpu="0.008229" calls="1"/>
         <grid gridId="default" dimensions="2" elements="1214" nodes="607"/>
       </grids>
       <coordinateSystems>
@@ -30,16 +30,16 @@
       <globalMathParser c="1" dt="0" f="1" p="1" r0="0.2" step="1" t="0" t0="0" x0="0.2" y0="0.3" z0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.003s" wall="0.003" cpu="0.004456" calls="14"/>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.003684" calls="14"/>
     </results>
   </header>
-  <warning lineNum="4948" fileName="/home/fwein/code/cfs/source/Domain/Mesh/GridCFS/GridCFS.cc" message="A total number of 552 elements had a wrong orientation and were reoriented.
+  <warning lineNum="4948" fileName="/home/fwein/code/master/source/Domain/Mesh/GridCFS/GridCFS.cc" message="A total number of 552 elements had a wrong orientation and were reoriented.
  Usually this does not lead to further errors."/>
   <sequenceStep sequence="1">
     <harmonic>
       <header unit="Hz" sampling="frequency list given" start="0" end="1" numFreq="1"/>
       <init_harmonic>
-        <timer wall-clock="0.005s" wall="0.005" cpu="0.005055" calls="1"/>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.005259" calls="1"/>
       </init_harmonic>
     </harmonic>
     <PDE>
@@ -61,18 +61,18 @@
                 <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="ellipse">
-                <coef type="CoefFunctionConst" value="1"/>
-                <row pde="acoustic" functionId="0" result="acouPressure"/>
-                <column pde="acoustic" functionId="0" result="acouPressure"/>
-                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
-              </bilinearForm>
               <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" region="ellipse">
                 <coef type="CoefFunctionConst" value="1"/>
                 <row pde="acoustic" functionId="0" result="acouPressure"/>
                 <column pde="acoustic" functionId="0" result="acouPressure"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="ellipse">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
             </matrixBiLinearForms>
@@ -129,16 +129,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.002488" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.002542" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.00024" calls="1"/>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000243" calls="1"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.001782" wall="0.001" peakMem="594" permanentMem="574"/>
-                <numfact cpu="0.000683" wall="0" peakMem="496"/>
+                <symbfact cpu="0.001798" wall="0.001" peakMem="595" permanentMem="575"/>
+                <numfact cpu="0.000715" wall="0" peakMem="491"/>
               </call>
             </process>
             <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
@@ -148,7 +148,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -161,18 +161,18 @@
         </process>
       </acoustic>
       <graph_setup>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.001415" calls="1" sub="true"/>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001653" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.012s" wall="0.012" cpu="0.011367" calls="2"/>
+          <timer wall-clock="0.012s" wall="0.012" cpu="0.011375" calls="2"/>
           <assemble_matrices>
-            <timer wall-clock="0.012s" wall="0.012" cpu="0.011364" calls="1" sub="true"/>
+            <timer wall-clock="0.012s" wall="0.012" cpu="0.011372" calls="1" sub="true"/>
           </assemble_matrices>
           <assemble_rhs>
-            <timer wall-clock="0s" wall="0" cpu="0" calls="1" sub="true"/>
+            <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1" sub="true"/>
           </assemble_rhs>
         </assemble>
       </summary>
