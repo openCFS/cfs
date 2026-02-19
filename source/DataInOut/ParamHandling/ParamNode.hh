@@ -270,7 +270,8 @@ namespace CoupledField
 
     /** This is a special case where the timer is created if it does not already exist.
      * Therefore no constness */
-    boost::shared_ptr<Timer> AsTimer();
+    boost::shared_ptr<Timer> AsTimer(const Timer* parent = nullptr);
+    boost::shared_ptr<Timer> AsTimer(const boost::shared_ptr<Timer>& parent) { return AsTimer(parent.get());  }
 
     /** @return the integer if this is convertible
     * @throws an exception if the value is not set or not convertible */

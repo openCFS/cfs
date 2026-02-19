@@ -102,14 +102,9 @@ namespace CoupledField {
     // Setup the Timers
     // The timers are subtimers because the "solve_externalSolver" timer is
     // already measuring the total time the solver needs.
-    exportTimer_ =  infoNode_->Get(ParamNode::SUMMARY)->Get("export_files/timer")->AsTimer();
-    exportTimer_->SetSub();
-
-    executionTimer_ =  infoNode_->Get(ParamNode::SUMMARY)->Get("execution/timer")->AsTimer();
-    executionTimer_->SetSub();
-
-    importTimer_ = infoNode_->Get(ParamNode::SUMMARY)->Get("import_file/timer")->AsTimer();
-    importTimer_->SetSub();
+    exportTimer_    = infoNode_->Get(ParamNode::SUMMARY)->Get("export_files/timer")->AsTimer(GetSolveTimer());
+    executionTimer_ = infoNode_->Get(ParamNode::SUMMARY)->Get("execution/timer")->AsTimer(GetSolveTimer());
+    importTimer_    = infoNode_->Get(ParamNode::SUMMARY)->Get("import_file/timer")->AsTimer(GetSolveTimer());
   }
 
   // **************

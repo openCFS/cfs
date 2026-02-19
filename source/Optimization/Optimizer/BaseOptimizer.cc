@@ -268,12 +268,12 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
 
   // evaluate  timer makes no sense and is also not implemented in a clean way
   if(type == Optimization::EVALUATE_INITIAL_DESIGN)
-    optimizer_timer_ = boost::shared_ptr<Timer>(new Timer());
+    opt_timer = boost::shared_ptr<Timer>(new Timer());
   else
-    optimizer_timer_ = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
+    opt_timer = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
 
-  optimizer_timer_->SetNesting(false);
-  optimizer_timer_->Start(); // stop after specialized constrctor or in PostInit implementation
+  opt_timer->SetNesting(false);
+  opt_timer->Start(); // stop after specialized constrctor or in PostInit implementation
 
   eval_obj_timer_        = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_objective/timer")->AsTimer();
   eval_const_timer_      = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_constraints/timer")->AsTimer();
@@ -328,8 +328,8 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 
 bool BaseOptimizer::ValidateTimers()
 {
-  LOG_DBG(optimizer) << "VT ot=" << (optimizer_timer_ != nullptr) << " eot=" << (eval_obj_timer_ != nullptr);
-  assert(!optimizer_timer_->IsRunning());
+  LOG_DBG(optimizer) << "VT ot=" << (opt_timer != nullptr) << " eot=" << (eval_obj_timer_ != nullptr);
+  assert(!opt_timer->IsRunning());
   assert(!eval_obj_timer_->IsRunning());
   assert(!eval_const_timer_->IsRunning());
   assert(!eval_grad_obj_timer_->IsRunning());
@@ -339,13 +339,13 @@ bool BaseOptimizer::ValidateTimers()
 
 void  BaseOptimizer::CommitIteration()
 {
-  bool restart = optimizer_timer_->IsRunning();
+  bool restart = opt_timer->IsRunning();
   if(restart)
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
   assert(ValidateTimers());
   optimization->CommitIteration();
   if(restart)
-    optimizer_timer_->Start();
+    opt_timer->Start();
   if(tuned)
     tuned->Update(); // read beta and write move_limit
 }
@@ -359,10 +359,10 @@ void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 
 void BaseOptimizer::SolveOptimizationProblem()
 {
-  optimizer_timer_->Start(); // we already might have spent time in the optimizer in Init()
+  opt_timer->Start(); // we already might have spent time in the optimizer in Init()
   SolveProblem();
-  if(optimizer_timer_->IsRunning())
-    optimizer_timer_->Stop();
+  if(opt_timer->IsRunning())
+    opt_timer->Stop();
 }
 
 void BaseOptimizer::LogFileHeader(Optimization::Log& log)
@@ -432,9 +432,9 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
   // we might come from another eval, then the optimizer is already stopped and we must not restart it
-  bool restart_timer = optimizer_timer_->IsRunning();
+  bool restart_timer = opt_timer->IsRunning();
   if(restart_timer)
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
 
   python->CallHook(PythonKernel::OPT_EVAL_FUNC);
 
@@ -446,7 +446,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
   LOG_DBG(optimizer) << "EO: set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
   bool need_eval;
-  LOG_DBG(optimizer) << "EO: ot->R=" << optimizer_timer_->IsRunning() << " nd=" << (new_design == design_.design_id);
+  LOG_DBG(optimizer) << "EO: ot->R=" << opt_timer->IsRunning() << " nd=" << (new_design == design_.design_id);
   if(new_design != design_.design_id)
   {
     design_.design_id = new_design;
@@ -491,7 +491,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   eval_obj_timer_->Stop();
   if(restart_timer)
-    optimizer_timer_->Start();
+    opt_timer->Start();
 
   return ret;
 }
@@ -501,7 +501,7 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   LOG_DBG(optimizer) << "SAPiN: n=" << n << " cs=" << cfs_scale;
 
   // we need to take care about measurement! We don't want to count times double!
-  assert(!optimizer_timer_->IsRunning());
+  assert(!opt_timer->IsRunning());
   // we eval objective next so there must not be anything running at the moment!
   assert(!eval_grad_obj_timer_->IsRunning());
   assert(!eval_grad_const_timer_->IsRunning());
@@ -529,9 +529,9 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
   if(!opt->CalcObjectiveCalled())
     EvalObjective(n, x, cfs_scale);
 
-  bool opt_run = optimizer_timer_->IsRunning(); // in the scale case we have to optimization_timer
+  bool opt_run = opt_timer->IsRunning(); // in the scale case we have to optimization_timer
   if(opt_run)
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
 
   python->CallHook(PythonKernel::OPT_EVAL_GRAD);
 
@@ -577,7 +577,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
                      << " grad.opt_scaling=" << objective->opt_scaling.value;
 
   if(opt_run)
-    optimizer_timer_->Start();
+    opt_timer->Start();
   eval_grad_obj_timer_->Stop();
   
   return !restart_requested;
@@ -585,7 +585,7 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 
 void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scale, double* g_val, bool normalize)
 {
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
   python->CallHook(PythonKernel::OPT_EVAL_FUNC);
 
   ConditionContainer& cc = optimization->constraints;
@@ -614,7 +614,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   cc.view->Done(); // reset local constraint to global mode
 
   eval_const_timer_->Stop();
-  optimizer_timer_->Start();
+  opt_timer->Start();
 }
 
 double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call, Excitation* ev_only_excite)
@@ -623,12 +623,12 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
   // for a proper time measurement we have to know if we are called by EvalConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
   if(direct_call) {
-    assert(optimizer_timer_->IsRunning());
+    assert(opt_timer->IsRunning());
     assert(!GetRunningEvalTimer());
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
     eval_const_timer_->Start();
   }
-  assert(!optimizer_timer_->IsRunning());
+  assert(!opt_timer->IsRunning());
 
 
   // do a complicated detection of local conditions handle the Local::active counter for logging
@@ -664,7 +664,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
 
   if(direct_call) {
     eval_const_timer_->Stop();
-    optimizer_timer_->Start();
+    opt_timer->Start();
   }
 
   return val;
@@ -678,7 +678,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   LOG_DBG(optimizer) << "EGCs: n=" << n << " m=" << m << " ne=" << nentries << " cs=" << cfs_scale << " n=" << normalize << " gt=" << grtype;
 
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 
   python->CallHook(PythonKernel::OPT_EVAL_GRAD);
 
@@ -716,7 +716,7 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
   assert(start == nentries);
 
   eval_grad_const_timer_->Stop();
-  optimizer_timer_->Start();
+  opt_timer->Start();
 }
 
 int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call)
@@ -726,9 +726,9 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
       // for a proper time measurement we have to know if we are called by EvalGradConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_grad_const_timer_->IsRunning()));
   if(direct_call) {
-    assert(optimizer_timer_->IsRunning());
+    assert(opt_timer->IsRunning());
     assert(!GetRunningEvalTimer());
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
     eval_grad_const_timer_->Start();
   }
   // always initialize the window!!
@@ -759,7 +759,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
 
   if(direct_call) {
      eval_grad_const_timer_->Stop();
-     optimizer_timer_->Start();
+     opt_timer->Start();
    }
   return nnz;
 }
@@ -768,25 +768,25 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
 {
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
 
-  bool restart_timer = optimizer_timer_->IsRunning();
+  bool restart_timer = opt_timer->IsRunning();
   if(restart_timer)
-    optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
+    opt_timer->Stop(); // makes not much sense for EvaluateOnly!
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
   GetConstraintsBounds(m, g_l, g_u);
 
   if(restart_timer)
-    optimizer_timer_->Start();
+    opt_timer->Start();
 }
 
 void BaseOptimizer::GetConstraintsBounds(int m, double* g_l, double* g_u)
 {
   assert(m == (int) optimization->constraints.view->GetNumberOfActiveConstraints());
 
-  bool restart_timer = optimizer_timer_->IsRunning();
+  bool restart_timer = opt_timer->IsRunning();
   if(restart_timer)
-    optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
+    opt_timer->Stop(); // makes not much sense for EvaluateOnly!
 
   // normalization to =0 and <=0 constraints is done SCPIPBase   
   for(int i = 0; i < m; i++)
@@ -823,5 +823,5 @@ void BaseOptimizer::GetConstraintsBounds(int m, double* g_l, double* g_u)
   optimization->constraints.view->Done(); // reset slope constraint to global mode
 
   if(restart_timer)
-    optimizer_timer_->Start();
+    opt_timer->Start();
 }

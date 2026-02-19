@@ -29,6 +29,7 @@ namespace CoupledField
   
   class SimState;
   class BaseDriver;
+  class Timer;
   class MathParser;
   class Optimization;
   class DesignSpace;
@@ -240,7 +241,9 @@ namespace CoupledField
       genResId_ += 1;
     }
 
+    shared_ptr<Timer> init_analysis_timer;
 
+    
   protected:
 
   private:

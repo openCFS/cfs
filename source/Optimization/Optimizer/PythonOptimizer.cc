@@ -95,7 +95,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
     Py_XDECREF(arg);
     Py_XDECREF(init);
   }
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 }
 
 PythonOptimizer::~PythonOptimizer()

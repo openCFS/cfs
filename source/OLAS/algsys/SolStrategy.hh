@@ -115,6 +115,8 @@ public:
   
   PtrParamNode GetParamNode() { return param_; }
 
+  unsigned int GetEstimatedRowSize() { return estimated_row_size_; }  
+
   // ========================================================================
   //  MULTIHARMONIC SECTION
   // ========================================================================
@@ -180,7 +182,9 @@ protected:
 
   //! Boolean, which tells us if we need to incorporate the zero harmonic
   bool fullSystem_;
-
+ 
+  /** for BaseGraph, 100 in .xsd. If too small we have re-hasing. Check .info.xml for "graph" */
+  unsigned int estimated_row_size_ = 100;
 
 };
 

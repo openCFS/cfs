@@ -7,10 +7,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "openblas")
-set(PACKAGE_VER "0.3.23")
+set(PACKAGE_VER "0.3.31")
 set(OPENBLAS_VER ${PACKAGE_VER})
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "115634b39007de71eb7e75cf7591dfb2")
+set(PACKAGE_MD5 "05050271d9196f65bc4ac3a89c6a3b05")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # this is the original version. There are variants on gitlab 

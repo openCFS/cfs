@@ -1,6 +1,8 @@
 #ifndef OLAS_ARPACK_SOLVER_HH
 #define OLAS_ARPACK_SOLVER_HH
 
+#include <boost/shared_ptr.hpp>
+
 #include "ArpackMatInterface.hh"
 #include "MatVec/Vector.hh"
 #include "arpackFortranInterface.hh"

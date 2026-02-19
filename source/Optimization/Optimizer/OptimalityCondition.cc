@@ -127,7 +127,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
   vault_.Resize(optimization->GetDesign()->data.GetSize());
   evaluate_tmp_.Resize(optimization->GetDesign()->data.GetSize());
   
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 
   PostInitScale(1.0, true);
 }
@@ -142,7 +142,7 @@ void OptimalityCondition::DescribeProperties(StdVector<std::pair<std::string, st
 void OptimalityCondition::SolveProblem()
 {
   // we measure the optimizer in the loops only
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 
   // solve the state problem first
   Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed
@@ -254,7 +254,7 @@ void OptimalityCondition::SolveProblem()
       continue; // redo gradients and start optimization
     }
 
-    optimizer_timer_->Start();
+    opt_timer->Start();
     nan_fixes.Push_back(0);
     LOG_DBG(ocm) << "SO: CalcNext(" << type.ToString(type_) << ")Iteration() iter=" << optimization->GetCurrentIteration() << " ml=" << move_limit_;
     // do a SIMP Optimality Condition step -> calc new design vector
@@ -274,7 +274,7 @@ void OptimalityCondition::SolveProblem()
 
     default: assert(false);
     }
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
 
     // solve the state problem for the new design vector
     // we have to set reassemblence for all pdes
@@ -674,7 +674,7 @@ double OptimalityCondition::Evaluate(double lambda)
   }
   assert(nan_fixes.GetSize() > 0);
   nan_fixes[nan_fixes.GetSize()-1] = nan_cnt;
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 
   eval_const_timer_->Start();
   // store the new values in the design variables and evaluate the constraint
@@ -682,7 +682,7 @@ double OptimalityCondition::Evaluate(double lambda)
   double vol = optimization->CalcConstraint(g);
   eval_const_timer_->Stop();
 
-  optimizer_timer_->Start();
+  opt_timer->Start();
 
   double err = g->GetBoundValue() - vol;
 

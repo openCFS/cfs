@@ -22,7 +22,7 @@ namespace CoupledField {
     //! \param agraph pointer to original graph of matrix
     //! \param order contains for global node i the mapped index
     //! \param asize  number of elements (nodes) in the graph
-    Sloan( std::vector<UInt>* agraph, StdVector<UInt>& order );
+    Sloan(StdVector<std::vector<UInt>>& agraph, StdVector<UInt>& order );
 
     //! Destructor
     virtual ~Sloan();

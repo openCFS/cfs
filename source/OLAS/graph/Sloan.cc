@@ -10,7 +10,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  Sloan::Sloan( std::vector<UInt>* agraph, StdVector<UInt>& order ) :
+  Sloan::Sloan(StdVector<std::vector<UInt>>& agraph, StdVector<UInt>& order ) :
     BaseOrdering( agraph, order ),
     profOldRem_(0),
     profNewRem_(0),

@@ -346,14 +346,14 @@ void Domain::PostInit(UInt sequenceStep)
 
   std::string name = BasePDE::analysisType.ToString(driver->GetAnalysisType());
 
-  shared_ptr<Timer> timer = driver->GetInfo()->Get("init_" + name + "/timer")->AsTimer();
+  init_analysis_timer = driver->GetInfo()->Get("init_" + name + "/timer")->AsTimer();
 
   // the single driver initilized the pde which cannot be done prior initialization of optimization,
   // the multisequence intitialization does not set up the pdes itself and is necessary to init optimization
   if(domain->GetMultiSequenceDriver() != NULL) {
-    timer->Start();
+    init_analysis_timer->Start();
     driver->Init(restart);
-    timer->Stop();
+    init_analysis_timer->Stop();
   }
 
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
@@ -374,9 +374,9 @@ void Domain::PostInit(UInt sequenceStep)
   // in the multisequence case init does something else and was already called above
   // note that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
   if(domain->GetMultiSequenceDriver() == NULL) {
-    timer->Start();
+    init_analysis_timer->Start();
     driver->Init(restart);
-    timer->Stop();
+    init_analysis_timer->Stop();
   }
 
   // we need driver->Init() first

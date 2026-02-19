@@ -123,11 +123,9 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     if(log == nullptr)
        throw Exception("cannot open log file '" + progOpts->GetSimName()  + ".mma' for writing");
   }
-  gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_generate_sub_prob/timer")->AsTimer().get();
-  gsp_timer_->SetSub();
+  gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_generate_sub_prob/timer")->AsTimer(opt_timer).get();
 
-  sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
-  sps_timer_->SetSub();
+  sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer(opt_timer).get();
 
   WriteMMALogHeader();
 }
@@ -248,7 +246,7 @@ void MMA::PostInit()
     break;
   }
 
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 }
 
 

@@ -39,7 +39,7 @@ namespace CoupledField {
     //!              lists
     //! \param order contains for global node i the mapped index
     //! \param asize number of elements (nodes) in the graph
-    BaseOrdering(std::vector<UInt>* graph, StdVector<UInt>& order );
+    BaseOrdering(StdVector<std::vector<UInt>>& graph, StdVector<UInt>& order );
 
     //! Destructor
     virtual ~BaseOrdering();
@@ -59,7 +59,7 @@ namespace CoupledField {
 
   protected:
 
-    std::vector<UInt>* graph_;  //!< Uncompressed matrix graph (STL list)
+    StdVector<std::vector<UInt>>& graph_;  //!< Uncompressed matrix graph (STL list)
     StdVector<UInt>& order_;   //!< stores for global node i the mapped index
 
   };

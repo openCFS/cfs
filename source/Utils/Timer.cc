@@ -9,6 +9,7 @@ using std::string;
 
 Timer::Timer(const std::string& name, bool sub, bool start_immediately)
 {
+  id_ = GenerateID();
   label_ = name;
   sub_ = sub;
   nesting = true; // false means very clean code. Set global or local to true to be more robust
@@ -16,6 +17,37 @@ Timer::Timer(const std::string& name, bool sub, bool start_immediately)
     Start();
 }
 
+Timer::Timer(int parent) : Timer("")
+{
+  if(parent >= 0)
+    SetSub(parent);
+}
+
+Timer::Timer(const boost::shared_ptr<Timer>& parent) : Timer("")
+{
+  if(parent)
+    SetSub(parent->id_);
+}
+
+Timer::Timer(const Timer* parent) : Timer("")
+{
+  if(parent != nullptr)
+    SetSub(parent->id_);
+} 
+
+void Timer::SetSub(const boost::shared_ptr<Timer>& parent)
+{
+  if(parent)
+    SetSub(parent->id_);
+  else
+    sub_ = true; 
+}
+
+void Timer::SetSub(int parent)
+{
+  parent_ = parent;
+  sub_ = true;
+}
 
 bool Timer::Start()
 {
@@ -100,6 +132,7 @@ string Timer::ToXMLFormat(const string& name) const
   std::ostringstream os;
 
   os << "<" << name;
+  os << " id=\"" << id_ << "\"";
   if (label_ != "")
     os << " label=\""<< label_ << "\"";
   os << " wall-clock=\"" << Duration(GetWallTime()) << "\"";
@@ -108,8 +141,10 @@ string Timer::ToXMLFormat(const string& name) const
   os << " calls=\"" << calls_ << "\"";
   if(progOpts->DoDetailedInfo())
     os << " max_nesting=\"" << max_nesting_ << "\"";
-  if (sub_)
+  if(sub_)
     os << " sub=\"true\"";
+  if(parent_ >= 0)
+    os << " parent=\"" << parent_ << "\"";
   os << "/>";
 
   return os.str();
@@ -224,3 +259,11 @@ const std::string Timer::TimeStamp(std::chrono::system_clock::time_point time_po
 
 
 
+
+#include <atomic>
+
+int Timer::GenerateID()
+{
+  static std::atomic<int> next_id = 0;
+  return next_id++;
+}

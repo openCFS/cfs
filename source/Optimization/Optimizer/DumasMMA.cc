@@ -58,7 +58,7 @@ DumasMMA::DumasMMA(Optimization* optimization, PtrParamNode pn, Optimization::Op
     gcmma->SetAsymptotes(asyminit, asymdec, asyminc);
   }
 
-  optimizer_timer_->Stop(); // we have no own PostInit()
+  opt_timer->Stop(); // we have no own PostInit()
 }
 
 DumasMMA::~DumasMMA()
@@ -187,14 +187,14 @@ void DumasMMA::SolveProblem()
       }
       xval = xnew;
     }
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
 
     opt->design->ReadDesignFromExtern(xval, true);
     CommitIteration();
-    optimizer_timer_->Start();
+    opt_timer->Start();
   }
   while(!optimization->DoStopOptimization() && optimization->GetCurrentIteration() <= optimization->GetMaxIterations());
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 
   PtrParamNode in = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
 

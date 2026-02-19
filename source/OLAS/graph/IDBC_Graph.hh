@@ -39,8 +39,8 @@ namespace CoupledField {
     //! \param numFixedDofs number of vertices related to fixed degrees of
     //!                    freedom; this number is used as number of columns
     //!                    of associated matrix
-    IDBC_Graph( UInt numFreeDofs, UInt numFixedDofs ) :
-      BaseGraph( numFreeDofs, numFixedDofs) {
+    IDBC_Graph( UInt numFreeDofs, UInt numFixedDofs, unsigned int estimated_row_size) :
+      BaseGraph( numFreeDofs, numFixedDofs, estimated_row_size) {
     }
 
     //! Default destructor

@@ -73,10 +73,8 @@ namespace CoupledField
     info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
 
     // Sub timer
-    matrixTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("assemble_matrices/timer")->AsTimer();
-    matrixTimer_->SetSub();
-    rhsTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("assemble_rhs/timer")->AsTimer();
-    rhsTimer_->SetSub();
+    matrixTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("matrices/timer")->AsTimer(timer_);
+    rhsTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("rhs/timer")->AsTimer(timer_);
   }
 
   Assemble::~Assemble() {

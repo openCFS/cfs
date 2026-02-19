@@ -72,8 +72,7 @@ namespace CoupledField {
     ConvertToCRS();
 
     // The element vector is no longer required
-    delete[] element_;
-    element_ = NULL;
+    element_.Clear(false); // don't keep capcity
 
     // Now the graph object is fully assembled
     amAssembled_ = true;

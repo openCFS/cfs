@@ -29,13 +29,13 @@ EvaluateOnly::EvaluateOnly(Optimization* optimization, PtrParamNode pn)
     eval_grad = pn->Get("objective_gradient")->As<bool>();
   }
 
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
   PostInitScale(1.0, true);
 }
 
 void EvaluateOnly::SolveProblem()
 {
-  optimizer_timer_->Stop(); // we don't need this time
+  opt_timer->Stop(); // we don't need this time
 
   // solve the state problem with the initial guess.
   std::cout << "Evaluate state problem for initial guess ..." << std::endl;
@@ -108,9 +108,9 @@ void EvaluateOnly::SolveProblem()
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
-      optimizer_timer_->Start(); // only for the assert
+      opt_timer->Start(); // only for the assert
       double v = EvalConstraint(g, false, false, true, excite); // sets the timer itself
-      optimizer_timer_->Stop();
+      opt_timer->Stop();
 
       double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
 

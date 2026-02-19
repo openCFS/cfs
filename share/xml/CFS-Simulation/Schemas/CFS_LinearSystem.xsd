@@ -25,8 +25,7 @@
       <xsd:element name="solutionStrategy" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element ref="StrategyBasic"
-              minOccurs="1" maxOccurs="1" />
+            <xsd:element ref="StrategyBasic" minOccurs="1" maxOccurs="1" />
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
@@ -177,6 +176,14 @@
           <xsd:enumeration value="Sloan"/>
         </xsd:restriction>
       </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="estimated_row_size" use="optional" type="xsd:integer" default="100">
+      <xsd:annotation>
+        <xsd:documentation>
+          Estimated row size for the matrix for graph setup. If too small we need re-hashing, if too large we need too much memory.
+          Check .info.xml for actual mean row size of your problem. 3D hexahedrons for mechanics have around 81.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 

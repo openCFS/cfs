@@ -1,6 +1,7 @@
 #ifndef OLAS_ARPACKMATINTERFACE_HH
 #define OLAS_ARPACKMATINTERFACE_HH
 
+#include <boost/shared_ptr.hpp>
 #include "General/defs.hh"
 
 namespace CoupledField {
@@ -8,6 +9,7 @@ namespace CoupledField {
   class BaseSolver;
   class BasePrecond;
   class BaseMatrix;
+  class Timer;
   
   //! Helper class for defining an interface to our matrices for the case of
   //! the "shift-and-invert" mode of arpack
@@ -29,13 +31,13 @@ namespace CoupledField {
     //! Destructor
     ~ArpackMatInterface();
     
-    //! Setup the internal methods for solving
+    //! Setup the internal methods for solving. setupTimer and solveTimer are the main solver times and used here as parents
     template <class TYPE>
-    void Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift );
+    void Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, boost::shared_ptr<Timer> parentSetupTimer, boost::shared_ptr<Timer> parentSolveTimer );
 
     //! Setup the internal methods for solving, quadratic case
     template <class TYPE>
-    void QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift );
+    void QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift);
 
 
     //! Method to set diagonal scaling factor

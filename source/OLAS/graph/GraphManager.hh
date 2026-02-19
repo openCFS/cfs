@@ -107,12 +107,12 @@ class IDBC_Graph;
     //! \param numBlocks number of SBM blocks whose connectivity graphs the
     //!                          graph manager will administer.
     //! \param useDistinctGraphs if true, every matrixType (MASS, STIFFNESS)
-    //!                          can have a different sparsity and subBlock
-    //!                          pattern.
+    //!                          can have a different sparsity and subBlock pattern.
     //! \param isMultHarm        True if we perform a multiharmonic analysis
     //! \param N, M              Number of harmonics
     //! \param size              Number of considered frequencies (num of sbm blocks)
     void SetupInit( UInt numBlocks, bool useDistinctGraphs,
+                    unsigned int estimated_row_size, 
                     bool isMultHarm = false,
                     UInt N = 0,
                     UInt M = 0,
@@ -302,6 +302,8 @@ class IDBC_Graph;
       return numBlocks_*rowNum + colNum;
     }
 
+   void StopGraphTimers();
+
   private:
     //! Auxiliary method for generation of IDBC graph objects
 
@@ -319,6 +321,9 @@ class IDBC_Graph;
     //! (rowNum, colNum). It is called by AssembleInit().
     void GenerateCouplingGraph( UInt rowNum, UInt colNum );
 
+    /** estimated row size for the graph */
+    unsigned int estimated_row_size_ = 0;
+
     //! Matrix storing pointers to the graph objects
 
     //! We use a flattened 2D structure to store for each diagonal SBMBlock 
@@ -329,14 +334,14 @@ class IDBC_Graph;
     //! stored as matrix entry (rowNum,colNum). We use C-style mapping to 
     //! transform the matrix to a 1D storage layout. Entries in the matrix may 
     //! be NULL pointers, if no corresponding coupling object exists.
-    StdVector<BaseGraph *> graph_;
+    StdVector<BaseGraph*> graph_;
 
     //! Matrix storing pointers to the IDBC graph objects
 
     //! This matrix stores for each SBMBlock pair a pointer to an associated 
     //! graph for handling the connection between free degrees of freedom and
     //! those fixed by inhomogeneous Dirichlet boundary conditions.
-    StdVector<IDBC_Graph *> graphIDBC_;
+    StdVector<IDBC_Graph*> graphIDBC_;
 
     //! Array containing pointers to permutation vectors
 

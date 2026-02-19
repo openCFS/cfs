@@ -33,7 +33,7 @@ GradientCheck::GradientCheck(Optimization* optimization, PtrParamNode pn) :
   assert(ctxt->GetExcitation() != NULL);
   ctxt->GetExcitation()->reassemble = true;
 
-  optimizer_timer_->Stop(); // we don't spend time here
+  opt_timer->Stop(); // we don't spend time here
 
   // reduce to our actual ParamNode
   pn = pn->Get(Optimization::optimizer.ToString(Optimization::GRADIENT_CHECK),
@@ -70,14 +70,14 @@ void GradientCheck::SolveProblem()
     info_->SetWarning("Not all results defined for finite difference (value='costGradient' detail='...')");
 
   // solve the original problem once!!
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
   optimization->SolveStateProblem();
   double curr_obj = optimization->CalcObjective();
   optimization->SolveAdjointProblems();
   eval_grad_obj_timer_->Start();
   optimization->CalcObjectiveGradient(NULL);
   eval_grad_obj_timer_->Stop();
-  optimizer_timer_->Start();
+  opt_timer->Start();
 
   // store here the finite difference value
   Vector<double> finite;
@@ -193,11 +193,11 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
 
     LOG_DBG(optimizer) << "PFDE: " << design->ToString(1);
 
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
     optimization->SolveStateProblem();
     optimization->SolveAdjointProblems();
     f_x1 = optimization->CalcObjective();
-    optimizer_timer_->Start();
+    opt_timer->Start();
   }
 
   // do not calc degenerated second order case
@@ -207,11 +207,11 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x,
     design_values[de->GetIndex()] = x_eval_2;
     design->ReadDesignFromExtern(design_values); // communicate the change
 
-    optimizer_timer_->Stop();
+    opt_timer->Stop();
     optimization->SolveStateProblem(); // expensive
     optimization->SolveAdjointProblems();
     f_x2 = optimization->CalcObjective();
-    optimizer_timer_->Start();
+    opt_timer->Start();
   }
 
   // reset design

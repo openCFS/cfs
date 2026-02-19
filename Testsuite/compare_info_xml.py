@@ -4,7 +4,6 @@
 import lxml
 import lxml.etree
 import argparse
-import numpy
 import os.path
 
 # The purpose of this script is to compare parts of the info.xml against a reference info.xml.
@@ -106,6 +105,7 @@ def compare_eigenfrequencies(ref, tst, eps, skip_noise):
   # we might need sorting as for the bloch_waves!
   for i in range(len(freq_ref)):
      if has_rel_error(freq_ref[i], freq_tst[i], eps, skip_noise=skip_noise): # parses attribute 'frequency="254.660604829521"'
+       print('error for ref=' + str(freq_ref[i]) + ' test=' + str(freq_tst[i]))
        return -99
      if dmp_ref and has_rel_error(dmp_ref[i], dmp_tst[i], eps, 'damping', skip_noise=skip_noise):
        return -99
@@ -155,12 +155,12 @@ def compare_bloch_waves(ref, tst, eps, skip_noise):
     
     srt_ref = sort_eigenfrequencies(freq_ref)
     srt_tst = sort_eigenfrequencies(freq_tst)
-    
     # use the list feature
     if has_rel_error(srt_ref, srt_tst, eps, skip_noise=skip_noise): 
+      print('error: for wave vector ' + str(w) + ': ref=' + str(srt_ref) + ' test=' + str(srt_tst))
       return -99
           
-    # global studf      
+    # global stuff
     maxdiff = max_diff(srt_ref, srt_tst, maxdiff = maxdiff,eps=eps)  
 
   print(' - maximal relative frequency difference over all modes in all wave vectors: ' + str(maxdiff))

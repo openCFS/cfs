@@ -7,16 +7,7 @@
 
 #include "Utils/Timer.hh"
 
-// use boost accumulators to gather usage statistics of the graph
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics/stats.hpp>
-#include <boost/accumulators/statistics/mean.hpp>
-#include <boost/accumulators/statistics/sum.hpp>
-#include <boost/accumulators/statistics/moment.hpp>
-
 #include "DataInOut/Logging/LogConfigurator.hh"
-
-using namespace boost::accumulators;
 
 #include <def_use_metis.hh>
 
@@ -40,84 +31,65 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BaseGraph::BaseGraph( UInt nRows, UInt nCols ) {
-
+  BaseGraph::BaseGraph(unsigned int nRows, unsigned int nCols, unsigned int estimated_row_size) 
+  {
     // Avoid problems with partially empty graphs
-    if ( nRows == 0 || nCols ==0 ) {
-      EXCEPTION("Refusing to generate a graph for a "
-               << nRows << " x " << nCols << " matrix!");
-    }
+    if (nRows == 0 || nCols ==0)
+      EXCEPTION("Refusing to generate a graph for a " << nRows << " x " << nCols << " matrix!");
 
     // Initialize attributes
-    csEdges_        = NULL;
-    csNodes_        = NULL;
-    amAssembled_    = false;
-    amReordered_    = false;
-    newOrder_       = BaseOrdering::NOREORDERING;
     numNodes_       = nRows;
-    numNonDiagEntries_=0;
     numRowsMat_     = nRows;
     numColsMat_     = nCols;
-    bwlower_        = 0;
-    bwupper_        = 0;
-    unsortedBlocks_ = NULL;
-    rowDiagGraph_   = NULL;
-    colDiagGraph_   = NULL;
-    setToElemDone_  = false;
+    estimated_row_size_ = estimated_row_size;
 
     // Allocate memory for linked lists
-    if ( numNodes_ > 0 ) {
-      element_ = new std::vector<UInt>[numNodes_];
-      setElements_ = new std::unordered_set<UInt>[numNodes_];
+    if(numNodes_ > 0 ) 
+    {
+      element_.Resize(numNodes_);
+      setElements_.Resize(numNodes_);
+      for(auto& set : setElements_) {
+        // argument is upscaled to next prime times some factor. 
+        // check .info.xml "graph" for examples (e.g 81)
+        // if too small, dynamic resizing and rehashing will cost a little bit, too large needs memory
+        set.reserve(estimated_row_size); 
+      }
     }
-    else {
-      element_ = NULL;
-    }
+    Init();
   }
-
 
   // *************************
   //   Alternate Constructor
   // *************************
   BaseGraph::BaseGraph( UInt nRows, UInt nCols, UInt nne, UInt *cs_nodes,
-                        UInt *cs_edges ) :
-    amReordered_(false),
-    amAssembled_(false) {
+                        UInt *cs_edges ) {
+    amAssembled_ = true;
 
     numNodes_    = nRows;
     numRowsMat_  = nRows;
     numColsMat_  = nCols;
     nne_         = nne;
-    numNonDiagEntries_ = 0;
-    newOrder_    = BaseOrdering::NOREORDERING;
     csNodes_     = cs_nodes;
     csEdges_     = cs_edges;
-    element_     = NULL;
-    bwlower_     = 0;
-    bwupper_     = 0;
-    rowDiagGraph_   = NULL;
-    colDiagGraph_   = NULL;
-
-    amAssembled_ = true;
-    setToElemDone_  = false;
+    Init();
   }
-
 
   // *******************
   //   Deep Destructor
   // *******************
-  BaseGraph::~BaseGraph() {
-
-
+  BaseGraph::~BaseGraph() 
+  {
     delete [] ( csNodes_ );  csNodes_  = NULL;
     delete [] ( csEdges_ );  csEdges_  = NULL;
-
-    // Note: element_ should already have been deleted
-    // in FinaliseAssembly()
-    delete [] ( element_ );  element_  = NULL;
-
   }
 
+  void BaseGraph::Init() 
+  {
+    PtrParamNode pn = domain->GetInfoRoot()->GetList("sequenceStep").Last();
+    info_ = pn->Get("OLAS")->Get("graph");
+    timer = info_->Get("timer")->AsTimer(domain->init_analysis_timer.get());
+    timer->Start(); // stopped by AlgebraicSys::StopGraphTimers()
+  }
 
   // ***********************
   //   AddVertexNeighbours
@@ -276,8 +248,8 @@ namespace CoupledField {
       os << "Graph is in uncompressed state" << std::endl;
       for(unsigned int i=0; i<numNodes_; i++) {
         os << "line " << i << ", " << element_[i].size() << " entries:\t";
-        for (std::vector<unsigned int>::iterator j=element_[i].begin();j!=element_[i].end();j++)
-          os << *j << "\t";
+        for (unsigned int v : element_[i])
+          os << v << "\t";
         os << std::endl;
       }
     }
@@ -445,8 +417,7 @@ namespace CoupledField {
     ConvertToCRS();
     
     // The element vector is no longer required
-    delete [] ( element_ );  element_  = NULL;
-    element_ = NULL;
+    element_.Clear(false); // don't keep capcity
 
     // Now the graph object is fully assembled
     amAssembled_ = true;
@@ -457,33 +428,41 @@ namespace CoupledField {
   // **************
   //   Sort Lists
   // **************
-  void BaseGraph::SortLists() {
-
-#ifndef NDEBUG
-    UInt totalSize = 0;     // number of entries, including doubles
-    UInt totalCapacity = 0; // total capacity 
-    boost::accumulators::accumulator_set<Double, stats<boost::accumulators::tag::mean, boost::accumulators::tag::moment<2>, boost::accumulators::tag::sum > > size;
+  void BaseGraph::SortLists() 
+  {
+    auto sort = info_->Get("sort/timer")->AsTimer(this->timer);
+    sort->Start();
+    
+    unsigned int min_val = (std::numeric_limits<unsigned int>::max)();
+    unsigned int max_val = 0;
+    size_t sum_val = 0;
+    
+#ifndef WIN32
+    // works with local Windows but not in the pipeline, remove on pipeline upgrade
+    #pragma omp parallel for schedule(static) num_threads(CFS_NUM_THREADS) reduction(+:sum_val) reduction(min:min_val) reduction(max:max_val)
 #endif
-    // Sort lists and remove duplicate entries 
-    for ( UInt i = 0; i < numNodes_; i++ ) {
-
-      // collect information
-#ifndef NDEBUG
-      totalSize += element_[i].size();
-      totalCapacity += element_[i].capacity();
-      size(element_[i].size());
-#endif
-      std::sort( element_[i].begin(), element_[i].end() );
+    for(unsigned int i = 0; i < numNodes_; i++)
+    {
+      unsigned int size = element_[i].size();
+      sum_val += size;
+      if(size < min_val) min_val = size;
+      if(size > max_val) max_val = size;
+      std::sort(element_[i].begin(), element_[i].end());
     }
 
-#ifndef NDEBUG
-    LOG_DBG(graphLogger) << "SL: statistics";
-    LOG_DBG(graphLogger) << "\ttotal number of entries (unsorted): " << totalSize;
-    LOG_DBG(graphLogger) << "\ttotal capacity: " << totalCapacity;
-    LOG_DBG(graphLogger) << "\tmemory over-estimation: "<< double(totalCapacity/totalSize*100) << " %\n";
-    LOG_DBG(graphLogger) << "\taverage row size: " << mean(size) << "\n";
-#endif
-    
+    sort->Stop();
+    info_->Get("nnz")->SetValue(sum_val);
+    auto rows = info_->Get("rows");
+    rows->Get("number")->SetValue(numNodes_);
+    rows->Get("min")->SetValue(min_val);
+    rows->Get("max")->SetValue(max_val);
+    auto mean = numNodes_ > 0 ? (double) sum_val / numNodes_ : 0.0;
+    rows->Get("mean")->SetValue(mean);
+    rows->Get("estimated_row_size")->SetValue(estimated_row_size_);
+    if(numNodes_ > 50000 && static_cast<unsigned int>(mean + .99) > estimated_row_size_)
+      rows->SetWarning("Estimated row size " + std::to_string(estimated_row_size_) + " smaller mean " + std::to_string(mean) + " raw size." 
+                     + " Possibly increase in solutionStrategy/standard/matrix@estimated_row_size to avoid re-hashing.");
+    LOG_DBG(graphLogger) << "SL: nnz= " << sum_val << " rows=" << numNodes_ << " min=" << min_val << " max=" << max_val << " mean=" << mean << "\n";
   }
 
 
@@ -529,10 +508,10 @@ namespace CoupledField {
 
     LOG_DBG(graphLogger) << "R: type=" << name << " order capacity=" << order.GetCapacity();
 
-    PtrParamNode pn = domain->GetInfoRoot()->GetList("sequenceStep").Last();
-    shared_ptr<Timer> timer = pn->Get("OLAS")->Get("reorder_"  + name + "/timer")->AsTimer();
-    timer->SetSub();
-    timer->Start();
+    auto in = info_->Get("reorder");
+    in->Get("type")->SetValue(name);
+    auto reorder_timer = in->Get("timer")->AsTimer(this->timer);
+    reorder_timer->Start();
 
     UInt i;
     
@@ -660,10 +639,8 @@ namespace CoupledField {
     }
 
     // now we are re-ordered
-    amReordered_ = true;
-
-    timer->Stop();
-
+    isReordered_ = true;
+    reorder_timer->Stop();
   }
 
 
@@ -781,21 +758,27 @@ namespace CoupledField {
     }
   }
 
-  void BaseGraph::MapSetToVector(){
+  void BaseGraph::MapSetToVector()
+  {
+    auto reorder_timer = info_->Get("finalize/timer")->AsTimer(this->timer);
+    reorder_timer->Start();
     //convert set to vector
     if(!setToElemDone_)
     {
-      // dynamic scheduling fails for gcc9.
-      // it was static,10 before but a quit test showed slight advantages without the option
       #pragma omp parallel for schedule(static) num_threads(CFS_NUM_THREADS)
-      for(int i=0;i< (int) numNodes_;i++){
-        element_[i].resize(setElements_[i].size()); // TODO: This touches every element - combine with copy.
-        std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
-        setElements_[i].clear();
+      for(int i=0;i< (int) numNodes_;i++)
+      {
+        // copy from map to vector for sorting and converting to CRS
+        // the three lines are measurable faster than element_[i].assign(setElements_[i].begin(), setElements_[i].end());
+        element_[i].reserve(setElements_[i].size());
+        for(unsigned int v : setElements_[i])
+          element_[i].push_back(v);
       }
-      delete [] ( setElements_ );  setElements_  = NULL;
+
+      setElements_.Clear(false); // don't keep capacity
       setToElemDone_ = true;
     }
+    reorder_timer->Stop();
   }
 
 

@@ -176,8 +176,7 @@ void PETSCSolver::Setup(BaseMatrix &sysmat){
     SendWorkerCommand(MAT_ZERO_ENTRIES);
     MatZeroEntries(A_);
 
-    shared_ptr<Timer> Assemble = infoNode_->Get(ParamNode::SUMMARY)->Get("petsc_assembly/timer")->AsTimer();
-    Assemble->SetSub();
+    shared_ptr<Timer> Assemble = infoNode_->Get(ParamNode::SUMMARY)->Get("petsc_assembly/timer")->AsTimer(GetSetupTimer());
     Assemble->Start();
 
 

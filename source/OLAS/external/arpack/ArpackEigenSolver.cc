@@ -269,7 +269,7 @@ namespace CoupledField {
     }
 
     // Setup matrixinterface
-    interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2) );
+    interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2), GetSetupTimer(), GetSolveTimer());
 
     ToInfo();
   }
@@ -376,7 +376,7 @@ namespace CoupledField {
     }
 
     // Setup matrixinterface
-    interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2) );
+    interface_->Setup( solver_, precond_, pow(freqShift*2.0*M_PI,2), GetSetupTimer(), GetSolveTimer());
 
     ToInfo();
   }
@@ -660,7 +660,7 @@ namespace CoupledField {
     if( !(isQuadratic_ || isBloch_ || this->matrixA_->GetEntryType() == BaseMatrix::COMPLEX) )
     {
       // Setup matrixinterface
-      interface_->Setup( solver_, precond_, shiftPoint );
+      interface_->Setup( solver_, precond_, shiftPoint, GetSetupTimer(), GetSolveTimer());
 
       // Find the eigenvalues and calculate the eigenvectors
       numEVs = arpackSolver_->FindEigenvalues<Double>(N, shiftPoint);
@@ -705,7 +705,7 @@ namespace CoupledField {
       interface_->QuadSetup<Complex>( solver_, precond_, shiftPoint);
       numEVs = arpackSolver_->FindQuadEigenvalues<Complex>(N, shiftPoint);
     } else {
-      interface_->Setup<Complex>( solver_, precond_, shiftPoint);
+      interface_->Setup<Complex>( solver_, precond_, shiftPoint, GetSetupTimer(), GetSolveTimer());
       numEVs = arpackSolver_->FindEigenvalues<Complex>(N, shiftPoint);
     }
 
@@ -779,7 +779,7 @@ namespace CoupledField {
     }
 
     // Setup matrixinterface
-    interface_->Setup( solver_, precond_, freqShift_ );
+    interface_->Setup( solver_, precond_, freqShift_, GetSetupTimer(), GetSolveTimer());
     setupTimer_->Stop();
 
     //Find the eigenvalues and calculate the eigenvectors

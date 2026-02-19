@@ -42,10 +42,9 @@
 
 DEFINE_LOG(algSys, "algSys")
 
-namespace CoupledField {
-
-
-
+namespace CoupledField 
+{
+  using std::string;
 
   // ***********************
   //   Default Constructor
@@ -104,7 +103,7 @@ namespace CoupledField {
 
     // Set flag for insertion of penalty terms into matrix
     usingPenalty_ = solStrat_->UseDirichletPenalty();
-    std::string aux = usingPenalty_ ? "penalty" : "elimination";
+    string aux = usingPenalty_ ? "penalty" : "elimination";
     myInfo_->Get("setup")->Get("idbcHandling")->SetValue(aux);
 
     // Set flag for insertion of penalty terms into matrix
@@ -175,10 +174,10 @@ namespace CoupledField {
     patternPool_ = NULL;
   }
 
-  StdVector<std::string> AlgebraicSys::GetFeFunctionsNames()
+  StdVector<string> AlgebraicSys::GetFeFunctionsNames()
   {
-    // std::map<FeFctIdType,std::string> fctNames_;
-    StdVector<std::string> res(fctNames_.size());
+    // std::map<FeFctIdType,string> fctNames_;
+    StdVector<string> res(fctNames_.size());
     for(int i = 0; i < (int) res.GetSize(); i++) // we assume the fe functions to be ordered from 0
     {
       assert(fctNames_.find(i) != fctNames_.end());
@@ -453,7 +452,7 @@ namespace CoupledField {
 
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
-    std::string precondId = solStrat_->GetPrecondId();
+    string precondId = solStrat_->GetPrecondId();
     if( onlyOneMatrixBlock_ ) {
       precond_ = GenerateStdPrecondObject((*effMat_)(0,0), precondId,
                                           precondListNode, infoNode );
@@ -838,12 +837,12 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::ExportMHSys(int step){
-    std::string logString = "sys_step_";
-    logString.append( boost::lexical_cast<std::string>(step));
+    string logString = "sys_step_";
+    logString.append( boost::lexical_cast<string>(step));
     sysMat_[SYSTEM]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "sys");
 
     //logString = "mass_step_";
-    //logString.append( boost::lexical_cast<std::string>(step));
+    //logString.append( boost::lexical_cast<string>(step));
     //sysMat_[DAMPING]->Export(logString, BaseMatrix::OutputFormat::MATRIX_MARKET, "mass");
   }
 
@@ -859,18 +858,18 @@ namespace CoupledField {
     if(els == NULL)
       return;
 
-    std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+    string base = els->Has("baseName") ? els->Get("baseName")->As<string>() : progOpts->GetSimName();
     if(id.ToString(true) != "") // filename variant
       base += "_" + id.ToString(true);
 
-    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
-    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<string>());
+    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<string>());
 
     LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
     if(setup)
     {
-      // if(els->Get("format")->As<std::string>()  == "harwell-boeing") ???
+      // if(els->Get("format")->As<string>()  == "harwell-boeing") ???
       //  EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
 
       if(els->Get("precond")->As<bool>())
@@ -939,7 +938,7 @@ namespace CoupledField {
           for(unsigned int i = 0; i < eigenValues_->GetSize(); i++)
           {
             GetEigenMode(i);
-            sol_->Export(base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+            sol_->Export(base + "_mode_" + lexical_cast<string>(i+1), vec_format);
           }
         }
       }
@@ -1099,7 +1098,7 @@ namespace CoupledField {
   // ***************
   //   ObtainFctId
   // ***************
-  FeFctIdType AlgebraicSys::ObtainFctId( const std::string& fctString ) {
+  FeFctIdType AlgebraicSys::ObtainFctId( const string& fctString ) {
 
    LOG_DBG(algSys) << "Obtaining FctId for fct '" << fctString << "'";
 
@@ -1110,7 +1109,7 @@ namespace CoupledField {
    }
 
     // Check if Fct is already registered
-    std::map<FeFctIdType,std::string>::iterator it;
+    std::map<FeFctIdType,string>::iterator it;
     for ( it = fctNames_.begin(); it != fctNames_.end(); it++ ) {
       if ( (*it).second == fctString ) {
         EXCEPTION("A FeFunction with name '" << fctString
@@ -1608,8 +1607,7 @@ namespace CoupledField {
     // Collect reordering of different matrices and assemble vector
     StdVector<BaseOrdering::ReorderingType> reorder(numBlocks_);
     for( UInt i = 0; i < numBlocks_; ++i ) {
-      std::string orderString = solStrat_->GetMatrixNode(i)->
-          Get("reordering")->As<std::string>();
+      string orderString = solStrat_->GetMatrixNode(i)->Get("reordering")->As<string>();
       reorder[i] = BaseOrdering::reorderingType.Parse(orderString);
     }
 
@@ -1804,8 +1802,7 @@ namespace CoupledField {
     // Collect reordering of different matrices and assemble vector
     StdVector<BaseOrdering::ReorderingType> reorder(numBlocks_);
     for( UInt i = 0; i < numBlocks_; ++i ) {
-      std::string orderString = solStrat_->GetMatrixNode(i)->
-          Get("reordering")->As<std::string>();
+      string orderString = solStrat_->GetMatrixNode(i)->Get("reordering")->As<string>();
       reorder[i] = BaseOrdering::reorderingType.Parse(orderString);
     }
 
@@ -1876,9 +1873,9 @@ namespace CoupledField {
     // Different setup for multiharmonic analysis
     if( isMultHarm_ ){
       UInt numSBMRows = domain->GetDriver()->GetNumFreq();
-      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, true,
+      graphManager_->SetupInit( numSBMRows, distinctMatGraphs_, solStrat_->GetEstimatedRowSize(), true,
                                 solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM(),
-                                domain->GetDriver()->GetNumFreq(), solStrat_->IsFullSystem()  );
+                                domain->GetDriver()->GetNumFreq(), solStrat_->IsFullSystem() );
 
       // In the multiharmonic case, we have only one set of equations
       // but they are present several times in the final system matrix
@@ -1889,7 +1886,7 @@ namespace CoupledField {
       onlyOneMatrixBlock_ = false;
 
     }else{
-      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_ );
+      graphManager_->SetupInit( numBlocks_, distinctMatGraphs_, solStrat_->GetEstimatedRowSize());
 
       // loop over all blocks and register them with the graph manager
       for( UInt sbmIndex = 0; sbmIndex < numBlocks_; ++sbmIndex ) {
@@ -2827,14 +2824,14 @@ namespace CoupledField {
     auto DeflattenIndex = [size](UInt ind) { std::vector<UInt> a = {ind / (size), ind % (size)}; return a;};
     //auto FlattenIndex = [N](UInt row, UInt col) { return N * row + col;};
 
-    std::string t;
+    string t;
     if (IS_LOG_ENABLED(algSys, dbg3)) {
       // construct logging output
       for(auto s : sbmIndices){
         t.append("(");
-        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[0]) );
+        t.append( boost::lexical_cast<string>(DeflattenIndex(s)[0]) );
         t.append( ", ");
-        t.append( boost::lexical_cast<std::string>(DeflattenIndex(s)[1]) );
+        t.append( boost::lexical_cast<string>(DeflattenIndex(s)[1]) );
         t.append("), ");
       };
     }
@@ -4282,9 +4279,7 @@ namespace CoupledField {
               sT = BaseMatrix::VAR_BLOCK_ROW;
             }
 
-            retMat->SetSubMatrix ( sbmRow, sbmCol, entryType,
-                sT,
-                nrows, ncols, graph->GetNNE() );
+            retMat->SetSubMatrix(sbmRow, sbmCol, entryType, sT, nrows, ncols, graph->GetNNE());
           } else {
             // Off-diagonal entries are by nature rectangular and thus, only
             // two possibilities remain: either sparse_nonsym crs format
@@ -4317,8 +4312,6 @@ namespace CoupledField {
             // Set sparsity pattern of sub-matrix
             (*retMat)( sbmRow, sbmCol ).SetSparsityPattern( *graph );
           }
-
-
         }
       }
     }
@@ -4342,7 +4335,7 @@ namespace CoupledField {
 
     // do we use CFS_REORDERING with a manual setting?
     if(string(REORDERING_DEFAULT).size() > 0 && string(REORDERING_DEFAULT) != "default")
-      return  BaseOrdering::reorderingType.Parse(REORDERING_DEFAULT);
+      return BaseOrdering::reorderingType.Parse(REORDERING_DEFAULT);
 
     // use METIS if present - might be changed anyway depending on solver
     // what we set by compile option
@@ -4372,14 +4365,13 @@ namespace CoupledField {
       BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
 
       // generate preferred storage format, based on symmetry type
-      std::string storageString = "sparseSym";
+      string storageString = "sparseSym";
       if(!isDiagBlockSymm_[0] )
-              storageString = "sparseNonSym";
+        storageString = "sparseNonSym";
 
       // check, if symmetry type was set or if we can change it
       bool canChangeMatFormat = true;
-      if( matNode->Has("storage") &&
-          matNode->Get("storage")->As<std::string>() != "noStorageType" ) {
+      if( matNode->Has("storage") && matNode->Get("storage")->As<string>() != "noStorageType" ) {
         canChangeMatFormat = false;
         matNode->GetValue("storage",storageString);
       } else {
@@ -4390,21 +4382,19 @@ namespace CoupledField {
       storType = BaseMatrix::storageType.Parse(storageString);
 
       // check, if unphysical setting was set
-      if( !isDiagBlockSymm_[0] &&
-          storType == BaseMatrix::SPARSE_SYM) {
-        EXCEPTION( "Can not use storage format 'sparseSym' for an "
-                   "unsymmetric system" );
+      if( !isDiagBlockSymm_[0] && storType == BaseMatrix::SPARSE_SYM) {
+        EXCEPTION( "Can not use storage format 'sparseSym' for an unsymmetric system" );
       }
 
       // -------------------------
       //  Check Eigenvalue Solver
       // -------------------------
-      std::string eSolverId = solStrat_->GetEigenSolverId();
+      string eSolverId = solStrat_->GetEigenSolverId();
       PtrParamNode eSolverList = myParam_->Get("eigenSolverList", ParamNode::INSERT);
       ParamNodeList esNodes =  eSolverList->GetChildren();
       PtrParamNode eSolverNode;
       for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
-        if( esNodes[i]->Get("id")->As<std::string>() == eSolverId ) {
+        if( esNodes[i]->Get("id")->As<string>() == eSolverId ) {
           eSolverNode = esNodes[i];
         }
       }
@@ -4426,12 +4416,12 @@ namespace CoupledField {
       // --------------
       // .. if not defined -> LDL / ILDL (depending on symmetry)
       // .. if defined -> Check if solver suites symmetry type of matrix
-      std::string solverId = solStrat_->GetSolverId();
+      string solverId = solStrat_->GetSolverId();
       PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
       ParamNodeList sNodes =  solverList->GetChildren();
       PtrParamNode solverNode;
       for( UInt i = 0; i < sNodes.GetSize(); ++i ) {
-        if( sNodes[i]->Get("id")->As<std::string>() == solverId ) {
+        if( sNodes[i]->Get("id")->As<string>() == solverId ) {
           solverNode = sNodes[i];
         }
       }
@@ -4491,12 +4481,12 @@ namespace CoupledField {
       // ---------------
       //  Check Precond
       // ---------------
-      std::string precondId = solStrat_->GetPrecondId();
+      string precondId = solStrat_->GetPrecondId();
       PtrParamNode precondList = myParam_->Get("precondList", ParamNode::INSERT);
       ParamNodeList pNodes =  precondList->GetChildren();
       PtrParamNode precondNode;
       for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
-        if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+        if( pNodes[i]->Get("id")->As<string>() == precondId ) {
           precondNode = pNodes[i];
         }
       }
@@ -4617,9 +4607,9 @@ namespace CoupledField {
         BaseMatrix::StorageType storType = BaseMatrix::NOSTORAGETYPE;
 
         // we only allow nonsymmetric storage format
-        std::string storageString = "sparseNonSym";
+        string storageString = "sparseNonSym";
         if( matNode->Has("storage")) {
-          if( matNode->Get("storage")->As<std::string>() != "sparseNonSym" ){
+          if( matNode->Get("storage")->As<string>() != "sparseNonSym" ){
            EXCEPTION(" You probably perform a multiharmonic analysis, therefore please set nonsymmetric storage type! ");
           }
         }
@@ -4637,12 +4627,12 @@ namespace CoupledField {
         // ------------------------------------------------
         //  Check Solver
         // ------------------------------------------------
-        std::string solverId = solStrat_->GetSolverId();
+        string solverId = solStrat_->GetSolverId();
         PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
         ParamNodeList sNodes =  solverList->GetChildren();
         PtrParamNode solverNode;
         for( UInt i = 0; i < sNodes.GetSize(); ++i ){
-          if( sNodes[i]->Get("id")->As<std::string>() == solverId ){
+          if( sNodes[i]->Get("id")->As<string>() == solverId ){
             solverNode = sNodes[i];
           }
         }
@@ -4682,13 +4672,13 @@ namespace CoupledField {
         // -------------------------------------------------------
         //  Check Precond
         // -------------------------------------------------------
-        std::string precondId = solStrat_->GetPrecondId();
+        string precondId = solStrat_->GetPrecondId();
         PtrParamNode precondList = myParam_->Get("precondList",
                                                  ParamNode::INSERT);
         ParamNodeList pNodes =  precondList->GetChildren();
         PtrParamNode precondNode;
         for( UInt i = 0; i < pNodes.GetSize(); ++i ) {
-          if( pNodes[i]->Get("id")->As<std::string>() == precondId ) {
+          if( pNodes[i]->Get("id")->As<string>() == precondId ) {
             precondNode = pNodes[i];
           }
         }
@@ -4830,7 +4820,7 @@ namespace CoupledField {
         mNode->Get("blockRow")->SetValue(smId.rowInd);
         mNode->Get("blockCol")->SetValue(smId.colInd);
 
-        std::string storageType =
+        string storageType =
             BaseMatrix::storageType.ToString(stdMat->GetStorageType());
         mNode->Get("storageType")->SetValue(storageType);
         mNode->Get("numRows")->SetValue(stdMat->GetNumRows());
@@ -4876,7 +4866,7 @@ namespace CoupledField {
 
 
         totalNumNonZeros += stdMat->GetNnz();
-        BaseGraph * graph = graphManager_->GetGraph(smId.rowInd,smId.colInd);
+        BaseGraph* graph = graphManager_->GetGraph(smId.rowInd,smId.colInd);
 
         // bandwidth and reordering gets just written for diagonal blocks
         if( smId.rowInd == smId.colInd && !isMultHarm_) {
@@ -4892,7 +4882,7 @@ namespace CoupledField {
           mNode->Get("symCounterPart")->SetValue(sbmMat.IsSymmetric());
         }
 
-        std::string orderStr =
+        string orderStr =
             BaseOrdering::reorderingType.ToString(graph->GetReorderType());
         mNode->Get("orderingType")->SetValue(orderStr);
 
@@ -4919,7 +4909,7 @@ namespace CoupledField {
 
     // Print overview of feFunctions
     PtrParamNode fctListNode = setupNode->Get("feFunctions");
-    std::map<FeFctIdType,std::string>::const_iterator it = fctNames_.begin();
+    std::map<FeFctIdType,string>::const_iterator it = fctNames_.begin();
 
     UInt totalSize = 0, totalNumFreeEqns = 0, totalNumDirichlet = 0;
 
@@ -5470,7 +5460,7 @@ namespace CoupledField {
     CRS_Matrix<Double>& auxMat = dynamic_cast<CRS_Matrix<Double>&>(*auxMatAMG_);
     auxMat.SetSparsityPatternData(rP, cI, dataAux);
   }
-
+  
 
   // ========================================================================
   // Explicit template instantiation

@@ -5,10 +5,10 @@
 #include <string>
 #include <chrono>
 #include <cassert>
+#include <boost/shared_ptr.hpp>
 
 namespace CoupledField
 {
-
 /** The Timer class is based on the code timer.hh from Ken Wilder (http://sites.google.com/site/jivsoft/Home/timer)
  * It implements a timer object which sums up time intervals.
  *
@@ -29,6 +29,18 @@ class Timer
        @param sub means that performance.py shall not use the time for the 'not_measured' calculation because it is just a finer
        time for an action already measured. */
   Timer(const std::string& name = "", bool sub = false, bool start_immediately = false);
+
+  /** parent is not stored, just it's id_ is read. */
+  Timer(const boost::shared_ptr<Timer>& parent);
+  Timer(const Timer* parent);
+  Timer(int parent);
+
+  /** To set 'sub' when created as ParamNode::AsTimer().
+   * A sub-timer is not counted by performance.py. E. the parent "assemble" has sub timers 
+   * which are not counted, otherwise the sum of timers would be larger than the total runtime. 
+   * @param parent of parent available it's id. But still sets to sub-timer */
+  void SetSub(const boost::shared_ptr<Timer>& parent);
+  void SetSub(int parent = -1); 
 
   /** Start a timer. Handles nesting by throwing an exception it already running and not nesting.
    * Increments calls only when really starting the timer.
@@ -56,11 +68,6 @@ class Timer
 
   void SetLabel(const std::string& name) {
     label_ = name;
-  }
-
-  /** to set sub when created as ParamNode::AsTimer() */
-  void SetSub() {
-    sub_ = true;
   }
 
   /** The number of Start() calls since construction or the last ResetStart()+1.
@@ -118,8 +125,22 @@ class Timer
   /** generic format for time_point */
   static const std::string TimeStamp(std::chrono::system_clock::time_point, const std::string& format = "%Y-%b-%d %H:%M:%S");
 
+  private:
 
- private:
+  /** thread safe id for the timer starting with 0 */
+  static int GenerateID();
+
+  /** our unique timer id for xml output and reconstruct parent / sub-timer graphs */
+  int id_ = -1; 
+
+  /** parent id if sub with known parent. Partly redundant with sub_.
+   * @see sub_ */
+  int parent_ = -1;
+
+  /** To help performance.py that we are a sub timer and our duration shall not be summed up.
+   * @see parent_ */
+  bool sub_ = false;
+
   /** The number of Start() calls since construction or the last ResetStart()+1 */
   int calls_  = 0;
 
@@ -141,8 +162,6 @@ class Timer
   double sum_time_ = 0;
 
   std::string label_;
-  /** sub and generic counters shall not be summed up by performance.py */
-  bool sub_ = false;
 
 }; // class timer
 

@@ -98,7 +98,7 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   
   Init();
 
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 }
 
 SnOpt::~SnOpt()

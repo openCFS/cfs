@@ -18,6 +18,7 @@
 #include "StdVector.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include <map>
+#include <type_traits>
 
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
@@ -29,13 +30,9 @@ namespace CoupledField{
 //! Interface class for the definition of cloneable Classes
 class CfsCopyable{
 public:
-  CfsCopyable(){
+  CfsCopyable() { } 
 
-  }
-
-  virtual ~CfsCopyable(){
-
-  }
+  virtual ~CfsCopyable() { }
 
   //! Method for copying a pointer
   virtual CfsCopyable* Clone()=0;
@@ -177,13 +174,17 @@ public:
       tlsContainer_[i] = ref;
   }
 
-   inline T*& Mine(Integer tNum = -1){
+  inline T*& Mine(Integer tNum = -1)
+  {
 #ifdef USE_OPENMP
      return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
 #endif
   }
+
+  
+
 private:
   StdVector<T*> tlsContainer_;
 };

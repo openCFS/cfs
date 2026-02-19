@@ -56,7 +56,7 @@ void SCPIP::PostInit()
 
   BaseOptimizer::PostInit();
   Initialize();
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
   PostInitScale(1.0); // does autoscale
 
 }
@@ -78,7 +78,7 @@ void SCPIP::SolveProblem()
 {
   // if we did scale, we can easily commit a calculated initial (iter-0) configuration
   // otherwise we also try to make this
-  assert(optimizer_timer_->IsRunning());
+  assert(opt_timer->IsRunning());
 
   if(objective->DoAutoscale())
      CommitIteration();
@@ -271,7 +271,7 @@ bool SCPIP::eval_f(int n, const double* x_org, double& obj_value)
 
 bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 {
-  assert(optimizer_timer_->IsRunning());
+  assert(opt_timer->IsRunning());
   StdVector<double> x_srt;
   x_srt.Import(x_org, n);
   
@@ -279,7 +279,7 @@ bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
   assert(grad_f == df.GetPointer());
   bool result = EvalGradObjective(n, x_srt.GetPointer(), true, df);
 
-  assert(optimizer_timer_->IsRunning());
+  assert(opt_timer->IsRunning());
 
   // do we have to write the initial iteration in the non-scale case?
   // SCPIP first does eval_f and then eval_grad_f
@@ -323,7 +323,7 @@ void SCPIP::finalize_solution(int status, int n, const double* x, const double* 
                     << StandardDeviation(z_L, n) << " z_u_avg = " << Average(z_L, n) << " z_u_std_dev = "
                     << StandardDeviation(z_U, n) << "restart_requested = " << restart_requested;
 
-  assert(optimizer_timer_->IsRunning());
+  assert(opt_timer->IsRunning());
   // save this iteration, otherwise it might be lost
   CommitIteration();
   

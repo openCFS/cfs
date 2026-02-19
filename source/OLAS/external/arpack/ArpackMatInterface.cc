@@ -74,9 +74,9 @@ namespace CoupledField {
   }
   
   template<class TYPE>
-  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift ) {
+  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, boost::shared_ptr<Timer> parentSetupTimer, boost::shared_ptr<Timer> parentSolveTimer ) {
 
-	complex_shift_ = boost::is_complex<TYPE>::value;
+    complex_shift_ = boost::is_complex<TYPE>::value;
     // Copy references
     solver_ = solver;
     precond_ = precond;
@@ -129,26 +129,26 @@ namespace CoupledField {
     }
 
     // Setup solver and precond-object
-    precond_->GetSetupTimer()->SetSub(); // is in the service of arpack
-    precond_->GetPrecondTimer()->SetSub();
+    precond_->GetSetupTimer()->SetSub(parentSetupTimer); // is in the service of arpack
+    precond_->GetPrecondTimer()->SetSub(parentSolveTimer);
     precond_->GetSetupTimer()->Start();
     precond_->Setup( *matrixC_ );
     precond_->GetSetupTimer()->Stop();
 
-    solver_->GetSetupTimer()->SetSub();
-    solver_->GetSolveTimer()->SetSub();
+    solver_->GetSetupTimer()->SetSub(parentSetupTimer);
+    solver_->GetSolveTimer()->SetSub(parentSolveTimer);
     solver_->GetSetupTimer()->Start();
     solver_->Setup( *matrixC_ );
     solver_->GetSetupTimer()->Stop();
   }
 
   template<class TYPE>
-  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift ) {
+  void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond, TYPE shift) {
 
     // Copy references
     solver_ = solver;
     precond_ = precond;
-	complex_shift_ = boost::is_complex<TYPE>::value;
+    complex_shift_ = boost::is_complex<TYPE>::value;
     if (matrixC_ == NULL || shift_ != shift) {
       shift_= (Complex) shift;
 
@@ -159,19 +159,19 @@ namespace CoupledField {
       // form (B*shift + D)*shift + A) = A + sigma*D + sigma**2*B
       if(complex_shift_)
       {
-		  matrixC_ = CopyStdMatrixObject( matB );
-		  matrixC_->Scale( shift_ );
-		  matrixC_->Add( 1.0, matD );
-		  matrixC_->Scale( shift_ );
-		  matrixC_->Add( 1.0, matA );
+        matrixC_ = CopyStdMatrixObject( matB );
+        matrixC_->Scale( shift_ );
+        matrixC_->Add( 1.0, matD );
+        matrixC_->Scale( shift_ );
+        matrixC_->Add( 1.0, matA );
       }
       else
       {
-		  matrixC_ = CopyStdMatrixObject( matB );
-		  matrixC_->Scale( shift_.real() );
-		  matrixC_->Add( 1.0, matD );
-		  matrixC_->Scale( shift_.real() );
-		  matrixC_->Add( 1.0, matA );
+        matrixC_ = CopyStdMatrixObject( matB );
+        matrixC_->Scale( shift_.real() );
+        matrixC_->Add( 1.0, matD );
+        matrixC_->Scale( shift_.real() );
+        matrixC_->Add( 1.0, matA );
       }
 
       // set diagonal scaling entry (hard coded = 1)
@@ -484,8 +484,8 @@ namespace CoupledField {
   template void ArpackMatInterface::MultBV<Complex>(Complex*, Complex*);
   template void ArpackMatInterface::MultAV<Complex>(Complex*, Complex*);
 
-  template void ArpackMatInterface::Setup<Double>( BaseSolver* , BasePrecond*, Double);
-  template void ArpackMatInterface::Setup<Complex>( BaseSolver* , BasePrecond*, Complex);
+  template void ArpackMatInterface::Setup<Double>( BaseSolver* , BasePrecond*, Double, boost::shared_ptr<Timer>, boost::shared_ptr<Timer>);
+  template void ArpackMatInterface::Setup<Complex>( BaseSolver* , BasePrecond*, Complex, boost::shared_ptr<Timer>, boost::shared_ptr<Timer>);
 
   template void ArpackMatInterface::QuadSetup<Double>( BaseSolver*, BasePrecond*, Double );
   template void ArpackMatInterface::QuadSetup<Complex>( BaseSolver*, BasePrecond*, Complex );

@@ -122,10 +122,12 @@ namespace CoupledField {
     // defining the graph can be expensive. Most expensive are (ordered by cost):
     // - AlgebraicSys::GraphSetupDone()
     // - Assemble::SetupMatrixGraph()
-    shared_ptr<Timer> timer = myInfo_->Get("OLAS/graph_setup/timer")->AsTimer();
+/*    shared_ptr<Timer> timer = myInfo_->Get("OLAS/graph_setup/timer")->AsTimer();
     timer->SetSub();
     timer->Start();
-
+*/
+    // when we initialize the BaseGraph instances below, they are implicitly started 
+   
     // ==============================================
     //   DEFINE GRAPH AND SBM BLOCKS
     // ==============================================
@@ -292,7 +294,7 @@ namespace CoupledField {
       algsys_->GraphSetupDone();
     }
 
-    timer->Stop();
+    algsys_->GetGraphManager()->StopGraphTimers(); 
 
     // create matrices and solver object, if PDE is not direct coupled
     CreateMatrices_Solver();

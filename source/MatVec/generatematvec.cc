@@ -341,7 +341,7 @@ try {\
 
 
 	BaseMatrix::StorageType sType = BaseMatrix::NOSTORAGETYPE;
-    BaseGraph *graph = NULL;
+    BaseGraph* graph = NULL;
     UInt scalarRows = 0;
     UInt scalarCols = 0;
 

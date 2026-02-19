@@ -621,11 +621,11 @@ bool ParamNode::As<bool>() const
   EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
 }
 
-boost::shared_ptr<Timer> ParamNode::AsTimer()
+boost::shared_ptr<Timer> ParamNode::AsTimer(const Timer* parent) 
 {
   if(value_.has_value() == false)
-    value_ = boost::shared_ptr<Timer>(new Timer());
-
+    value_ = boost::make_shared<Timer>(parent);
+  
   if(value_.type() != typeid(boost::shared_ptr<Timer>))
     EXCEPTION("param node " << name_ << " cannot be returned as timer");
 
@@ -915,16 +915,24 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = stream.str();
     return;
   }
-  if (value_.type() == typeid(UInt))
+  if (value_.type() == typeid(unsigned int))
   {
-    UInt val = std::any_cast<UInt>(value_);
-    ret = boost::lexical_cast<std::string>(val);
+    ret = std::to_string(std::any_cast<unsigned int>(value_));
     return;
   }
-  if (value_.type() == typeid(Integer))
+  if (value_.type() == typeid(int))
   {
-    Integer val = std::any_cast<Integer>(value_);
-    ret = boost::lexical_cast<std::string>(val);
+    ret = std::to_string(std::any_cast<int>(value_));
+    return;
+  }
+  if (value_.type() == typeid(size_t))
+  {
+    ret = std::to_string(std::any_cast<size_t>(value_));
+    return;
+  }
+  if (value_.type() == typeid(long))
+  {
+    ret = std::to_string(std::any_cast<long>(value_));
     return;
   }
   if (value_.type() == typeid(bool))
@@ -995,12 +1003,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = timer->ToXMLFormat(name_);
     return;
   }
-
   if(value_.type() == typeid(StdVector<std::string>))
   {
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
   }
+  assert(false); // this should not happen, as we have only a fixed set of types we allow for values, which are all handled above. If this assert is triggered, we have to implement the missing type here!
 }
 
 void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)

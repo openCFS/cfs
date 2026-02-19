@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/IDBC_Graph.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -55,12 +56,14 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
   // =============
   void GraphManager::SetupInit( UInt numBlocks,
                                 bool useDistinctGraphs,
+                                unsigned int estimated_row_size,
                                 bool isMultHarm,
                                 UInt N,
                                 UInt M,
                                 UInt size,
-                                bool isFullSys) {
-
+                                bool isFullSys) 
+  {
+    estimated_row_size_ = estimated_row_size;
     if( isMultHarm ){
       N_ = N;
       M_ = M;
@@ -375,8 +378,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
     UInt idx = ComputeIndex( blockNum, blockNum );
 
 
-    graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex, 
-                                 blockInfo->numLastFreeIndex );
+    graph_[idx] = new BaseGraph(blockInfo->numLastFreeIndex, blockInfo->numLastFreeIndex, estimated_row_size_);
     if ( graph_[idx] == NULL ) {
       EXCEPTION("Generation of graph object for block #" << blockNum 
                 << " failed!");
@@ -434,8 +436,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
         if( sbmCol < sizeMH_){
           UInt idx = ComputeIndex( sbmRow, sbmCol );
           // Generate graph object for this block
-          graph_[idx] = new BaseGraph( blockInfo->numLastFreeIndex,
-                                       blockInfo->numLastFreeIndex );
+          graph_[idx] = new BaseGraph(blockInfo->numLastFreeIndex, blockInfo->numLastFreeIndex, estimated_row_size_);
           if ( graph_[idx] == NULL ) {
             EXCEPTION("Generation of graph object for block #" << sbmRow << "," << sbmCol
                       << " failed!");
@@ -912,7 +913,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
     
     if(isMultHarm_){
       // Generate graph object
-      graph_[idx] = new BaseGraph( blockInfoMH_->numLastFreeIndex, blockInfoMH_->numLastFreeIndex );
+      graph_[idx] = new BaseGraph(blockInfoMH_->numLastFreeIndex, blockInfoMH_->numLastFreeIndex, estimated_row_size_);
 
       if ( graph_[idx] == NULL ) {
         EXCEPTION("GraphManager: Generation of sub-graph "
@@ -930,7 +931,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
     }else{
 
     // Generate graph object
-    graph_[idx] = new BaseGraph( blockInfo_[rowNum]->numLastFreeIndex, blockInfo_[colNum]->numLastFreeIndex );
+    graph_[idx] = new BaseGraph(blockInfo_[rowNum]->numLastFreeIndex, blockInfo_[colNum]->numLastFreeIndex, estimated_row_size_);
 
     if ( graph_[idx] == NULL ) {
       EXCEPTION("GraphManager: Generation of sub-graph "
@@ -969,7 +970,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
       // generate an IDBC graph object for this pair
       if ( fixedDofs > 0 ) {
         // Generate IDBC graph object
-        graphIDBC_[idx] = new IDBC_Graph( blockInfoMH_->numLastFreeIndex, fixedDofs );
+        graphIDBC_[idx] = new IDBC_Graph(blockInfoMH_->numLastFreeIndex, fixedDofs, estimated_row_size_);
         if ( graphIDBC_[idx] == NULL ) {
           EXCEPTION(" GraphManager: Generation of IDBC sub-graph "
                    << "for index pair (" << rowNum << " , " << colNum
@@ -993,7 +994,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
       // generate an IDBC graph object for this pair
       if ( fixedDofs > 0 ) {
         // Generate IDBC graph object
-        graphIDBC_[idx] = new IDBC_Graph( blockInfo_[rowNum]->numLastFreeIndex, fixedDofs );
+        graphIDBC_[idx] = new IDBC_Graph(blockInfo_[rowNum]->numLastFreeIndex, fixedDofs, estimated_row_size_);
         if ( graphIDBC_[idx] == NULL ) {
           EXCEPTION(" GraphManager: Generation of IDBC sub-graph "
                    << "for index pair (" << rowNum << " , " << colNum
@@ -1009,11 +1010,22 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
             << ") and a " << blockInfo_[rowNum]->numLastFreeIndex
             << " x " << fixedDofs << " matrix";
       }
-
     }
-
   }
 
+  void GraphManager::StopGraphTimers  () 
+  {
+    for(BaseGraph* graph : graph_)
+    {
+      LOG_DBG2(graphMan) << "STG: graph_=" << graph;
+      if(graph) 
+        graph->timer->Stop();
+    }
+    
+    for(IDBC_Graph* graph : graphIDBC_)
+      if(graph) // somehow could be not initialized ?!
+        graph->timer->Stop();  
+  }
 
 
 

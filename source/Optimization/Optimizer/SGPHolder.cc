@@ -55,7 +55,7 @@ SGPHolder::SGPHolder(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn
   initargs.v_FE = sgp::Vector(vol.GetPointer(), vol.GetPointer() + vol.GetSize()); // element volumes
 
   sgp_ = new SGP(optimization, this, pn, initargs);
-  optimizer_timer_->Stop();
+  opt_timer->Stop();
 }
 
 void SGPHolder::PostInitScale()
@@ -64,7 +64,7 @@ void SGPHolder::PostInitScale()
 }
 void SGPHolder::SolveProblem()
 {
-  assert(optimizer_timer_->IsRunning());
+  assert(opt_timer->IsRunning());
   do {
     sgp_->Init();
     sgp_->SolveProblem();

@@ -8,15 +8,16 @@ namespace CoupledField {
     type_ = NO_STRATEGY;
     numSolSteps_ = 1;
     curSolStep_ = 1;
-    
+
+    if(param->Has("matrix/estimated_row_size"))
+      estimated_row_size_  = param->Get("matrix/estimated_row_size")->As<unsigned int>();
+
     // matrix node for static condensation
     {
       statCondMatNode_.reset(new ParamNode());
       statCondMatNode_->SetName("matrix");
-      statCondMatNode_->Get("storage",ParamNode::INSERT)
-               ->SetValue("variableBlockRow");
-      statCondMatNode_->Get("reordering",ParamNode::INSERT)
-                   ->SetValue("noReordering");
+      statCondMatNode_->Get("storage",ParamNode::INSERT)->SetValue("variableBlockRow");
+      statCondMatNode_->Get("reordering",ParamNode::INSERT)->SetValue("noReordering");
     }
 
     // default no multiharmonic analysis

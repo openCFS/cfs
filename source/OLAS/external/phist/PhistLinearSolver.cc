@@ -29,8 +29,7 @@ PhistLinearSolver::PhistLinearSolver(PtrParamNode param, PtrParamNode olasInfo, 
 
 void PhistLinearSolver::Setup(BaseMatrix &sysmat){
 
-  shared_ptr<Timer> setup_phistMatrix = infoNode_->Get(ParamNode::SUMMARY)->Get("setup_phistMatrix/timer")->AsTimer();
-  setup_phistMatrix->SetSub();
+  shared_ptr<Timer> setup_phistMatrix = infoNode_->Get(ParamNode::SUMMARY)->Get("setup_phistMatrix/timer")->AsTimer(GetSetupTimer());
   setup_phistMatrix->Start();
 
   phistMat_ = (phist::types<double>::sparseMat_ptr) InitMatrix<double>(sysmat, &A_, 1.0);

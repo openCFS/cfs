@@ -1134,6 +1134,8 @@ namespace CoupledField {
     // copys one matrix in the algsys to another storage location. useful for backups
     void CopyMatrixToOther(FEMatrixType matrix, FEMatrixType other, bool add = false);
 
+    GraphManager* GetGraphManager() { return graphManager_; };
+
   protected:
 
     //! Auxiliary method for logging information on matrix patterns
@@ -1170,16 +1172,16 @@ namespace CoupledField {
                                     bool sharePattern );
     
     //! Pointer to the graph manager object
-    GraphManager *graphManager_;
+    GraphManager* graphManager_ = nullptr;
 
     //! Pointer to solver
-    BaseSolver *solver_;
+    BaseSolver* solver_ = nullptr;
 
     //! Pointer to the preconditioner object
-    BasePrecond *precond_;
+    BasePrecond* precond_ = nullptr;
     
     //! Pointer to eigenvalue solver
-    BaseEigenSolver *eigenSolver_;
+    BaseEigenSolver* eigenSolver_ = nullptr;
     
     //! Pointer to struct with solution strategy information
     shared_ptr<SolStrategy> solStrat_; 

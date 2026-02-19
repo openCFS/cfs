@@ -14,7 +14,7 @@ namespace CoupledField
     IPOPTHolder(Optimization* optimization, PtrParamNode pn) : BaseOptimizer(optimization, pn, Optimization::IPOPT_SOLVER)
     {
       ipopt_ = new IPOPT(optimization, this, pn);
-      optimizer_timer_->Stop();
+      opt_timer->Stop();
     }
     
     virtual ~IPOPTHolder() 

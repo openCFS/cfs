@@ -13,17 +13,34 @@ from cfs_utils import *
 # the data is label, wall and cpu. Extend for calls when needed
 # the root Timer has the label 'total'. wall and cpu are float
 class Timer:
-  def __init__(self, label, wall, cpu, counter = -1, sub = False):
+  def __init__(self, label, wall, cpu, counter = -1, sub = False, id = None, parent_id = None):
+    self.id = id
     self.label = label
     self.wall = wall
     self.cpu = cpu
     self.cnt = counter
     self.sub = sub
-    self.speed = cpu / wall if wall >= 3 else None
+    self.parent_id = parent_id
+    self.speed = cpu / wall if wall >= 1 else None
+    self.children = [] # set in order() with parent
+    self.parent = None
+
+  # prefix is '' for independent, '* ' when no parent and '* -' or '* --' for children
+  def prefix(self):
+    if not self.sub:
+      return ''
+    if self.parent is None:
+      return '* '
+    if self.parent.parent is None:
+      return '* -'
+    return '* --'
   
 # helper to get extract a timer from an xml node
 # extracts the data from a node. If no id attribute is given tries to be smart
 def set_timer(node):  
+  # id and parent for modern cfs
+  id = int(node.attrib['id']) if 'id' in node.attrib else -1
+  parent_id = int(node.attrib['parent']) if 'parent' in node.attrib else None
   w = float(node.attrib['wall'])
   c = float(node.attrib['cpu'])
   i = int(node.attrib['calls'])
@@ -37,19 +54,60 @@ def set_timer(node):
       if l == "cfsInfo":
         l = 'total'
         i = -1 # skip counter 
+
   # the optional attribute sub="true" indicates that this is sub-element 
   # and shall not be considered for missing_time
+  # not any sub-element has parent set
   s = node.attrib['sub'] if 'sub' in node.attrib else None
-  return Timer(l, w, c, i, s == 'true')      
+  return Timer(l, w, c, i, s == 'true', id, parent_id)      
+          
+## structure timers to include sub-timers and sort as requested. Exclude timer with cnt==0
+def order(timers, sort_by_id=False):
+  if not sort_by_id:
+    timers.sort(key=lambda t: t.wall, reverse=True)
+  if sum([t.id == -1 for t in timers]) > 1: # root is allowed to have -1
+    return timers
+
+  # make a map by id for easy access
+  map = {}
+  for t in timers:
+    map[t.id] = t
+
+  main = [] # timer of first level = independent timers + parentless sub-timers
+  for t in timers:
+    if t.cnt == 0:
+      continue
+    if not t.sub or t.parent_id == None:
+      main.append(t)
+    else:
+      # we are a sub-timer with known parent, add to tree structure
+      map[t.parent_id].children.append(t)  
+      t.parent = map[t.parent_id]
+
+  if sort_by_id:  
+    main.sort(key=lambda t: t.id)
+     
+  def add(lst, res):
+    for t in lst:
+      res.append(t)
+      if t.children:
+        add(t.children, res)
+
+  # flatten timers
+  flat = []
+  add(main, flat)
+  return flat
           
 ## extracts all timers from info.xml and give back as array of Timer objects
 #@param gap shall a timer added as the last one which contains the gap from the first 
 #           minus the sum of the rest
-def read_info(xml, gap = False):
+def read_info(xml, gap = False, sort_by_id=False):
   res = []
-  all = xml.xpath("//*[contains(local-name(),'timer')]") # sum stuff is renamed like snopt_timer
+  all = xml.xpath("//*[contains(local-name(),'timer')]") # some stuff is renamed like snopt_timer
   for node in all:
     res.append(set_timer(node))  
+
+  res = order(res, sort_by_id)
 
   if gap:
     wall = res[0].wall  
@@ -119,7 +177,7 @@ def print_timer(timers, brief, wall, cpu, cnt=False, ref=None, threshold=0.0):
     meta = 0  
 
   # header
-  max_label = max([len(t.label) for t in timer[0]]) + 1 # add 1 for * in sub case
+  max_label = max([len(t.label) for t in timer[0]]) + 3 # for '*--' as we assume max two levels of sub-timers
   head = 'TIMER (sec)'.ljust(max_label)
   if brief:
     if not ref:
@@ -136,16 +194,10 @@ def print_timer(timers, brief, wall, cpu, cnt=False, ref=None, threshold=0.0):
       head += ': MIN_CPU |    REF'    
   else:
     if not ref:
-      if meta:
-        head += ': '
-        head += '____MIN_WALL___' if wall else ''
-        head += ' ~ ' if wall and cpu else ''
-        head += '____MIN_CPU____' if cpu else ''
-      else:
-        head += ': cnt :'
-        head += '______WALL_____' if wall else ''
-        head += ' ~ ' if wall and cpu else ''
-        head += '______CPU______' if cpu else ''
+      head += ': cnt :'
+      head += '______WALL_____' if wall else ''
+      head += ' ~ ' if wall and cpu else ''
+      head += '______CPU______' if cpu else ''
 #      head += ' : PAR' if not meta else ''
       for m in range(meta):
         head += '  |' if m == 0 else '  :'
@@ -169,7 +221,10 @@ def print_timer(timers, brief, wall, cpu, cnt=False, ref=None, threshold=0.0):
     # format for time display
     format_wall = '{: 6.0f}' if t.wall >= 10000 else '{: 6.2f}'
     format_cpu = '{: 6.0f}' if t.cpu >= 10000 else '{: 6.2f}'
-    l = t.label + ('*' if t.sub else '')
+
+    prefix = t.prefix()
+    l = prefix + t.label
+
     line = l.ljust(max_label)
     line += ':'
     if cnt:
@@ -271,6 +326,7 @@ parser.add_argument('--brief', help="brief analysis output to make it within the
 parser.add_argument('--wall', help="show only wall times", action='store_true', default=False)
 parser.add_argument('--cpu', help="show only cpu times", action='store_true', default=False)
 parser.add_argument('--threshold', help="show only wall time above this seconds", type=float, default=0.0)
+parser.add_argument('--appearance', help="do not sort by wall time but by id", action='store_true', default=False)
 parser.add_argument('-m', '--mesh', help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
 parser.add_argument('--executable', help="for execution what to call for cfs", default='cfs')
 parser.add_argument('-r', '--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
@@ -289,11 +345,11 @@ if args.input[0].endswith('.info.xml'):
   timers = []
   for info_file in args.input:
     xml = open_xml(info_file)
-    timers.append(read_info(xml, gap=True))
+    timers.append(read_info(xml, gap=True, sort_by_id=args.appearance))
 
   if args.ref:
     xml = open_xml(args.ref)
-    timer_ref = read_info(xml, gap=True)
+    timer_ref = read_info(xml, gap=True, sort_by_id=args.appearance)
     timer = minimal_timer(timers)
     if has_rel_error(timer_ref, timer, skip_noise=args.skip_noise):
       print_timer(timers, args.brief, wall, cpu, False, timer_ref)

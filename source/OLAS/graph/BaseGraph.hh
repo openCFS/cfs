@@ -3,13 +3,14 @@
 
 #include <iostream>
 #include <vector>
+#include <boost/unordered/unordered_flat_set.hpp>
 
 #include "General/Environment.hh"
 #include "BaseOrdering.hh"
-#include <unordered_set>
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
-namespace CoupledField {
-
+namespace CoupledField 
+{
   //! Base Class for handling the graph associated with a matrix
   
   //! This class represents the base class for all classes related to the
@@ -37,7 +38,7 @@ namespace CoupledField {
     //! \note In the current implementation we use nRows to set the value of
     //!       the numNodes_ attribute, i.e. we generate a vertex for each
     //!       row of the matrix.
-    BaseGraph( UInt nRows, UInt nCols);
+    BaseGraph( UInt nRows, UInt nCols, unsigned int estimated_row_size);
 
     //! Insert data into a graph
 
@@ -49,8 +50,7 @@ namespace CoupledField {
     //! \param cs_node  pointers to the position of the connectivity for node
     //!                 i in cs_edge
     //! \param cs_edge  stores the connectivity information for all nodes
-    BaseGraph( UInt nRows, UInt nCols, UInt numEdge, UInt *cs_node,
-               UInt *cs_edge );
+    BaseGraph( UInt nRows, UInt nCols, UInt numEdge, UInt* cs_node, UInt* cs_edge );
 
     //! Default destructor
     virtual ~BaseGraph();
@@ -82,7 +82,7 @@ namespace CoupledField {
     void FinaliseAssembly( BaseOrdering::ReorderingType reorder, 
                            bool useExternalOrdering,
                            StdVector<UInt>* vertexOrder,
-                           StdVector<UInt>* edgeOrder = NULL );
+                           StdVector<UInt>* edgeOrder = nullptr );
 
     //! Add edges between vertices and their neighbours
 
@@ -189,7 +189,7 @@ namespace CoupledField {
 
     //! Query wether the graph has been reordered
     bool IsReordered() {
-      return amReordered_;
+      return isReordered_;
     }
 
     //! Return lower and upper bandwidth of the graph-connectivity matrix
@@ -237,6 +237,9 @@ namespace CoupledField {
     StdVector<std::pair<UInt,UInt> >& GetColBlockDefinition();
     //@}
 
+    /** this is the full graph timer (a sub-timer) 
+     * Started by BaseGraph constructor and ended by AlgebraicSystem::StopGraphTimers()  */
+    boost::shared_ptr<Timer> timer;
 
   protected:
 
@@ -262,48 +265,6 @@ namespace CoupledField {
      * @param structure row by row, otherwise one line with rows and one with column
      * @param level 0 = each rows by line, 1 = one line for row and col, 2 = metis 5 graph file formant for ndmetis */
     std::string PrintCRS(unsigned int numNodes, unsigned int* rows, unsigned int* cols, int level = 0) const;
-    
-    //! Uncompressed matrix graph, consisting of STL lists
-    std::vector<unsigned int>* element_;
-
-    //! Number of nodes/vertices in the matrix graph
-    UInt numNodes_;
-
-    //! Number of nodes without self-reference, i.e. without diagonal element
-    UInt numNonDiagEntries_;
-    
-    //! Number of edges in the graph
-    UInt nne_ = 0;
-
-    //! store the lower bandwidth of the graph
-    UInt bwlower_;
-
-    //! store the upper bandwidth of the graph
-    UInt bwupper_;
-    
-    //! store the average total bandwidth of the graph
-    UInt bwavg_ = 0;
-
-
-    // =======================================================================
-    // Neighbouring graphs
-    // =======================================================================
-    
-    //! Row diagonal graph
-    BaseGraph * rowDiagGraph_;
-    
-    //! Column diagonal graph
-    BaseGraph * colDiagGraph_;
-
-    // =======================================================================
-    // REORDERING stuff
-    // =======================================================================
-
-    //! Strategy for re-ordering the graph
-    BaseOrdering::ReorderingType newOrder_;
-
-    //! Keep track of wether the graph has been reordered
-    bool amReordered_;
 
     /** Compute a fill-reducing ordering of the graph.
 
@@ -338,6 +299,57 @@ namespace CoupledField {
     //! node \f$n_i\f$ to node \f$n_j\f$. The entries in each row are sorted
     //! lexicographically with increasing column index.
     void ConvertToCRS();
+ 
+    /** common part of constructors */
+    void Init();
+
+    /** estimated row size. If too small we need re-hashing of setElements_ */
+    unsigned int estimated_row_size_ = 0;
+
+    PtrParamNode info_;
+
+    //! Uncompressed matrix graph, consisting of STL lists
+    StdVector<std::vector<unsigned int>> element_;
+
+    //! Number of nodes/vertices in the matrix graph
+    UInt numNodes_ = 0;
+
+    //! Number of nodes without self-reference, i.e. without diagonal element
+    UInt numNonDiagEntries_ = 0;
+    
+    //! Number of edges in the graph
+    UInt nne_ = 0;
+
+    //! store the lower bandwidth of the graph
+    UInt bwlower_ = 0;
+
+    //! store the upper bandwidth of the graph
+    UInt bwupper_ = 0;
+    
+    //! store the average total bandwidth of the graph
+    UInt bwavg_ = 0;
+
+
+    // =======================================================================
+    // Neighbouring graphs
+    // =======================================================================
+    
+    //! Row diagonal graph
+    BaseGraph* rowDiagGraph_ = nullptr;
+    
+    //! Column diagonal graph
+    BaseGraph* colDiagGraph_ = nullptr;
+
+    // =======================================================================
+    // REORDERING stuff
+    // =======================================================================
+
+    //! Strategy for re-ordering the graph
+    BaseOrdering::ReorderingType newOrder_ = BaseOrdering::NOREORDERING;
+
+    //! Keep track of wether the graph has been reordered
+    bool isReordered_ = false;
+
 
     //! This array contains the indices of connected nodes (column array)
 
@@ -345,21 +357,21 @@ namespace CoupledField {
     //! it is connected (including itself, if a 'diagonal' node). These lists
     //! are stored one after the other in this data array. This corresponds
     //! to the column index vector in compressed row storage format.
-    UInt *csEdges_;
+    UInt* csEdges_ = nullptr;
 
     //! This array points to the start of the rows in cs_edges
 
     //! This array contains for every node the starting index of its neighbor
     //! list in the cs_edgdes_ array. This corresponds to the row pointer
     //! vector in compressed row storage format.
-    UInt *csNodes_;
+    UInt* csNodes_ = nullptr;
 
     //! Keep track of whether assembly of the graph was finalized
 
     //! This attribute keeps track of the status of the graph. It is initially
     //! set to false and switched to true, once the assembly of the graph was
     //! finalized and it was converted to the CRS structure.
-    bool amAssembled_;
+    bool amAssembled_ = false;
 
     //! Default Constructor
 
@@ -372,29 +384,30 @@ namespace CoupledField {
     //! This graph class is used to handle a matrix graph, i.e. the graph
     //! represents the sparsity pattern of a matrix. This attribute stores
     //! the number of columns in this associated matrix.
-    UInt numColsMat_;
+    UInt numColsMat_ = 0;
 
     //! Number of rows in the matrix associated with the graph
 
     //! This graph class is used to handle a matrix graph, i.e. the graph
     //! represents the sparsity pattern of a matrix. This attribute stores
     //! the number of rows in this associated matrix.
-    UInt numRowsMat_;
+    UInt numRowsMat_ = 0;
     
     //! Original definition of blocks (unsorted)
     //! \note The graph object will not take ownership of this pointer, i.e.
     //! the user has to delete this pointer from outside after the graph
     //! object is deleted.
-    const StdVector<StdVector<UInt> >* unsortedBlocks_ = NULL;
+    const StdVector<StdVector<UInt> >* unsortedBlocks_ = nullptr;
     
     //! Final representation of blocks
     StdVector<std::pair<UInt,UInt> > sortedBlocks_;
 
-    //! set for faster add of element neighbors
-    std::unordered_set<UInt>* setElements_ = NULL;
+    /** set for faster add of element neighbors - will be finalized to elements_
+     * the rows are sorted in SortLists(), so unordered makes no numerical issues */
+    StdVector<boost::unordered_flat_set<UInt>> setElements_;
 
     //! flag to check if element_ pointer is ready
-    bool setToElemDone_;
+    bool setToElemDone_ = false;
 
   };
 

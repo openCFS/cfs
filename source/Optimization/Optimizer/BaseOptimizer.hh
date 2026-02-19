@@ -34,14 +34,14 @@ namespace CoupledField
     typedef enum { ALL = 0, LINEAR = 1, NONLINEAR = 2} GradientType;
 
     /** call PostInit() afterwards!
-     * Child classes shall optimizer_timer_  either in the constructor or after PostInit().
+     * Child classes shall opt_timer  either in the constructor or after PostInit().
      * @param optimization this is the actual optimization problem
      * @param pn to hold the complete "optimizer" element!. Not NULL! */
     BaseOptimizer(Optimization* optimization, PtrParamNode pn, Optimization::Optimizer type);
 
     virtual ~BaseOptimizer();
 
-    /** call this after the constructor. Make sure optimizer_timer_ is stopped here and if you don't implement it, stop it in the constructor */
+    /** call this after the constructor. Make sure opt_timer is stopped here and if you don't implement it, stop it in the constructor */
     virtual void PostInit();
 
     /** This solves the complete Optimization problem by using
@@ -103,7 +103,6 @@ namespace CoupledField
 
     PtrParamNode GetInfoNode() { return info_; }
 
-    Optimization* optimization;
 
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
     boost::shared_ptr<Timer> GetRunningEvalTimer();
@@ -128,6 +127,11 @@ namespace CoupledField
     {
       throw "optimizer_set_property() not implement by " + Optimization::optimizer.ToString(type_);
     }
+    
+    /** this is the generic optimizer timer. Public to use it easily as parent for sub-timers */
+    boost::shared_ptr<Timer> opt_timer;
+
+    Optimization* optimization;
 
   protected:
 
@@ -268,7 +272,6 @@ namespace CoupledField
 
     /** Determine the time spent in the external optimizer.
      * This is SolveProblem minus all evaluations */
-    boost::shared_ptr<Timer> optimizer_timer_;
     boost::shared_ptr<Timer> eval_obj_timer_;
     boost::shared_ptr<Timer> eval_grad_obj_timer_;
     boost::shared_ptr<Timer> eval_const_timer_;
