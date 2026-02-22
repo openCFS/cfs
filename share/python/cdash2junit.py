@@ -5,7 +5,7 @@ import argparse
 parser = argparse.ArgumentParser(description="Get information from CDash and write a JUnit file")
 parser.add_argument('buildid', type=int, nargs=1,
                     help='the build id of the build for which to collext test details')
-parser.add_argument('--cdash-url', default="http://movm.mi.uni-erlangen.de/cdash/",
+parser.add_argument('--cdash-url', default="http://am-ko.mi.uni-erlangen.de/cdash/",
                     help='the url of the cdash server')
 
 args = parser.parse_args()

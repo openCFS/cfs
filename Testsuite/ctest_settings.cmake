@@ -3,7 +3,7 @@
 
 set(CTEST_PROJECT_NAME "CFS")
 set(CTEST_DROP_METHOD "http")
-set(CTEST_DROP_SITE "movm.mi.uni-erlangen.de")
+set(CTEST_DROP_SITE "am-ko.mi.uni-erlangen.de")
 set(CTEST_DROP_LOCATION "/cdash/submit.php?project=CFS")
 set(SUBMIT_URL "${CTEST_DROP_METHOD}://${CTEST_DROP_SITE}${CTEST_DROP_LOCATION}") # the Testsuite needs this version
 set(CTEST_DROP_SITE_CDASH TRUE)

@@ -1746,3 +1746,4 @@ void Optimization::Log::AddToHeader(const string& label)
 
   fileHeader += boost::lexical_cast<string>(columns_) + ":" + label;
 }
+

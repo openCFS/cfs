@@ -15,8 +15,8 @@ Remove-Item ccache-extract -Force -Recurse -ErrorAction SilentlyContinue
 curl.exe -L https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe -o oneapi_offline.exe
 if (-Not (Test-Path oneapi_offline.exe) -or (Get-Item oneapi_offline.exe).Length -lt 10000) 
 {
-  Write-Host "curl oneapi_offline.exe from intel failed, try to curl from movm"
-  curl -L http://movm.mi.uni-erlangen.de/pipeline/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe -o oneapi_offline.exe
+  Write-Host "curl oneapi_offline.exe from intel failed, try to curl from am-ko"
+  curl -L http://am-ko.mi.uni-erlangen.de/pipeline/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe -o oneapi_offline.exe
   ls oneapi_offline.exe
 }
 # install in two steps. We are Administrator, see https://learn.microsoft.com/de-de/archive/blogs/virtual_pc_guy/a-self-elevating-powershell-script

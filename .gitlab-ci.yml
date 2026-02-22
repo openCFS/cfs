@@ -639,8 +639,8 @@ cfsdeps:msvc2022:
   # get build ID from file
   - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
   # save links as variables
-  - CDASH_BUILD_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
-  - CDASH_TEST_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
+  - CDASH_BUILD_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
+  - CDASH_TEST_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
   # output to annotations
   # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
   - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
@@ -665,17 +665,17 @@ cfsdeps:msvc2022:
     - echo "$CFS_CONFIG_OPTIONS"
     - cmake -DCFS_TESTSUITE=OFF ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
-    - ctest -D ExperimentalStart --track $CDASH_TRACK -V
+    - ctest -D ExperimentalStart --group $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
+    - ctest -D ExperimentalUpdate --group $CDASH_TRACK -V
     # configure
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
+    - ctest -D ExperimentalConfigure --group $CDASH_TRACK -V
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     # build
     # --parallel 1 beats the environment variable CMAKE_BUILD_PARALLEL_LEVEL
     - cmake --build . --target cfsdeps --parallel 1
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
+    - ctest -D ExperimentalBuild --group $CDASH_TRACK -V |& tee build.log
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
     - export DEBUG_SECTION_TITLE='Delete stuff to make space for packing'
     - !reference [.linux-debug-start_collapsed, script]
@@ -687,7 +687,7 @@ cfsdeps:msvc2022:
     - du -h --max-depth=1 . # debug
     - df -h # debug
     - !reference [.linux-debug-end, script]
-    - ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build # test build and install
+    - ctest -D ExperimentalTest --group $CDASH_TRACK -R Pipeline_Build # test build and install
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
     - export DEBUG_SECTION_TITLE='debug information and cleanup'
@@ -705,7 +705,7 @@ cfsdeps:msvc2022:
     - !reference [.linux_list_cache, script]
     # submit test results
     - cd build
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || cat submit.log # only output submit.log on fail
     - cp CMakeCache.txt CMakeCache_build-stage.txt # rename CMakeCache to avoid conflicts
     # ccache info & clean
     - ccache --verbose --show-stats || ccache -s || true
@@ -925,14 +925,14 @@ windows:msvc2022:
   variables:
     # see https://yaml-multiline.info/ for multiline info
     # building cfs with ninja we need to make sure to build cfsdeps serially first (practically all from precompiled cfsdeps)
-    BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
-                    ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
-                    ctest -D ExperimentalConfigure --track $CDASH_TRACK -V &&
-                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+    BUILD_COMMAND: "ctest -D ExperimentalStart --group $CDASH_TRACK -V &&
+                    ctest -D ExperimentalUpdate --group $CDASH_TRACK -V &&
+                    ctest -D ExperimentalConfigure --group $CDASH_TRACK -V &&
+                    ctest -D ExperimentalSubmit --group $CDASH_TRACK &&
                     cmake --build . --target cfsdeps --parallel 1 &&
-                    ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
-                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
-                    ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build -V"
+                    ctest -D ExperimentalBuild --group $CDASH_TRACK -V | tee build.log &&
+                    ctest -D ExperimentalSubmit --group $CDASH_TRACK &&
+                    ctest -D ExperimentalTest --group $CDASH_TRACK -R Pipeline_Build -V"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache.exe
   script:
@@ -987,7 +987,7 @@ windows:msvc2022:
     # optionally install cmake if not present
     - !reference [.cmake_test_or_install,script]
     # CDash submit, quiet, but do not fail
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log || echo "submit fail, not even submit.log written"
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || cat submit.log || echo "submit fail, not even submit.log written"
     # save buildid
     - !reference [.save_cdash_buildid,script]
   artifacts:
@@ -1039,10 +1039,10 @@ windows:msvc2022:
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
     - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
-    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --group $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 
 # we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
@@ -1053,10 +1053,10 @@ windows:msvc2022:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
     - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
-    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -LE "unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -LE "unstable|slow" -E "^PYTHON_" --group $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -1240,10 +1240,10 @@ python:linux:
     - !reference [.cmake_test_or_install,script] # optionally install cmake if not present
     - cmake -DTESTSUITE_CFS=OFF -DCFS_INSTALL_DIR=$CI_PROJECT_DIR/build $CI_PROJECT_DIR/Testsuite # switch off CFS
   script:
-    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -R PYTHON --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
+    - ctest -D ExperimentalTest -R PYTHON --group $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
   needs: [] # run as soon as possible
@@ -1447,10 +1447,10 @@ cdash:report:
   after_script: []
   before_script: []
   script:
-    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
+    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
   environment:
     name: CDash/$CI_COMMIT_REF_SLUG
-    url: http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
+    url: http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
   dependencies: []
 
