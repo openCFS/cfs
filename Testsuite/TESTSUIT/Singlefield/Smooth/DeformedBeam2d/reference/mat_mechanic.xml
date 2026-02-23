@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+                     xsi:schemaLocation="http://www.cfs++.org/material https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd"
+                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <material name="elastic">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 0 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>E</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>nu</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

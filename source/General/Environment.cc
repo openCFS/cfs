@@ -166,6 +166,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
     SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY_DENS, "smoothDeformEnergyDensity");
     SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY, "smoothDeformEnergy");
+    SolutionTypeEnum.Add(SMOOTH_STRESS, "smoothStress");
     
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
@@ -1261,6 +1262,7 @@ namespace CoupledField {
       case MECH_PRINCIPAL_STRESS_MIN_SCAL:
       case MECH_PRINCIPAL_STRESS_MED_SCAL:
       case MECH_PRINCIPAL_STRESS_MAX_SCAL:
+      case SMOOTH_STRESS:
       return "N/m^2";
         break;
 

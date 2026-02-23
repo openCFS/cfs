@@ -188,6 +188,7 @@ ADD_SUBDIRECTORY(Singlefield/Smooth/StaticShearStrainStiffening2D)
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(Singlefield/Smooth/TransientUniaxialStrainStiffening2D)
 ENDIF(USE_PARDISO)
+ADD_SUBDIRECTORY(Singlefield/Smooth/DeformedBeam2d)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for Split PDE test cases.

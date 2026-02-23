@@ -180,6 +180,7 @@
           <xsd:enumeration value="smoothAcceleration"/>
           <xsd:enumeration value="smoothZeroStress"/>
           <xsd:enumeration value="smoothStrain"/>
+          <xsd:enumeration value="smoothStress"/>
           <xsd:enumeration value="smoothContactForceDensity"/>
           <xsd:enumeration value="smoothContactForce"/>
           <!-- acoustics -->

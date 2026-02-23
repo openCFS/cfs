@@ -1,0 +1,41 @@
+Journal Off
+reset
+undo off
+
+
+# Define mesh intervall
+#{ELB = 12}
+#{ELL = 25}
+
+# Define beam size
+#{b = 3}
+#{l = 50}
+
+
+# create plane
+create surface rectangle width {l} height {b} zplane 
+
+# mesh plane
+curve 1  interval {ELL}
+curve 1  scheme equal 
+
+curve 2  interval {ELB}
+curve 2  scheme equal 
+mesh curve 1 2
+
+surface 1  scheme map
+mesh surface 1 
+
+# define regions
+block 1 add surface all
+block 1 name "beam"
+
+
+nodeset 1 add curve 2
+nodeset 1 name "BC_fix"
+
+nodeset 2 add curve 4
+nodeset 2 name "BC_displace"
+
+export ansys cdb "./mesh_beam.cdb"  overwrite 
+

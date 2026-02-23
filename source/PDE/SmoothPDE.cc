@@ -686,6 +686,28 @@ namespace CoupledField {
 
     DefineFieldResult( constZero, stressZero );
 
+    // === SMOOTH STRESS ===
+    // Stress \bm{\sigma} = \left[ \bm{C} \right] : {\bm{s}}
+    //
+    shared_ptr<ResultInfo> stress(new ResultInfo);
+    stress->resultType = SMOOTH_STRESS;
+    stress->dofNames = stressComponents;
+    stress->unit = MapSolTypeToUnit(SMOOTH_STRESS);
+    stress->entryType = ResultInfo::TENSOR;
+    stress->definedOn = ResultInfo::ELEMENT;
+    PtrCoefFct stressCoef;
+    
+    shared_ptr<CoefFunctionFormBased> sigmaFunc;
+    if( isComplex_ ) {
+      sigmaFunc.reset(new CoefFunctionFlux<Complex>(feFct, stress));
+    } else {
+      sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
+    }
+    stressCoef = sigmaFunc;
+    DefineFieldResult( stressCoef, stress );
+    stiffFormCoefs_.insert(sigmaFunc);
+
+
     // === SMOOTH STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = SMOOTH_STRAIN;
