@@ -144,7 +144,7 @@ private:
   PtrParamNode sp_info_; // our own info
 
   /** created in ToInfo() */
-  boost::shared_ptr<Timer> py_timer;
+  shared_ptr<Timer> py_timer;
 
 };
 

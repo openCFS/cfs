@@ -36,7 +36,7 @@ class ElecPDE;
 //!   OI! DESCRIBE ME IN DETAIL
 
 template <class T>
-class CoefFunctionHarmBalance : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionHarmBalance<T>> {
+class CoefFunctionHarmBalance : public CoefFunction, public enable_shared_from_this<CoefFunctionHarmBalance<T>> {
   friend ElecPDE;
 public:
   //! Constructor

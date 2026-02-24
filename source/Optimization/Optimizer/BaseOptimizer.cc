@@ -268,7 +268,7 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
 
   // evaluate  timer makes no sense and is also not implemented in a clean way
   if(type == Optimization::EVALUATE_INITIAL_DESIGN)
-    opt_timer = boost::shared_ptr<Timer>(new Timer());
+    opt_timer = shared_ptr<Timer>(new Timer());
   else
     opt_timer = info_->Get(ParamNode::SUMMARY)->Get(Optimization::optimizer.ToString(type))->Get("timer")->AsTimer();
 
@@ -305,7 +305,7 @@ void BaseOptimizer::ToInfo(PtrParamNode pn)
     sc->Get("active")->SetValue("no");
 }
 
-boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
+shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 {
   // only one may run
   assert(!(eval_obj_timer_->IsRunning() && (eval_const_timer_->IsRunning() || eval_grad_obj_timer_->IsRunning() || eval_grad_const_timer_->IsRunning() )));
@@ -323,7 +323,7 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
     return eval_grad_const_timer_;
   // Nothing is running when we do a direct eval constraint call
   //std::cout << "BO:GRET -> NULL\n";
-  return boost::shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
+  return shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
 }
 
 bool BaseOptimizer::ValidateTimers()

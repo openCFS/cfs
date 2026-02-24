@@ -301,7 +301,7 @@ namespace CoupledField
     //! Map Storing FeSpaces for each solution type of PDE
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
-    boost::shared_ptr<Timer> static_non_lin_step_timer_;
+    shared_ptr<Timer> static_non_lin_step_timer_;
 
     std::ofstream logFile_;
     unsigned int mHandle_;

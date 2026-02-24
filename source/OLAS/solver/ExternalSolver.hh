@@ -101,17 +101,17 @@ namespace CoupledField {
     /** Export Timer
      * This is timer measures the time it takes to export the system matrix and rhs vector.
      */
-    boost::shared_ptr<Timer> exportTimer_;
+    shared_ptr<Timer> exportTimer_;
 
     /** Execution Timer
      * This timer measures the time it takes for the external Solver to solve the system.
      */
-    boost::shared_ptr<Timer> executionTimer_;
+    shared_ptr<Timer> executionTimer_;
 
     /** Import Timer
      * This timer measures the time it takes to import the solution vector of the external Solver.
      */
-    boost::shared_ptr<Timer> importTimer_;
+    shared_ptr<Timer> importTimer_;
   };
 }
 

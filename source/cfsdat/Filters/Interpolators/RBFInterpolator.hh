@@ -40,7 +40,7 @@ class RBFInterpolator : public MeshFilter{
 
 public:
 
-  RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~RBFInterpolator();
 
@@ -84,10 +84,10 @@ private:
     Double globalFactor_;
 
     //! Entity map used for source values
-    str1::shared_ptr<EqnMapSimple> scrMap_;
+    shared_ptr<EqnMapSimple> scrMap_;
 
     //! Entity map used for target values
-    str1::shared_ptr<EqnMapSimple> trgMap_;
+    shared_ptr<EqnMapSimple> trgMap_;
 
 
     //! Coordinates of input data

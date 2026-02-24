@@ -938,7 +938,7 @@ namespace CoupledField {
           {
             EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
           }
-          shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+          shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
           assert(mortarIf);
           
           PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
@@ -3650,7 +3650,7 @@ namespace CoupledField {
     Domain * inDomain = NULL;
     PtrCoefFct stressVec;
     //Get Stress CoefFunction from previous state
-    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+    shared_ptr<SimState> inState(new SimState(true, domain_));
     
     PtrParamNode icInfo = infoNode_->Get("Prestressing");
     PtrParamNode isInfo = icInfo->Get("ComputedLHS");
@@ -3658,7 +3658,7 @@ namespace CoupledField {
       std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
       PtrParamNode node(new ParamNode());
       PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
-      boost::shared_ptr<SimInputHDF5> in;
+      shared_ptr<SimInputHDF5> in;
       in.reset(new SimInputHDF5(fileName, node, infoNode));
       inState->SetInputHdf5Reader(in);
       SimState::GridMap gridMap = domain_->GetGridMap();

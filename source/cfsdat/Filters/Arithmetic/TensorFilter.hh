@@ -24,7 +24,7 @@ class TensorFilter : public BaseFilter{
   
 public:
 
-  TensorFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  TensorFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~TensorFilter();
 

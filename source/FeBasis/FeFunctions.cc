@@ -80,8 +80,8 @@ namespace CoupledField {
 
     if(list->GetSize() == 2 && list->GetType() == EntityList::NODE_LIST)
     {
-      assert(boost::dynamic_pointer_cast<NodeList>(list) != NULL); // we ask for it in if, so make a static_cast
-      shared_ptr<NodeList> nl = boost::static_pointer_cast<NodeList>(list);
+      assert(dynamic_pointer_cast<NodeList>(list) != NULL); // we ask for it in if, so make a static_cast
+      shared_ptr<NodeList> nl = std::static_pointer_cast<NodeList>(list);
 
       assert(nl->GetNodes().GetSize() == 2);
       std::list<unsigned int>& list = two_node_entries_cache_[nl->GetNodes()[0]];

@@ -37,7 +37,7 @@
 
 namespace CFSDat{
 
-RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+RBFInterpolator::RBFInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -110,7 +110,7 @@ CF::UInt RBFInterpolator::CountUsedEntities(const StdVector<CF::UInt>& entities)
   return numEntities;
 }
 
-void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+void RBFInterpolator::GetUsedMappedEntities(const shared_ptr<EqnMapSimple>& map,
                                                   StdVector<CF::UInt>& entities,
                                                   const std::set<std::string>& regions,
                                                   Grid* grid) {

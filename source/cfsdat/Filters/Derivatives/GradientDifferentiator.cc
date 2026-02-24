@@ -23,7 +23,7 @@
 
 namespace CFSDat{
 
-GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+GradientDifferentiator::GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;

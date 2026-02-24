@@ -20,7 +20,7 @@
 
 namespace CFSDat{
 
-BinOpFilter::BinOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+BinOpFilter::BinOpFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                              :BaseFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
   

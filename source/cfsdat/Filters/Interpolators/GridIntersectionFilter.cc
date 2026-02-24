@@ -25,7 +25,7 @@
 
 namespace CFSDat{
 
-GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+GridIntersectionFilter::GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -121,8 +121,8 @@ void GridIntersectionFilter::PrepareCalculation(){
 
 void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemIntersect::VolCenterInfo> & infos){
   //get the equation mapping from the in out results
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
-  str1::shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+  shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
   
   InterpolationMatrix->Init();
   UInt negativeCounter = 0;
@@ -181,8 +181,8 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
 void GridIntersectionFilter::CreateCRS(const StdVector<ElemIntersect::VolCenterInfo> & infos){
 
   //get the equation mapping from the in out results
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
-  str1::shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+  shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
 //  uuids::uuid upRes = upResIds[0];
 //  Grid* sGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
 

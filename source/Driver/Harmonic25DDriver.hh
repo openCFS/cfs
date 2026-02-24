@@ -11,7 +11,7 @@
 #define FILE_HARMONIC_25D_HH
 
 #include "SingleDriver.hh"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace CoupledField {
 

@@ -24,7 +24,7 @@ namespace CFSDat{
 class OutputFilter : public BaseFilter {
 
 public:
-  OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~OutputFilter();
 
@@ -34,7 +34,7 @@ public:
 
 protected:
 
-  virtual void AddOutput(str1::shared_ptr<BaseFilter> filt){
+  virtual void AddOutput(shared_ptr<BaseFilter> filt){
     EXCEPTION("Filter Error : " << this->filterId_ << "\n An output filter may not have another filter output. PassThrough is not supported, use branching.")
   }
 
@@ -43,7 +43,7 @@ protected:
   virtual void AdaptFilterResults();
 
 
-  str1::shared_ptr<CoupledField::SimOutput> outFile_;
+  shared_ptr<CoupledField::SimOutput> outFile_;
 
   std::map<UInt,Double>::iterator aStepIter_;
 private:

@@ -10,7 +10,7 @@
 #include "MatVec/Vector.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Optimization.hh"
-#include "boost/shared_ptr.hpp"
+#include <memory>
 
 namespace CoupledField {
 class ShapeGrad;
@@ -100,7 +100,7 @@ public:
    */
   void SolveProblem(const unsigned int iter);
   /** if we use the levelset method, we also need a pointer to the levelset */
-  void SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> lsptr);
+  void SolveProblem(const unsigned int iter, shared_ptr<LevelSet> lsptr);
   /** contains the computation that are needed for both of the above methods */
   void SolveProblemCommon(const unsigned int iter);
   

@@ -29,7 +29,7 @@ public:
   //! Choose the filter according to ptrNode
   static FilterPtr Generate(PtrParamNode ptrNode, PtrResultManager resMana);
 
-  BaseMeshFilterType(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+  BaseMeshFilterType(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
     :BaseFilter(numWorkers,config,resMan){
 
   }

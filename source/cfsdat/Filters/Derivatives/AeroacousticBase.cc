@@ -19,7 +19,7 @@
 
 namespace CFSDat{
 
-AeroacousticBase::AeroacousticBase(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+AeroacousticBase::AeroacousticBase(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
 

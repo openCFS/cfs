@@ -37,10 +37,10 @@ struct GenericResultAdapter{
 
   virtual SingleVector* GetSingleVector() = 0;
 
-  //str1::shared_ptr< EqnMapSimple > mapping;
+  //shared_ptr< EqnMapSimple > mapping;
 
   //! result struct for export, one result for each entity list/region
-  //CF::StdVector< str1::shared_ptr<CF::BaseResult> > baseResultVector;
+  //CF::StdVector< shared_ptr<CF::BaseResult> > baseResultVector;
 
   UInt stepIndex;
 
@@ -64,9 +64,9 @@ struct ResultAdaptor : public GenericResultAdapter{
   Vector<T> resultVector;
 };
 
-typedef str1::shared_ptr<GenericResultAdapter> ResAdaptPtr;
+typedef shared_ptr<GenericResultAdapter> ResAdaptPtr;
 
-typedef str1::shared_ptr<const GenericResultAdapter> ConstResAdaptPtr;
+typedef shared_ptr<const GenericResultAdapter> ConstResAdaptPtr;
 
 
 
@@ -92,10 +92,10 @@ public:
 
   virtual SingleVector* GetSingleVector();
 
-  str1::shared_ptr< EqnMapSimple > mapping;
+  shared_ptr< EqnMapSimple > mapping;
 
   //! result struct for export, one result for each entity list/region
-  CF::StdVector< str1::shared_ptr<CF::BaseResult> > baseResultVector;
+  CF::StdVector< shared_ptr<CF::BaseResult> > baseResultVector;
 
 protected:
 

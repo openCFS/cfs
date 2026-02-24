@@ -30,7 +30,7 @@ public:
   static TimeMeanMap tMeanMap_;
 
   //!  Constructor.
-  TimeMeanFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+  TimeMeanFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
     : BaseFilter(numWorkers,config, resMan){
     baseQuantity_ = CoupledField::NO_SOLUTION_TYPE;
     isFirstRun_ = true;
@@ -75,7 +75,7 @@ class TimeMeanFilter1 : public TimeMeanFilter{
 public:
 
 
-  TimeMeanFilter1(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  TimeMeanFilter1(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~TimeMeanFilter1(){
 

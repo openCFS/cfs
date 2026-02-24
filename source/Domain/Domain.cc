@@ -128,7 +128,7 @@ Domain::Domain(
 
 void Domain::CreateGrid()
 {
-  boost::shared_ptr<Timer> timer = info_->Get(ParamNode::HEADER)->Get("domain/grids/timer")->AsTimer();
+  shared_ptr<Timer> timer = info_->Get(ParamNode::HEADER)->Get("domain/grids/timer")->AsTimer();
   timer->Start(); // called in simulation once, or with simstate agains
 
   std::string probGeo;

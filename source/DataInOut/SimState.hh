@@ -7,7 +7,7 @@
 
 #include <map>
 #include <filesystem>
-#include <boost/enable_shared_from_this.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 #include "General/Environment.hh"
@@ -43,7 +43,7 @@ namespace CoupledField {
    * unknowns in the algebraic system, we use the coefficients from the
    * HDF5 file. 
    */
-  class SimState  : public boost::enable_shared_from_this<SimState> {
+  class SimState  : public enable_shared_from_this<SimState> {
   
   public:
     

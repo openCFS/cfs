@@ -45,7 +45,7 @@ class Lighthill : public AeroacousticBase{
 
 public:
 
-  Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  Lighthill(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~Lighthill();
 
@@ -95,10 +95,10 @@ private:
 
 
   //! Entity map used for source values
-  str1::shared_ptr<EqnMapSimple> scrMap_;
+  shared_ptr<EqnMapSimple> scrMap_;
 
   //! Entity map used for target values
-  str1::shared_ptr<EqnMapSimple> trgMap_;
+  shared_ptr<EqnMapSimple> trgMap_;
 
   //! Number of neighbor points to include in differentiation.
   UInt numNeighbors_;

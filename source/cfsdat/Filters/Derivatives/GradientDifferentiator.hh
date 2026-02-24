@@ -34,7 +34,7 @@ class GradientDifferentiator : public MeshFilter{
 
 public:
 
-  GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  GradientDifferentiator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~GradientDifferentiator();
 
@@ -55,10 +55,10 @@ private:
   Grid* inGrid_;
 
   //! Entity map used for source values
-  str1::shared_ptr<EqnMapSimple> scrMap_;
+  shared_ptr<EqnMapSimple> scrMap_;
 
   //! Entity map used for target values
-  str1::shared_ptr<EqnMapSimple> trgMap_;
+  shared_ptr<EqnMapSimple> trgMap_;
 
   //! number of euqations per entity
   UInt numEquPerEnt_;

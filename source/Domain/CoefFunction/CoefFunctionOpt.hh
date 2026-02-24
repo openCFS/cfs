@@ -1,7 +1,7 @@
 #ifndef COEFFUNCTIONOPT_HH_
 #define COEFFUNCTIONOPT_HH_
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -17,7 +17,7 @@ class LinearForm;
  * material, in multi-material it is the weighted sum of various materials and in parametric optimization the material (tensor)
  * is completely constructed out of optimization design variables.
  * See the state! */
-class CoefFunctionOpt : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionOpt>
+class CoefFunctionOpt : public CoefFunction, public enable_shared_from_this<CoefFunctionOpt>
 {
 public:
 

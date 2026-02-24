@@ -27,7 +27,7 @@ class Cell2NodeInterpolator : public MeshFilter{
 
 public:
 
-  Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~Cell2NodeInterpolator();
 

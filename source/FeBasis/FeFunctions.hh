@@ -45,7 +45,7 @@ namespace CoupledField {
   - Aquire the solution of an element
   - Add Result */
 class BaseFeFunction : public CoefFunction, 
-                       public boost::enable_shared_from_this<BaseFeFunction> {
+                       public enable_shared_from_this<BaseFeFunction> {
 public:
   
   //! Make simulation state class friend 

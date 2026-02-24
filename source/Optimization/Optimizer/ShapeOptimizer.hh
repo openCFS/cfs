@@ -3,7 +3,7 @@
 
 #include <string>
 #include "Optimization/Optimizer/BaseOptimizer.hh"
-#include "boost/shared_ptr.hpp"
+#include <memory>
 
 namespace CoupledField
 {
@@ -20,9 +20,9 @@ public:
 
   
   /** pointer to topgrad */
-  boost::shared_ptr<TopGrad> ptrTG_;
+  shared_ptr<TopGrad> ptrTG_;
   /** pointer to the level set */
-  boost::shared_ptr<LevelSet> ptrLS_;
+  shared_ptr<LevelSet> ptrLS_;
 
 protected:
 

@@ -7,7 +7,7 @@
 #include <cstdio>
 
 #include <string>
-#include <boost/make_shared.hpp>
+#include <memory>
 
 // Include headers which define what types of in/output files openCFS supports
 #include <def_use_gidpost.hh>
@@ -286,7 +286,7 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
   }
   else if (format == "xml")
   {
-    shared_ptr<XMLMaterialHandler> xmlHandler = boost::make_shared<XMLMaterialHandler>();
+    shared_ptr<XMLMaterialHandler> xmlHandler = make_shared<XMLMaterialHandler>();
     xmlHandler->LoadFromFile(fileName);
     ptMaterialHandler_ = xmlHandler;
   }

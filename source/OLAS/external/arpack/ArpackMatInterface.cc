@@ -74,7 +74,7 @@ namespace CoupledField {
   }
   
   template<class TYPE>
-  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, boost::shared_ptr<Timer> parentSetupTimer, boost::shared_ptr<Timer> parentSolveTimer ) {
+  void ArpackMatInterface::Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, shared_ptr<Timer> parentSetupTimer, shared_ptr<Timer> parentSolveTimer ) {
 
     complex_shift_ = boost::is_complex<TYPE>::value;
     // Copy references
@@ -484,8 +484,8 @@ namespace CoupledField {
   template void ArpackMatInterface::MultBV<Complex>(Complex*, Complex*);
   template void ArpackMatInterface::MultAV<Complex>(Complex*, Complex*);
 
-  template void ArpackMatInterface::Setup<Double>( BaseSolver* , BasePrecond*, Double, boost::shared_ptr<Timer>, boost::shared_ptr<Timer>);
-  template void ArpackMatInterface::Setup<Complex>( BaseSolver* , BasePrecond*, Complex, boost::shared_ptr<Timer>, boost::shared_ptr<Timer>);
+  template void ArpackMatInterface::Setup<Double>( BaseSolver* , BasePrecond*, Double, shared_ptr<Timer>, shared_ptr<Timer>);
+  template void ArpackMatInterface::Setup<Complex>( BaseSolver* , BasePrecond*, Complex, shared_ptr<Timer>, shared_ptr<Timer>);
 
   template void ArpackMatInterface::QuadSetup<Double>( BaseSolver*, BasePrecond*, Double );
   template void ArpackMatInterface::QuadSetup<Complex>( BaseSolver*, BasePrecond*, Complex );

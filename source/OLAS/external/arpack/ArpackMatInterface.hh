@@ -1,7 +1,7 @@
 #ifndef OLAS_ARPACKMATINTERFACE_HH
 #define OLAS_ARPACKMATINTERFACE_HH
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "General/defs.hh"
 
 namespace CoupledField {
@@ -33,7 +33,7 @@ namespace CoupledField {
     
     //! Setup the internal methods for solving. setupTimer and solveTimer are the main solver times and used here as parents
     template <class TYPE>
-    void Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, boost::shared_ptr<Timer> parentSetupTimer, boost::shared_ptr<Timer> parentSolveTimer );
+    void Setup( BaseSolver* solver, BasePrecond* precond, TYPE shift, std::shared_ptr<Timer> parentSetupTimer, std::shared_ptr<Timer> parentSolveTimer );
 
     //! Setup the internal methods for solving, quadratic case
     template <class TYPE>

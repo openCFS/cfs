@@ -88,7 +88,7 @@ FilterPtr BaseFilter::Generate(PtrParamNode filtNode,PtrResultManager resMana) {
 }
 
 
-BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+BaseFilter::BaseFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
             : numWorkers_(numWorkers),
               params_(config){
 
@@ -281,7 +281,7 @@ void BaseFilter::FinishInit() {
     }
   }
   
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  CF::StdVector< shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
   for(; srcIter != sources_.End() ; srcIter++){
     // should we check here anything for success?
     (*srcIter)->FinishInit();
@@ -457,7 +457,7 @@ void BaseFilter::DeactivateUpstreamResults() {
 void BaseFilter::PrepareUpstreamResult(uuids::uuid resId) {
   if (!resultManager_->IsResultVecUpToDate(resId)) {
     resultManager_->ActivateResult(resId);
-    CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+    CF::StdVector< shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
     for(; srcIter != sources_.End() ; srcIter++){
       // should we check here anything for success?
       (*srcIter)->Run();

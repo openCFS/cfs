@@ -8,7 +8,7 @@
 #ifndef COEFFUNCTIONROTATION
 #define COEFFUNCTIONROTATION
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "CoefFunction.hh"
 
 namespace CoupledField {
@@ -18,7 +18,7 @@ namespace CoupledField {
 // ============================================================================
 //! Coefficient function for alligning tensor fields with a vector field
 
-  class CoefFunctionRotation : public CoefFunction , public boost::enable_shared_from_this<CoefFunctionRotation>
+  class CoefFunctionRotation : public CoefFunction , public enable_shared_from_this<CoefFunctionRotation>
   {
 
   public:

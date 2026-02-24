@@ -35,7 +35,7 @@ class CoefFunctionExpression : public CoefFunctionAnalytic {
 //! Coefficient function defined by real-valued mathematical expression
 template<>
 class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
-                                       public boost::enable_shared_from_this<CoefFunctionExpression<Double> >{
+                                       public enable_shared_from_this<CoefFunctionExpression<Double> >{
   
   public:
     CoefFunctionExpression(MathParser * mp);
@@ -147,7 +147,7 @@ class CoefFunctionExpression<Double> : public CoefFunctionAnalytic,
 //! Coefficient function defined by complex-valued mathematical expression
 template<>
 class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
-                                        public boost::enable_shared_from_this<CoefFunctionExpression<Complex> >{
+                                        public enable_shared_from_this<CoefFunctionExpression<Complex> >{
   
   public:
     CoefFunctionExpression(MathParser * mp);

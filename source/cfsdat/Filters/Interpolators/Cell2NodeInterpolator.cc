@@ -21,7 +21,7 @@
 
 namespace CFSDat{
 
-Cell2NodeInterpolator::Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+Cell2NodeInterpolator::Cell2NodeInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
 
@@ -139,7 +139,7 @@ void Cell2NodeInterpolator::PrepareCalculation(){
 
   std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
 
-    str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
+    shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
     CF::StdVector<UInt> sEqn;
 
 

@@ -30,7 +30,7 @@
 #include "Utils/Timer.hh"
 
 #include <sstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifdef USE_CGAL
 

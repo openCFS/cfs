@@ -19,7 +19,7 @@ namespace CFSDat{
 
 TimeDerivFilter::TimeDerivMap TimeDerivFilter::tDerivMap_ = TimeDerivFilter::init_deriv_map();
 
-TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+TimeDerivFilterD1::TimeDerivFilterD1(UInt numWorkers, CoupledField::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : TimeDerivFilter(numWorkers,config,resMan){
  //ok, so either the user specifies
  //results to be differentiated or we choose default possibilities from our map

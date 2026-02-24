@@ -18,7 +18,7 @@ namespace CFSDat{
   
 StdVector<GaussDerivative*> GaussDerivative::allDerivatives_;
 
-GaussDerivative::GaussDerivative(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+GaussDerivative::GaussDerivative(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : BaseFilter(numWorkers,config, resMan){
 
   // This filter is a filter of the type First In First Out (FIFO)
@@ -50,7 +50,7 @@ void GaussDerivative::PrepareCalculation() {
   
   // getting some basic information
   const UInt numFaces = fvr.faceCount;
-  str1::shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
+  shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
   
   // check used entities
   std::vector<bool> isFaceInterior(numFaces,false);
@@ -144,7 +144,7 @@ void GaussDerivative::CalcFeVolume(UInt usedElems, StdVector<UInt>& masterElemId
   // creating master elemnts according to mapping
   //StdVector<UInt> revMap = resultManager_->GetEntityNumbers(resId);
   StdVector<UInt> revMap;
-  str1::shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
+  shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
   scrMap->GetReverseEntityMap(revMap);
   hasFeVolume_.clear();
   hasFeVolume_.resize(usedElems, false);

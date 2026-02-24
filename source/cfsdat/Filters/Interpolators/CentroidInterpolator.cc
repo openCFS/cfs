@@ -22,7 +22,7 @@
 
 namespace CFSDat{
 
-CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -151,8 +151,8 @@ void CentroidInterpolator::PrepareCalculation(){
   std::cout << "\t\t\t CRS Matrix setup..." << std::endl;
   //START CRS setup
   //get the equation mapping from the in out results
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
-  str1::shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+  shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetEqnMap(upResIds[0]);
 
   //TODO this is an open Question
   UInt numRows = downMap->GetNumEquations();

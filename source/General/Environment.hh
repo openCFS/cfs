@@ -18,7 +18,7 @@
 
 // includes for the C99 standard datatypes (e.g. uint32_t, long double)
 #include <boost/cstdint.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/scoped_ptr.hpp>
 #include <cfloat>
 #include <any>
@@ -32,21 +32,20 @@
 //! definitions for openCFS.
 namespace CoupledField {
 
-  // Import Boost's namespace
-  //using namespace boost;
-  using boost::shared_ptr;
-  using boost::weak_ptr;
-  using boost::scoped_ptr;
+  using std::shared_ptr;
+  using std::make_shared;
+  using std::weak_ptr;
+  using std::enable_shared_from_this;
+  using std::dynamic_pointer_cast;
+
   using std::any_cast;
   using boost::lexical_cast;
   using boost::char_separator;
-  using boost::dynamic_pointer_cast;
-
 
   // Type definition for shared_ptr<CoefFunction>
   class CoefFunction;
-  typedef boost::shared_ptr<CoefFunction> PtrCoefFct;
-  typedef boost::weak_ptr<CoefFunction> WeakPtrCoefFct;
+  typedef shared_ptr<CoefFunction> PtrCoefFct;
+  typedef weak_ptr<CoefFunction> WeakPtrCoefFct;
 
   //! type of data
   struct Global {

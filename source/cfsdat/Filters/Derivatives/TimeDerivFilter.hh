@@ -30,7 +30,7 @@ public:
   static TimeDerivMap tDerivMap_;
 
   //!  Constructor.
-  TimeDerivFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+  TimeDerivFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
     : BaseFilter(numWorkers,config, resMan){
     baseQuantity_ = CoupledField::NO_SOLUTION_TYPE;
     isFirstRun_ = true;
@@ -77,7 +77,7 @@ class TimeDerivFilterD1 : public TimeDerivFilter{
 public:
 
 
-  TimeDerivFilterD1(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  TimeDerivFilterD1(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~TimeDerivFilterD1(){
 

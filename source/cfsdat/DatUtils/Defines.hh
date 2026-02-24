@@ -20,7 +20,7 @@
 #include "General/Environment.hh"
 #define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <sstream>
 #include <string>
 #if !defined(WIN32)
@@ -37,16 +37,14 @@ class ResultManager;
 
 //we'll have to see if this is ok...
 namespace CF = CoupledField;
-namespace str1 = boost;
 namespace uuids = boost::uuids;
-using namespace str1;
 
 //make some CoupledField variables available in this namespace
 typedef CoupledField::UInt    UInt;
 typedef CoupledField::Double  Double;
 typedef CoupledField::Integer  Integer;
-typedef str1::shared_ptr<BaseFilter> FilterPtr;
-typedef str1::shared_ptr<ResultManager> PtrResultManager;
+typedef std::shared_ptr<BaseFilter> FilterPtr;
+typedef std::shared_ptr<ResultManager> PtrResultManager;
 
 }
 

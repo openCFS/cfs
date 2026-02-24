@@ -19,7 +19,7 @@
 
 namespace CFSDat{
 
-FIRFilter::FIRFilter(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+FIRFilter::FIRFilter(UInt numWorkers, CoupledField::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : BaseFilter(numWorkers,config,resMan){
 
   // This filter is a filter of the type First In First Out (FIFO)

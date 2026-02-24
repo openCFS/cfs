@@ -1,7 +1,7 @@
 #ifndef COEFFUNCTIONCONST_HH
 #define COEFFUNCTIONCONST_HH
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 
@@ -12,7 +12,7 @@ namespace CoupledField {
 //! Provide a coefficient function with constant expressions
 template<typename T>
 class CoefFunctionConst : public CoefFunctionAnalytic, 
-                          public boost::enable_shared_from_this<CoefFunctionConst<T> >
+                          public enable_shared_from_this<CoefFunctionConst<T> >
 {
 public:
 

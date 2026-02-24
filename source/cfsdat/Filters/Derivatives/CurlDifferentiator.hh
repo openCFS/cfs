@@ -33,7 +33,7 @@ class CurlDifferentiator : public MeshFilter{
 
 public:
 
-  CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~CurlDifferentiator();
 
@@ -54,10 +54,10 @@ private:
   Grid* inGrid_;
 
   //! Entity map used for source values
-  str1::shared_ptr<EqnMapSimple> scrMap_;
+  shared_ptr<EqnMapSimple> scrMap_;
 
   //! Entity map used for target values
-  str1::shared_ptr<EqnMapSimple> trgMap_;
+  shared_ptr<EqnMapSimple> trgMap_;
 
   //! number of euqations per entity
   UInt numEquPerEnt_;

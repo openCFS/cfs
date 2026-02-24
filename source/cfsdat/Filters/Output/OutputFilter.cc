@@ -19,7 +19,7 @@
 namespace CFSDat{
 
 
-OutputFilter::OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+OutputFilter::OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, shared_ptr<ResultManager> resMan)
              :BaseFilter(numWorkers,config,resMan){
 
   infoNode_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
@@ -45,7 +45,7 @@ bool OutputFilter::Run(){
     std::cout << " activate result " << std::endl;
   }
 
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  CF::StdVector< shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
   for(; srcIter != sources_.End() ; srcIter++){
     // should we check here anything for success?
     (*srcIter)->Run();
@@ -69,7 +69,7 @@ bool OutputFilter::Run(){
   for(; rIter != upResIds.End() ; rIter++){
     //if(resultManager_->IsResultVecUpToDate(*rIter)){
       if(resultManager_->GetExtInfo(*rIter)->isMeshResult){
-        StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
+        StdVector< shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
         CF::StdVector<UInt> eqnVec;
 
         outFile_->BeginStep(aStepIter_->first,aStepIter_->second); //Add step values and time line in output file
@@ -261,7 +261,7 @@ void OutputFilter::PrepareCalculation(){
   outFile_->Init(resultManager_->GetExtInfo(*iter)->ptGrid, false);
 
   for(;iter!=upResIds.End();++iter){
-    StdVector< str1::shared_ptr<BaseResult> >::iterator ResIter = resultManager_->GetBaseResultVector(*iter).Begin();
+    StdVector< shared_ptr<BaseResult> >::iterator ResIter = resultManager_->GetBaseResultVector(*iter).Begin();
     ResultManager::ConstInfoPtr cInfo = resultManager_->GetExtInfo(*iter);
     PtrParamNode pNode = params_->Get("saveResults")->GetByVal("result","resultName",cInfo->resultName);
     UInt start = pNode->Get("saveBegin")->As<UInt>();

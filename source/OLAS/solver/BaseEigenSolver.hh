@@ -293,8 +293,8 @@ namespace CoupledField {
     virtual EigenSolverType GetEigenSolverName(){ return eigenSolverName_; }
 
     /** Gives the timer located within PtrParamNode */
-    boost::shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
-    boost::shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
+    shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
 
   protected: 
 
@@ -371,8 +371,8 @@ namespace CoupledField {
     EigenSolverType eigenSolverName_;
 
     /** This is a pointer to the setup timer. Located within PtrParamNode*/
-    boost::shared_ptr<Timer> setupTimer_;
-    boost::shared_ptr<Timer> solveTimer_;
+    shared_ptr<Timer> setupTimer_;
+    shared_ptr<Timer> solveTimer_;
 
   };
   

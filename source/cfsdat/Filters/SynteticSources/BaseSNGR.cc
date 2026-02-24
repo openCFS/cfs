@@ -19,7 +19,7 @@
 
 namespace CFSDat{
 
-SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+SNGRFilter::SNGRFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
         :BaseFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
 
@@ -165,7 +165,7 @@ bool SNGRFilter::UpdateResults(std::set<uuids::uuid>& upResults){
   if(params_->Has("intermediateResult")) resultManager_->DeactivateResult(interId_);
 
   //now we call for upstream data in each source
-  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  CF::StdVector< shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
   for(; srcIter != sources_.End() ; srcIter++){
     // should we check here anything for success?
     (*srcIter)->Run();

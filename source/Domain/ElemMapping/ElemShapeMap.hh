@@ -282,7 +282,7 @@ namespace CoupledField {
   //! all, as the grid could store this information ....
   //! 
   
-  class ElemShapeMap : public boost::enable_shared_from_this<ElemShapeMap>{
+  class ElemShapeMap : public enable_shared_from_this<ElemShapeMap>{
   public:
 
     //! Define enumeration data type

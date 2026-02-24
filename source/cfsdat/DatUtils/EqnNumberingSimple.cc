@@ -54,7 +54,7 @@ void EqnMapSimple::Finalize(){
     CF::Exception("EqnMapSimple::Finalize() may only be called once");
 
   CF::UInt numRegions = regions_.GetSize();
-  boost::shared_ptr<CF::EntityList> currentList;
+  shared_ptr<CF::EntityList> currentList;
   CF::StdVector<CF::UInt> regEntities;
   
   for(CF::UInt aReg = 0; aReg < numRegions; aReg++){

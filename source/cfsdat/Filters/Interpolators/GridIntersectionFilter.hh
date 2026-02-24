@@ -37,7 +37,7 @@ class GridIntersectionFilter : public MeshFilter{
 
 public:
 
-  GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  GridIntersectionFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~GridIntersectionFilter();
 

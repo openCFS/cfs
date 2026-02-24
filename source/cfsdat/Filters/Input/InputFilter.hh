@@ -27,7 +27,7 @@ namespace CFSDat{
 class InputFilter : public BaseFilter {
 
 public:
-  InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  InputFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~InputFilter();
 
@@ -35,7 +35,7 @@ public:
 
 
 protected:
-  virtual void AddInput(str1::shared_ptr<BaseFilter> filt){
+  virtual void AddInput(shared_ptr<BaseFilter> filt){
     EXCEPTION("An input filter may not have a source! Filter id: " << this->filterId_);
   }
 
@@ -49,7 +49,7 @@ protected:
 
   PtrParamNode dummyXMLNode;
 
-  str1::shared_ptr<CoupledField::SimInput> inFile_;
+  shared_ptr<CoupledField::SimInput> inFile_;
 
   CF::Grid* ptGrid;
 

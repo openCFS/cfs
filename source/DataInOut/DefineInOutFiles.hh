@@ -5,7 +5,7 @@
 #ifndef DEFINEFILES_2001
 #define DEFINEFILES_2001
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"

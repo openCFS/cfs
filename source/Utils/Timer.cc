@@ -23,7 +23,7 @@ Timer::Timer(int parent) : Timer("")
     SetSub(parent);
 }
 
-Timer::Timer(const boost::shared_ptr<Timer>& parent) : Timer("")
+Timer::Timer(const shared_ptr<Timer>& parent) : Timer("")
 {
   if(parent)
     SetSub(parent->id_);
@@ -35,7 +35,7 @@ Timer::Timer(const Timer* parent) : Timer("")
     SetSub(parent->id_);
 } 
 
-void Timer::SetSub(const boost::shared_ptr<Timer>& parent)
+void Timer::SetSub(const shared_ptr<Timer>& parent)
 {
   if(parent)
     SetSub(parent->id_);

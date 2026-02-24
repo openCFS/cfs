@@ -13,7 +13,7 @@
 namespace CoupledField 
 {  
   class ScatteredDataReader;
-  typedef boost::shared_ptr<ScatteredDataReader> ScatteredDataReaderPtr;
+  typedef std::shared_ptr<ScatteredDataReader> ScatteredDataReaderPtr;
 
   /**
    * Base class for all scattered data readers
@@ -72,7 +72,7 @@ namespace CoupledField
     bool verbose_;
     
     //! A map from reader ids to the actual readers.
-    static std::map<std::string, boost::shared_ptr<ScatteredDataReader> > readers_;
+    static std::map<std::string, std::shared_ptr<ScatteredDataReader> > readers_;
 
     //! A map from quantity ids to reader ids.
     static std::map<std::string, std::string > quantities2Readers_;

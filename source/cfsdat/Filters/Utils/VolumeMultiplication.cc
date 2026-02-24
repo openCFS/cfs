@@ -16,7 +16,7 @@
 
 namespace CFSDat{
   
-VolumeMultiplication::VolumeMultiplication(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+VolumeMultiplication::VolumeMultiplication(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : BaseFilter(numWorkers,config, resMan){
 
   // This filter is a filter of the type First In First Out (FIFO)
@@ -35,7 +35,7 @@ void VolumeMultiplication::PrepareCalculation() {
   ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(resId);
   Grid* grid = inInfo->ptGrid;
   
-  str1::shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
+  shared_ptr<EqnMapSimple> scrMap = resultManager_->GetEqnMap(resId);
   StdVector<UInt> revMap = resultManager_->GetEntityNumbers(resId);
   scrMap->GetReverseEntityMap(revMap);
   usedElems_ = scrMap->GetNumEntities();
