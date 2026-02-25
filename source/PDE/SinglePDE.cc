@@ -3219,11 +3219,15 @@ namespace CoupledField {
       PtrParamNode pnfd = valueNode->Get("fileData");
       int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
       coef.reset(new CoefFunctionFileData(pnfd, mydim));
+      for(unsigned int i = 0; i < numComp; ++i )
+        definedDofs.insert(i);
     }
     else if(valueNode->Has("python"))
     {
       unsigned int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
       coef.reset(new CoefFunctionPython(valueNode->Get("python"), mydim));
+      for(unsigned int i = 0; i < numComp; ++i )
+        definedDofs.insert(i);
     }
 
     else
