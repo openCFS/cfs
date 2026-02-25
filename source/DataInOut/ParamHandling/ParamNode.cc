@@ -1008,7 +1008,8 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
   }
-  assert(false); // this should not happen, as we have only a fixed set of types we allow for values, which are all handled above. If this assert is triggered, we have to implement the missing type here!
+  //std::cout << "label=" << name_ << " value=" << value_.has_value() << " type=" << value_.type().name() << std::endl;
+  assert(!value_.has_value()); // this should not happen when we have a value
 }
 
 void ParamNode::ToXML(std::ostream& os, int depth, bool adjust_element_type)

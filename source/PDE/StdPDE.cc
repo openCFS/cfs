@@ -122,10 +122,6 @@ namespace CoupledField {
     // defining the graph can be expensive. Most expensive are (ordered by cost):
     // - AlgebraicSys::GraphSetupDone()
     // - Assemble::SetupMatrixGraph()
-/*    shared_ptr<Timer> timer = myInfo_->Get("OLAS/graph_setup/timer")->AsTimer();
-    timer->SetSub();
-    timer->Start();
-*/
     // when we initialize the BaseGraph instances below, they are implicitly started 
    
     // ==============================================

@@ -702,7 +702,7 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, const EntityIterator& it )
   {
-    LOG_DBG(fefunc) << ToString() << "FE:GES: #es=" << elemSol.GetSize() << " it=" << it.ToString();
+    LOG_DBG2(fefunc) << ToString() << "FE:GES: #es=" << elemSol.GetSize() << " it=" << it.ToString();
     Vector<T>& temp = dynamic_cast<Vector<T>&>(elemSol);
 
     StdVector<Integer> eqns;
@@ -782,9 +782,7 @@ namespace CoupledField {
    }
    
   template<typename T>
-  void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
-                                         const Elem* elem ) {
-    LOG_DBG(fefunc) << ToString() << "GetElemSolution()";
+  void FeFunction<T>::GetElemSolution( Vector<T>& elemSol, const Elem* elem ) {
     StdVector<Integer> eqns;
     const Vector<T>& vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
@@ -796,6 +794,7 @@ namespace CoupledField {
         elemSol[i] = 0.0;
       }
     }
+    LOG_DBG2(fefunc) << "GES: " << ToString() << " e=" << elem->elemNum << " #=" << elemSol.GetSize() << " -> " << elemSol.ToString();
   }
   
 
