@@ -54,15 +54,29 @@ if(CFS_ARCH MATCHES "X86_64")
 endif()
 
 
-# Now set some global variables containing informations about build/target plat.
+# Now set some global variables containing information about build/target platform.
 
 # Since some major Linux enterprise distros are binary compatible
 # across minor versions, we just set the DIST_FAMILY and the major version
 # for them in CFS_DISTRO and CFS_DISTRO_VER and only provide more detailed
 # infos in CFS_FULL_DISTRO and CFS_FULL_DISTRO_VER.
+
+# on macOS we have REV "26.3" and MAJOR_REV "26.3" and actually the .3 is a minor
+# MAJOR_MAJOR_REV is skipping the last dot stuff if there is a dot
+string(FIND "${MAJOR_REV}" "." _LAST_DOT REVERSE)
+if(_LAST_DOT GREATER -1)
+  string(SUBSTRING "${MAJOR_REV}" 0 "${_LAST_DOT}" MAJOR_MAJOR_REV)
+else()
+  set(MAJOR_MAJOR_REV "${MAJOR_REV}")
+endif()
+
 set(CFS_FULL_DISTRO "${DIST}")
 set(CFS_FULL_DISTRO_VER "${REV}")
-if(DIST_FAMILY)
+if(APPLE)
+  # DIST and DIST_FAMILY is "MACOSX"
+  set(CFS_DISTRO "${DIST}")
+  set(CFS_DISTRO_VER "${MAJOR_MAJOR_REV}")
+elseif(DIST_FAMILY)
   set(CFS_DISTRO "${DIST_FAMILY}")
   set(CFS_DISTRO_VER "${MAJOR_REV}")
 else()
@@ -73,7 +87,7 @@ endif()
 # ARCH will be x86_64 or ARM64. E.g. for Apple M1 we can switch from ARM64 to build x86_64
   
 # on macOS we enforce CMAKE_OSX_ARCHITECTURES to the single selected value. 
-# We do not support multiple buid targests in cfs
+# We do not support multiple build targets in cfs
   
 set(CFS_ARCH_STR "${CFS_DISTRO}_${CFS_DISTRO_VER}_${CFS_ARCH}")
 set(CFS_BUILD_DISTRO "${DIST}_${REV}_${CFS_ARCH}")
