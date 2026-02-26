@@ -8,10 +8,7 @@ GENERATE_TEST_NAME_AND_FILE("${CMAKE_CURRENT_SOURCE_DIR}")
 #-------------------------------------------------------------------------------
 ADD_TEST(${TEST_NAME}
   ${CMAKE_COMMAND} 
-  -DEPSILON:STRING=1e-2
+  -DEPSILON:STRING=1e-6
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
-

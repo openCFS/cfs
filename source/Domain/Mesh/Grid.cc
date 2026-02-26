@@ -24,11 +24,21 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/Domain.hh"
-
+#include "Utils/Timer.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+
+#ifdef USE_NANOFLANN
+  #include "Domain/Mesh/GridKDTree.hh"
+#endif
 
 namespace CoupledField
 {
+  #ifndef USE_NANOFLANN
+    struct GridKDTree {
+      unsigned int GetNearest(const Vector<Double>& c, unsigned int dim) const { return 0; }
+    };
+  #endif
+
 
   // declare class specific logging stream
   DEFINE_LOG(grid, "grid")
@@ -40,7 +50,12 @@ namespace CoupledField
     depth2dPlane_ = 1.0;
     param_ = param;
     info_ = infoNode;
-    
+
+    timer = shared_ptr<Timer>(new Timer());
+    timer->Start(); // auto start. Stoppend in Domain.cc
+
+    readMeshTimer = make_shared<Timer>(timer);
+
     region_.SetName("Grid::region");
     region_.Add(ALL_REGIONS, "all");
     
@@ -1175,6 +1190,7 @@ namespace CoupledField
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol,
                                        bool updatedGeo ) {
+    mapToBBTimer_->Start();
     boost::array<Double,6> bbox;
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
@@ -1259,6 +1275,7 @@ namespace CoupledField
         }
       }
     }
+    mapToBBTimer_->Stop();
   }
 
 #ifdef USE_EIGEN
@@ -1429,7 +1446,8 @@ namespace CoupledField {
                                        Double tol,
                                        bool updatedGeo ) {
     WARN("Updated geometry is not used, please implement me!");
-    
+
+    mapToBBTimer_->Start();
     std::vector< Elem* > elems;
     std::vector< Vector<Double>* > points;
     
@@ -1492,6 +1510,7 @@ namespace CoupledField {
         matches[ptIdx].matches.insert(ptEl);
       }    
     }
+    mapToBBTimer_->Stop();
   }
   
 #else // USE_CGAL
@@ -1502,6 +1521,8 @@ namespace CoupledField {
                                        const StdVector<shared_ptr<EntityList> >& srcEntities,
                                        Double tol,
                                        bool updatedGeo) {
+
+    mapToBBTimer_->Start();
 
     // obtain all volume elements from grid
     StdVector<Elem*> elems;
@@ -1623,6 +1644,7 @@ namespace CoupledField {
         matches[pointIndex].matches.insert(ptEl);
       }
     }
+    mapToBBTimer_->Stop();
   }
   
 

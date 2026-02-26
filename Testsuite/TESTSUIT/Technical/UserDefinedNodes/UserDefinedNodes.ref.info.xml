@@ -1,0 +1,231 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.2652s" wall="0.26521" cpu="0.275607" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="70"/>
+  </summary>
+  <header id="">
+    <environment started="08-Mar-26 01:01:08" host="MacBookPro.fritz.box"/>
+    <progOpts problem="UserDefinedNodes" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Technical/UserDefinedNodes/UserDefinedNodes.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Technical/UserDefinedNodes/bulk2d_80.mesh" logConfFile="" detailed="no">
+      <cfs version="26.03" name="Just Jacobians" build="RELEASE" git_commit="ab66e5038b3f5a391cfd554284353e541835dee0" git_branch="fwein_box" compiled="Mar  5 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="80" ny="80" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="6400" nodes="6561">
+          <timer id="2" wall-clock="0.1111s" wall="0.111089" cpu="0.110002" calls="1"/>
+          <userDefined>
+            <timer id="3" wall-clock="0.006596s" wall="0.00659554" cpu="0.006595" calls="1" sub="true" parent="2"/>
+          </userDefined>
+          <mapPointsToBoundingBox>
+            <timer id="4" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true" parent="2"/>
+          </mapPointsToBoundingBox>
+        </grid>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="6561" elems="6400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="81"/>
+        <nodes name="top" count="81"/>
+        <nodes name="left" count="81"/>
+        <nodes name="right" count="81"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(1,1)"/>
+        <nodes name="coord" count="1" coord="(0.15,0.1)"/>
+        <nodes name="bounds_1d" count="9"/>
+        <nodes name="bounds_2d" count="25"/>
+        <nodes name="list_coarse" count="5"/>
+        <nodes name="list_1d" count="9"/>
+        <nodes name="list_2d" count="25"/>
+        <nodes name="list_fine" count="9"/>
+        <nodes name="condition" count="293"/>
+        <nodes name="expression_func" count="102"/>
+        <nodes name="expression_u" count="43"/>
+        <nodes name="all_nodes" count="6561"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="80" ny="80" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="489" wall-clock="0.004099s" wall="0.00409892" cpu="0.003937" calls="4"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer id="477" wall-clock="0.03939s" wall="0.0393895" cpu="0.039801" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="mech">
+                <coef type="CoefFunctionConst" value="[[1, 0],[0, 1]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="coord" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="-0.5"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="list_coarse" size="5" region="no_region"/>
+                <coef type="CoefFunctionConst" value="-0.40000000000000002"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="list_fine" size="9" region="no_region"/>
+                <coef type="CoefFunctionConst" value="0.22222222222222221"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="list_1d" size="9" region="no_region"/>
+                <coef type="CoefFunctionConst" value="0.1111111111111111"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="bounds_1d" size="9" region="no_region"/>
+                <coef type="CoefFunctionConst" value="0.1111111111111111"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="list_2d" size="25" region="no_region"/>
+                <coef type="CoefFunctionConst" value="-0.080000000000000002"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="expression_func" size="102" region="no_region"/>
+                <coef type="CoefFunctionConst" value="-0.0098039215686274508"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="expression_u" size="43" region="no_region"/>
+                <coef type="CoefFunctionConst" value="0.011627906976744186"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(1,0)"/>
+          <property name="Heat_Capacity" value="1"/>
+          <property name="Density" value="1"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="left" dofs="" value="0"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="6561" totalNumFreeEqns="6480" totalNumDirichlet="81">
+            <function id="0" name="heatTemperature" numEqns="6561" lastFreeEqn="6480" numDirichlet="81">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="6561" lastFreeIndex="6480"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer id="485" label="setup_directLDL" wall-clock="0.0311s" wall="0.0310953" cpu="0.031067" calls="1"/>
+              </setup>
+              <solve>
+                <timer id="486" label="solve_directLDL" wall-clock="0.001664s" wall="0.00166392" cpu="0.001663" calls="1"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="487" wall-clock="3.75e-07s" wall="3.75e-07" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="488" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+      <graph nnz="241">
+        <timer id="481" wall-clock="0.03156s" wall="0.0315612" cpu="0.032213" calls="2" sub="true" parent="477"/>
+        <finalize>
+          <timer id="482" wall-clock="0.00103s" wall="0.00103021" cpu="0.001702" calls="2" sub="true" parent="481"/>
+        </finalize>
+        <sort>
+          <timer id="483" wall-clock="0.0001218s" wall="0.000121833" cpu="0.000192" calls="2" sub="true" parent="481"/>
+        </sort>
+        <rows number="6480" min="0" max="3" mean="0.037191" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="484" wall-clock="0.02658s" wall="0.0265754" cpu="0.02648" calls="1" sub="true" parent="481"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="478" wall-clock="0.01253s" wall="0.012526" cpu="0.024022" calls="2"/>
+          <matrices>
+            <timer id="479" wall-clock="0.01243s" wall="0.012427" cpu="0.02392" calls="1" sub="true" parent="478"/>
+          </matrices>
+          <rhs>
+            <timer id="480" wall-clock="9.742e-05s" wall="9.7417e-05" cpu="9.7e-05" calls="1" sub="true" parent="478"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

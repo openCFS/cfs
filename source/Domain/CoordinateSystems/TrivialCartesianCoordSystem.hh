@@ -94,7 +94,7 @@ namespace CoupledField {
     //! the according index in the local vector representation.
     //! \param dof (in) name of a coordinate component
     //! \return index of the coordinate component
-    UInt GetVecComponent( const std::string & dof ) const;
+    UInt GetVecComponent( const std::string & dof, bool silent = false ) const;
 
     //! Returns for a given coordinate index the according name
 
@@ -121,9 +121,6 @@ namespace CoupledField {
 
     //! global vector pointing in local y-direction
     Vector<UInt> axisMap_;
-
-    //! true when origin is zero and axes are identity — enables zero-cost coord transform
-    bool isIdentity_;
 
   };
 

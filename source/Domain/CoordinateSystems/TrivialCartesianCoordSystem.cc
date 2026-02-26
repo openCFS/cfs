@@ -83,12 +83,6 @@ namespace CoupledField{
 
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
-
-    // fast path: if origin is zero and axes are not remapped/flipped,
-    // Local2GlobalCoord and Global2LocalCoord reduce to identity (no-op)
-    isIdentity_ = (origin_[0] == 0.0 && origin_[1] == 0.0 && origin_[2] == 0.0 &&
-                   axisMap_[0] == 0 && axisMap_[1] == 1 && axisMap_[2] == 2 &&
-                   axisFactors_[0] == 1.0 && axisFactors_[1] == 1.0 && axisFactors_[2] == 1.0);
   }
   
   TrivialCartesianCoordSystem::~TrivialCartesianCoordSystem(){
@@ -97,12 +91,6 @@ namespace CoupledField{
   void TrivialCartesianCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                                        const Vector<Double> & loc ) const {
     glob.Resize(3);
-    if (isIdentity_)
-    {
-      for (auto i = 0; i < loc.GetSize(); i++) glob[i] = loc[i];
-      for (auto i = loc.GetSize(); i < 3; i++) glob[i] = 0.0;
-      return;
-    }
 
     // rotate local cartesian coordinate system to global one
     if (loc.GetSize() == 3) 
@@ -125,19 +113,13 @@ namespace CoupledField{
   void TrivialCartesianCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                                        const Vector<Double> & glob ) const {
     loc.Resize(3);
-    if (isIdentity_)
-    {
-      for (auto i = 0u; i < glob.GetSize(); i++) loc[i] = glob[i];
-      for (auto i = glob.GetSize(); i < 3u; i++) loc[i] = 0.0;
-      return;
-    }
    
     // calculate differential vector (stack-allocated; zero-pads missing glob components)
     // we want to have d = glob - origin_, but this works only for 3D.
     // for 2D we want to have d[3] = -origin_[3], but glob[3] does not exist.
     assert(glob.GetSize() <= 3);
     std::array<double, 3> d{-origin_[0], -origin_[1], -origin_[2]};
-    for(auto i = 0; i < glob.GetSize(); i++) 
+    for(unsigned int i = 0; i < glob.GetSize(); i++) 
       d[i] += glob[i];
 
     // rotate global cartesian coordinate system to local one
@@ -232,7 +214,7 @@ namespace CoupledField{
     invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
 
-  UInt TrivialCartesianCoordSystem::GetVecComponent( const std::string & dof ) const
+  UInt TrivialCartesianCoordSystem::GetVecComponent( const std::string & dof, bool silent ) const
   {
     if ( dof == "x" )
       return 1;
@@ -241,11 +223,12 @@ namespace CoupledField{
     if ( dof == "z" )
       return 3;
     
-   EXCEPTION( "TrivialCartesianCoordSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
-                 << name_ << "'!" );
-  }  
+    if(!silent)
+      EXCEPTION( "TrivialCartesianCoordSystem:GetVecComponent: invalid of '" << dof  << "' for dimension " << dim_);
+    
+    return INVALID_DOF;
+  } 
+     
 
   const std::string TrivialCartesianCoordSystem::GetDofName( const UInt dof ) const {
     std::string ret = "";
@@ -272,8 +255,6 @@ namespace CoupledField{
   void TrivialCartesianCoordSystem::ToInfo( PtrParamNode in ) {
     
     in = in->Get("trivialCartesianCoordinateSystem");
-    
-    in->Get("identity")->SetValue(isIdentity_);
     
     in->Get("id")->SetValue(name_);
     PtrParamNode originNode = in->Get("origin");

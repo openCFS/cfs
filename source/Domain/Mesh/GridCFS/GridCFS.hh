@@ -4,6 +4,7 @@
 
 #include "Domain/Mesh/Grid.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include <unordered_map>
 
 namespace CoupledField
 {
@@ -11,8 +12,9 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-
-#include <unordered_map>
+  // either for nanoflann (kd-tree) or dummy
+  struct NodeGridKDTree; 
+  struct ElemGridKDTree; 
 
   //! Implementation of a simple, one level grid.
 
@@ -582,15 +584,6 @@ namespace CoupledField
       return s;
     }
 
-
-    //! helper struct for passing information about nodes
-    struct PointSelection{
-      bool isFree;
-      std::string comp;
-      Double start, stop, inc; // only for free components
-      std::string value; // only for fixed components
-    };
-
     //! helper struct for storing the number of neighbour-elements for every node
     struct NodeNeighbourElems{
       std::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
@@ -691,17 +684,34 @@ namespace CoupledField
     //! Prints information about the grid into the .info.xml file
     void ToInfo(PtrParamNode in);
     
-    //! Create new nodes / elements, which are defined either by point coordinate
-    //! or parametric description
+    /** implements the 'elemList' and 'nodeList' handling within 'domain' in the .xml.
+     * The user can specify nodes or elements (barycenter) coordinates and named nodes and elements are created.
+     * 'coord' is handled by CreateUserDefinedByCoord(), 'bounds' and 'test' are handled by CreateUserDefinedTraverse() 
+     * and 'expression' and 'list' are handled by CreateUserDefinedBySearch(). 
+     * 'bounds' is much faster than 'list' but only since 03.2026, so almost all 'list' 
+     * shall be 'bounds'. */
     void CreateUserDefinedNodesElems();
 
-    //! add new node / element given by parametric description
-    void AddEntityByParam( const std::string& name, bool isNode, 
-                           const std::string& coordSysId,
-                           StdVector<PointSelection>& coords );
+    /** helper for CreateUserDefinedNodesElems() - handle single node/element defined by coordinate */
+    void CreateUserDefinedByCoord(const std::string& name, bool isNode, const PtrParamNode& pn);
 
-    //! find entity with minimum distance
-    UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
+    /** 'bounds' and 'test' in parallel: Traverse all elements and check if to add to nodes.
+     * As the nodes are traversed in the original order, the entities are also created by sorted index */
+    unsigned int CreateUserDefinedTraverse(const std::string& name, bool isNode, const PtrParamNode& pn);
+
+    /** Create virtual nodes/elements and searches the nearest in the mesh. 
+     *  Implements 'expression' and 'list' */
+    void CreateUserDefinedBySearch(const std::string& name, bool isNode, const PtrParamNode& pn);
+
+    /** find entity with minimum distance. Either node or element barycenter
+     * Either with nanoflann (USE_NANOFLANN=ON by default) or by brute force (comparing all elements).
+     * @param eps if we find something withing this distance we return it. For nanoflann ignored.
+     * @return first 0-based entity matching coord */
+    UInt FindNearestEntity( bool isNode, Vector<Double>& coord, double eps = 1e-9 );
+
+    /** initialize and setup node/elemGridKDTree_ for nodes or elements for nanoflann. Checks initialization. */
+    void CreateKDTree(bool isNode);
+
 
     //! Correct the connectivity of elements in the grid.
     //! The function iterates over elements, checks for a negative Jacobi determinant, 
@@ -762,6 +772,11 @@ namespace CoupledField
     //! Vector with nodal coordinates
     StdVector<Vector<Double> > coords_;
 
+    /** for USE_NANOFLANN the O(log n) FindNearestEntity() version. */
+    NodeGridKDTree* nodeKdTree_ = nullptr; // either from GridKDTree.hh or dummy implementation in GridCFS.cc
+    ElemGridKDTree* elemKdTree_ = nullptr;
+    bool use_nanoflann_ = false;
+
     //! Vector with nodal coordinate offsets
     StdVector<Vector<Double> > deltCoords_;
   
@@ -777,7 +792,6 @@ namespace CoupledField
     //! Flag to ensure that mapNodeToElems_ and mapNodeToElemsNew_ is only set up once
     //! Maximum number of nodes per element
     UInt maxNumElemNodes_;
-
 
     //! Indices to search for the elements containing on specific node number in nodeElemMap_
     //! The element connected to node number n are contained in the range:
@@ -822,7 +836,11 @@ namespace CoupledField
     StdVector<std::string> namedElemNames_;
 
     //@}
-
+    shared_ptr<Timer> userDefinedTimer_;
+    // the following timers are only added to .info.xml with -d (detailed info)
+    shared_ptr<Timer> initKDTreeTimer_;
+    shared_ptr<Timer> searchKDTreeTimer_;
+    shared_ptr<Timer> checkRegularTimer_;
   };
 
 } // end of namespace

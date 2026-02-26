@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -20,6 +21,7 @@
 
 #include <def_use_cgal.hh>
 #include <def_use_eigen.hh>
+#include <def_use_nanoflann.hh>
 
 #include <boost/sort/sort.hpp>
 #include "GridCFS.hh"
@@ -30,14 +32,33 @@
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Utils/Timer.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
+
 
 #ifdef WIN32
 #include <direct.h>
 #endif
 
-namespace CoupledField {
+namespace CoupledField 
+{
+  #ifdef USE_NANOFLANN
+    #include "GridKDTree.hh"  
+  #else
+    // this are our dummy implementations for the compiler/destructor only. 
+    struct NodeGridKDTree
+    {
+      NodeGridKDTree(const StdVector<Vector<Double>>& coords, unsigned int dim) {}
+      size_t FindNearest(const Vector<Double>&, unsigned int) const { return 0; }
+    };
+
+    struct ElemGridKDTree
+    {
+      ElemGridKDTree(const StdVector<Elem*>& elems, unsigned int dim) {}
+      size_t FindNearest(const Vector<Double>&, unsigned int) const { return 0; }
+    };
+  #endif
 
   // declare class specific logging stream
   DEFINE_LOG(gridcfs, "grid.cfs")
@@ -60,6 +81,19 @@ namespace CoupledField {
     maxNumElemNodes_ = 0;
     mapNodeToElems_.Resize(0);
     buildExtendedElemInfo_ = buildExtend;
+
+    userDefinedTimer_  = make_shared<Timer>(this->timer);
+    // the following timers are only with --d 
+    checkRegularTimer_ = make_shared<Timer>(this->timer);
+    mapToBBTimer_      = make_shared<Timer>(this->timer);
+    // both for nanoflann only but not necessarily always subtimers of userDefinedTimer_
+    initKDTreeTimer_   = make_shared<Timer>(this->timer);
+    searchKDTreeTimer_ = make_shared<Timer>(this->timer);
+#ifdef USE_NANOFLANN
+    use_nanoflann_ = true;  
+#else
+    use_nanoflann_ = false;
+#endif
   }
 
 
@@ -69,6 +103,8 @@ namespace CoupledField {
 
   GridCFS::~GridCFS() {
 
+    delete nodeKdTree_;
+    delete elemKdTree_; 
 
     for ( UInt i = 0; i < numElems_; i++ ) {
       delete orderedElems_[i];
@@ -76,341 +112,484 @@ namespace CoupledField {
     orderedElems_.Clear();
   }
 
-  void GridCFS::CreateUserDefinedNodesElems() {
+  void GridCFS::CreateUserDefinedNodesElems() 
+  {
+     // if no param object is present, just leave
+    if(!param_) 
+      return;
 
-    // if no param object is present, just leave
-    if (!param_) return;
+    userDefinedTimer_->Start();
 
-    Vector<Double> locCoord(dim_), globCoord(dim_);
-    Double compoValue;
-    std::string coordSysId, compoName;
-    std::string name;
+    // we handle in this overly full method nodes and elements almost similar. First nodeList, then elemList
+    for(bool isNode : { true, false})
+    {
+      PtrParamNode listEntity;
+      ParamNodeList entities;
 
-    for( UInt iType = 0; iType < 2; iType++ ) {
-      PtrParamNode listNode;
-      ParamNodeList nodes;
-      bool isNode = true;
+      if(isNode)
+        listEntity = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
+      else
+        listEntity = param_->Get("domain")->Get("elemList", ParamNode::PASS);
 
-      if( iType == 0 ) {
-        // iterate over nodes
-        listNode = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
-        isNode = true;
-      } else {
-        // iterate over elements
-        listNode = param_->Get("domain")->Get("elemList", ParamNode::PASS);
-        isNode = false;
-      }
+      if (listEntity) 
+      { // is there nodeList or elemList in domain?
+        entities = listEntity->GetChildren();
 
-      if (listNode) {
-        nodes = listNode->GetChildren();
+        for( auto& entity : entities ) 
+        {
+          std::string name = entity->Get("name")->As<std::string>();   // fetch name of nodes to be selected
 
-        for( UInt i=0; i < nodes.GetSize(); i++ ) {
-
-          // fetch name of nodes to be selected
-          nodes[i]->GetValue("name", name);
-
-          //check if named nodes are defined by specifying a region
-          if (nodes[i]->Has("allNodesInRegion")) {
+          // the check for gridId is legacy code, the use is unknown. Possibly extend in schema
+          // if the xml-definition is for another grid than the current one, do nothing.
+          if(entity->Has("gridId") && entity->Get("gridId")->As<std::string>() != gridId_) 
+            continue;
+    
+          if (entity->Has("allNodesInRegion")) { // obviously only for nodeList
             std::string regName;
-            nodes[i]->Get("allNodesInRegion")->GetValue("regName",regName);
+            entity->Get("allNodesInRegion")->GetValue("regName",regName);
             RegionIdType regId = region_.Parse(regName);
 
-            StdVector<UInt> nodesInRegion;
+            StdVector<unsigned int> nodesInRegion;
             GetNodesByRegion(nodesInRegion,regId);
             AddNamedNodes(name,nodesInRegion);
           }
 
-          // check if node is defined by point coord
-          PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
-          if( coordNode ) {
-            UInt compoIndex;
-            locCoord.Init(0.0);
-            globCoord.Init(0.0);
-            
-            coordSysId = "default";
-            coordNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
-            const CoordSystem* cosy = domain->GetCoordSystem(coordSysId);
-            
-            ParamNodeList compoList = coordNode->GetChildren();
-            ParamNodeList::iterator compoIt = compoList.Begin(),
-                                    endIt = compoList.End();
-            
-            for ( ; compoIt != endIt; ++compoIt ) {
-              compoName = (*compoIt)->GetName();
-              if ( compoName == "coordSysId" ) continue;
-              
-              compoValue = (*compoIt)->MathParse<Double>();
-              if ( compoValue == 0.0) continue;
-              
-              if ( isAxi_ && (compoName == "x" || compoName == "y") ) {
-                EXCEPTION(listNode->GetName() << " '" << name
-                          << "': Coordinate components must be 'r', 'z' "
-                          << "in an axisymmetric simulation.");
-              }
-              if ( isAxi_ && compoName == "r" ) compoName = "x";
-              if ( isAxi_ && compoName == "z" ) compoName = "y";
-              
-              try {
-                compoIndex = cosy->GetVecComponent(compoName)-1;
-              } catch (Exception &ex) {
-                RETHROW_EXCEPTION(ex, "Unable to create "
-                                  << listNode->GetName()
-                                  << " '" << name << "'.");
-              }
-              
-              locCoord[compoIndex] = compoValue;
-            }
+          // traverse all entities and either test by condition or check against given bounds
+          bool isTest = entity->Has("test");
+          if(isTest || entity->Has("bounds"))
+            CreateUserDefinedTraverse(name, isNode, isTest ? entity->Get("test") : entity->Get("bounds"));
 
-            cosy->Local2GlobalCoord(globCoord, locCoord);
-            
-            StdVector<UInt> entityNum(1);
-            entityNum[0] = FindEntityMinDistance( isNode, globCoord );
+          // check if node is defined by virtual coordinate
+          if(entity->Has("coord"))
+            CreateUserDefinedByCoord(name, isNode, entity->Get("coord"));
 
-            // add node / element
-            if( isNode ) {
-              AddNamedNodes( name, entityNum );
-            } else {
-              AddNamedElems( name, entityNum );
-            }
+          // check if entity is defined by parametric virtual coordinates
+          bool isList = entity->Has("list");
+           if(isList || entity->Has("expression"))
+            CreateUserDefinedBySearch(name, isNode, isList ? entity->Get("list") : entity->Get("expression"));
+        } // end of loop over nodeList/elemList
+      } // end of listEntity exists
+    } // end of isNode and !isNode
+    userDefinedTimer_->Stop();
+  }
 
-          }
+  void GridCFS::CreateUserDefinedByCoord(const std::string& name, bool isNode, const PtrParamNode& coordNode )
+  {
+    // we could handle this as a special case of CreateUserDefinedBySearch but that is already overly complex
 
-          // check if node is defined by parametric description
-          PtrParamNode listNode = nodes[i]->Get("list", ParamNode::PASS );
-          if( listNode ) {
+    Vector<double> locCoord(dim_);
+    Vector<double> globCoord(dim_);
+    assert(locCoord.Last() == 0.0); // if a coordinate is not given 0.0 is assumed, the default for Vector
 
-            std::string gridId, coordSysId;
+    // we read e.g.
+    // <nodes name="load">
+    //   <coord x="1.5" y="2" coordSysId="default"/>
+    // </nodes>
 
-            // make sure, that this is the correct grid
-            if ( listNode->Get("gridId", ParamNode::INSERT)->As<std::string>()
-                != gridId_ ) return;
+    if(!isNode)
+      SetElementBarycenters(false); // make sure we have elem->extended.barycenter set
 
-            // get coordinate system
-            listNode->GetValue( "coordSysId", coordSysId );
+    if(use_nanoflann_) 
+      CreateKDTree(isNode);
 
-            StdVector<PointSelection> selections;
+    const CoordSystem* cosy = domain->GetCoordSystem(coordNode->Get("coordSysId")->As<string>()); // usually the DefaultCoordSystem "default"
 
-            // get free component
-            ParamNodeList  freeNodes =
-              listNode->GetList("freeCoord");
-            for( UInt i = 0; i < freeNodes.GetSize(); i++ ) {
-              PtrParamNode actNode = freeNodes[i];
-              PointSelection actSel;
-              actSel.isFree = true;
-              actSel.comp = actNode->Get( "comp" )->As<std::string>();
-              actSel.start = actNode->Get( "start" )->MathParse<Double>();
-              actSel.stop = actNode->Get( "stop" )->MathParse<Double>();
-              actSel.inc = actNode->Get( "inc" )->MathParse<Double>();
-              selections.Push_back( actSel);
-            }
+    // traverse the "x", "y", ...
+    for(const auto& attrib : coordNode->GetChildren()) 
+    {
+      if(attrib->GetName() != "coordSysId") // "x", "y", ...
+      {
+        double value = attrib->MathParse<double>(); // e.g. x="nx/10"        
+        if(value == 0.0)
+          continue; // for 2D we might give z="0.0" which is default but we may not check GetVecComponent()
 
-            // get fixed component(s)
-            ParamNodeList fixedNodes =
-                listNode->GetList("fixedCoord");
-            for( UInt i = 0; i < fixedNodes.GetSize(); i++ ) {
-              PtrParamNode actNode = fixedNodes[i];
-              PointSelection actSel;
-              actSel.isFree = false;
-              actSel.comp = actNode->Get( "comp" )->As<std::string>();
-              actSel.value = actNode->Get( "value" )->As<std::string>();
-              selections.Push_back( actSel);
-            }
-
-            // Ensure, that we have as many entries in the
-            // vector as dimension
-            if( dim_ != selections.GetSize() )
-              EXCEPTION("The node parametrization for '" << name  << "' does not match the mesh dimensions");
-
-            AddEntityByParam( name, isNode, coordSysId,
-                              selections );
-          }
-
-        }
+        unsigned int idx = cosy->GetVecComponent(attrib->GetName(), true); // "x" -> 1, "y" -> 2, ... and no exception
+        if(idx == cosy->INVALID_DOF)
+          EXCEPTION("Unable to create 'coord' " << name << "'."); // for axis use x and y in default
+        locCoord[idx-1] = value;
       }
     }
+
+    cosy->Local2GlobalCoord(globCoord, locCoord); // in the default case copy from locCoord to globCoord
+
+    // find the closes node/element for the single given coordinate
+    StdVector<unsigned int> entityNum(1);
+    entityNum[0] = FindNearestEntity(isNode, globCoord);
+
+    if(isNode)
+      AddNamedNodes(name, entityNum);
+    else
+      AddNamedElems(name, entityNum);
+
+    LOG_DBG(gridcfs) << "CUDBC: name=" << name << " isNode=" << isNode << " locCoord=" << locCoord.ToString() << " globCoord=" << globCoord.ToString() << " -> " << entityNum[0];
+  }
+
+  void GridCFS::CreateUserDefinedBySearch(const std::string& name, bool isNode, const PtrParamNode& pn )
+  {
+    // an expression has up to 3 sample elements where one can be the auxiliary variable 'u'.
+    // we can have up to three eval but variables can only be from sample. 
+    // <expression>
+    //   <sample comp="x" start="0.8" stop="1" inc=".1" />
+    //   <sample comp="u" start="0.1" stop="1" inc=".1" />
+    //   <eval comp="y" value="x*x" />
+    //   <eval comp="z" value="sin(x^2)/u" />
+    // </expression>
+    // This also handles the legacy list by just reading freeCoord as sample and fixedCoord as eval
+    // <list>
+    //   <freeCoord comp="y" start="0" stop="1" inc=".1" />
+    //   <fixedCoord comp="x" value="0" />
+    // </list>
+
+    if(!isNode) 
+      SetElementBarycenters(false); // make sure we have elem->extended.barycenter set
+    if(use_nanoflann_)
+      CreateKDTree(isNode);
+
+    assert(pn->GetName() == "expression" || pn->GetName() == "list");
+    bool isList = pn->GetName() == "list";
+
+    const CoordSystem* cosy = domain->GetCoordSystem(pn->Get("coordSysId")->As<string>()); // usually the DefaultCoordSystem
+    Vector<double> locCoord(dim_);
+    Vector<double> globCoord(dim_);
+
+    struct Sample
+    {
+      std::string comp;
+      unsigned int comp_idx = CoordSystem::INVALID_DOF; // "x" -> 1, .. and special variable "u"  = 0 or not used at all
+      double start = -1.0;
+      double stop  = -1.0;
+      double inc   = -1.0;
+      double var   = -1.0; // current value of the variable for muparser
+      std::vector<double> values{-1.0}; // we store all values for iteration and have at least one; 
+    };
+
+    StdVector<Sample> samples(3); // we assume three samples, default values is harmless and identified by comp_idx
+    std::set<std::string> comps; // to check that we don't have double definitions and dim_ variables
+
+    for(auto& xml : isList ? pn->GetList("freeCoord") : pn->GetList("sample")) 
+    {
+      if(comps.size() >= 3) 
+         throw Exception("Can have at most three 'samples' for '" + name + "'."); 
+
+      Sample& sample = samples[comps.size()]; 
+
+      sample.comp = xml->Get("comp")->As<std::string>();
+      if(comps.count(sample.comp) > 0)
+        throw Exception("Component '" + sample.comp + "' is defined multiple times in the definition of '" + name + "'.");
+      comps.insert(sample.comp);  
+      // special variable 'u' is not registered in the coordinate system as it is not a coordinate but an auxiliary variable for sampling, so we set the comp_idx to 0 which is not used for coordinates      
+      sample.comp_idx = sample.comp != "u" ? cosy->GetVecComponent(sample.comp) : 0;
+
+      sample.start = xml->Get("start")->MathParse<double>();
+      sample.stop  = xml->Get("stop")->MathParse<double>();
+      sample.inc   = xml->Get("inc")->MathParse<double>();
+      if(sample.stop < sample.start)
+        throw Exception("Stop value has to be larger than start value for '" + name + "'.");
+      if(sample.inc <= 0)
+        throw Exception("Increment has to be positive for '" + name + "'.");
+
+      sample.values.clear();
+      sample.values.reserve((unsigned int) (sample.stop - sample.start) / sample.inc + 1); 
+      for(double val = sample.start; val <= sample.stop+1e-12; val += sample.inc)
+        sample.values.push_back(val);
+
+      LOG_DBG(gridcfs) << "CUDBS: name=" << name << " isNode=" << isNode << " sample comp=" << sample.comp << " start=" << sample.start << " stop=" << sample.stop << " inc=" << sample.inc << " values=" << sample.values.size();
+    }
+
+    struct Expression
+    {
+      std::string comp;
+      unsigned int comp_idx = CoordSystem::INVALID_DOF; 
+      std::string expression; // the expression to be evaluated by muparser
+      unsigned int handle = 0; // handle for muparser
+      double value = -1.0; // the current evaluated value
+    };   
+
+    // each expression needs its own muparser handle and we register all sample variables for each one
+    MathParser* parser = domain->GetMathParser();
+    StdVector<Expression> evals; // zero expressions is ok if we sample for all components
+    for(auto& xml : isList ? pn->GetList("fixedCoord") : pn->GetList("eval")) 
+    {
+      Expression eval;
+
+      eval.comp = xml->Get("comp")->As<std::string>();
+      eval.comp_idx = cosy->GetVecComponent(eval.comp); // "x" -> 1
+      if(comps.count(eval.comp) > 0)
+        throw Exception("Component '" + eval.comp + "' is defined multiple times in the definition of '" + name + "'.");
+      comps.insert(eval.comp);  
+      
+      eval.expression = xml->Get("value")->As<std::string>();
+      LOG_DBG(gridcfs) << "CUDBS: name=" << name << " isNode=" << isNode << " eval comp=" << eval.comp << " expression=" << eval.expression;
+
+      eval.handle = parser->GetNewHandle();
+      parser->SetExpr(eval.handle, eval.expression); // works nicely with a constant value like ".5" as well
+      for(Sample& sample : samples)
+        if(sample.comp_idx != CoordSystem::INVALID_DOF) // we do not need to have three sample
+          parser->RegisterExternalVar(eval.handle, sample.comp, &sample.var);
+
+      evals.Push_back(eval); // easy copy constructor  
+    }
+
+    // we need exactly dim_ real components for the coordinate
+    if(comps.size() != dim_ + (comps.count("u") ? 1 : 0)) // we need exactly dim_ variables for the coordinates and can have one additional variable 'u' for sampling
+      throw Exception("The definition of '" + name + "' needs as much components as the mesh dimension.");
+
+    // now we loop over the full space - unused samples have only one value
+    // we search for virtual coordinates and find the neared entity - here we collect them uniquely 
+    boost::unordered_flat_set<unsigned int> found_entities;
+    found_entities.reserve(1000); // try to avoid rehashing - if too small it just costs a little
+    for(double v_0 : samples[0].values)
+    {
+      samples[0].var = v_0; // this address is registered for all handles
+      for(double v_1 : samples[1].values)
+      {
+        samples[1].var = v_1;
+        for(double v_2 : samples[2].values)
+        {
+          samples[2].var = v_2;
+          
+          for(Expression& eval : evals)
+            eval.value = parser->Eval(eval.handle); // all sample variables are set
+ 
+          // all data is in samples.var or eval.value -> we verified with comps that we have all variables set
+          for(const Sample& sample : samples)
+            if(sample.comp_idx != 0 && sample.comp_idx != CoordSystem::INVALID_DOF) // handle 'u' and unset
+              locCoord[sample.comp_idx-1] = sample.var; // comp_idx is 1-based
+          for(const Expression& eval : evals)
+            locCoord[eval.comp_idx-1] = eval.value; // no 'u' for expression
+  
+          cosy->Local2GlobalCoord(globCoord, locCoord); // in the default case copy from locCoord to globCoord
+          unsigned int node = FindNearestEntity(isNode, globCoord); 
+          LOG_DBG(gridcfs) << "CUDBS: name=" << name << " isNode=" << isNode << " search coord=" << globCoord.ToString() << " -> " 
+                            << node << " " << (isNode ? coords_[node-1].ToString() : orderedElems_[node-1]->extended->barycenter.ToString());
+          found_entities.insert(node);
+        }
+      }        
+    }
+
+    // make a defined ordering to allow for stable test cases
+    StdVector<unsigned int> sorted_entities;
+    sorted_entities.Reserve(found_entities.size());
+    for(unsigned int v : found_entities)
+      sorted_entities.Push_back(v);
+    std::sort(sorted_entities.begin(), sorted_entities.end());
+
+    if(isNode)
+      AddNamedNodes(name, sorted_entities);
+    else
+      AddNamedElems(name, sorted_entities);
+
+    for(Expression& eval : evals)
+      parser->ReleaseHandle(eval.handle);
+
+    LOG_DBG(gridcfs)  << "CUDBS: name=" << name << " isNode=" << isNode << " expressions=" << evals.GetSize() << " found=" << sorted_entities.GetSize() << " entities=" << sorted_entities.GetSize();
+    LOG_DBG(gridcfs) << "CUDBS: name=" << name << " entities=" << sorted_entities.ToString();    
+    for(auto n : sorted_entities)
+      if(!isNode)
+      {
+        LOG_DBG(gridcfs) << "CUDBS: name=" << name << " elem=" << n << " coord=" << orderedElems_[n-1]->extended->barycenter.ToString();
+      }
   }
 
 
+  unsigned int GridCFS::CreateUserDefinedTraverse(const std::string& name, bool isNode, const PtrParamNode& pn)
+  {
+    const CoordSystem* cosy = domain->GetCoordSystem(pn->Get("coordSysId")->As<string>()); // usually the DefaultCoordSystem
 
-  void GridCFS::AddEntityByParam( const std::string& name, bool isNode,
-                                  const std::string& coordSysId,
-                                  StdVector<PointSelection>& coords ) {
+    assert(pn->GetName() == "bounds" || pn->GetName() == "test"); 
+    bool isTest = pn->GetName() == "test";
 
-    // Check if entities with given name exist already
-    //if( nameTypeMap_.find( name) != nameTypeMap_.end() ) {
-    //  EXCEPTION( "Entities with name " << name
-    //             << " are already defined" );
-    //}
-
-    // get coordinate system
-    CoordSystem * cosy = nullptr;
-    try {
-      cosy = domain->GetCoordSystem(coordSysId);
-    } catch( Exception &e ) {
-      RETHROW_EXCEPTION(e, "Could not select nodes within the"
-                        << "coordinate system '"
-                        << coordSysId << "'");
-    }
-
-    // map coordinate components to indices
-    StdVector<UInt> dofs(dim_);
-
-    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
-      dofs[iDim] = cosy->GetVecComponent( coords[iDim].comp )-1;
-    }
-
-    // require that the first entry is a free one
-    if( !coords[0].isFree ) {
-      EXCEPTION( "First coordinate component must be free" );
-    }
-
-    // fetch math parser and register coordinate names
-    MathParser * parser = domain->GetMathParser();
-    StdVector<unsigned int> handles(dim_);
-    StdVector<Vector<Double> > sampleVals(dim_);
-    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
-      if( !coords[iDim].isFree ) {
-        handles[iDim] = parser->GetNewHandle();
-        for( UInt iDim2 = 0; iDim2 < dim_; iDim2++ ) {
-          if( !coords[iDim2].isFree )
-            parser->SetValue( handles[iDim], coords[iDim2].comp, 0.0 );
-        }
-        parser->SetExpr( handles[iDim], coords[iDim].value );
-        sampleVals[iDim].Resize(1);
-        sampleVals[iDim].Init();
-      } else {
-        UInt numSamples  =
-          UInt( floor ( abs(coords[iDim].stop-coords[iDim].start)
-                        / coords[iDim].inc ) )+1;
-        sampleVals[iDim].Resize( numSamples );
-        for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
-          sampleVals[iDim][iSample] = coords[iDim].start
-            + iSample * coords[iDim].inc;
-        }
-      }
-    }
-
-
-    std::set<UInt> entityNums;
-    Vector<Double> locCoord( dim_), globCoord( dim_ );
-    Vector<Double> actEntCoord(dim_), temp;
-
-    // loop over all entries in the (first)free component vector
-    // update first component, if it is free
-    if( !coords[0].isFree ) {
-      sampleVals[0][0] = parser->Eval(handles[0] );
-    }
-    for( UInt iSample1 = 0; iSample1 < sampleVals[0].GetSize(); iSample1++ ) {
-      locCoord[dofs[0]] = sampleVals[0][iSample1];
-
-      // update second component, if it is free
-      if( !coords[1].isFree ) {
-        parser->SetValue( handles[1], coords[0].comp, sampleVals[0][iSample1] );
-        sampleVals[1][0] = parser->Eval(handles[1] );
-      }
-      for( UInt iSample2 = 0; iSample2 < sampleVals[1].GetSize(); iSample2++ ) {
-
-        locCoord[dofs[1]] = sampleVals[1][iSample2];
-        // update second component, if it is free
-        if( dim_ == 3 ) {
-          if( !coords[2].isFree ) {
-            parser->SetValue( handles[2], coords[0].comp, sampleVals[0][iSample1] );
-            parser->SetValue( handles[2], coords[1].comp, sampleVals[1][iSample2] );
-            sampleVals[2][0] = parser->Eval(handles[2] );
-          }
-          for( UInt iSample3 = 0; iSample3 < sampleVals[2].GetSize(); iSample3++ ) {
-            locCoord[dofs[2]] = sampleVals[2][iSample3];
-            cosy->Local2GlobalCoord( globCoord, locCoord );
-            entityNums.insert(FindEntityMinDistance( isNode, globCoord ));
-          }
-
-        } // dim == 3
-        else {
-          cosy->Local2GlobalCoord( globCoord, locCoord );
-          entityNums.insert(FindEntityMinDistance( isNode, globCoord ));
-        }
-      }
-    }
-
-    // copy unique set of nodes / elements to vector
-    StdVector<UInt> entityNumVec(entityNums.size());
-    std::set<UInt>::const_iterator setIt = entityNums.begin();
-    for(UInt pos = 0 ; setIt != entityNums.end(); ++setIt, ++pos ) {
-      entityNumVec[pos] = *setIt;
-    }
+    // we implement 'bounds' and 'test' in parallel as both traverse all entities
+    // and do a check. The variables are simply ignored in the other case
+    //
+    // this for bounds: range and fixed as lists which are empty for test
+    // <bounds eps="0.001">
+    //   <range comp="x" min=".2" max=".8" />
+    //   <fixed comp="y" value=".5" />
+    // </bounds>
+    // tests traverses all nodes and compares against a given mathparser expression
+    //   <test condition="x**2 + y**2 < .5" />
     
-    if( isNode) {
+    // variables and parsing for 'bounds' *****
+    // usually we have the default coordinate system where local is global
+    StdVector<bool> given(dim_);
+    given.Init(false);
+    Vector<double> min_loc(dim_); // local is coordinates in simulation space (user input)
+    Vector<double> max_loc(dim_);
+    Vector<double> min_glob(dim_); // global is coordinates in mesh space
+    Vector<double> max_glob(dim_);
+    assert(min_loc.Sum() == 0.0); // default is 0.0
+    double eps = pn->Has("eps") ? pn->Get("eps")->MathParse<double>() : -1.0; // not available for test
 
-      // add named nodes to grid
-      AddNamedNodes( name, entityNumVec );
-    } else {
-      AddNamedElems( name, entityNumVec );
+    // 'test' has no child elements in it's schema
+    for(auto& range: pn->GetList("range")) // 'bounds' schema demands at least one range or fixed
+    {
+      std::string att_name = range->Get("comp")->As<std::string>(); // "x", "y", ...
+      // for axi 'r'->1->'x'->1 and for common case 'x'->1->'x'->1 
+      unsigned int idx = cosy->GetVecComponent(cosy->GetDofName(cosy->GetVecComponent(att_name))) - 1;
+      assert(idx < min_loc.GetSize());
+      given[idx] = true;
+      min_loc[idx] = range->Get("min")->MathParse<double>() - eps;
+      max_loc[idx] = range->Get("max")->MathParse<double>() + eps;
     }
 
-    // release handles of math parser
-    for( UInt iDim = 0; iDim < dim_; iDim++ ) {
-      if( !coords[iDim].isFree )
-        parser->ReleaseHandle( handles[iDim] );
+    for(auto& range: pn->GetList("fixed")) // schema demands at least one
+    {
+      std::string att_name = range->Get("comp")->As<std::string>(); // "x", "y", ...
+      // for axi 'r'->1->'x'->1 and for common case 'x'->1->'x'->1 
+      unsigned int idx = cosy->GetVecComponent(cosy->GetDofName(cosy->GetVecComponent(att_name))) - 1;
+      if(given[idx]) throw Exception("don't use the same component twice in the bounds definition for '" + name + "'");
+      
+      double value = range->Get("value")->MathParse<double>();
+
+      given[idx] = true;
+      min_loc[idx] = value - eps;
+      max_loc[idx] = value + eps;
+    }
+ 
+    // handling of 'test' 
+    MathParser* parser = domain->GetMathParser(); // in the bound case this is a negligible overhead
+    unsigned int handle = parser->GetNewHandle();
+    Vector<double> var_values(3); // we use only dim_ variables
+    for(unsigned int d = 0; d < dim_; d++)
+      parser->RegisterExternalVar(handle, cosy->GetDofName(d+1), &var_values[d]); 
+    
+    string condition = isTest ? pn->Get("condition")->As<std::string>() : ""; // not available for bounds
+    boost::replace_all(condition, "lt", "<"); // not allowed in xml attribute 
+    boost::replace_all(condition, "gt", ">");
+    if(isTest) 
+     parser->SetExpr(handle, condition);
+       
+    // common for bounds and test *****
+   
+    // we search in the mesh space -> usually no change
+    cosy->Local2GlobalCoord(min_glob, min_loc);
+    cosy->Local2GlobalCoord(max_glob, max_loc);
+
+    // traverse all nodes 
+    StdVector<unsigned int> found_entities;
+
+    unsigned int n = isNode ? coords_.GetSize() : orderedElems_.GetSize();
+
+    for(unsigned int idx = 0; idx < n; idx++)
+    {
+      // for elements we use the barycenter as coordinate for distance calculation
+      const Vector<double>& test = isNode ? coords_[idx] : orderedElems_[idx]->extended->barycenter.data;
+ 
+      bool out=false;                  
+
+      if(isTest) 
+      {
+        var_values = test; // happy copy constructor
+        LOG_DBG2(gridcfs) << "CUDBT: name=" << name << " isNode=" << isNode << " idx=" << idx+1 << " test=" << test.ToString() << " condition=" << condition;
+        if(!(parser->Eval(handle)))
+          out = true;
+      }
+      else
+      {
+        for(unsigned int d = 0; d < dim_; d++)
+          if(given[d] && (test[d] < min_glob[d] || test[d] > max_glob[d])) // eps is already applied to min/max_glob
+            out = true; 
+      }    
+     
+      if(!out)
+        found_entities.Push_back(idx+1);     
+    }
+    parser->ReleaseHandle(handle);
+    
+    if(found_entities.GetSize() > 0)
+    {
+      if(isNode)
+        AddNamedNodes(name, found_entities);
+      else
+        AddNamedElems(name, found_entities);
+    }
+
+    LOG_DBG(gridcfs) << "CUDBT: name=" << name << " isNode=" << isNode << " found=" << found_entities.GetSize()
+                     << " given=" << given.ToString() << " min_loc=" << min_loc.ToString() << " max_loc=" << max_loc.ToString();
+
+    return found_entities.GetSize();                     
+  }
+
+  void GridCFS::CreateKDTree(bool isNode)
+  {
+    assert(use_nanoflann_);
+
+    if((isNode && nodeKdTree_ == nullptr) || (!isNode && elemKdTree_ == nullptr))
+    {
+      initKDTreeTimer_->Start();
+      if(isNode)
+        nodeKdTree_ = new NodeGridKDTree(coords_, dim_);
+      else
+        elemKdTree_ = new ElemGridKDTree(orderedElems_, dim_);
+      initKDTreeTimer_->Stop();
     }
   }
 
-  UInt GridCFS::FindEntityMinDistance( bool isNode, Vector<Double>& coord ) {
 
-    UInt entityNum;
+unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double eps )
+{
+  assert(!isNode || orderedElems_[0]->extended != nullptr); // call grid->SetElementBarycenters(false) beforehand
 
-    // iterate over all nodes/elements in the grid
-    // vectors with node indices and distance
-    std::vector<Double> entityDist;
-    Vector<Double> actEntCoord, temp;
+  searchKDTreeTimer_->Start();
 
-    if( isNode ) {
-      // === loop over nodes ===
-      entityDist.resize( numNodes_ );
-      for( UInt iNode = 0; iNode < numNodes_; iNode++ ) {
+  double       min_dst = 1e16;
+  unsigned int min_idx = 0;
+  double cmp = eps*eps; // we compare squared distances
 
-        // calculate distance and store it in vector
-        GetNodeCoordinate( actEntCoord, iNode+1, false );
-        temp = (actEntCoord-coord);
-        entityDist[iNode] = temp.NormL2();
-      } // nodes
-    } else {
+  if(use_nanoflann_)
+  {
+    searchKDTreeTimer_->Start();
+    min_idx = (unsigned int) (isNode ? nodeKdTree_->FindNearest(c, dim_) : elemKdTree_->FindNearest(c, dim_));
+    searchKDTreeTimer_->Stop();
+  }
+  else
+  {
+    std::array<double, 3> d = {0.0, 0.0, 0.0}; // distance, initialized by 0.0
 
-      // === loop over elements ===
-      entityDist.resize(numElems_);
+    unsigned int n = isNode ? coords_.GetSize() : orderedElems_.GetSize();
 
-      Vector<Double> locMidPoint;
-      Matrix<Double> connectCoord;
-      
-      
-      // iterate over all elements
-      for( UInt iElem = 0; iElem < numElems_; iElem++ ) {
+    for(unsigned int idx = 0; idx < n; idx++)
+    {
+      // skip if we are no volume element but a surface element
+      if(!isNode && Elem::shapes[orderedElems_[idx]->type].dim != dim_)
+        continue;
 
-        // Check, if element has same dimension as grid
-        // -> We want to find only volume elements
-        if( Elem::shapes[orderedElems_[iElem]->type].dim == dim_ ) {
-          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(orderedElems_[iElem]);
-          esm->GetGlobMidPoint(actEntCoord);
-          temp = (actEntCoord-coord );
-          entityDist[iElem] = temp.NormL2();
-        } else {
-          entityDist[iElem] = 1e16;
-        }
-      } // elements
+      // for elements we use the barycenter as coordinate for distance calculation
+      const Vector<double>& test = isNode ? coords_[idx] : orderedElems_[idx]->extended->barycenter.data;
 
+      // the alternative would be the incredible slow ...
+      // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(orderedElems_[iElem]);
+      // esm->GetGlobMidPoint(actEntCoord);
+
+      d[0] = test[0] - c[0];
+      d[1] = test[1] - c[1];
+      d[2] = dim_ == 3 ? test[2] - c[2] : 0.0;
+
+      // we search in the global mesh space
+      double squared = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+
+      if(squared < min_dst)
+      {
+        min_dst = squared;
+        min_idx = idx;
+      }
+      if(squared < cmp)
+      {
+        break; // no need to continue
+      }
     }
+  } // end brute force search
+  searchKDTreeTimer_->Stop();
 
-    // find minimum entry in the vector
-    std::vector<Double>::iterator it ;
-    it = min_element(entityDist.begin(), entityDist.end());
-    entityNum = std::distance(entityDist.begin(), it) + 1;
-    return entityNum;
-
+  LOG_DBG2(gridcfs) << "FNE: node=" << isNode << " c=" << c.ToString() << " eps=" << eps << " cmp=" << cmp << " dst=" << min_dst 
+                    << " -> " << min_idx+1 << " " << (isNode ? coords_[min_idx].ToString() : orderedElems_[min_idx]->extended->barycenter.ToString());
+  return min_idx+1; // node numbers start with 1
 }
 
   void GridCFS::MapFaces() {
 
     LOG_DBG(gridcfs) << "Starting to map faces ";
-
 
     // assert that any mesh was already read in
     assert( isInitialized_ == true );
@@ -484,8 +663,7 @@ namespace CoupledField {
         if( faceNums.find(nodeSet) == faceNums.end() ) {
         
         //if( faceNums_.find( actFace ) == faceNums_.end() ) {
-          LOG_DBG2(gridcfs) << "Adding face number "
-                            << actFaceNum << std::endl;
+          LOG_DBG2(gridcfs) << "Adding face number " << actFaceNum << std::endl;
           faceNums[nodeSet] = actFaceNum;
           actFace.neighbors.Push_back( orderedElems_[iElem]);
           actElem.extended->faces[iFace] = actFaceNum;
@@ -508,7 +686,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Faces: " << actElem.extended->faces.Serialize();
 
-      LOG_DBG(gridcfs) << "Finished to map faces\n";
+      LOG_DBG2(gridcfs) << "Finished to map faces\n";
 
     } // loop over elements
 
@@ -614,7 +792,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
       LOG_DBG2(gridcfs) << "Edges: " << actElem.extended->edges.Serialize();
 
-      LOG_DBG(gridcfs) << "Finished to map edges\n";
+      LOG_DBG2(gridcfs) << "Finished to map edges\n";
     }
 
     // Trim vector containing faces
@@ -1639,7 +1817,8 @@ namespace CoupledField {
   bool GridCFS::CheckForRegularRegion(RegionIdType reg)
   {
     LOG_DBG(gridcfs) << "CFRR::CheckForRegularRegion(" << reg << ")...";
-    
+    checkRegularTimer_->Start();
+
     // determine grid parameter
     RegionData& rd = regionData[reg];
     assert(rd.id == reg);
@@ -1699,6 +1878,7 @@ namespace CoupledField {
       if( diff.NormL2() > dist_tol) return false;
     }
 
+    checkRegularTimer_->Stop();
     LOG_DBG(gridcfs) << "CFRR: is regular";
     return true; // seems to be regular
   }
@@ -2521,7 +2701,7 @@ namespace CoupledField {
         }
       }
     }
-    LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements: " << Elem::ToString(elems);
+    LOG_DBG2(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements: " << Elem::ToString(elems);
   }
 
 
@@ -2721,7 +2901,7 @@ namespace CoupledField {
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
 
-    LOG_DBG2(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
+    LOG_DBG2(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString() << " updated=" << updated;
     coordMat.Resize(dim_, connect.GetSize());
 
     if( updated == true && deltCoords_.GetSize() != 0 ) {
@@ -4237,8 +4417,22 @@ namespace CoupledField {
     gridNode->Get("elements")->SetValue(GetNumElems()); 
     gridNode->Get("nodes")->SetValue(GetNumNodes()); 
     
-    // we only have this info when doing homogenization
-    if (progOpts->DoDetailedInfo()) {
+    // main grid timer and parent of all other timers
+    gridNode->Get("timer")->SetValue(timer); 
+    gridNode->Get("readMesh/timer")->SetValue(readMeshTimer);
+    gridNode->Get("userDefined/timer")->SetValue(userDefinedTimer_);
+
+    // these timers are only of interest when grid reading is too slow and one wants to debug
+    if(progOpts->DoDetailedInfo()) 
+    {
+      #ifdef USE_NANOFLANN  
+        gridNode->Get("initKDTree/timer")->SetValue(initKDTreeTimer_);
+        gridNode->Get("searchKDTree/timer")->SetValue(searchKDTreeTimer_);
+      #endif
+      gridNode->Get("mapPointsToBoundingBox/timer")->SetValue(mapToBBTimer_);
+      gridNode->Get("checkRegular/timer")->SetValue(checkRegularTimer_);
+  
+      // we only have this info when doing homogenization
       in->Get("hull_volume")->SetValue(CalcHullVolume());
       in->Get("structure_volume")->SetValue(CalcVolumeOfAllRegions());
     }

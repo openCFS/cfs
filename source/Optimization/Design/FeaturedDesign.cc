@@ -389,6 +389,10 @@ void FeaturedDesign::SetupMapping()
           glob[1] = lower[1] + y * dx_ + .5*dx_;
           if(dim_ == 3)
             glob[2] = lower[2] + z * dx_ + .5*dx_;
+          // being sure whe are regular and ordered as expected, we could directly
+          // address the elements. This is our saveguard. With proper meshes, the 
+          // default implementation is cached and fast. For wrong meshes it is totally
+          // slow. With CGAL or LIBFBI it should make sense to use GetElemsAtGlobalCoords()
           const Elem* elem = domain->GetGrid()->GetElemAtGlobalCoord(glob, loc);
           assert(elem != nullptr);
           int idx = Find(elem, false); // design index or -1

@@ -128,9 +128,6 @@ Domain::Domain(
 
 void Domain::CreateGrid()
 {
-  shared_ptr<Timer> timer = info_->Get(ParamNode::HEADER)->Get("domain/grids/timer")->AsTimer();
-  timer->Start(); // called in simulation once, or with simstate agains
-
   std::string probGeo;
   Double depth2d = 1.0;
   
@@ -186,16 +183,10 @@ void Domain::CreateGrid()
     }
 
     // Create grids using input readers.
-    std::map<std::string, StdVector<shared_ptr<SimInput> > >::const_iterator
-        gridIt = gridInputs_.begin(),
-        endIt = gridInputs_.end();
-
-    // iterate over all other grid IDs
-    for ( ; gridIt != endIt; ++gridIt )
+    for(const auto& entry : gridInputs_)
     {
-      if ( gridIt->first != "default") {
-        ReadGrid( gridIt->first, gridIt->second, probGeo == "axi", depth2d );
-      }
+      if (entry.first != "default") 
+        ReadGrid( entry.first, entry.second, probGeo == "axi", depth2d );
     } // loop: input readers
   } // if: use of external grids
 
@@ -213,15 +204,14 @@ void Domain::CreateGrid()
       // within a child domain when reading from an external simulation) and if
       // we are not in a restarted state (i.e. we assume that the grid information was
       // printed already in the first attempt)
-      if( resultHandler_ && 
-          isParentDomain_&&
-          !progOpts->GetRestart()) {
+      if( resultHandler_ && isParentDomain_&& !progOpts->GetRestart()) {
         gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
       }
     }
   }
 
-  timer->Stop();
+ for(auto& grd : gridMap_) 
+   grd.second->timer->Stop();
 }
 
 void Domain::ReadGrid(const std::string & gridId,
@@ -290,7 +280,9 @@ void Domain::ReadGrid(const std::string & gridId,
       std::cout << p.filename() << " " << std::flush;
     }
 
+    actGrid->readMeshTimer->Start();
     actInFile->ReadMesh(actGrid);
+    actGrid->readMeshTimer->Stop();
   }
 
   actGrid->FinishInit();
@@ -1299,11 +1291,11 @@ void Domain::Dump()
 void Domain::ToInfo(PtrParamNode in, bool force_default)
 {
   PtrParamNode in_ = in->Get("coordinateSystems");
-  for(std::map<std::string, CoordSystem*>::iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
-  {
+
+  for (const auto& sys : coordSys_) {
     PtrParamNode s = in_->Get("system", ParamNode::APPEND);
-    s->Get("name")->SetValue(it->first);
-    it->second->ToInfo(s);
+    s->Get("name")->SetValue(sys.first);
+    sys.second->ToInfo(s);
   }
 
   // CalcGridBoundingBox() takes some time and most people are not interested in the information

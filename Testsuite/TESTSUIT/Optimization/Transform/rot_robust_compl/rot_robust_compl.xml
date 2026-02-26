@@ -12,7 +12,7 @@
     </keywords>
     <references>none</references>
     <isVerified>yes</isVerified>
-    <description>Extenstion to rot_compl_slack, now with two tanh filters. Note that we don't apply the intermediate tanh with eta=0.5
+    <description>Extension to rot_compl_slack, now with two tanh filters. Note that we don't apply the intermediate tanh with eta=0.5
     for the volume constraint.</description>
   </documentation>
 
@@ -36,10 +36,12 @@
     </elemList>
     <nodeList>
       <nodes name="center">
-        <coord x="0.5" y="0.5"/>
+        <!-- the mesh has odd number of elements and .5 is exactly between to nodes. 
+             We remove the uncertainty by choosing the left/lower one. -->
+        <coord x="0.4999" y="0.4999"/>
       </nodes>
       <nodes name="center_right">
-        <coord x="1.05" y="0.5"/>
+        <coord x="1.0499" y="0.4999"/>
       </nodes>
     </nodeList>
   </domain>
@@ -140,5 +142,3 @@
  
   
 </cfsSimulation>
-
-

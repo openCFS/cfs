@@ -7,7 +7,7 @@
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
-      Coupled Field Solver project CFS++
+      openCFS Coupled Field Solver
       Schema description for domain section of parameter file
     </xsd:documentation>
   </xsd:annotation>
@@ -606,18 +606,28 @@
       </xsd:element>
       <!-- pair of coordinates -->
       <xsd:element name="coord">
+        <xsd:annotation>
+          <xsd:documentation>Define a single point by coordinates. The closest node/element will me searched</xsd:documentation>
+        </xsd:annotation>
         <xsd:complexType>
           <xsd:attribute name="x" type="xsd:token" use="optional"/>
           <xsd:attribute name="y" type="xsd:token" use="optional"/>
           <xsd:attribute name="z" type="xsd:token" use="optional"/>
           <xsd:attribute name="r" type="xsd:token" use="optional"/>
           <xsd:attribute name="phi" type="xsd:token" use="optional"/>
-          <xsd:attribute name="coordSysId" type="xsd:token"
-            use="optional"  default="default"/>
+          <xsd:attribute name="coordSysId" type="xsd:token" use="optional"  default="default"/>
         </xsd:complexType>
       </xsd:element>
       <!-- parametric description of coordinates -->
       <xsd:element name="list">
+        <xsd:annotation>
+          <xsd:documentation>
+            Define a set nodes/elements by coordinates (freeCoord to define a range and fixedCoord).
+            By the increment attribute virtual coordinates are generated the for each the closest mesh node is searched.
+            Too fine sampling is only expensive but does not harm. Be aware to too coarse sampling.
+            'bounds' is usually much faster.
+          </xsd:documentation>
+        </xsd:annotation>
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="freeCoord" minOccurs="0" maxOccurs="3">
@@ -629,8 +639,7 @@
               </xsd:complexType>
             </xsd:element>
             <xsd:sequence>
-              <xsd:element name="fixedCoord" minOccurs="0"
-                maxOccurs="2">
+              <xsd:element name="fixedCoord" minOccurs="0" maxOccurs="2">
                 <xsd:complexType>
                   <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
                   <xsd:attribute name="value" type="xsd:token" use="required"/>
@@ -639,7 +648,95 @@
             </xsd:sequence>
           </xsd:sequence>
           <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
-          <xsd:attribute name="gridId" type="xsd:token" default="default"></xsd:attribute>
+          <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+        </xsd:complexType>
+      </xsd:element>
+      <!-- sample/construct virtual coordinates and collect the nearest mesh nodes/elements -->
+      <xsd:element name="expression">
+        <xsd:annotation>
+          <xsd:documentation>
+            Virtual Coordinates are generated and the nearest match in the mesh is searched.
+            This is usually more expensive than 'bounds' or 'test'.
+            It is possible sample also for the auxiliary variable 'u'.
+            The expression get all components from the sample elements. 
+            Maximal three 'sample' elements and maximal three 'expression' elements.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="sample" minOccurs="0" maxOccurs="3">
+              <xsd:complexType>
+                <xsd:attribute name="comp" use="required">
+                  <xsd:simpleType>
+                    <xsd:union memberTypes="DT_CosyCompType">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="u"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:union>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="start" type="xsd:token" use="required"/>
+                <xsd:attribute name="stop" type="xsd:token" use="required"/>
+                <xsd:attribute name="inc" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="eval" minOccurs="0" maxOccurs="3">
+              <xsd:complexType>
+                <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
+                <xsd:attribute name="value" type="xsd:token" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+          <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+        </xsd:complexType>
+      </xsd:element>
+      <!-- test each node/element against the specified bounding box. Not all dimensions need to be given -->
+      <xsd:element name="bounds">
+        <xsd:annotation>
+          <xsd:documentation>
+            All nodes or element centers are tested against the specified bounding box. 
+            Not all dimensions need to be given.  
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:choice minOccurs="1" maxOccurs="6">
+            <xsd:element name="range">
+              <xsd:complexType>
+                <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
+                <xsd:attribute name="min" type="xsd:float" use="required"/>
+                <xsd:attribute name="max" type="xsd:float" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="fixed">
+              <xsd:complexType>
+                <xsd:attribute name="comp" type="DT_CosyCompType" use="required"/>
+                <xsd:attribute name="value" type="xsd:float" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:choice>
+          <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
+          <!-- to cope with numerical noise the bounds are extended by eps -->
+          <xsd:attribute name="eps" type="xsd:float" default="1e-9"/>
+        </xsd:complexType>
+      </xsd:element>
+      <!-- traverse all nodes and compare against a given mathparser expression -->
+      <xsd:element name="test">
+        <xsd:annotation>
+          <xsd:documentation>Traverse all nodes and compare against a given mathparser expression.</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="condition" type="xsd:token" use="required">
+            <xsd:annotation>
+              <xsd:documentation> 
+                 The lower-then and greater-then symbols (angular brackets) are not allowed for XML.
+                 Therefore 'lt' and 'gt' are used instead. 
+              </xsd:documentation>  
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="coordSysId" type="xsd:token" default="default"/>
         </xsd:complexType>
       </xsd:element>
     </xsd:choice>

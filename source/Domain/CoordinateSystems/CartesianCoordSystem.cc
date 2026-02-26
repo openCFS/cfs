@@ -245,26 +245,20 @@ namespace CoupledField{
   }
 
 
-  UInt CartesianCoordSystem::GetVecComponent( const std::string & dof ) const{
-    
-    UInt component = 0;
-    
+  UInt CartesianCoordSystem::GetVecComponent( const std::string & dof, bool silent ) const
+  {
     if ( dof == "x" )
-      component = 1;
+      return 1;
     if ( dof == "y" )
-      component = 2;
+      return 2;
     if ( dof == "z" && dim_ == 3 )
-      component = 3;
-    
-    if ( component == 0 ) {
-      EXCEPTION( "CartesianCoordSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in a (rotated) Cartesian coordinate system"
-                 << "of dimension name" << dim_ << "'!" );
-    }
+      return 3;
 
-    return component;
-  }  
+    if(!silent)
+      EXCEPTION( "CartesianCoordSystem:GetVecComponent: invalid of '" << dof  << "' in a (rotated) Cartesian coordinate system for dimension " << dim_);
+    
+    return INVALID_DOF;
+  }    
 
   const std::string CartesianCoordSystem::GetDofName( const UInt dof ) const {
     if( dof == 1 )
