@@ -5,7 +5,7 @@
 // ================================================================================================
 /*!
  *       \file     KNNSearch.cc
- *       \brief    Class for nearest-neighbor search based on knn-trees, using CGAL or FLANN
+ *       \brief    Class for nearest-neighbor search based on knn-trees, using CGAL. (nano)flann is not impemented
  *
  *       \date     Nov 23, 2016
  *       \author   kroppert

@@ -13,11 +13,10 @@
 //================================================================================================
 #pragma once
 
-//Definition of a point for kd-search-tree CGAL of FLANN
+//Definition of a point for kd-search-tree CGAL - there is no (NANO)FLANN usage
 
 #include "cfsdat/DatUtils/Defines.hh"
 #include <def_use_cgal.hh>
-#include <def_use_flann.hh>
 #ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>

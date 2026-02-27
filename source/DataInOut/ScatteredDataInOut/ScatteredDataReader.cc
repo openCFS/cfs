@@ -110,16 +110,10 @@ namespace CoupledField
 
   void ScatteredDataReader::Read(bool updateMode)
   {
-    std::map<std::string, boost::shared_ptr<ScatteredDataReader> >::iterator it, end;
-    it = readers_.begin();
-    end = readers_.end();
-
-
-    for( ; it != end; it++ ) 
+    for(const auto& entry : readers_)
     {
-      if(!updateMode || it->second->GetMode() == ScatteredDataReader::TF)
-        it->second->ReadData();
-
+      if(!updateMode || entry.second->GetMode() == ScatteredDataReader::TF)
+        entry.second->ReadData();
     }
   }
 

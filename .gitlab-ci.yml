@@ -590,7 +590,7 @@ cfsdeps:msvc2022:
                     cmake --build . --target ipopt --parallel 1 &&
                     cmake --build . --target feast --parallel 1 &&
                     cmake --build . --target lis --parallel 1 &&
-                    cmake --build . --target flann --parallel 1 &&
+                    cmake --build . --target nanoflann --parallel 1 &&
                     cmake --build . --target muparser --parallel 1 &&
                     cmake --build . --target vtk --parallel 1 &&
                     cmake --build . --target ginkgo --parallel 1 &&
@@ -835,7 +835,7 @@ linux:gcc9min:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_NANOFLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *build_rules, *gcc_before ]

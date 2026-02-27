@@ -196,11 +196,9 @@ if(USE_FEAST)
   include("${CFSDEPS_DIR}/feast/External_FEAST.cmake")
 endif()
 
-# FLANN - Fast Library for Approximate Nearest Neighbors
-if(USE_FLANN)
-  # dependecy for flann
-  include("${CFSDEPS_DIR}/lz4/External_LZ4.cmake")
-  include("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
+# nanoflann can efficiently do a k-nearest neighbor search
+if(USE_NANOFLANN)
+  include("${CFSDEPS_DIR}/nanoflann/External_NANOFLANN.cmake")
 endif()
 
 #-----------------------------------------------------------------------------

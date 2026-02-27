@@ -142,7 +142,7 @@ option(USE_EIGEN "Eigen is a C++ template library for linear algebra: matrices, 
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
 # Please note, that either CGAL or libfbi can be used at a time, but not both!
 option(USE_LIBFBI "Use fast box intersection library." ${USE_LIBFBI_DEFAULT})
-option(USE_FLANN "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors." ${USE_FLANN_DEFAULT})
+option(USE_NANOFLANN "Enable support for nanoflann - KD-Tree nearest neighbor search." ${USE_NANOFLANN_DEFAULT})
 # we choose here and hande USE_XERCES and USE_LIBXML2 in the conditional options
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)

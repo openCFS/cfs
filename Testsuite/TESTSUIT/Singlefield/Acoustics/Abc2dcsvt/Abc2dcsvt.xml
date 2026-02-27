@@ -38,7 +38,7 @@
           <comp dof="y" col="1"/>
 <!--          <comp dof="z" col="2"/>-->
         </coordinates>
-        <quantity name="scatter" id="acouPot" knnLib="flann">
+        <quantity name="scatter" id="acouPot" knnLib="nanoflann">
           <comp col="0"/>
           <!--          <comp dof="y" col="1"/>-->
           <!--          <comp dof="z" col="2"/>-->

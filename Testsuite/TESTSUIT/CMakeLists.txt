@@ -77,7 +77,7 @@ endif()
 #-------------------------------------------------------------------------------
 # Subdirectories for Acoustics test cases.
 #-------------------------------------------------------------------------------
-if(USE_FLANN AND USE_LIS)
+if(USE_NANOFLANN AND USE_LIS)
   ADD_SUBDIRECTORY(Singlefield/Acoustics/Abc2dcsvt)
 endif()
 ADD_SUBDIRECTORY(Singlefield/Acoustics/Abc3d)
@@ -312,7 +312,7 @@ if(USE_SUITESPARSE)
   ADD_SUBDIRECTORY(Singlefield/Flow/Stokes3DPerturbed)
   ADD_SUBDIRECTORY(Singlefield/Flow/Stokes3DPerturbedStabBochev)
   ADD_SUBDIRECTORY(Singlefield/Flow/StokesPerturbed)
-  if(USE_FLANN)
+  if(USE_NANOFLANN)
     ADD_SUBDIRECTORY(Singlefield/Flow/Channel2dMeanFlowFromCSV)  
   endif()
 endif(USE_SUITESPARSE)

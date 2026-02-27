@@ -57,7 +57,7 @@ set(USE_DUMAS_DEFAULT ON)  # simple self contained C++ implementations of MMA an
 set(USE_CGAL_DEFAULT OFF)  # GPL and cannot compile on Mac and Windows
 
 set(USE_LIBFBI_DEFAULT OFF)
-set(USE_FLANN_DEFAULT ON)
+set(USE_NANOFLANN_DEFAULT ON)
 
 set(USE_OPENMP_DEFAULT ON) # for Debug usually OFF
 set(USE_CUDA_DEFAULT OFF) 

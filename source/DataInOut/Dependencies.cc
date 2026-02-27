@@ -7,7 +7,7 @@
 #include <def_use_embedded_python.hh>
 #include <def_use_ensight.hh>
 #include <def_use_feast.hh>
-#include <def_use_flann.hh>
+#include <def_use_nanoflann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_ginkgo.hh>
@@ -78,11 +78,6 @@
 
 #ifdef USE_EIGEN
 #include <Eigen/src/Core/util/Macros.h>
-#endif
-
-#ifdef USE_FLANN
-#include <flann/flann.hpp>
-#include <lz4.h>
 #endif
 
 #ifdef USE_GINKGO
@@ -381,15 +376,11 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(fbi);
 
-  Dependency flann("flann", "USE_FLANN", NOT_KNOWN);
-#ifdef USE_FLANN
-  flann.SetVersion(FLANN_VERSION_);
-
-  // for flann >= 1.9.2 we need to provide lz4
-  data.Push_back(Dependency("lz4", "", "", BSD, "used by flann"));
-  data.Last().SetVersion(LZ4_VERSION_MAJOR, LZ4_VERSION_MINOR, LZ4_VERSION_RELEASE);
+  Dependency nanoflann("nanoflann", "USE_NANOFLANN", BSD);
+#ifdef USE_NANOFLANN
+  nanoflann.SetVersion(NANOFLANN_VER);
 #endif
-  data.Push_back(flann);
+  data.Push_back(nanoflann);
 
   Dependency expr("XPRT", "USE_EXPRESSION_TEMPLATES", NOT_KNOWN);
 #ifdef USE_EXPRESSION_TEMPLATES

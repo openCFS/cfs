@@ -694,7 +694,7 @@
     <xsd:attribute name="knnLib" use="optional" default="cgal">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          Library for k-nearest-neighbor search. May be one of cgal or flann.
+          Library for k-nearest-neighbor search. May be one of cgal or nanoflann.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>

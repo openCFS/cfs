@@ -13,7 +13,7 @@
           <comp dof="x" col="0"/>
           <comp dof="y" col="1"/>
         </coordinates>
-        <quantity name="meanFluidMechVelocity" id="meanVel" knnLib="flann">
+        <quantity name="meanFluidMechVelocity" id="meanVel" knnLib="nanoflann">
           <dump fileName="out.csv"/>
           <comp dof="x" col="3"/>
           <comp dof="y" col="4"/>

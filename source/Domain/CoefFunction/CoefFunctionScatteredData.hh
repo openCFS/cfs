@@ -13,7 +13,7 @@
 
 
 #include <def_use_cgal.hh>
-#include <def_use_flann.hh>
+#include <def_use_nanoflann.hh>
 
 #include "CoefFunction.hh"
 
@@ -177,9 +177,9 @@ typedef K_neighbor_search::Tree Tree;
 
 #endif // USE_CGAL
 
-#ifdef USE_FLANN
-#include <flann/flann.hpp>
-#endif // USE_FLANN
+#ifdef USE_NANOFLANN
+#include <nanoflann.hpp>
+#endif // USE_NANOFLANN
 
 
 namespace CoupledField {
@@ -197,7 +197,7 @@ namespace CoupledField {
 
     enum KNNLibary
     {
-      CGAL, FLANN
+      CGAL, NANOFLANN
     };
     
     //! Constructor
@@ -296,9 +296,23 @@ namespace CoupledField {
                         StdVector< Vector<T> >& vectors);
 #endif
 
-#ifdef USE_FLANN
-    boost::shared_ptr< flann::Index<flann::L2<Double> > > index_;
-    boost::shared_ptr< flann::Matrix<Double> > dataset_;
+#ifdef USE_NANOFLANN
+    // the adaptor provides the interface between our own coordinates_ and nanoflann -> no copying! 
+    struct PointCloudAdaptor {
+      const std::vector<std::vector<double>>& pts;
+      PointCloudAdaptor(const std::vector<std::vector<double>>& pts_) : pts(pts_) {}
+      size_t kdtree_get_point_count() const { return pts.size(); }
+      double kdtree_get_pt(const size_t idx, const size_t dim) const { return pts[idx][dim]; }
+      template <class BBOX>
+      bool kdtree_get_bbox(BBOX&) const { return false; } // let nanoflann compute it
+    };
+
+    using NanoFlannIndex = nanoflann::KDTreeSingleIndexAdaptor<
+        nanoflann::L2_Simple_Adaptor<Double, PointCloudAdaptor>,
+        PointCloudAdaptor, 3>;
+
+    shared_ptr<PointCloudAdaptor> adaptor_;
+    shared_ptr<NanoFlannIndex>    index_;
 
     void KNNSearch_FLANN(const Vector<Double> globPoint,
                          StdVector< Vector<Double> >& neighbors,

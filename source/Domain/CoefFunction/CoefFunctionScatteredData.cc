@@ -70,9 +70,9 @@ namespace CoupledField{
     {
       std::string knnLib;
       knnLib = quantityNode_->Get("knnLib")->As<std::string>();
-      if(knnLib == "flann") 
+      if(knnLib == "nanoflann") 
       {
-        knnLib_ = FLANN;
+        knnLib_ = NANOFLANN;
       } 
     }    
 
@@ -231,33 +231,22 @@ namespace CoupledField{
         return;
     }
 #else
-      EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
+      throw Exception("CGAL not supported! Compile with USE_CGAL=ON.");
 #endif
       break;
 
-    case FLANN:
-#ifdef USE_FLANN
+    case NANOFLANN:
+#ifdef USE_NANOFLANN
       {
         if(updateMode)
           return;
-      dataset_.reset(new flann::Matrix<Double>(new Double[n*3], n, 3));
-      Double *dPtr = dataset_->ptr();
-      for(UInt i=0; i<n; i++)
-      {
-        UInt idx = i*3;
-        
-        dPtr[idx+0] = coordinates_[i][0];
-        dPtr[idx+1] = coordinates_[i][1];
-        dPtr[idx+2] = coordinates_[i][2];
-      }
-      
-      // construct an randomized kd-tree index using a single kd-tree
-      index_.reset(new flann::Index<flann::L2<Double> >(*dataset_.get(),
-                                                        flann::KDTreeSingleIndexParams(12)));
-      index_->buildIndex();
+        // we make use of the original data 
+        adaptor_.reset(new PointCloudAdaptor(coordinates_));
+        index_.reset(new NanoFlannIndex(3, *adaptor_, nanoflann::KDTreeSingleIndexAdaptorParams(12)));
+        index_->buildIndex();
       }
 #else
-      EXCEPTION("FLANN not supported! Compile with USE_FLANN=ON.")
+      throw Exception("nanoflann not supported! Compile with USE_NANOFLANN=ON.");
 #endif
       break;
     default:
@@ -360,15 +349,15 @@ namespace CoupledField{
 #ifdef USE_CGAL
       KNNSearch_CGAL(globPoint, neighbors, l2dists, vectors);
 #else
-      EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+      throw Exception("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
 #endif
       break;
       
-    case FLANN:
-#ifdef USE_FLANN
+    case NANOFLANN:
+#ifdef USE_NANOFLANN
       KNNSearch_FLANN(globPoint, neighbors, l2dists, vectors);
 #else
-      EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_FLANN=ON!");
+      throw Exception("CoefFunctionScatteredData needs to be compiled with USE_NANOFLANN=ON!");
 #endif
       break;
     default:
@@ -394,7 +383,7 @@ namespace CoupledField{
        l2dists.GetSize() == 1 ||
        dmin/dmax < 1e-6)
     {
-      // Apply nearest neigbor interpolation.
+      // Apply nearest neighbor interpolation.
       for(UInt dof=0; dof < DOFS; dof++) 
       {
         vec[dof] = vectors[0][dof];
@@ -543,89 +532,48 @@ namespace CoupledField{
   }
 #endif  
 
-#ifdef USE_FLANN
+#ifdef USE_NANOFLANN
+
+  // query the numNeighbors_ nearest neighbors of a single globPoint
   template<typename T, UInt DOFS>
     void CoefFunctionScatteredData<T,DOFS>::KNNSearch_FLANN(const Vector<Double> globPoint,
       StdVector< Vector<Double> >& neighbors,
       StdVector< Double >& l2Distances,
       StdVector< Vector<T> >& vectors) 
   {
-    Double q[3];
+    double q[3];
+    q[0] = globPoint[0];
+    q[1] = globPoint[1];
+    q[2] = globPoint.GetSize()==2 ? 0.0 : globPoint[2];
 
-    if(globPoint.GetSize()==2)
-    {
-      q[0] = globPoint[0];
-      q[1] = globPoint[1];
-      q[2] = 0.0;
-    }
-    else
-    {
-      q[0] = globPoint[0];
-      q[1] = globPoint[1];
-      q[2] = globPoint[2];
-    }
-
-    flann::Matrix<Double> query(q, 1,3);
-
-    flann::Matrix<int> indices(new int[query.rows*numNeighbors_], query.rows, numNeighbors_);
-    flann::Matrix<Double> dists(new Double[query.rows*numNeighbors_], query.rows, numNeighbors_);
-    // do a knn search, using 3 checks
-    index_->knnSearch(query, indices, dists, numNeighbors_, flann::SearchParams(flann::FLANN_CHECKS_UNLIMITED));
+    std::vector<unsigned int> ret_indices(numNeighbors_);
+    std::vector<double>       ret_dists(numNeighbors_); // squared distances
+    index_->knnSearch(q, numNeighbors_, ret_indices.data(), ret_dists.data());
 
     neighbors.Resize(numNeighbors_);
-    l2Distances.Resize(numNeighbors_);    
-    vectors.Resize(numNeighbors_);    
-    for(UInt i=0; i<indices.rows; i++) 
+    l2Distances.Resize(numNeighbors_);
+    vectors.Resize(numNeighbors_);
+
+    const bool search = quantityNode_->Has("searchRadius");
+
+    for(UInt j=0; j<numNeighbors_; j++)
     {
-      for(UInt j=0; j<numNeighbors_; j++) 
+      l2Distances[j] = std::sqrt(ret_dists[j]);
+
+      UInt idx = ret_indices[j];
+      neighbors[j].Resize(DOFS);
+      vectors[j].Resize(DOFS);
+
+      const double f = (search && l2Distances[j] >= searchRadius_) ? 0.0 : factor_;
+
+      for(UInt d=0; d<DOFS; d++)
       {
-        l2Distances[j] = std::sqrt(dists[i][j]);
-
-        if(quantityNode_->Has("searchRadius"))
-        {
-          if(l2Distances[j]<searchRadius_){
-            UInt idx = indices[i][j];
-
-            neighbors[j].Resize(DOFS);
-            vectors[j].Resize(DOFS);
-
-            for(UInt d=0; d<DOFS; d++)
-            {
-              vectors[j][d] = scatteredData_[idx][d] * factor_;
-              neighbors[j][d] = coordinates_[idx][d];
-            }
-          }else{
-            UInt idx = indices[i][j];
-
-            neighbors[j].Resize(DOFS);
-            vectors[j].Resize(DOFS);
-
-            for(UInt d=0; d<DOFS; d++)
-            {
-              vectors[j][d] = scatteredData_[idx][d] * 0.0;
-              neighbors[j][d] = coordinates_[idx][d];
-            }
-          }
-        }else{
-          UInt idx = indices[i][j];
-
-          neighbors[j].Resize(DOFS);
-          vectors[j].Resize(DOFS);
-
-          for(UInt d=0; d<DOFS; d++)
-          {
-            vectors[j][d] = scatteredData_[idx][d] * factor_;
-            neighbors[j][d] = coordinates_[idx][d];
-          }
-        }
-
+        vectors[j][d] = scatteredData_[idx][d] * f;
+        neighbors[j][d] = coordinates_[idx][d];
       }
     }
-
-    delete[] indices.ptr();
-    delete[] dists.ptr();
   }
-#endif  
+#endif // USE_NANOFLANN
 
 
   template class CoefFunctionScatteredData<Double,1>;

@@ -32,7 +32,7 @@ endif()
 # creates HDF5_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
 set_standard_variables()
 
-# we need share/cmake/hdf5-config.cmake for cgns and flann, therefore install_manifest.txt
+# we need share/cmake/hdf5-config.cmake for cgns, therefore install_manifest.txt
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project

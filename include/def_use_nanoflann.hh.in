@@ -1,0 +1,5 @@
+// nanoflann, a modern header only fork of FLANN
+
+#cmakedefine USE_NANOFLANN
+
+#define NANOFLANN_VER "@NANOFLANN_VER@"
