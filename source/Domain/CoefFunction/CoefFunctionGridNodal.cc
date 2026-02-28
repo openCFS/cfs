@@ -673,7 +673,7 @@ template<class DATA_TYPE>
       if (this->hasSpaceInputButTimeFactor_ && !this->initializedConstantInput_) {
         this->constantInput_[i].Resize(resVec.GetSize());
         StdVector<UInt> dummyNodeNums(size);
-#pragma omp parallel for
+#pragma omp parallel for if (size > OMP_THRESHOLD/1)
         for (Integer ii = 0; ii < (Integer) size; ii++) {
           dummyNodeNums[ii] = ii;
         }
@@ -804,7 +804,7 @@ template<class DATA_TYPE>
           this->stepNumberInterpolationB_ = newB;
         }
         
-#pragma omp parallel for
+#pragma omp parallel for if(numEqns_ > OMP_THRESHOLD/3)
         for(Integer i=0;i< (Integer) numEqns_;i++){
           this->solVec_[i] = facA * this->solVecInterpolationA_[i] + facB *  this->solVecInterpolationB_[i];
         }

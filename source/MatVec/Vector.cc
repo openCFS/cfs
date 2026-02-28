@@ -337,7 +337,7 @@ namespace CoupledField {
   {				
     double sum = 0;
 
-    //#pragma omp parallel for reduction(+:sum)
+    #pragma omp parallel for reduction(+:sum) if (size_ > OMP_THRESHOLD/3)
     for(Integer i = 0; i < (Integer) size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
 
@@ -352,7 +352,7 @@ namespace CoupledField {
 
     double sum = 0;
 
-    //#pragma omp parallel for reduction(+:sum)
+    #pragma omp parallel for reduction(+:sum) if (size_ > OMP_THRESHOLD/3)
     for(Integer i = 0; i < (Integer) size_; ++i)
       sum += OpType<T>::zConjz(data_[i] - other[i]);
 
@@ -369,7 +369,7 @@ namespace CoupledField {
   {
     double sum = 0;
 
-    //#pragma omp parallel for reduction(+:sum)
+    #pragma omp parallel for reduction(+:sum) if (size_ > OMP_THRESHOLD/3)
     for(Integer i = 0; i < (Integer) size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
 
@@ -700,7 +700,7 @@ namespace CoupledField {
   {
     const Vector<T>& vec = dynamic_cast<const Vector<T>&>(y);
 
-#pragma omp parallel for 
+#pragma omp parallel for if (size_ > OMP_THRESHOLD/2)
     for ( Integer i = 0; i < (Integer) size_; ++i )
       data_[i] = alpha * data_[i] + vec[i];
   }

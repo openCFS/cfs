@@ -28,6 +28,13 @@ typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;
 
+/** Ihis constant is for 
+ * #pragma omp parallel for if (my_size > OMP_THRESHOLD/my_ops) 
+ * where my_ops is e.g. 1 for simple y[i] = a[i] * b[i].
+ * The purpose is to avoid overheads by too small loops. */
+#define OMP_THRESHOLD 10000
+
+
 #define MACRO2STRING(a) QUOTEMACRO(a)
 //! Auxiliary macro needed by MACRO2STRING
 #define QUOTEMACRO(a) #a

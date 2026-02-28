@@ -72,7 +72,7 @@ namespace CoupledField {
 
     Integer i = 0;
 
-#pragma omp parallel for 
+#pragma omp parallel for if (this->nrows_ > OMP_THRESHOLD/1)
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] =  data_[i] * mvec[i];
     }
@@ -89,7 +89,7 @@ namespace CoupledField {
 
     Integer i = 0;
 
-#pragma omp parallel for
+#pragma omp parallel for if (this->nrows_ > OMP_THRESHOLD/1)
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] += data_[i] * mvec[i];
     }
@@ -106,7 +106,7 @@ namespace CoupledField {
 
     Integer i = 0;
 
-#pragma omp parallel for
+#pragma omp parallel for if (this->nrows_ > OMP_THRESHOLD/1)
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       rvec[i] -= data_[i] * mvec[i];
     }
@@ -122,7 +122,7 @@ namespace CoupledField {
 
     Integer i = 0;
 
-#pragma omp parallel for
+#pragma omp parallel for if (this->nrows_ > OMP_THRESHOLD/3)
     for ( i = 0; i < (Integer) this->nrows_; i++ ) {
       r[i] = b[i] - data_[i] * x[i];
     }
