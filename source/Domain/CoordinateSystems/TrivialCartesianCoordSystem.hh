@@ -50,9 +50,9 @@ namespace CoupledField {
     //! so that it represents the current one in that point.
     //! \param rotMatrix rotation matrix for global point
     //! \param point point w.r.t. to global Cartesian coordinate system
-    virtual void 
-    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
-                           const Vector<Double>& point ) const;
+    void GetGlobRotationMatrix(Matrix<Double>& rotMat, const Vector<Double>& /*point*/) const {
+       rotMat = invRotationMat_;
+     }
 
     //! Returns the full 3x3 global rotation matrix for a given point
 
@@ -61,9 +61,9 @@ namespace CoupledField {
     //! it represents the current one in that point.
     //! \param rotMatrix rotation matrix for global point
     //! \param point point w.r.t. to global Cartesian coordinate system
-    virtual void 
-    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
-                               const Vector<Double>& point ) const;
+    void GetFullGlobRotationMatrix(Matrix<Double>& rotMat, const Vector<Double>& /*point*/) const {
+       rotMat = invRotationMatFull_;
+     }
 
     //@{
     //! Transform local vector into global one for a given global model point
@@ -121,6 +121,9 @@ namespace CoupledField {
 
     //! global vector pointing in local y-direction
     Vector<UInt> axisMap_;
+
+    //! true when origin is zero and axes are identity — enables zero-cost coord transform
+    bool isIdentity_;
 
   };
 
