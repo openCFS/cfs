@@ -1,0 +1,27 @@
+## coreform_cubit
+## Coreform Cubit Version 2023.11
+## Coreform Cubit Build b14f6c8f
+## Revised Thu Nov 2 20:37:30 2023 +0000
+## Running 12/03/2024 10:06:35 
+reset
+## Command Options:
+create surface rectangle width 1 zplane
+webcut surface 1 with plane xplane offset -0.49 imprint merge
+
+surface all size 0.5
+mesh surface all
+block 1 add surface 2
+block 1 name "spring"
+block 2 add surface 3
+block 2 name "mass"
+
+nodeset 3 add curve 2
+nodeset 3 name "xm"
+nodeset 4 add curve 4
+nodeset 4 name "xp"
+nodeset 5 add curve 6 10
+nodeset 5 name "ym"
+nodeset 6 add curve 7 9
+nodeset 6 name "yp"
+
+export ansys cdb "./Rect.cdb" overwrite

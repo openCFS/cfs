@@ -568,6 +568,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_VISCO_SHEAR_INITIAL, "Mechanic_Visco_Initial_Shear_Modulus"),
     MaterialTypeEnum.Add( MECH_VISCO_STIFFNESS_TENSOR, "Mechanic_Visco_Stiffness_Tensor"),
     MaterialTypeEnum.Add( MECH_VISCO_LONGTERM_TENSOR, "Mechanic_Visco_Longterm_Tensor"),
+    // Viscoelasticity (Kelvin-Voigt damping)
+    MaterialTypeEnum.Add( MECH_KV_VISCOUS_TENSOR, "Mechanic_Kelvin_Voigt_Viscous_Tensor" );
     // Themal Expansion
     MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_TENSOR, "Mechanic_Thermal_Expansion_Tensor" );
     MaterialTypeEnum.Add( MECH_THERMAL_EXPANSION_SCALAR, "Mechanic_Thermal_Expansion_Scalar" );
@@ -1882,6 +1884,9 @@ namespace CoupledField {
     else if (in == "globalRayleigh") {
       out = GLOBAL_RAYLEIGH;
     }
+    else if (in == "kelvinVoigt") {
+      out = KELVIN_VOIGT;
+    }
     else {
       EXCEPTION("'" << in << "' cannot be converted into a 'DampingType' item!");
     }
@@ -1932,6 +1937,9 @@ namespace CoupledField {
       break;
     case GLOBAL_RAYLEIGH:
       out = "globalRayleigh";
+      break;
+    case KELVIN_VOIGT:
+      out = "kelvinVoigt";
       break;
     default:
       EXCEPTION("No conversion found for 'DapmingType' " << in);

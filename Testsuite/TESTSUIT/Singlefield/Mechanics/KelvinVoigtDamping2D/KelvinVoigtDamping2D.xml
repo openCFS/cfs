@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title> Kelvin Voigt Damping 2D </title>
+    <authors>
+      <author>Patrick Heidegger</author>
+    </authors>
+    <date>2026-03-17</date>
+    <keywords>
+      <keyword>kelvin-voigt damping</keyword>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references> no references, only functionality test </references>
+    <isVerified>yes</isVerified>
+    <description> This is a simple functionality test for the Kelvin-Voigt damping in 2D. The domain represents/approximates a damped 1D mass-spring system, where the spring is modeled as an low-density material, while the mass is modeled as an high-stiffness material. The simulated solution of the monitor follows the analytical solution: ref = d * exp(-w0*xi.*t) .* (cos(wd*t) + w0*xi/wd .* sin(wd*t)), with w0 = 1, xi=0.5, wd = sqrt(1-xi^2), and d=0.5. The match to the analytical solution improves when making the timestep smaller and assigning more 'extreme' material properties. The solution can also be checked against an equal setup with Rayleigh damping, where beta=1 and alpha=0.</description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="KelvinVoigtDamping2D.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+      <var name="nT" value="25"/>
+      <var name="dT" value="2e-1"/>
+      <var name="d" value="0.5"/>
+    </variableList>
+    <regionList>
+      <region name="mass" material="massKelvinVoigt"/>
+      <region name="spring" material="springKelvinVoigt"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="xm"/>
+      <surfRegion name="xp"/>
+      <surfRegion name="ym"/>
+      <surfRegion name="yp"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="monitor">
+        <coord x="-0.5" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mass"/>
+          <region name="spring"/>
+        </regionList>
+        <bcsAndLoads>
+          <displacement name="xm">
+            <comp value="d" dof="x"/>
+          </displacement>
+          <fix name="yp">
+            <comp dof="y"/>
+          </fix>
+          <fix name="ym">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xm">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xp">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <transient>
+        <numSteps>nT</numSteps>
+        <deltaT>dT</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mass" dampingId="kv"/>
+          <region name="spring" dampingId="kv"/>
+        </regionList>
+        <dampingList>
+          <kelvinVoigt id="kv"/>
+        </dampingList>
+        <initialValues>
+          <initialState>
+            <sequenceStep index="1"/>
+          </initialState>
+        </initialValues>
+        <bcsAndLoads>
+          <fix name="yp">
+            <comp dof="y"/>
+          </fix>
+          <fix name="ym">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xm">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xp">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions outputIds="h5"/>
+            <nodeList>
+              <nodes name="monitor" outputIds="h5"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

@@ -515,6 +515,9 @@ endif(USE_FEAST)
 add_subdirectory(Singlefield/Mechanics/RayleighDamping3D)
 add_subdirectory(Singlefield/Mechanics/AdaptedLossTanDelta3D)
 add_subdirectory(Singlefield/Mechanics/VolumeAccelerationRhs3D)
+add_subdirectory(Singlefield/Mechanics/KelvinVoigtDamping3D)
+add_subdirectory(Singlefield/Mechanics/KelvinVoigtDamping2D)
+add_subdirectory(Singlefield/Mechanics/KelvinVoigtDamping2DHarmonic)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for complex mechanic EV test cases

@@ -101,6 +101,11 @@
                     <xsd:documentation>Defines Rayleigh damping for the global mass and stiffness matrices</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="kelvinVoigt" type="DT_DampingKelvinVoigt">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines using the Kelvin-Voigt damping model based on the viscous tensor given in the material definition</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <xsd:element name="pml" type="DT_DampingPML">
                   <xsd:annotation>
                     <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain!</xsd:documentation>

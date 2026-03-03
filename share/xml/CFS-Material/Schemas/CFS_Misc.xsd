@@ -214,6 +214,13 @@
     <xsd:attribute name="value" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_KelvinVoigtDamping">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Provide the viscous tensor for the Kelvin-Voigt damping model. </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
   <xsd:complexType name="DT_RayleighTanDeltaPoint">
     <xsd:annotation>
       <xsd:documentation xml:lang="en"> Provide 'frequency' and corresponding 'lossTangensDelta' </xsd:documentation>

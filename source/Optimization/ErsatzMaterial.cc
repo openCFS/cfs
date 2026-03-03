@@ -1024,6 +1024,9 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
     assert(this->method_ != ErsatzMaterial::PARAM_MAT || pamping == 0.0);
   }
+  else if (ctxt->pde->GetDamping(regionId) == KELVIN_VOIGT) {
+    EXCEPTION("Currently not supported!!!")
+  }
   assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0 && alpha_m == 0.0 && pamping_m == 0.0)); // note that we might have very_small negative eigenvalues!
   const unsigned int srows = S.GetNumRows();
   const unsigned int scols = S.GetNumCols();
