@@ -55,7 +55,7 @@
   after_script:
     - cd build
     # submit
-    - ctest -D ExperimentalSubmit --group $CDASH_TRACK
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || type submit.log
     # output cdash info
     - !reference [.windwos_output_cdash_links, script]
     # debug listing goes last

@@ -928,10 +928,10 @@ windows:msvc2022:
     BUILD_COMMAND: "ctest -D ExperimentalStart --group $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --group $CDASH_TRACK -V &&
                     ctest -D ExperimentalConfigure --group $CDASH_TRACK -V &&
-                    ctest -D ExperimentalSubmit --group $CDASH_TRACK &&
+                    (ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || type submit.log) &&
                     cmake --build . --target cfsdeps --parallel 1 &&
                     ctest -D ExperimentalBuild --group $CDASH_TRACK -V | tee build.log &&
-                    ctest -D ExperimentalSubmit --group $CDASH_TRACK &&
+                    (ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK || type submit.log) &&
                     ctest -D ExperimentalTest --group $CDASH_TRACK -R Pipeline_Build -V"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache.exe
