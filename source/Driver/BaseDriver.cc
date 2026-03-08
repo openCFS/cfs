@@ -67,6 +67,7 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
     analysisString = myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
+
     // Generate driver
     switch( type ) {
       case BasePDE::STATIC:

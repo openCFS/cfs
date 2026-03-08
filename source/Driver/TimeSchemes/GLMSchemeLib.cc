@@ -309,10 +309,11 @@ Bdf2::Bdf2()
   schemeCoefs_.Init();
 }
 
-void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Question alreade in TIMESchemeLIB //RD: same dt from Math_handler ?
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
-
+  //RD: Implementation of a rn = Tn/ Tn-1 < 1+ 2^0.5  -> Paper
+  // Change params so generaly (if adaptive or not), the BDF2 sceam works. Using  rn should be enougth
   switch(solDerivOrder){
   case 1:
     solDerivOrder_ = 1;

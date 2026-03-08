@@ -102,7 +102,7 @@ namespace CoupledField{
     
   }
 
-  void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){
+  void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){   //RD: Where does the GLM get the dt from, changing it to Mathlib constand should be possible and easiest solution 
 
     curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
 

@@ -293,7 +293,7 @@ class Bdf2 : public GLMScheme{
     }
 
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT); //RD: Question alreade in TIMESchemeLIB //RD: same dt from Math_handler ?
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){

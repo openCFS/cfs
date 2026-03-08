@@ -60,15 +60,16 @@ namespace CoupledField {
     // get parameter node
     param_ = param_->Get("transient");
 
+    //RD: all Info about the BDF2 setup is gotten here, so ja check if BDF2:Adaptive should be done here.
+
     info_ = info_->Get("transient");
     info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
-    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();
-    
+    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();  //RD: Edit mathparser to set dt correctly(gets set with xml)
     // Get time stepping information from parameter object
-    numstep_ = param_->Get( "numSteps")->MathParse<UInt>();
+    numstep_ = param_->Get( "numSteps")->MathParse<UInt>(); // RD: Edit Math Parser to set numsteps correct
     
     // query if accumulated time should be used as initial time
     std::string initTimeString = param_->Get("initialTime")->As<std::string>();
@@ -117,8 +118,8 @@ namespace CoupledField {
 
     initialTime_ = accTime;
     actTime_ = accTime;
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTimeStep_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTimeStep_ );  //RD: Change Mathparser so act_timestep
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ ); //RD. and inital time are set correctly (when using adaptive)
     
   }
   // ==============
@@ -161,14 +162,14 @@ namespace CoupledField {
     ReadRestart();
     
     // correct numstep due to restart
-    numstep_ = numstep_ - restartStep_;
+    numstep_ = numstep_ - restartStep_; //RD: Possible handling needed for Restart
     
     UInt startStep = restartStep_ + 1;
-    endStep_ = numstep_ + restartStep_;
-    actTime_  = firstdt_ * startStep + initialTime_;
+    endStep_ = numstep_ + restartStep_; //RD: Should change with numstep_, check needed
+    actTime_  = firstdt_ * startStep + initialTime_; //RD: firstdt handelt in Math_handeler
     Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
-    Double percentCounter = timeStepPercent;
+    Double percentCounter = timeStepPercent;     // RD: What is timesteppercent?
   
  
    
@@ -204,7 +205,7 @@ namespace CoupledField {
       }
       
       // Set current value of timestep and time step size in the mathParser
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );  //RD: All have to be considert/changed
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", dt );    
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
 
@@ -269,7 +270,7 @@ namespace CoupledField {
       // increase current time step
       actTime_+=dt;
 
-      // perform runtime estimation (after 1st step)
+      // perform runtime estimation (after 1st step)     //RD: Is the runtime estimation used as a trigger for an Abort?
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
         timePerStep_ = totalTime / (Double) count;
@@ -307,7 +308,7 @@ namespace CoupledField {
     actTime_ = stepVal;
     actTimeStep_ = stepNum;
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    //RD: Already used Previusly 
   }
   
   void TransientDriver::ReadRestart() {
