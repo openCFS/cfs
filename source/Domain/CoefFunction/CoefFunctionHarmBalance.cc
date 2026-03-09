@@ -477,15 +477,16 @@ template<class T>
         }
       }
     }else{
-      const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
-      if ( lpm.isSurface ){
+      if ( lpm.isSurface ){ 
         const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-        coefScal = fR[ positionOfElem_[e->ptSecondary->ptVolElems[0]->elemNum] ];
+        coefScal = freqTimeRes_.GetFreqResultScalar(positionOfElem_[e->ptSecondary->ptVolElems[0]->elemNum], N_ + harmonic);
+#ifdef DEBUG
         elemReg = e->ptSecondary->ptVolElems[0]->regionId;
         LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
                                     " in harmonic "<< harmonic <<" = " <<coefScal;
+#endif
       }else{
-        coefScal = fR[ positionOfElem_[lpm.ptEl->elemNum] ];
+        coefScal = freqTimeRes_.GetFreqResultScalar( positionOfElem_[lpm.ptEl->elemNum], N_ + harmonic);
         LOG_DBG(coeffctharmbalance) <<"nu for region " << ptGrid_->GetRegionName(elemReg)<<" in harmonic "<< harmonic <<" = " <<coefScal;
       }
     }
