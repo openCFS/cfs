@@ -1470,6 +1470,18 @@ void HeatPDE::ThermalRadiationBC(){
       EXCEPTION("Thermal Radiation is not implemented for the symmetric formulation of the LinFLow-Heat-Coupling.")
     }
 
+    // Check if SUPG is enabled
+    // Get volume neighbour region from the FIRST element only — just once
+    EntityIterator entit = ent[i]->GetIterator();
+    entit.Begin();
+    RegionIdType volRegion = (mySpace->GetVolElem(entit.GetElem()))->regionId;
+
+    // Now single call instead of per-element traversal
+    PtrCoefFct factor = nullptr;
+    StabilisationType stabilisation = GetStabilisation(volRegion, factor);
+    if (stabilisation == StabilisationType::SUPG)
+      EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
+
 	  //========================================================================================
 	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
 	  //========================================================================================
@@ -1553,9 +1565,6 @@ void HeatPDE::ThermalRadiationBC(){
 	  ctx->SetFeFunction(myFct);
 	  assemble_->AddLinearForm(ctx);
     
-    // check if volume neighbour has SUPG enabled
-    if (VolNeighbourHasSUPG(ent[i]->GetIterator()))
-      EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
   }
 }
 
