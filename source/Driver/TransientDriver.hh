@@ -66,6 +66,8 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
+    void adaptTimestep();
+
   protected:
 
     //! Read restart information
@@ -94,6 +96,26 @@ namespace CoupledField {
 
     //! Delta t: increment of the time between two steps
     Double firstdt_;
+
+    // =======================================================================
+    //  Adaptive timestepping related data
+    // =======================================================================
+
+    //! adaptiveEnabeled_ : default false, if time stepping enabeled true
+    bool adaptiveEnabeled_;
+
+    //! AdaptiveTimestepping: determins Timestepping Scheme
+    std::string adaptiveTimestepping_;
+
+    //! deltaTMin_& deltaTMax_ :  Determin Bounds for adaptivity
+    Double deltaTMin_;
+    Double deltaTMax_;
+
+    //! tol_: Error Tolerance -> determins when a step has to be rerun
+    Double tol_;
+
+    //! restartCount_ : tracks howmany restarts were done
+    UInt restartCount_;
 
     // =======================================================================
     //  Restart related data

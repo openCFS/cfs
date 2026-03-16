@@ -53,8 +53,10 @@ namespace CoupledField {
     actTimeStep_ = 0;
     initialTime_ = 0.0;
     firstdt_ = 0.0;
+    restartCount_ = 0;
     restartStep_ = 0;
     endStep_ = 0;
+    adaptiveEnabeled_ = false;
     isRestarted_ = false;
 
     // get parameter node
@@ -68,9 +70,34 @@ namespace CoupledField {
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
     firstdt_ = param_->Get( "deltaT")->MathParse<Double>();  //RD: Edit mathparser to set dt correctly(gets set with xml)
-    // Get time stepping information from parameter object
     numstep_ = param_->Get( "numSteps")->MathParse<UInt>(); // RD: Edit Math Parser to set numsteps correct
-    
+
+    // Get time stepping information from parameter object
+    PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
+    if (adaptiveNode)
+    {
+      adaptiveEnabeled_ = true;
+      adaptiveTimestepping_ = adaptiveNode->Get("scheme")->As<std::string>();
+      deltaTMin_   = adaptiveNode->Get("deltaTMin")->MathParse<Double>();
+      deltaTMax_  = adaptiveNode->Get("deltaTMax")->MathParse<Double>();
+      
+      // TODO SIGMA
+
+      // optional parameters 
+      PtrParamNode tolNode = adaptiveNode->Get("tol", ParamNode::PASS);
+      if (tolNode)
+      {
+         tol_ = tolNode->MathParse<Double>();
+      }
+      /* RD: Add default tolerance
+      {
+        Double tol = 
+      }
+      */
+       
+    }
+
+
     // query if accumulated time should be used as initial time
     std::string initTimeString = param_->Get("initialTime")->As<std::string>();
     useAccumulatedTime_ = initTimeString == "accumulated" ? true : false;
@@ -270,6 +297,12 @@ namespace CoupledField {
       // increase current time step
       actTime_+=dt;
 
+      // adapt timestep if activated
+      if(adaptiveEnabeled_)
+      {
+          adaptTimestep();
+      }
+
       // perform runtime estimation (after 1st step)     //RD: Is the runtime estimation used as a trigger for an Abort?
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
@@ -379,6 +412,16 @@ namespace CoupledField {
       std::cout << "*******************************************************\n\n";
 
     }
+  }
+
+  void TransientDriver::adaptTimestep()
+  {
+    // Future implementation if Adaptive timesteping
+    std::cout << "\n\n";
+    std::cout << "*******************************************************\n";
+    std::cout << "Test -> AdaptivetimesteppingReached";
+    std::cout << "*******************************************************\n";
+    std::cout << "\n\n";
   }
 
 } // end of namespace
