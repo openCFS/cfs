@@ -314,7 +314,8 @@ Bdf2::Bdf2()
 
 void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Question alreade in TIMESchemeLIB//RD: same dt from Math_handler ?
   
-  // Storing of previus stepsize to caculate the LTE error, when running adaptive BDF2
+  // Adaptive Timestepping:
+  // Stores Previus Timstep for Errorestimation
   if(dtCurrent == 5)
   {
     dtCurrent = deltaT;
@@ -327,24 +328,26 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     dtCurrent = deltaT;
   }
 
+
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
-  //RD: Implementation of a rn = Tn/ Tn-1 < 1+ 2^0.5  -> Paper
-  // Change params so generaly (if adaptive or not), the BDF2 sceam works. Using  rn should be enougth
+   w_ = dtPrev1/dtCurrent; // For constant Timestep w_=1 -> reverts to non adaptive BDF2
+  double a0 = (1.0 + 2.0*w_) / (1.0 + w_);
+
   switch(solDerivOrder){
   case 1:
     solDerivOrder_ = 1;
-    schemeCoefs_[0][0] = 2*curTStepSize_/3;
-    schemeCoefs_[0][1] = -4/3;
-    schemeCoefs_[0][2] = 1/3;
+    schemeCoefs_[0][0] = dtCurrent / a0;          // 2*curTStepSize_/3;
+    schemeCoefs_[0][1] = -(1.0 + w_) / a0;         // -4/3;
+    schemeCoefs_[0][2] = w_*w_ / ((1.0 + 2.0*w_));  // 1/3;
     schemeCoefs_[0][3] = 0;
     schemeCoefs_[1][0] = 1;
     schemeCoefs_[1][1] = 0;
     schemeCoefs_[1][2] = 0;
     schemeCoefs_[1][3] = 0;
-    schemeCoefs_[2][0] = 2*curTStepSize_/3;
-    schemeCoefs_[2][1] = 4/3;
-    schemeCoefs_[2][2] = -1/3;
+    schemeCoefs_[2][0] = dtCurrent / a0;             // 2*curTStepSize_/3;
+    schemeCoefs_[2][1] = (1.0 + w_) / a0;            // 4/3;
+    schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);    // -1/3;
     schemeCoefs_[2][3] = 0;
     schemeCoefs_[3][0] = 0;
     schemeCoefs_[3][1] = 0;
@@ -361,9 +364,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     schemeCoefs_[0][1] = 0;
     schemeCoefs_[0][2] = 0;
     schemeCoefs_[0][3] = 0;
-    schemeCoefs_[1][0] = 3/(2*curTStepSize_);
-    schemeCoefs_[1][1] = 2/(curTStepSize_);
-    schemeCoefs_[1][2] = (-0.5/curTStepSize_);
+    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent); // 3/(2*curTStepSize_);
+    schemeCoefs_[1][1] = -(1.0 +w_) / dtCurrent;                // 2/(curTStepSize_);
+    schemeCoefs_[1][2] =  w_*w_ /((1.0+w_) * dtCurrent);      // (-0.5/curTStepSize_);
     schemeCoefs_[1][3] = 0;
     schemeCoefs_[2][0] = 1;
     schemeCoefs_[2][1] = 0;
@@ -373,9 +376,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     schemeCoefs_[3][1] = 1;
     schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
-    schemeCoefs_[4][0] = 3/(2*curTStepSize_);
-    schemeCoefs_[4][1] = -2/(curTStepSize_);
-    schemeCoefs_[4][2] = (0.5/curTStepSize_);
+    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent); // 3/(2*curTStepSize_);
+    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent;                     // -2/(curTStepSize_);
+    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent);            // (0.5/curTStepSize_);
     schemeCoefs_[4][3] = 0;
     break;
   }

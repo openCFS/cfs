@@ -308,8 +308,7 @@ class Bdf2 : public GLMScheme{
     }
   private:
 
-
-
+  Double w_;
 };
 
 

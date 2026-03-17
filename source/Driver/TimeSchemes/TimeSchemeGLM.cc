@@ -234,7 +234,7 @@ namespace CoupledField{
         mathparser_ = domain_->GetMathParser();
      }
 
-    if(domain_ != nullptr)
+    if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)  // 
     {
       Double adaptive = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveEnabeled");
       if(adaptive == 1)
@@ -249,19 +249,19 @@ namespace CoupledField{
       }
     }
     //-------------------------------------------------------------
-  
-    
-    /* Need Timestep
-    int type = curScheme_->GetType();
-    if(type == 3) // 3 = BDF2
+
+    //-------------------------------------------------------------
+    // Adaptive Timestepping
+    // Updates timestep,according to MathParservalue and recalculates
+    // the BDF2 Coefficients
+    //-------------------------------------------------------------
+    if(curScheme_->adaptiveBDF2)
     {
-      if(isAdaptive)
-      {
-        curScheme_->ComputeCoefficients();
-      }
-      
+      double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
+      curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
     }
-      */
+    //-------------------------------------------------------------
+  
     //update for old solutions
     if(curScheme_->usePredictors_){
       if( updatePredictor ) {
