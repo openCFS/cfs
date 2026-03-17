@@ -103,7 +103,7 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){   //RD: Where does the GLM get the dt from, changing it to Mathlib constand should be possible and easiest solution 
-
+    curScheme_->adaptiveBDF2 = false;
     curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
 
     //now init GLM vector
@@ -222,6 +222,46 @@ namespace CoupledField{
   }
   
   void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
+
+    //-------------------------------------------------------------
+    // Adaptive Timestepping Initialation:
+    // Sets adaptivetimestepping Flag in GLMSCchemeLib, and checks
+    // if only PDE`s for which adaptive Timestepping is Implemented
+    // are used.
+    //-------------------------------------------------------------
+     if(domain_ != nullptr && mathparser_ == nullptr)
+     {
+        mathparser_ = domain_->GetMathParser();
+     }
+
+    if(domain_ != nullptr)
+    {
+      Double adaptive = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveEnabeled");
+      if(adaptive == 1)
+      {
+        if(curScheme_->GetType() == 3)
+        {
+          curScheme_->adaptiveBDF2 = true;
+        }else
+        {
+          EXCEPTION("Adaptive Time Stepping only implmented for, Smooth PDE and AcousticMixedPDE.");
+        }
+      }
+    }
+    //-------------------------------------------------------------
+  
+    
+    /* Need Timestep
+    int type = curScheme_->GetType();
+    if(type == 3) // 3 = BDF2
+    {
+      if(isAdaptive)
+      {
+        curScheme_->ComputeCoefficients();
+      }
+      
+    }
+      */
     //update for old solutions
     if(curScheme_->usePredictors_){
       if( updatePredictor ) {

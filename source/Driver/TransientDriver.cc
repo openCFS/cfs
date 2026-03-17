@@ -74,14 +74,17 @@ namespace CoupledField {
 
     // Get time stepping information from parameter object
     PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
+    double flag = 0;
     if (adaptiveNode)
     {
       adaptiveEnabeled_ = true;
+      flag = 1;
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveEnabeled", flag);
       adaptiveTimestepping_ = adaptiveNode->Get("scheme")->As<std::string>();
       deltaTMin_   = adaptiveNode->Get("deltaTMin")->MathParse<Double>();
       deltaTMax_  = adaptiveNode->Get("deltaTMax")->MathParse<Double>();
-      
-      // TODO SIGMA
+      sigma_ = adaptiveNode->Get("sigma")->MathParse<Double>();
+
 
       // optional parameters 
       PtrParamNode tolNode = adaptiveNode->Get("tol", ParamNode::PASS);
@@ -95,6 +98,9 @@ namespace CoupledField {
       }
       */
        
+    }else
+    {
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveEnabeled", flag);
     }
 
 
@@ -189,14 +195,14 @@ namespace CoupledField {
     ReadRestart();
     
     // correct numstep due to restart
-    numstep_ = numstep_ - restartStep_; //RD: Possible handling needed for Restart
+    numstep_ = numstep_ - restartStep_; 
     
     UInt startStep = restartStep_ + 1;
-    endStep_ = numstep_ + restartStep_; //RD: Should change with numstep_, check needed
+    endStep_ = numstep_ + restartStep_;
     actTime_  = firstdt_ * startStep + initialTime_; //RD: firstdt handelt in Math_handeler
     Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
-    Double percentCounter = timeStepPercent;     // RD: What is timesteppercent?
+    Double percentCounter = timeStepPercent;     
   
  
    
@@ -416,12 +422,15 @@ namespace CoupledField {
 
   void TransientDriver::adaptTimestep()
   {
+    mathParser_ = domain_->GetMathParser();
+    /*
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", newStep );
+    */
     // Future implementation if Adaptive timesteping
-    std::cout << "\n\n";
+   
     std::cout << "*******************************************************\n";
     std::cout << "Test -> AdaptivetimesteppingReached";
     std::cout << "*******************************************************\n";
-    std::cout << "\n\n";
   }
 
 } // end of namespace

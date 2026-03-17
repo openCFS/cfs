@@ -19,16 +19,19 @@
 #include "MatVec/SingleVector.hh"
 
 namespace CoupledField{
-
+class Domain;
 
 class BaseTimeScheme{
 
   public:
 
+    bool isAdaptive;
+
     BaseTimeScheme(){
       //This is the default which corresponds to effectiveStiffness formulation
       solOrder_ = 0;
     }
+
 
     virtual ~BaseTimeScheme(){
 
@@ -55,6 +58,11 @@ class BaseTimeScheme{
     virtual void BeginStep(bool updatePredictor = true, bool storeInitialIterGlmVector=false)=0;
 
     /*!
+     *   Setter to Allow PDE`s to set the Domain, so there is MathParser access in TimeSchemeGLM. -> Only set by Smooth PDE , Needed for controll of adaptive Timestepping.
+     */
+    void SetDomain(Domain* d) { domain_ = d; }
+
+    /*!
      *   Computes the effective RHS based on the GLM vector and preceeding stage solutions
      *   \param[in] actStage The current stage number (used to determine row in GLM tableau)
      *   \param[in] derivId The current derivative i.e. matrix stiffness->derivid = 0, damping->derivId=1 etc.
@@ -68,6 +76,7 @@ class BaseTimeScheme{
     
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
+
 
     // Update function that processes the glmVector in the case of a GLM-scheme
     virtual void ProcessGlmVec(bool converged=false)=0;
@@ -145,8 +154,11 @@ class BaseTimeScheme{
     
   protected:
 
-    /// Current time derivative order of the solution
+    // Current time derivative order of the solution
     UInt solOrder_;
+
+    //Domain needed for accces to Mathparser in TimeScheme, (Used in Adaptive timestepping)
+    Domain* domain_ = nullptr;
 
 
 };

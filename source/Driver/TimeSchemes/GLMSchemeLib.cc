@@ -298,6 +298,9 @@ Bdf2::Bdf2()
   numSol1stDerivs_ = 1;
   numSol2ndDerivs_ = 0;
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
+  dtCurrent = 5;
+  dtPrev1 = 5;
+  dtPrev2 = 5;
 
   lastStageIsSolution_ = false;
   usePredictors_ = false;
@@ -309,7 +312,21 @@ Bdf2::Bdf2()
   schemeCoefs_.Init();
 }
 
-void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Question alreade in TIMESchemeLIB //RD: same dt from Math_handler ?
+void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Question alreade in TIMESchemeLIB//RD: same dt from Math_handler ?
+  
+  // Storing of previus stepsize to caculate the LTE error, when running adaptive BDF2
+  if(dtCurrent == 5)
+  {
+    dtCurrent = deltaT;
+    dtPrev1 = deltaT;
+    dtPrev2 = deltaT;
+  }else
+  {
+    dtPrev2 = dtPrev1;
+    dtPrev1 = dtCurrent;
+    dtCurrent = deltaT;
+  }
+
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
   //RD: Implementation of a rn = Tn/ Tn-1 < 1+ 2^0.5  -> Paper

@@ -580,6 +580,7 @@ namespace CoupledField {
   {
     // we do not require a special time stepping scheme for the non-linear strain stiffening, so we set it to NONE all the time
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::BDF2, TimeSchemeGLM::NONE) );
+    myScheme->SetDomain(domain); 
     
     feFunctions_[SMOOTH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }

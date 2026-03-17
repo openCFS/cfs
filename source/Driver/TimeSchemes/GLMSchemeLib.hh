@@ -17,6 +17,7 @@
 
 #include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 
@@ -36,7 +37,12 @@ class MathParser;
  */
 class GLMScheme{
   public:
-  
+
+  Double dtCurrent;
+  Double dtPrev1;
+  Double dtPrev2;
+  bool adaptiveBDF2;
+
   /// Enumeration for each GLM scheme available
   typedef enum{
     TRAPEZOIDAL = 1,
@@ -301,6 +307,8 @@ class Bdf2 : public GLMScheme{
      ///                                    "t", aTime+(alpha_*curTStepSize_) );
     }
   private:
+
+
 
 };
 

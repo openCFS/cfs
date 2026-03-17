@@ -20,8 +20,11 @@
 
 #include "BaseTimeScheme.hh"
 #include "GLMSchemeLib.hh"
+#include "Utils/mathParser/mathParser.hh"
+
 
 namespace CoupledField{
+
 
 //see below for description
 class TimeSchemeGLM : public BaseTimeScheme{
@@ -147,6 +150,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
     }
 
   protected:
+    // Pointer to Mathpaerser Instance
+    MathParser * mathparser_ = nullptr;
 
     void InitGLMs();
 

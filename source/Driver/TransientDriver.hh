@@ -114,6 +114,9 @@ namespace CoupledField {
     //! tol_: Error Tolerance -> determins when a step has to be rerun
     Double tol_;
 
+     //! Sigma: A factor[0-1], user defines step increase 
+    Double sigma_;
+
     //! restartCount_ : tracks howmany restarts were done
     UInt restartCount_;
 
