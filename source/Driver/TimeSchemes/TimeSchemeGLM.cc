@@ -105,6 +105,7 @@ namespace CoupledField{
   void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){   //RD: Where does the GLM get the dt from, changing it to Mathlib constand should be possible and easiest solution 
     curScheme_->adaptiveBDF2 = false;
     curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
+    prevPrevSol_ = nullptr;
 
     //now init GLM vector
     //this now highly depends on the used scheme
@@ -242,6 +243,7 @@ namespace CoupledField{
         if(curScheme_->GetType() == 3)
         {
           curScheme_->adaptiveBDF2 = true;
+          adaptiveStepCount_ = 0;
         }else
         {
           EXCEPTION("Adaptive Time Stepping only implmented for, Smooth PDE and AcousticMixedPDE.");
@@ -254,7 +256,7 @@ namespace CoupledField{
     // Adaptive Timestepping
     // Updates timestep,according to MathParservalue and recalculates
     // the BDF2 Coefficients
-    //-------------------------------------------------------------
+    
     if(curScheme_->adaptiveBDF2)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
@@ -427,6 +429,25 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::FinishStep(){
+    //--------------------------------------------------------------------
+    // Adaptive Timestepping:
+    // Saving Pprevius var
+    //---------------------------------------------------------------------
+    
+    if (curScheme_->adaptiveBDF2) {
+    if (adaptiveStepCount_ >= 2) {
+        LTELocalErrorEstimation();   // uses prevPrevSol_ as y_{n-1}
+    }
+    // deep copy y_n for next step
+    if (prevPrevSol_ == nullptr) {
+        prevPrevSol_ = new Vector<Double>();
+        prevPrevSol_->Resize(glmVector_[1]->GetSize());
+    }
+    prevPrevSol_->operator=(*glmVector_[1]);
+    adaptiveStepCount_++;
+}
+  
+    
     //just hack for flow and BDF2
     //bool usePredictorsOK = true;
     //if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)
@@ -604,6 +625,43 @@ namespace CoupledField{
     availSchemes[GLMScheme::NEWMARK] = new Newmark(0.5,0.25);
     availSchemes[GLMScheme::BDF2] = new Bdf2();
     availSchemes[GLMScheme::RK4] = new RungeKutta4();
+  }
+
+  void TimeSchemeGLM::LTELocalErrorEstimation()
+  {
+    Double h2 = curScheme_->dtCurrent_;  // h_{n+2}
+    Double h1 = curScheme_->dtPrev1_;    // h_{n+1}
+    Double h0 = curScheme_->dtPrev2_;    // h_n
+
+    Double prefactor = (h1 + h2) / 6.0;
+    Double c1 = 1.0 / h2;
+    Double c2 = (1.0 + h2 / h1) / h1;
+    Double c3 = h2 / (h1 * h0);
+
+    Double maxLTE = 0.0;
+    UInt n = stageVector_[0]->GetSize();
+    for (UInt j = 0; j < n; j++) {
+        Double yNp2, yNp1, yN, yNm1;
+        stageVector_[0]->GetEntry(j, yNp2);
+        glmVector_[0]->GetEntry(j, yNp1);
+        glmVector_[1]->GetEntry(j, yN);
+        prevPrevSol_->GetEntry(j, yNm1);
+
+        Double lte = std::abs(prefactor * (
+              c1 * (yNp2 - yNp1)
+            - c2 * (yNp1 - yN)
+            + c3 * (yN  - yNm1)
+        ));
+        if (lte > maxLTE) maxLTE = lte;
+    }
+    curScheme_->max_error_ = maxLTE;
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR",maxLTE);
+    
+    if(maxLTE > mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"adaptiveTol"))
+    {
+      EXCEPTION("While Running the BDF2 ADAPTIVE Scheme the LTE error was to high, reduce Sigma so remidie this behavior");
+    }
+
   }
 
 }

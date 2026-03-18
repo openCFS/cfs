@@ -91,13 +91,12 @@ namespace CoupledField {
       if (tolNode)
       {
          tol_ = tolNode->MathParse<Double>();
-      }
-      /* RD: Add default tolerance
+      }else
       {
-        Double tol = 
+        tol_ = 1.0e-6; // default Max Error
       }
-      */
-       
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol", tol_);
+      
     }else
     {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveEnabeled", flag);
@@ -185,6 +184,7 @@ namespace CoupledField {
     
   void TransientDriver::SolveProblem()
   {
+     mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", 0.0);
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
@@ -427,9 +427,11 @@ namespace CoupledField {
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", newStep );
     */
     // Future implementation if Adaptive timesteping
+
    
     std::cout << "*******************************************************\n";
     std::cout << "Test -> AdaptivetimesteppingReached";
+    std::cout << "MaxLocalError = " << mathParser_->GetExprVars( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR") << " \n";
     std::cout << "*******************************************************\n";
   }
 

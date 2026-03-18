@@ -298,9 +298,9 @@ Bdf2::Bdf2()
   numSol1stDerivs_ = 1;
   numSol2ndDerivs_ = 0;
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
-  dtCurrent = 5;
-  dtPrev1 = 5;
-  dtPrev2 = 5;
+  dtCurrent_ = 5;
+  dtPrev1_= 5;
+  dtPrev2_ = 5;
 
   lastStageIsSolution_ = false;
   usePredictors_ = false;
@@ -312,32 +312,34 @@ Bdf2::Bdf2()
   schemeCoefs_.Init();
 }
 
-void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Question alreade in TIMESchemeLIB//RD: same dt from Math_handler ?
-  
+void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){  
+  // --------------------------------------------------------------------------------
   // Adaptive Timestepping:
-  // Stores Previus Timstep for Errorestimation
-  if(dtCurrent == 5)
+  // Stores Previus Timsteps for Errorestimation
+  // The Scheme has been updated so, constant aswell as adaptive timesteps can be used.
+  // w_ -> 1 for constant timstep, the coefficiats then revert back to previus values.
+  // --------------------------------------------------------------------------------
+  if(dtCurrent_ == 5)
   {
-    dtCurrent = deltaT;
-    dtPrev1 = deltaT;
-    dtPrev2 = deltaT;
+    dtCurrent_ = deltaT;
+    dtPrev1_ = deltaT;
+    dtPrev2_ = deltaT;
   }else
   {
-    dtPrev2 = dtPrev1;
-    dtPrev1 = dtCurrent;
-    dtCurrent = deltaT;
+    dtPrev2_ = dtPrev1_;
+    dtPrev1_ = dtCurrent_;
+    dtCurrent_ = deltaT;
   }
-
 
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
-   w_ = dtPrev1/dtCurrent; // For constant Timestep w_=1 -> reverts to non adaptive BDF2
+   w_ = dtPrev1_/dtCurrent_; // For constant Timestep w_=1 -> reverts to non adaptive BDF2
   double a0 = (1.0 + 2.0*w_) / (1.0 + w_);
 
   switch(solDerivOrder){
   case 1:
     solDerivOrder_ = 1;
-    schemeCoefs_[0][0] = dtCurrent / a0;          // 2*curTStepSize_/3;
+    schemeCoefs_[0][0] = dtCurrent_ / a0;          // 2*curTStepSize_/3;
     schemeCoefs_[0][1] = -(1.0 + w_) / a0;         // -4/3;
     schemeCoefs_[0][2] = w_*w_ / ((1.0 + 2.0*w_));  // 1/3;
     schemeCoefs_[0][3] = 0;
@@ -345,7 +347,7 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     schemeCoefs_[1][1] = 0;
     schemeCoefs_[1][2] = 0;
     schemeCoefs_[1][3] = 0;
-    schemeCoefs_[2][0] = dtCurrent / a0;             // 2*curTStepSize_/3;
+    schemeCoefs_[2][0] = dtCurrent_ / a0;             // 2*curTStepSize_/3;
     schemeCoefs_[2][1] = (1.0 + w_) / a0;            // 4/3;
     schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);    // -1/3;
     schemeCoefs_[2][3] = 0;
@@ -364,9 +366,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     schemeCoefs_[0][1] = 0;
     schemeCoefs_[0][2] = 0;
     schemeCoefs_[0][3] = 0;
-    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent); // 3/(2*curTStepSize_);
-    schemeCoefs_[1][1] = -(1.0 +w_) / dtCurrent;                // 2/(curTStepSize_);
-    schemeCoefs_[1][2] =  w_*w_ /((1.0+w_) * dtCurrent);      // (-0.5/curTStepSize_);
+    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent_); // 3/(2*curTStepSize_);
+    schemeCoefs_[1][1] = -(1.0 +w_) / dtCurrent_;                // 2/(curTStepSize_);
+    schemeCoefs_[1][2] =  w_*w_ /((1.0+w_) * dtCurrent_);      // (-0.5/curTStepSize_);
     schemeCoefs_[1][3] = 0;
     schemeCoefs_[2][0] = 1;
     schemeCoefs_[2][1] = 0;
@@ -376,9 +378,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){    //RD: Quest
     schemeCoefs_[3][1] = 1;
     schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
-    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent); // 3/(2*curTStepSize_);
-    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent;                     // -2/(curTStepSize_);
-    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent);            // (0.5/curTStepSize_);
+    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent_); // 3/(2*curTStepSize_);
+    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent_;                     // -2/(curTStepSize_);
+    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent_);            // (0.5/curTStepSize_);
     schemeCoefs_[4][3] = 0;
     break;
   }

@@ -181,6 +181,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     // Bool if we have to reset the glmVector
     bool resetGlmVector_ = false;
 
+
     ///Stores for each stage, for each time derivative the stage values
     StdVector< SingleVector* > stageVector_;
 
@@ -199,7 +200,16 @@ class TimeSchemeGLM : public BaseTimeScheme{
     ///Store the type of nonlinearity to be considered in the scheme
     NonLinType nLinType_;
 
+    // Stores previus y_[-1], used when adaptive Timestepping
+    SingleVector* prevPrevSol_;
+    
+    void LTELocalErrorEstimation();
+
+    int adaptiveStepCount_;
+
   private:
+
+    
 
     ///just export the scheme to a file
     void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter){

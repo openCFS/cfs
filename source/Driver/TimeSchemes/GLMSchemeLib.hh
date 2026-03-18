@@ -38,10 +38,11 @@ class MathParser;
 class GLMScheme{
   public:
 
-  Double dtCurrent;
-  Double dtPrev1;
-  Double dtPrev2;
+  Double dtCurrent_;
+  Double dtPrev1_;
+  Double dtPrev2_;
   bool adaptiveBDF2;
+  Double max_error_;
 
   /// Enumeration for each GLM scheme available
   typedef enum{
