@@ -66,7 +66,7 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
-    void adaptTimestep();
+    bool adaptTimestep();
 
   protected:
 
@@ -96,6 +96,9 @@ namespace CoupledField {
 
     //! Delta t: increment of the time between two steps
     Double firstdt_;
+
+    //! Current time step size (updated each step when adaptive is on)
+    Double dt_;
 
     // =======================================================================
     //  Adaptive timestepping related data

@@ -31,7 +31,7 @@ namespace CoupledField{
     solOrder_ = solDerivOrder;
     nLinType_ = nlType;
   }
-  
+
   TimeSchemeGLM::TimeSchemeGLM(GLMScheme* scheme, UInt solDerivOrder, NonLinType nlType) :
            avoidUpdateIdx_(-1) {
 
@@ -48,10 +48,10 @@ namespace CoupledField{
   // Copy constructor
   TimeSchemeGLM::TimeSchemeGLM(const TimeSchemeGLM & ts) {
     InitGLMs();
-    
+
     curScheme_ = ts.curScheme_;
     curType_ = curScheme_->GetType();
-    
+
     curScheme_->solDerivOrder_ = ts.solOrder_;
     solOrder_ = ts.solOrder_;
     // was not copied before
@@ -254,13 +254,12 @@ namespace CoupledField{
 
     //-------------------------------------------------------------
     // Adaptive Timestepping
-    // Updates timestep,according to MathParservalue and recalculates
-    // the BDF2 Coefficients
-    
+    // Updates timestep, according to MathParser value and recalculates
+    // the BDF2 Coefficients.
     if(curScheme_->adaptiveBDF2)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
-      curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
+      curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_, dt);
     }
     //-------------------------------------------------------------
   
@@ -431,21 +430,35 @@ namespace CoupledField{
   void TimeSchemeGLM::FinishStep(){
     //--------------------------------------------------------------------
     // Adaptive Timestepping:
-    // Saving Pprevius var
     //---------------------------------------------------------------------
     
     if (curScheme_->adaptiveBDF2) {
-    if (adaptiveStepCount_ >= 2) {
-        LTELocalErrorEstimation();   // uses prevPrevSol_ as y_{n-1}
-    }
-    // deep copy y_n for next step
-    if (prevPrevSol_ == nullptr) {
+      if (adaptiveStepCount_ >= 2) {
+        // LTE and step-size control only once enough history exists
+        LTELocalErrorEstimation();
+
+        bool accepted = ComputeAdaptiveStepSize();
+
+        if (!accepted) {
+          // Reset LTE history so the next 2 accepted steps rebuild consistent
+          // dt-sequence data before LTE is trusted again.  Without this, a
+          // large dt drop (e.g. 1e-5 → 1e-9) leaves dtPrev1_/dtPrev2_ at the
+          // old scale and the LTE formula explodes, causing an infinite loop.
+          adaptiveStepCount_ = 0;
+          ResetGlmVector();
+          return;
+        }
+      }
+      // First 2 steps: run with user-defined dt from XML, no adaptation
+
+      // step accepted: save y_n as y_{n-1} for next LTE computation
+      if (prevPrevSol_ == nullptr) {
         prevPrevSol_ = new Vector<Double>();
         prevPrevSol_->Resize(glmVector_[1]->GetSize());
+      }
+      prevPrevSol_->operator=(*glmVector_[1]);
+      adaptiveStepCount_++;
     }
-    prevPrevSol_->operator=(*glmVector_[1]);
-    adaptiveStepCount_++;
-}
   
     
     //just hack for flow and BDF2
@@ -655,13 +668,58 @@ namespace CoupledField{
         if (lte > maxLTE) maxLTE = lte;
     }
     curScheme_->max_error_ = maxLTE;
-    mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR",maxLTE);
-    
-    if(maxLTE > mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"adaptiveTol"))
-    {
-      EXCEPTION("While Running the BDF2 ADAPTIVE Scheme the LTE error was to high, reduce Sigma so remidie this behavior");
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", maxLTE);
+  }
+
+  bool TimeSchemeGLM::ComputeAdaptiveStepSize()
+  {
+    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
+    Double est   = curScheme_->max_error_;
+    Double h     = curScheme_->dtCurrent_;
+
+    const Double z_U      = 0.1;
+    const Double z_S      = 1.2;
+    const Double F_U      = 10.0;
+    const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
+
+    Double h_next;
+    bool   accepted;
+
+    if (est == 0.0) {
+      h_next   = F_U * h;
+      accepted = true;
+    } else {
+      Double z = z_S * std::pow((est / Rtol), (1.0 / 3.0));
+      if (z <= z_U) {
+        h_next = F_U * h;  accepted = true;
+      } else if (z <= z_S) {
+        h_next = h / z;    accepted = true;
+      } else {
+        h_next = h / z;    accepted = false;
+      }
     }
 
+
+    // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
+    // Shrinking is always stable for BDF2, so only the growth direction is capped.
+    if (h_next / h > maxRatio)
+      h_next = h * maxRatio;
+
+    // Apply user-defined bounds after the stability cap
+    Double dtMin = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMin");
+    Double dtMax = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMax");
+    h_next = std::max(h_next, dtMin);
+    h_next = std::min(h_next, dtMax);
+
+    // If clamped up to dtMin, we cannot reduce further — force accept
+    if (!accepted && h_next >= dtMin)
+    {
+      accepted = true;
+    }
+    
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",           h_next);
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected", accepted ? 0.0 : 1.0);
+    return accepted;
   }
 
 }

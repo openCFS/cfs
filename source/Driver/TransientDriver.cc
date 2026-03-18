@@ -57,6 +57,7 @@ namespace CoupledField {
     restartStep_ = 0;
     endStep_ = 0;
     adaptiveEnabeled_ = false;
+    dt_ = 0.0;
     isRestarted_ = false;
 
     // get parameter node
@@ -95,7 +96,9 @@ namespace CoupledField {
       {
         tol_ = 1.0e-6; // default Max Error
       }
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol", tol_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",    tol_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin", deltaTMin_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax", deltaTMax_);
       
     }else
     {
@@ -185,6 +188,7 @@ namespace CoupledField {
   void TransientDriver::SolveProblem()
   {
      mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", 0.0);
+     mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected",    0.0);
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
@@ -200,7 +204,7 @@ namespace CoupledField {
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
     actTime_  = firstdt_ * startStep + initialTime_; //RD: firstdt handelt in Math_handeler
-    Double  dt = firstdt_;
+    //Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;     
   
@@ -225,22 +229,27 @@ namespace CoupledField {
 
     // Outer loop over all timesteps
     UInt count = 0;
-    for (actTimeStep_ = startStep; 
-         actTimeStep_ <= endStep_; 
-         actTimeStep_ += 1, count++) {
+    dt_ = firstdt_;
+    actTimeStep_ = startStep;
+
+    while (actTimeStep_ <= endStep_) {
 
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
-      
+
       // start timer only in 2nd loop, as in the 1st step normally the
       // factorization is incorporated,
       if( actTimeStep_ == startStep+1) {
         timer_->Start();
       }
-      
+
       // Set current value of timestep and time step size in the mathParser
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );  //RD: All have to be considert/changed
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", dt );    
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "t",    actTime_ );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt",   dt_ );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
+      // Reset rejection flag each attempt so steps not checked by LTE are
+      // not falsely treated as rejected (stepRejected could linger at 1.0
+      // from a previous genuine rejection when adaptiveStepCount_ < 2).
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected", 0.0 );
 
       // Determine when to write logging information on terminal
       bool log = false;
@@ -284,32 +293,50 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
 
-      // writing results in output-file(s)
-      resHandler->BeginStep( actTimeStep_, actTime_ );
-      ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
-      resHandler->FinishStep( );
-      
-      // write out re-start only in the last step
-      if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
-        if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
-         simState_->WriteStep( actTimeStep_, actTime_ );
-      }
-        
       // leave loop, if simulation should be aborted
       if ( abortSimulation_ ) {
         break;
       }
 
-      // increase current time step
-      actTime_+=dt;
+      if (adaptiveEnabeled_) {
+        // Save dt before adaptTimestep() overwrites dt_ with h_next
+        Double dt_used = dt_;
+        actTime_ += dt_used;
 
-      // adapt timestep if activated
-      if(adaptiveEnabeled_)
-      {
-          adaptTimestep();
+        bool accepted = adaptTimestep();  // updates dt_ to h_next
+        if (!accepted) {
+          actTime_ -= dt_used;  // undo with the same dt that was added
+          continue;             // redo this step with reduced dt_
+        }
+
+        // Write results only for accepted steps
+        resHandler->BeginStep( actTimeStep_, actTime_ - dt_used );
+        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ - dt_used );
+        resHandler->FinishStep( );
+
+        // write out re-start only in the last step
+        if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
+          if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
+           simState_->WriteStep( actTimeStep_, actTime_ - dt_used );
+        }
+      } else {
+        // Non-adaptive: original behavior unchanged
+        resHandler->BeginStep( actTimeStep_, actTime_ );
+        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
+        resHandler->FinishStep( );
+
+        if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
+          if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
+           simState_->WriteStep( actTimeStep_, actTime_ );
+        }
+
+        actTime_ += dt_;
       }
 
-      // perform runtime estimation (after 1st step)     //RD: Is the runtime estimation used as a trigger for an Abort?
+      actTimeStep_++;
+      count++;
+
+      // perform runtime estimation (after 1st step)
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
         timePerStep_ = totalTime / (Double) count;
@@ -420,19 +447,19 @@ namespace CoupledField {
     }
   }
 
-  void TransientDriver::adaptTimestep()
+  bool TransientDriver::adaptTimestep()
   {
-    mathParser_ = domain_->GetMathParser();
-    /*
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", newStep );
-    */
-    // Future implementation if Adaptive timesteping
+    // bounds and dt already handled by ComputeAdaptiveStepSize inside FinishStep
+    dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
+    bool accepted = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected") == 0.0);
 
-   
     std::cout << "*******************************************************\n";
-    std::cout << "Test -> AdaptivetimesteppingReached";
-    std::cout << "MaxLocalError = " << mathParser_->GetExprVars( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR") << " \n";
+    std::cout << " Adaptive Timestepping -> dt= " << dt_
+              << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
+              << "  accepted= " << accepted << "\n";
     std::cout << "*******************************************************\n";
+
+    return accepted;
   }
 
 } // end of namespace

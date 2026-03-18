@@ -202,14 +202,15 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     // Stores previus y_[-1], used when adaptive Timestepping
     SingleVector* prevPrevSol_;
-    
-    void LTELocalErrorEstimation();
 
     int adaptiveStepCount_;
 
   private:
 
-    
+    void LTELocalErrorEstimation();
+    bool ComputeAdaptiveStepSize();
+
+
 
     ///just export the scheme to a file
     void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter){
