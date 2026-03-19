@@ -67,6 +67,13 @@ namespace CoupledField
         virtual void UpdateDomain(Domain* domain) = 0;
 
         /**
+         * Marks all read results (filled by RegisterTimeStepReadData) as updated
+         * in the ResultHandler so they can be written to output even without a functor.
+         * Must be called after ResultHandler::BeginStep() and before FinishStep().
+         */
+        virtual void MarkReadResultsUpdated() = 0;
+
+        /**
          * Finalizes the PreCICE participant.
          *
          * Called automatically upon destruction.

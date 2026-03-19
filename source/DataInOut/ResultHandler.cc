@@ -258,10 +258,14 @@ namespace CoupledField {
         UpdateResult(actContext.result);
       }
       else if(!actContext.functor) {
-        WARN("No result functor present for result '"
-          << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType)
-          << "' on '" << actContext.result->GetEntityList()->GetName() << "'!\n");
+        // Only warn if the result was NOT externally updated (e.g. by PreCICE adapter
+        // via MarkReadResultsUpdated()). Those are already in isUpdated_.
+        if(isUpdated_.find(*it) == isUpdated_.end()) {
+          WARN("No result functor present for result '"
+            << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType)
+            << "' on '" << actContext.result->GetEntityList()->GetName() << "'!\n");
         }
+      }
       std::cout << "we are in UpdateResults() for loop of ResultHandler.cc, ln 251 \n";
       std::cout << "Iterator used:" << iterator << "\n";
       std::cout << "result: " << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType) << "\n";
@@ -294,10 +298,11 @@ namespace CoupledField {
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
-      // this was a problem because it was only done in an if statement below
-      // security check: if no result functor is present, we leave
-      // but maybe this is also the reason why we cannot output acouRhsLoad?
-      if( !actContext.functor ){
+      // security check: if no result functor is present and the result was not
+      // externally updated (e.g. by the PreCICE adapter), we leave.
+      // Results filled externally (without a functor) are marked via UpdateResult()
+      // before FinishStep() is called, so they appear in isUpdated_ and can be written.
+      if( !actContext.functor && isUpdated_.find(*it) == isUpdated_.end() ){
               continue;
       }
 

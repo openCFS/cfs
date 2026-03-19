@@ -74,6 +74,10 @@ namespace CoupledField
         virtual void UpdateDomain(Domain* domain) override{
             return;
         }
+
+        virtual void MarkReadResultsUpdated() override {
+            // No-op
+        }
     };
 }
 

@@ -551,6 +551,30 @@ namespace CoupledField
 
 
 
+    void PreciceAdapter::MarkReadResultsUpdated()
+    {
+#ifdef USE_PRECICE
+        if (runtimeReadResults_.empty()) return;
+
+        ResultHandler* resHandler = domain_->GetResultHandler();
+        auto* resultContextsPtr = resHandler->GetResultContexts();
+
+        for (auto &entry : *resultContextsPtr) {
+            shared_ptr<BaseResult> baseResult = entry.first;
+            std::string cfsResultName = baseResult->GetResultInfo()->resultName;
+
+            for (const auto &result : runtimeReadResults_) {
+                if (result->getConfig().cfsname == cfsResultName) {
+                    std::cout << "PreciceAdapter::MarkReadResultsUpdated: marking '"
+                              << cfsResultName << "' as updated\n";
+                    resHandler->UpdateResult(baseResult);
+                    break;
+                }
+            }
+        }
+#endif
+    }
+
     void PreciceAdapter::RegisterExternalResults()
     {
     std::cout << "PreciceAdapter: Registering external results with OpenCFS result handler..." << "\n";

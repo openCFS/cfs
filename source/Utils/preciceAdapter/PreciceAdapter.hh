@@ -64,6 +64,12 @@ namespace CoupledField
                 }
                 
                 virtual void UpdateDomain(Domain* domain) override { this->domain_ = domain;}
+
+                /**
+                 * Marks all read results (already filled by RegisterTimeStepReadData) as updated
+                 * in the ResultHandler. Must be called after ResultHandler::BeginStep().
+                 */
+                virtual void MarkReadResultsUpdated() override;
         private:
 
         // --- Helper functions for initialize() ---
