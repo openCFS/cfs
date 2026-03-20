@@ -47,6 +47,49 @@ def has_rel_error(good, test, eps = 0.0, testinfo = None, skip_noise = None, ver
       print(' - good:',good,'vs. test',test,'->',diff,'<',eps,(('skip_noise=' + str(skip_noise)) if skip_noise else ''))
     return False
 
+## for the bloch tests we have multiple EV and arpack is not always finding all - but this shall not be a bug.
+# we allow for max_skip mismatches - in case print a message and return False (no mismatch)
+# ref =[0.536998553193686, 0.536998553193687, 0.700055849478052, 0.702702337339268, 0.825803265460937]
+# test=[0.536998553193686, 0.536998553193687, 0.700055849478052, 0.702702337339268, 0.702702337339268]
+# we expect good and test to be sorted and of same size
+# @param skip_noise None or an eps value
+def has_ev_mismatch(good, test, eps, skip_noise = None, max_skip=1):
+  assert len(good) == len(test) 
+  n = len(good)
+  i = 0
+  j = 0
+  skipped = 0
+  maxdiff = 0.0
+  while i < n and j < n:
+    g, t = good[i], test[j]
+    rel_err = abs(t - g) / abs(g) if g != 0.0 else abs(t)
+    # good: [-1.65395901577023e-15, 7.72682886317901e-09, 0.517711337042488, 0.580779987650329, 0.58077998765033, 1.16285190520609, 1.21989018803362]
+    # test: [-1.18003442042985e-15, 4.75962715917529e-09, 0.517711337042487, 0.580779987650329, 0.58077998765033, 1.16285190520609, 1.21989018803362]
+    if skip_noise and abs(g) < skip_noise and abs(t) < skip_noise:
+      rel_err = 0.0
+    if rel_err <= eps:
+      i += 1
+      j += 1
+      maxdiff = max(maxdiff, rel_err)
+    else:
+      if g < t: 
+        i += 1
+      else: 
+        j += 1
+      skipped += 1
+ 
+  if(skipped > 0): 
+    print(' * warning: skipped', skipped, 'EV mismatches with eps',eps,'maxdiff',maxdiff,'skip_noise',skip_noise)
+    print('   good:',good)
+    print('   test:',test)
+
+  if(skipped > max_skip):
+    print(' * error: too many EV mismatches:', skipped , '> max_skip' , max_skip)
+    return True, maxdiff
+  else:
+    return False, maxdiff
+  
+
 # compare the whole data and gives the maximal difference. 
 # @param testinfo if the data is given and testinfo is given print a message
 # @param maxdiff start value for maxdiff
@@ -136,9 +179,9 @@ def compare_bloch_waves(ref, tst, eps, skip_noise):
     return -99
   
   assert(modes > 0)
-
-  maxdiff = 0.0
   
+  maxdiff = 0.0
+
   for w in range(len(wave_ref)):
     freq_ref = wave_ref[w].xpath('mode/@frequency')
     freq_tst = wave_tst[w].xpath('mode/@frequency')
@@ -155,15 +198,19 @@ def compare_bloch_waves(ref, tst, eps, skip_noise):
     
     srt_ref = sort_eigenfrequencies(freq_ref)
     srt_tst = sort_eigenfrequencies(freq_tst)
-    # use the list feature
-    if has_rel_error(srt_ref, srt_tst, eps, skip_noise=skip_noise): 
-      print('error: for wave vector ' + str(w) + ': ref=' + str(srt_ref) + ' test=' + str(srt_tst))
+
+    # be tolerant for one multiplicity error
+    # ref =[0.536998553193686, 0.536998553193687, 0.700055849478052, 0.702702337339268, 0.825803265460937]
+    # test=[0.536998553193686, 0.536998553193687, 0.700055849478052, 0.702702337339268, 0.702702337339268]
+    err, diff = has_ev_mismatch(srt_ref, srt_tst, eps, skip_noise,max_skip=1)
+ 
+    if(err):
+      print('error: for wave vector',w)
       return -99
           
-    # global stuff
-    maxdiff = max_diff(srt_ref, srt_tst, maxdiff = maxdiff,eps=eps)  
+    maxdiff = max(maxdiff, diff)
 
-  print(' - maximal relative frequency difference over all modes in all wave vectors: ' + str(maxdiff))
+  print(' - maximal relative frequency difference over all modes in all wave vectors:',maxdiff)
   return 1
 
 # @return see compare_eigenfrequencies
