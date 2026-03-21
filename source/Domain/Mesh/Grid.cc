@@ -169,7 +169,7 @@ namespace CoupledField
     return rd.id;
   }
 
-  void Grid::AddRegions(const StdVector<std::string> & names, StdVector<RegionIdType> & ids)
+  void Grid::AddRegions(const StdVector<std::string>& names, StdVector<RegionIdType>& ids)
   {
     ids.Resize(names.GetSize());
 
@@ -268,14 +268,15 @@ namespace CoupledField
       regionNames[i] = regionData[i].name;
   }
 
-  RegionIdType Grid::GetRegionId(const std::string name ){
-      for(UInt i = 0; i < regionData.GetSize(); i++) {
-          if(regionData[i].name == name) {
-              return regionData[i].id;
-          }
-      }
-      EXCEPTION( "No Region found with name '" << name << "'" ) ;
-      return -1;
+  RegionIdType Grid::GetRegionId(const std::string& name, bool silent) const
+  {
+    for(const RegionData& r : regionData) 
+      if(r.name == name)
+        return r.id;
+
+     if(!silent)
+       EXCEPTION( "No Region found with name '" << name << "'" ) ;
+     return NO_REGION_ID; // -1
   }
 
   void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {

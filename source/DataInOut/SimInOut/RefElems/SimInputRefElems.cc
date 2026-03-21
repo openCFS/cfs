@@ -684,11 +684,7 @@ namespace CoupledField {
   void SimInputRefElems::GetCoordinates( std::vector< double > & nodeCoords ) {
   }
 
-
-  void SimInputRefElems::GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
-                                     const std::vector<RegionIdType> & regionId ) {
-  }
-    
+   
   void SimInputRefElems::GetElements( std::vector< std::vector<UInt> > & elems,
                                   std::vector< std::vector<Elem::FEType> > & elemTypes,
                                   std::vector< std::vector<UInt> > & elemNums,                                

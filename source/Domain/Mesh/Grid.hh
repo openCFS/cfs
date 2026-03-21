@@ -467,7 +467,7 @@ namespace CoupledField
     void GetRegionNames(StdVector<std::string>& out);
 
     //! Get the region id for the region with name
-    RegionIdType GetRegionId(const std::string name);
+    RegionIdType GetRegionId(const std::string& name, bool silent = false) const;
 
     //! Get vector with all volume region identifiers
 

@@ -2061,7 +2061,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     return numElems;
   }
 
-  void GridCFS::AddNamedNodes(const std::string& name, StdVector<unsigned int> & nodeNums)
+  void GridCFS::AddNamedNodes(const std::string& name, StdVector<unsigned int>& nodeNums)
   {
     // entity names need to be unique, even across different entity types
 	  if(nameTypeMap_.find( name) != nameTypeMap_.end())
@@ -2410,14 +2410,13 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
 
-  void GridCFS::AddElems(UInt nElems)
+  void GridCFS::AddElems(unsigned int nElems)
   {
     orderedElems_.Resize(numElems_ + nElems);
 
-    UInt i=0;
-    UInt idx=numElems_;
+    unsigned int idx = numElems_;
 
-    for(; i<nElems; i++, idx++)
+    for(unsigned int i = 0; i<nElems; i++, idx++)
     {
       orderedElems_[idx] = new Elem();
 
@@ -2446,10 +2445,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
   }
 
 
-  void GridCFS::SetElemData(UInt ielem,
-                            Elem::FEType type,
-                            RegionIdType region,
-                            const UInt* connect)
+  void GridCFS::SetElemData(UInt ielem, Elem::FEType type, RegionIdType region, const UInt* connect)
   {
     assert(type != Elem::ET_UNDEF);
     
@@ -2506,17 +2502,15 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     }
 
     // add correct dimension of element to entityDim_
-    if( region != NO_REGION_ID) {
-      std::string regionName = region_.ToString(region);
-      std::map<std::string, UInt>::iterator it = entityDim_.find(regionName);
-      if( it != entityDim_.end() ) {
-        if( it->second != Elem::shapes[type].dim ) {
-          EXCEPTION( "Region '" << regionName 
-                     << "' contains elements of different dimensions!");
-        }
-      } else {
+    if(region != NO_REGION_ID)
+    {
+      const std::string& regionName = region_.ToString(region);
+      const auto it = entityDim_.find(regionName);
+      if(it == entityDim_.end()) 
         entityDim_[regionName] = Elem::shapes[type].dim;
-      }
+      else 
+        if(it->second != Elem::shapes[type].dim) // sanity check
+          EXCEPTION("Region '" << regionName << "' contains elements of different dimensions!");
     } 
   }
 

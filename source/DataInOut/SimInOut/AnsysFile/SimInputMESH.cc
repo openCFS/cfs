@@ -2,12 +2,10 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include <fstream>
-#include <sstream>
 #include <iostream>
 #include <string>
-#include <algorithm>
-#include <cstdarg>
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include "SimInputMESH.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -24,880 +22,238 @@ namespace CoupledField {
     capabilities_.insert( SimInput::MESH);
   }
 
-
   SimInputMESH::~SimInputMESH()
   {
     inFile_.close();
   }
 
-
   void SimInputMESH::InitModule()
   {
-    
     inFile_.open( fileName_.c_str(), std::ios::binary );
-    if ( !inFile_.good() ) {
-      EXCEPTION("Cannot open mesh file " << fileName_);
+    if (!inFile_.good()) 
+      throw Exception("Cannot open mesh file '" + fileName_ + "'");
+
+    // parse header
+    // [Info]
+    // Version 1
+    // ...
+    // Num 2d-line      : 16
+    std::string line;
+    while(std::getline(inFile_, line)) 
+     if(line.find("[Info]") != std::string::npos)
+       break;    
+    if(!inFile_.good() && line.find("[Info]"))   
+      throw Exception("Input file is no valid openCFS mesh file: " + fileName_);
+    // first 9 lines: strict "Key Value" format
+    for(int i = 0; i < 9; i++) 
+    {
+      std::getline(inFile_, line);
+      std::istringstream ss(line);
+      std::string key; unsigned int val;
+      if (!(ss >> key >> val))
+        throw Exception("Unexpected format in [Info] header line " + std::to_string(i+1) + ": " + line);
+      header_[key] = val;
+      LOG_DBG(mesh) << "IM: header '" << line << "' -> " << key << " = " << val;
     }
 
-    inFile_.seekg(0, std::ios::end);
-    pos_end = inFile_.tellg();
+    // skip lines in form of Num 2d-line,quad : 0 until empty line
+    while(line.size() > 1) // empty or Windows empty line
+      std::getline(inFile_, line);
 
-    dim_ = GetDim();
-    elemDimReadIn_.resize(dim_);
-    maxNumElems_ = GetNumElems();
-    maxNumNodes_ = GetNumNodes();
+    dim_ = header_.at("Dimension");
+    maxNumNodes_ = header_.at("NumNodes");
+    maxNumElems_ = header_.at("Num3DElements") + header_.at("Num2DElements") + header_.at("Num1DElements");
+
+    LOG_DBG(mesh) << "IM: header of file '" << fileName_ << "' nodes=" << maxNumNodes_ << " elems=" << maxNumElems_ << " pos=" << inFile_.tellg(); 
   }
-    
-  void SimInputMESH::ReadMesh(Grid *mi)
+
+  void SimInputMESH::ReadMesh(Grid *grid)
   {
+    LOG_DBG(mesh) << "RM: pos=" << inFile_.tellg();
+    mi_ = grid;
 
-    mi_ = mi;
-    
-    // Get Nodes
-    UInt numNodes = GetNumNodes();
-    mi_->AddNodes(numNodes);
+    if(grid->GetDim() != dim_)
+      throw Exception("Mesh '" + fileName_ + "' has dimension " + std::to_string(dim_) + " but grid has " + std::to_string(grid->GetDim()));
 
-    std::vector< double > coords;
-    GetCoordinates( coords );
+    // the header is read and we continue
+    // [Nodes]
+    // #NodeNr x-coord y-coord z-coord
+    // 1  0.0  0.0  0.0
+    // 2  0.25  0.0  0.0    
+    std::string line;
+    std::getline(inFile_, line); // consume "[Nodes]"
+    assert(line == "[Nodes]");
+    std::getline(inFile_, line); // consume "#NodeNr x-coord y-coord z-coord"
+    assert(line[0] == '#');
 
-    Vector<Double> loc(3);
-    for(UInt i=0; i<numNodes; i++) {
-      loc[0] = coords[i*3+0];
-      loc[1] = coords[i*3+1];
-      loc[2] = coords[i*3+2];
-      mi_->SetNodeCoordinate(i+1, loc);
-    }
-      
+    grid->AddNodes(maxNumNodes_); // create empty nodes, by reading we overwrite
 
-    // Get Regions
-    StdVector<std::string> regionNames;
-    StdVector<std::string> names;
-    StdVector<Integer> ids;
+    Vector<double> loc(3);
 
-    GetRegionNamesOfDim(names, 1);
-    for(UInt i = 0; i < names.GetSize(); i++)
-      regionNames.Push_back(names[i]);
-    
-    GetRegionNamesOfDim(names, 2);
-    for(UInt i = 0; i < names.GetSize(); i++)
-      regionNames.Push_back(names[i]);
-
-    if(GetDim() == 3)
+    for (unsigned int i = 0; i < maxNumNodes_; i++)
     {
-      GetRegionNamesOfDim(names, 3);
-      for(UInt i = 0; i < names.GetSize(); i++)
-        regionNames.Push_back(names[i]);
-    }
+      std::getline(inFile_, line);
+      const char* p = line.data();
+      char* end;
 
-    mi_->AddRegions(regionNames, ids);
-
-    // Get Elements
-    UInt numElems = 0;
-    UInt numElems1D = GetNumElems(1);
-    UInt numElems2D = GetNumElems(2);
-    UInt numElems3D = GetNumElems(3);
-    numElems = numElems1D + numElems2D + numElems3D;
-
-    mi_->AddElems(numElems);
-
-    std::vector< std::vector<UInt> > elems;
-    std::vector< std::vector<UInt> > elemNums;
-    std::vector< std::vector<Elem::FEType> > elemTypes;
-    std::vector<RegionIdType> regionId;
-
-    GetElements(elems,elemTypes,elemNums,regionId,1);
-    
-    UInt n;
-
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-    elems.clear();
-    elemTypes.clear();
-    elemNums.clear();
-    regionId.clear();
-    GetElements(elems,elemTypes,elemNums,regionId,2);
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-    elems.clear();
-    elemTypes.clear();
-    elemNums.clear();
-    regionId.clear();
-    GetElements(elems,elemTypes,elemNums,regionId,3);
-    n=0;
-    for(UInt j=0; j<elems.size(); j++)
-    {
-      n=0;
-      for(UInt i=0; i<elemTypes[j].size(); i++)
-      {
-        mi_->SetElemData(elemNums[j][i], elemTypes[j][i], 
-                         ids[regionId[j]], &elems[j][n]);
-        n += Elem::shapes[elemTypes[j][i]].numNodes;
-      }
-    }
-
-
-    // Get Named Nodes
-    StdVector<StdVector<UInt> > indices;
-
-    names.Clear();
-    GetNamedNodes(indices, names);
-
-    for(UInt i = 0; i < names.GetSize(); ++i)
-      mi_->AddNamedNodes(names[i], indices[i]);
-
-
-    // Get Named Elements
-    names.Clear();
-    indices.Clear();
-    
-    GetNamedElems(indices, names);
-
-    for(UInt i = 0; i < names.GetSize(); ++i)
-      mi_->AddNamedElems(names[i], indices[i]);
-
-  }
-
-  // ======================================================
-  // GENERAL MESH INFORMATION
-  // ======================================================
-  UInt SimInputMESH::GetDim() {
-    return GetInteger("Dimension");
-  }
-  
-  UInt SimInputMESH::GetNumNodes(){
-    return GetInteger("NumNodes");
-  }
-    
-  UInt SimInputMESH::GetNumElems(const Integer dim){
-    
-    UInt numElems = 0;
-    std::stringstream search;
-    
-
-    // 1.) return number of all elements
-    if ( dim == 0) {
-      if( GetDim() == 3)
-        numElems += GetNumElems(3);
-      numElems += GetNumElems(2);
-      numElems += GetNumElems(1);
-    }  
-    else if ( dim >=1 && dim <= 3 ) {
-      search << "Num" << dim;
-      search << "DElements";
-      numElems = GetInteger(search.str());
-    }
-    else {
-      EXCEPTION("Dimension " << dim << " is out of range!");
-    }
-    return numElems;
-  }
-  
-  UInt SimInputMESH::GetNumRegions(){
-    if(regionNames_.size() == 0)
-    {
-      StdVector<std::string> names;
-
-      GetAllRegionNames(names);
-    }
-    return regionNames_.size();
-  }
-
-  UInt SimInputMESH::GetNumNamedNodes(){
-    UInt numNamedNodes = 0;
-    
-    numNamedNodes += GetInteger("NumNodeBC");
-    numNamedNodes += GetInteger("NumSaveNodes");
-
-    return numNamedNodes;
-  }
-
-  UInt SimInputMESH::GetNumNamedElems(){
-    return GetInteger("NumSaveElements");
-  }
-  
-  // ======================================================
-  // ENTITY NAME ACCESS
-  // ======================================================
-
-  void SimInputMESH::GetAllRegionNames( StdVector<std::string> & regionNames ){
-    
-    if(regionNames_.size() == 0)
-    {
-      StdVector<std::string>  names;
-
-      regionNames.Clear();
-
-      for ( UInt iDim=dim_; iDim>0; iDim-- ) {
-        names.Clear();
-        GetRegionNamesOfDim(names,iDim);
-        for ( UInt iName=0; iName<names.GetSize(); iName++ )
-          regionNames.Push_back(names[iName]);
-
-      }
-    }
-    else
-      regionNames = regionNames_;
-
-
-    ///////////////////////////////////////////////////////
-    /*
-    std::vector<std::string> strs;
-    std::vector<std::string>::iterator it, end;
-      GetNodeNames( strs );
-      std::cout << "Named Nodes: " << std::endl;
-      it = strs.begin();
-      end = strs.end();
-      for(; it != end; it++)
-      {
-      std::cout << "  " << (*it) << std::endl;
-      }
-
-      GetElemNames( strs );
-      std::cout << "Named Elems: " << std::endl;
-      it = strs.begin();
-      end = strs.end();
-      for(; it != end; it++)
-      {
-      std::cout << "  " << (*it) << std::endl;
-      }
-
-      std::vector< double > coords;
-      std::vector<double>::iterator itc, endc;
-      GetCoordinates( coords );
-      std::cout << "Coordinates: " << std::endl;
-      itc = coords.begin();
-      endc = coords.end();
-      for(; itc != endc; )
-      {
-      std::cout << "  " << (*itc) << " "; itc++;
-      std::cout << (*itc) << " "; itc++;
-      std::cout << (*itc) << std::endl; itc++;
-      }
-    */
-
-    ///////////////////////////////////////////////////////
-
-  }
-    
-  void SimInputMESH::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                       const UInt dim ) {
-    
-    regionNames.Clear();
-
-    // Check if elements of desired dimension were read in. If not,
-    // read them in into dummy variables
-    if ( elemDimReadIn_[dim-1] == false ) {
-      std::vector< std::vector<UInt> > elems, elemNums;
-      std::vector< std::vector<Elem::FEType> > elemTypes;
-      std::vector<RegionIdType> dummyId;
-      GetElements(elems,elemTypes,elemNums,dummyId,dim);
-    }
-    
-    // Look for region names of desired dimension
-    for ( UInt i=0; i<regionDim_.size(); i++ ) 
-      if ( regionDim_[i] == dim )
-        regionNames.Push_back( regionNames_[i] );
-    
-  }
-
-  void SimInputMESH::GetNodeNames( StdVector<std::string> &nodeNames ) {
-
-    
-    std::string::size_type pos=0;
-    std::string str;
-    UInt nodalnum;
-    UInt i;    
-    std::vector<std::string> sections;
-    std::vector<UInt> numNamedNodes;
-    
-    nodeNames.Clear();
-    sections.push_back("Node BC");
-    sections.push_back("Save Nodes");
-    numNamedNodes.resize(2);
-    numNamedNodes[0] = GetInteger("NumNodeBC");
-    numNamedNodes[1] = GetInteger("NumSaveNodes");
-    
-    for ( UInt iSect=0; iSect<sections.size(); iSect++ ) {
+      // always expect one character spacing
+      // parse the node number and coords the classic way as std::strtod() is not that stable
+      [[maybe_unused]] unsigned int nodeNr = std::strtoul(p, &end, 10); p = end + 1; 
+      loc[0] = std::strtod(p, &end); p = end + 1;
+      loc[1] = std::strtod(p, &end); p = end + 1;
+      loc[2] = std::strtod(p, &end);
       
-      GetPosLine(sections[iSect], pos);
-      inFile_.seekg(pos,std::ios::beg);
-      
-      
-      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
-        inFile_ >> nodalnum >> str;
-        inFile_.ignore(100,'\n');
-
-
-        if ( nodeNames.Find(str) == -1 ) {
-          nodeNames.Push_back(str);
-        } 
-      }
+      assert(nodeNr == i+1); // shall be as expected, otherwise the elements will fail
+      grid->SetNodeCoordinate(i+1, loc); // for GridCFS simply sets coords_
     }
+    
+    // [1D Elements]
+    // #ElemNr  ElemType  NrOfNodes  Level
+    // #Node1 Node2 ... NodeNrOfNodes
+    //
+    // [2D Elements]
+    // #ElemNr  ElemType  NrOfNodes  Level
+    // #Node1 Node2 ... NodeNrOfNodes
+    // 1 6 4 mech
+    // 1 2 7 6
+    
+    // create empty elements, by reading we overwrite
+    grid->AddElems(maxNumElems_); 
+
+    // we parse the Blocks [1D Elements], [2D Elements], [3D Elements] - old test with reverse order :(
+    for (int i = 0; i < 3; i++)
+      ParseElementBlock();
+
+    auto entities = ParseNamedEntities("[Node BC]",header_.at("NumNodeBC"));
+    for(auto& pair : entities)
+      grid->AddNamedNodes(pair.first, pair.second);
+
+    entities = ParseNamedEntities("[Save Nodes]",header_.at("NumSaveNodes"));
+    for(auto& pair : entities)
+      grid->AddNamedNodes(pair.first, pair.second);
+
+    entities = ParseNamedEntities("[Save Elements]",header_.at("NumSaveElements"));
+    for(auto& pair : entities)
+      grid->AddNamedElems(pair.first, pair.second);
   }
 
-  void SimInputMESH::GetElemNames( StdVector<std::string> & elemNames ) {
-
-    std::string::size_type pos=0;
-    std::string str;
-    UInt elemNum, numNamedElems;
-    UInt i;
-    
-    elemNames.Clear();
-    numNamedElems = GetInteger("NumSaveElements");
-    
-    GetPosLine("[Save Elements]", pos);
-    inFile_.seekg(pos,std::ios::beg);
-    
-    
-    for ( i = 0; i < numNamedElems; i++ ) {
-      inFile_ >> elemNum >> str;
-      inFile_.ignore(100,'\n');
-      
-      if ( elemNames.Find(str) == -1 ) {
-        elemNames.Push_back(str);
-      } 
-    }
-  }
-
-  // ======================================================
-  // ENTITY ACCESS
-  // ======================================================
-  
-  void SimInputMESH::GetCoordinates( std::vector< double > & nodeCoords ) {
-
-    UInt i, ibuf;
-
-    std::string::size_type pos=0;
-    
-    UInt numNodes = GetNumNodes();
-    nodeCoords.resize(numNodes*3);
-
-
-    GetPosLine("[Nodes]", pos);
-    inFile_.seekg(pos,std::ios::beg);
-  
-    for ( i = 0; i < numNodes; i++ ) {
-      inFile_ >> ibuf
-              >> nodeCoords[i*3+0]
-              >> nodeCoords[i*3+1]
-              >> nodeCoords[i*3+2];
-      inFile_.ignore(100,'\n');
-    }
-  }
-
-
-  void SimInputMESH::GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
-                                     const std::vector<RegionIdType> & regionId ) {
-
-
-    std::set<UInt>::iterator it;
-    UInt iRegion, index, iNode;
-    
-    
-    nodes.resize(regionId.size());
-
-    for ( iRegion = 0; iRegion < regionId.size(); iRegion++ ) {
-      
-      iNode = 0;
-      index = regionId[iRegion];
-      nodes[iRegion].resize(regionNodes_[index].size());
-
-      for (it = regionNodes_[index].begin();it != regionNodes_[index].end();
-           it++, iNode++ ) {
-        nodes[iRegion][iNode] = *it;
-      }
-    }
-  }
-    
-  void SimInputMESH::GetElements( std::vector< std::vector<UInt> > & elems,
-                                  std::vector< std::vector<Elem::FEType> > & elemTypes,
-                                  std::vector< std::vector<UInt> > & elemNums,                                
-                                  std::vector<RegionIdType> & regionIds,
-                                  const UInt dim ) {
-    
-    // Check that dimension is correct
-    if ( dim < 1 || dim > 3 ) {
-      EXCEPTION("The dimension of elements to be read in was specified with "
-                << dim << "but is only allowed to have a value between 1 and 3!");
-    }
-    
-    // This string is used for assembling keywords that contain the
-    // task specifier elemType
-    std::stringstream searchString;
-
-    // Determine the number of elements of respective dimension from
-    // the header of the mesh-file
-    UInt numElems = GetNumElems(dim);
-
-    // If there are no elements, we assume that this is fine and
-    // simply return
-    if ( numElems <= 0 ) {
-      return;
-    }
-
-    // We need some strings for navigating the mesh-file
-    std::string::size_type pos = 0;
-    std::string::size_type lineEndPos = 0;
-    std::string buf;
-
-    // Position ourselves in the correct setion
-    searchString.clear();
-    searchString << dim;
-    searchString << "D Elements";
-    GetPosLine( searchString.str(), pos );
-    inFile_.seekg( pos, std::ios::beg );
-
-    // Some additional variables
-    UInt i, k, eNum, eType, eNodes;
-    std::string region, lastRegion;
-    RegionIdType regionId = 0;
-    Integer regionIndex = 0;
-    
-    // Loop over all elements
-    for ( i = 0; i < numElems; i++ ) {
-
-      // Remember current position and get the position of endline
-      pos = inFile_.tellg();
-      std::getline( inFile_, buf, '\n' );
-      lineEndPos = inFile_.tellg();
-      inFile_.seekg( pos, std::ios::beg );
-
-      // try to read data
-      inFile_ >> eNum >> eType >> eNodes >> region;       
-
-      // if read in was successful, enline position and current
-      // position are the same
-      inFile_.ignore( 100, '\n' );
-      pos = inFile_.tellg();
-      LOG_DBG3(mesh) << "GE dim=" << dim << " numElems=" << numElems << " i=" << i << " pos=" << pos << " eNum=" << eNum << " eType=" << eType << " eNodes=" << eNodes << " region=" << region;
-      if(pos != lineEndPos)
-        EXCEPTION("An error occurred while reading the " << i << "-th " << dim << "D element");
-
-
-      // Check number of element
-      if(eNum > maxNumElems_)
-        EXCEPTION("Current element number = " << eNum << " > " << maxNumElems_
-               << " = actMaxElemNum_. Something might have gone wrong in the meshing process.");
-
-      // Check if previous element had the same id. 
-      // If not, obtain new region identifier
-      if( lastRegion != region ) {
-        lastRegion = region;
-        regionId = ObtainRegionId(region, dim);
-        
-        // Check if region of this type already exists, and if not
-        // add new vector
-        std::vector<RegionIdType>::iterator it, end;
-                
-        end = regionIds.end();
-
-        it = std::find(regionIds.begin(), end, regionId);
-        
-        if ( it == end ) {
-          regionIds.push_back(regionId);
-          elems.push_back( std::vector<UInt>() );
-          elemNums.push_back( std::vector<UInt>() );
-          elemTypes.push_back( std::vector<Elem::FEType>() );
-          regionNodes_.push_back(std::set<UInt>());
-          regionIndex = regionIds.size() - 1;
-        } else {
-          regionIndex = std::distance(regionIds.begin(), it );
-        }
-      }
-
-      // Generate new element and insert basic information
-      //            el = new Elem();
-      //            el->elemNum = eNum;
-      //            el->ptElem  = Type2ptElem( eType );
-      //            el->connect.resize( eNodes );
-      //            el->regionId = regionId;
-
-            
-
-      // Read node numbers and insert them into the element and
-      // into the vector with all node-numbers per region
-      UInt dummy;
-      for ( k = 0; k < eNodes; k++ ) {
-        inFile_ >> dummy;
-        elems[regionIndex].push_back(dummy);
-        regionNodes_[regionId].insert(dummy);
-      }
-
-      elemTypes[regionIndex].push_back(AnsysType2ElemType(eType));
-      elemNums[regionIndex].push_back( eNum );
-            
-      // Proceed in mesh-file
-      inFile_.ignore( 100, '\n' );
-      pos = inFile_.tellg();
-
-      //            elems[regionIndex].push_back( el );
-    }
-
-    // Check that there are no more elements
-    if ( !IsNextLineEmpty(pos) ) {
-      EXCEPTION("The line after the last " << dim
-                << "D element no. " << eNum << " in region '" << region
-                << "' seems to contain elements too. Please check if the "
-                << "number of " << dim << "D elements specified in "
-                << "the header of the mesh-file matches the real number of "
-                << dim << "D elements!");
-    }
-
-    // Set flag which indicates, that elements of given dimension
-    // were read in
-    elemDimReadIn_[dim-1] = true;
-  }
-
-  void SimInputMESH::GetNamedNodes(StdVector<StdVector<UInt> > &nodes,
-                                   StdVector<std::string> &nodeNames )
+  void SimInputMESH::ParseElementBlock()
   {
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos =0;
-    std::string lastName = "";
-    Integer lastIndex = 0;
-    std::string str, buf, errMsg;
-    UInt nodalnum;
-    UInt i;
+    Grid* grid = mi_;
+    // [2D Elements]
+    // #ElemNr  ElemType  NrOfNodes  Level
+    // #Node1 Node2 ... NodeNrOfNodes
+    // 1 6 4 mech
+    // 1 2 7 6
 
-    std::vector<std::string> sections;
-    std::vector<UInt> numNamedNodes;
-    sections.push_back("Node BC");
-    sections.push_back("Save Nodes");
-    numNamedNodes.resize(2);
-    numNamedNodes[0] = GetInteger("NumNodeBC");
-    numNamedNodes[1] = GetInteger("NumSaveNodes");
-    
-    for ( UInt iSect=0; iSect<sections.size(); iSect++) {
+    std::string line;
+    // skip empty lines - handle also Windows
+    while(std::getline(inFile_, line) && line.size() < 2)
+      if(!inFile_.good())
+        throw Exception("Unexpected end of file searching [*D Elements] block in " + fileName_);
+    boost::algorithm::trim_right(line);
+    // new files are [1D Elements], ..., [3D Elements] - older files are reversed
+    if(line != "[1D Elements]" && line != "[2D Elements]" && line != "[3D Elements]")
+      throw Exception("Unexpected mesh file format. Got '" + line + "' expected [1/2/3D Elements]");
+    std::string key = std::string("Num") + line[1] + "DElements";
+    assert(header_.find(key) != header_.end());
+    unsigned int num = header_.at(key);
+    LOG_DBG(mesh) << "PEB: block=" << line << " num=" << num << " at pos=" << inFile_.tellg();
 
-      GetPosLine(sections[iSect], pos);
-      inFile_.seekg(pos,std::ios::beg);
+    std::getline(inFile_, line); // consume "#ElemNr  ElemType  NrOfNodes  Level"
+    assert(line[0] == '#');
+    std::getline(inFile_, line); // consume "Node1 Node2 ... NodeNrOfNodes"
+    assert(line[0] == '#');
+   
+    // with all regions at hand we can now parse the block again
+    Vector<unsigned int> connectivity; 
+    for(unsigned int i = 0; i < num; i++)
+    {
+      std::getline(inFile_, line); // 1 6 4 mech
+      boost::algorithm::trim_right(line); // remove possible Windows endings, fast if nothing to do
+      const char* p = line.data();
 
-      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
-        
-        // remember current position and get the position of endline
-        pos = inFile_.tellg();
-        std::getline(inFile_,buf,'\n');
-        lineEndPos=inFile_.tellg();
-        inFile_.seekg(pos,std::ios::beg);
-        
-        // try to read in the data
-        inFile_ >> nodalnum >> str;
-        
-        // if read in was successfull, enline position and current
-        // position are the same
-        inFile_.ignore(100,'\n');
-        pos = inFile_.tellg();
+      unsigned int elemNr = 0, elemType = 0, numNodes = 0;
+      p = std::from_chars(p, p+20, elemNr).ptr + 1; // skip single space
+      p = std::from_chars(p, p+20, elemType).ptr + 1;
+      p = std::from_chars(p, p+20, numNodes).ptr + 1;
+      std::string region(p, line.data() + line.size() - p);
 
-        if (pos != lineEndPos) {
-          EXCEPTION("The node list for the boundary "
-                    << "conditions has wrong size or format. Please correct it!");
-        }
-        
-        // get according vector index
-        if (str != lastName) {
-          lastName = str;
-          
-          // find the associated level
+      // read the connectivity line
+      std::getline(inFile_, line); // 1 2 7 6
+      p = line.data();
+      connectivity.Resize(numNodes);
+      for(unsigned int n = 0; n < numNodes; n++) 
+        p = std::from_chars(p, p+20, connectivity[n]).ptr + 1; // skip single space
 
-          StdVector<std::string>::iterator it, end;
-                
-          end = nodeNames.End();
-
-          it = std::find(nodeNames.Begin(), end, str);
-                
-          if ( it == end ) {
-            nodeNames.Push_back(str);
-            nodes.Push_back( StdVector<UInt>() );
-            lastIndex = nodes.GetSize()-1; 
-          }
-          else
-          {
-            lastIndex = std::distance(nodeNames.Begin(), it);
-          }
-        }
-        
-        nodes[lastIndex].Push_back(nodalnum);
-      } 
+      RegionIdType regid = grid->GetRegionId(region, true); // silent for new region  
+      if(regid == NO_REGION_ID) 
+        regid = grid->AddRegion(region); // populate just the name
       
-      if (! IsNextLineEmpty(pos)) {
-        EXCEPTION("The line after the last BC"
-                  << "node "
-                  << "no. " << nodalnum << " in region '" << str
-                  << "' seems to contain nodes too. Please check if the "
-                  << "number of named nodes specified in the header of the "
-                  << "mesh-file matches the real number of BC  nodes!");
-      } // end if 
-    } // end for
-  }
+      // we could slightly speed up SetElemData() by handling the entityDim_ ourselves 
+      Elem::FEType cfs_elem = AnsysType2ElemType(elemType);
+      grid->SetElemData(elemNr, cfs_elem, regid, connectivity.GetPointer());
 
-  void SimInputMESH::GetNamedElems(StdVector<StdVector<UInt> > & elems,
-                                   StdVector<std::string> & elemNames)
-  {  
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos =0;
-    std::string lastName = "";
-    Integer lastIndex = 0;
-    std::string str, buf, errMsg;
-    UInt elemNum;
-    UInt i;
-
-    UInt numNamedElems = GetInteger("NumSaveElements");
-
-    GetPosLine("Save Elements", pos);
-    inFile_.seekg(pos,std::ios::beg);
-
-    for ( i = 0; i < numNamedElems; i++ ) {
-      
-      // remember current position and get the position of endline
-      pos = inFile_.tellg();
-      std::getline(inFile_,buf,'\n');
-      lineEndPos=inFile_.tellg();
-      inFile_.seekg(pos,std::ios::beg);
-      
-      // try to read in the data
-      inFile_ >> elemNum >> str;
-      
-      // if read in was successful, endline position and current
-      // position are the same
-      inFile_.ignore(100,'\n');
-      pos = inFile_.tellg();
-      if (pos != lineEndPos) {
-        EXCEPTION("The node list for the boundary conditions has wrong size or format. Please correct it! Pos: " << pos << " lineEndPos " << lineEndPos );
-      }
-      
-      // get according vector index
-      if (str != lastName) {
-        lastName = str;
-        
-        // find the associated level
-        StdVector<std::string>::iterator it, end;
-                
-        end = elemNames.End();
-
-        it = std::find(elemNames.Begin(), end, str);
-                
-        if ( it == end ) {
-          elemNames.Push_back(str);
-          elems.Push_back( StdVector<UInt>() );
-          lastIndex = elems.GetSize()-1; 
-        }
-        else {
-          lastIndex = std::distance(elemNames.Begin(), it);
-        }
-      }
-      
-      elems[lastIndex].Push_back(elemNum);
-    } 
-    
-    if (! IsNextLineEmpty(pos)) {
-      EXCEPTION("The line after the last "
-                << "named element "
-                << "no. " << elemNum << " in region '" << str
-                << "' seems to contain nodes too. Please check if the "
-                << "number of BC nodes specified in the header of the "
-                << "mesh-file matches the real number of named elems!");
-    } // end if 
-      
-  }
-  
-
-  // =========================================================================
-  // AUXILLIARY METHODS
-  // =========================================================================
-
-
-  // **************
-  //   GetPosLine
-  // **************
-  void SimInputMESH::GetPosLine( const std::string seekexp,
-                              std::string::size_type &pos ) {
-
-    inFile_.seekg(pos, std::ios::beg);
-    std::string buf;
-    pos=std::string::npos;
-    bool found = false;
-    
-    // std::string::size_type hpos;
-    
-    while (found == false && !inFile_.eof()) {
-      // hpos=inFile_.tellg();
-      std::getline(inFile_, buf, '\n');
-      pos=buf.find(seekexp);
-
-      if ( pos != std::string::npos) {
-        found = true;
-      }
     }
-
-    pos=inFile_.tellg();
-
-    if (pos>=pos_end && found == false) {
-      EXCEPTION("Cannot find string: "
-                << seekexp << " in your mesh-file.");
-    }
-
-    // check, if there are comments lines
-    do {
-      std::getline(inFile_, buf, '\n');
-      if (buf[0] =='#') pos=inFile_.tellg();
-    }
-    while (buf[0] == '#'); 
-    
-    // reset file pointer
-    inFile_.seekg(0, std::ios::beg);
   } 
 
-  // ***************
-  //   GetPosition
-  // ***************
-  void SimInputMESH::GetPosition( const std::string seekexp,
-                               std::string::size_type &pos ) {
+  StdVector<std::pair<std::string, StdVector<unsigned int>>> SimInputMESH::ParseNamedEntities(const std::string& label, unsigned int num)
+  {
+    std::string line;
+    // skip empty lines - handle also Windows
+    while(std::getline(inFile_, line) && line.size() < 2)
+      if(!inFile_.good())
+        throw Exception("Unexpected end of file searching [*D Elements] block in " + fileName_);
+    assert(line == label); // e.g. "[Save Elements]"
+    std::getline(inFile_, line); // consume "#NodeNr Name"
+    assert(line[0] == '#');
 
+    // we parse stuff like 
+    // 1 bottom
+    // 2 bottom
+    // 78 top
 
-    inFile_.seekg(pos, std::ios::beg);
-    std::string buf;
-    pos=std::string::npos;
-    bool found = false;
-    std::string::size_type hpos = 0;
-
-    while ( found == false && !inFile_.eof() ) {
-      hpos=inFile_.tellg();
-      std::getline(inFile_, buf, '\n');
-      
-      pos=buf.find(seekexp);
-
-
-      if ( pos != std::string::npos ) {
-        found = true;
-      }
-    }
-
-
-    pos+=hpos+seekexp.length();
-
-    if ( pos>=pos_end && found == false ) {
-      EXCEPTION("Cannot find string: " << seekexp << " in your mesh-file.");
-    }
-
-    // set file pointer to beginning
-    inFile_.seekg(0, std::ios::beg);
-   
-  }
-
-  // **************
-  //   GetInteger
-  // **************
-  UInt SimInputMESH::GetInteger( std::string seekexp ) {
-
-
-    std::string::size_type pos = 0;
-    std::string::size_type lineEndPos = 0;
-    UInt val;
-    std::string buf;
-
-    GetPosition(seekexp, pos);
-    inFile_.seekg(pos,std::ios::beg);
-
-    // remember current position and get the position of endline
-    std::getline(inFile_,buf,'\n');
-    lineEndPos=inFile_.tellg();
-    inFile_.seekg(pos,std::ios::beg);
-  
-    // try to read data
-    inFile_ >> val;
-  
-    // if read in was successfull, endline position and current
-    // position are the same
-    inFile_.ignore(100,'\n');
-    pos = inFile_.tellg();
-    if ( pos != lineEndPos ) {
-      EXCEPTION("The value for " << seekexp
-                << " could not be read. Please check your mesh-file");
-    }
-    return val;
-  }
-
-  // *******************
-  //   IsNextLineEmpty
-  // *******************
-  bool SimInputMESH::IsNextLineEmpty( std::string::size_type actPos ) {
-
-
-    std::string buf = "------";
-  
-    inFile_.seekg(actPos,std::ios::beg);  
-    std::getline(inFile_,buf,'\n');
-    inFile_.seekg(actPos,std::ios::beg);  
- 
-    bool retVal;
-    if ( buf == "" || buf == "\r") {
-      retVal = true;
-    }
-    else {
-      retVal = false;
-    }
-    return retVal;
-  }
-
-  // *******************
-  //   ObtainRegionId
-  // *******************
-  
-  RegionIdType SimInputMESH::ObtainRegionId( const std::string & regionName, 
-                                          const UInt dim ) {
-
-    RegionIdType index;
-    std::vector< std::string >::iterator it, end;
-
-    end = regionNames_.end();
-
-    it = std::find(regionNames_.begin(),
-                   end,
-                   regionName);
-        
-    if( it == end ) {
-      regionNames_.push_back(regionName);
-      // remember, of what dimension this region is
-      regionDim_.push_back(dim);
-      index = regionNames_.size() - 1;
-    }
-    else
-      index = std::distance(regionNames_.begin(), it);
+    // we cannot use a map as we want to preserve the order of the names for tests
+    StdVector<std::pair<std::string, StdVector<unsigned int>>> entities;
+    std::string lastName;
+    unsigned last_idx = 1234;
     
-    return index;
+    for (unsigned int i = 0; i < num; i++)
+    {
+      std::getline(inFile_, line);
+      boost::algorithm::trim(line); // old tests have left padding
+      const char* p = line.data();
+      unsigned int nr = 0; // 1-based
+      p = std::from_chars(p, p+20, nr).ptr + 1; // skip single space
+      std::string name(p, line.data() + line.size() - p);
+      boost::algorithm::trim_left(name); // handle legacy test case
+      if (name != lastName) 
+      {
+        // a change of name does not guarantee that the name is new
+        int idx = -1;
+        for(unsigned i = 0; i < entities.GetSize(); i++)
+          if(entities[i].first == name) { 
+            idx = i; 
+            last_idx = i;
+            break; 
+          }        
+        if(idx == -1)
+        {
+          entities.Push_back(std::make_pair(name, StdVector<unsigned int>()));
+          entities.Last().second.Reserve(num-i); // too big if we have many names
+          last_idx = entities.GetSize() - 1;
+        }
+        lastName = name;
+      }
+      entities[last_idx].second.Push_back(nr);
+    }
+    return entities;
   }
 
-  // =========================================================================
-  // MISCELLANEOUS METHODS
-  // =========================================================================
-
-
-  // ***************
-  //   Type2ptElem
-  // ***************
-  Elem::FEType SimInputMESH::AnsysType2ElemType( const UInt itype ) {
-
-
-    switch( itype ) {
-
+  Elem::FEType SimInputMESH::AnsysType2ElemType(unsigned int itype)
+  {
+    switch( itype ) 
+    {
     case 101:
       return Elem::ET_LINE3;
     case 100:

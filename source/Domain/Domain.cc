@@ -227,11 +227,8 @@ void Domain::ReadGrid(const std::string & gridId,
   }
 
   // iterate over all inputs for the current grid and init reader
-  for (UInt iFile=0, numFiles=inputs.GetSize(); iFile < numFiles; ++iFile)
-  {
-    shared_ptr<SimInput> actInFile = inputs[iFile];
+  for(const shared_ptr<SimInput>& actInFile : inputs) 
     actInFile->InitModule();
-  }
 
   // create new grid
   Grid * actGrid = NULL;

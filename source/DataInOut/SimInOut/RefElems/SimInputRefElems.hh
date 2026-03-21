@@ -110,18 +110,6 @@ namespace CoupledField {
     //! \param nodeCoords (output) vector containing nodal coordinates
     void GetCoordinates( std::vector< double > & nodeCoords );
     
-    //! Get vector of nodes for each region
-
-    //! This method reads the node numbers of each region into a 
-    //! separate vector. 
-    //! \param nodes (output) vector containing the node numbers for each
-    //!                       region. The access is like \c elems 
-    //!                       \c [regionNr] \c [nodeNr]
-    //! \param regionId (output) vector containing the region Ids of the
-    //!                          nodes corresponding to the outer index in the
-    //!                          nodes vector
-    void GetNodesOfRegions( std::vector<std::vector<UInt> > &nodes,
-                            const std::vector<RegionIdType> & regionId );
     //! Read all elements of given dimension
 
     //! This method reads all elements of a given dimension (1D, 2D or 3D).
