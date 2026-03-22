@@ -146,6 +146,13 @@ namespace CoupledField {
     //! Timer for estimating remaining runtime 
     boost::shared_ptr<Timer> timer_;
 
+    //! Holds Simulation End Time, 
+    double simulationENDTime_;
+
+    //! Flag, Is set when simulationENDTime_ is reached
+    bool simulationEndTimeReached_;
+
+
   };
 
 }

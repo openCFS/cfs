@@ -55,6 +55,7 @@ namespace CoupledField {
     firstdt_ = 0.0;
     restartCount_ = 0;
     restartStep_ = 0;
+    simulationENDTime_ = 0.0;
     endStep_ = 0;
     adaptiveEnabeled_ = false;
     dt_ = 0.0;
@@ -72,6 +73,9 @@ namespace CoupledField {
     // allow variable definitions of time step size
     firstdt_ = param_->Get( "deltaT")->MathParse<Double>();  //RD: Edit mathparser to set dt correctly(gets set with xml)
     numstep_ = param_->Get( "numSteps")->MathParse<UInt>(); // RD: Edit Math Parser to set numsteps correct
+
+    simulationENDTime_ = firstdt_ * numstep_;
+    simulationEndTimeReached_ = false;
 
     // Get time stepping information from parameter object
     PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
@@ -203,7 +207,7 @@ namespace CoupledField {
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
-    actTime_  = firstdt_ * startStep + initialTime_; //RD: firstdt handelt in Math_handeler
+    actTime_  = firstdt_ * startStep + initialTime_; 
     //Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;     
@@ -232,7 +236,7 @@ namespace CoupledField {
     dt_ = firstdt_;
     actTimeStep_ = startStep;
 
-    while (actTimeStep_ <= endStep_) {
+    while (actTimeStep_ <= endStep_ && simulationEndTimeReached_ == false) {     
 
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
 
@@ -319,6 +323,16 @@ namespace CoupledField {
           if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
            simState_->WriteStep( actTimeStep_, actTime_ - dt_used );
         }
+
+        if (actTime_ >= (simulationENDTime_+ dt_used))
+        {
+          simulationEndTimeReached_ = true;
+          
+        }else
+        {
+          endStep_ = endStep_+1;
+        }
+
       } else {
         // Non-adaptive: original behavior unchanged
         resHandler->BeginStep( actTimeStep_, actTime_ );
@@ -329,7 +343,6 @@ namespace CoupledField {
           if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
            simState_->WriteStep( actTimeStep_, actTime_ );
         }
-
         actTime_ += dt_;
       }
 
@@ -452,13 +465,12 @@ namespace CoupledField {
     // bounds and dt already handled by ComputeAdaptiveStepSize inside FinishStep
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected") == 0.0);
-
     std::cout << "*******************************************************\n";
     std::cout << " Adaptive Timestepping -> dt= " << dt_
               << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
               << "  accepted= " << accepted << "\n";
+    std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
-
     return accepted;
   }
 
