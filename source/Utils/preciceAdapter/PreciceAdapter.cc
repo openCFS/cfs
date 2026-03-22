@@ -282,7 +282,7 @@ namespace CoupledField
                 addUniqueNode(gridCFS, nodenum, cfsNodeNumsVec_, nodeNumCoordMap_);
             }
 
-            // Nodes
+            // Elements
             it = elemlist->GetIterator();
             for (it.Begin(); !it.IsEnd(); it++) {
                 const Elem * el = it.GetElem();
@@ -599,7 +599,8 @@ namespace CoupledField
 
     std::cout << "regions.ToString() (PreciceAdapter.cc): " << regions.ToString() << "\n";
     
-   shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+    shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+    //shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, gridCFS->GetRegionName(regions[0]));
 
    std::cout << list << "\n";
 
@@ -615,7 +616,9 @@ namespace CoupledField
                 shared_ptr<ResultInfo> ri(new ResultInfo());
                 ri->resultName = result->getConfig().cfsname;
                 ri->resultType = result->getConfig().solutiontype;
+
                 ri->definedOn  = ResultInfo::ELEMENT;
+                //ri->definedOn  = ResultInfo::NODE;
                 // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
                 ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
                 ri->dofNames = "";
@@ -627,9 +630,10 @@ namespace CoupledField
                 
                 // Register the result with the result handler.
                 // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
-                resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
-                                        domain_->GetSingleDriver()->GetNumSteps(),
-                                        outDest, "", true, false);
+
+                // resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                //                          domain_->GetSingleDriver()->GetNumSteps(),
+                //                          outDest, "", true, false);
             
         }
    }

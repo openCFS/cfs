@@ -161,6 +161,7 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->PostStepTrans();
 
       // writing results in output-file(s)
+
       resHandler->BeginStep( actTimeStep_, actTime_ );
       // Mark PreCICE read results as updated so ResultHandler writes them
       // even though they have no functor (data was filled by RegisterTimeStepReadData)

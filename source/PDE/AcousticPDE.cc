@@ -2708,6 +2708,11 @@ namespace CoupledField{
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
+
+      this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
+
+      RegionIdType regionId = ent[i]->GetRegion();
+      acousticRhsDensityCoef_->AddRegion( regionId, coef[i] );
     } // for
 
 
@@ -3458,17 +3463,15 @@ namespace CoupledField{
     resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
     stiffFormFunctors_.insert(keFuncPot);
 
-    //== ACOUSTIC LOAD DDENSITY  ====
+    //== ACOUSTIC LOAD DENSITY  ====
     shared_ptr<ResultInfo> loadDensity( new ResultInfo);
     loadDensity->resultType = ACOU_RHS_LOAD_DENSITY;
     loadDensity->dofNames = "";
     loadDensity->unit = "";
-
     loadDensity->definedOn = ResultInfo::NODE;
     loadDensity->entryType = ResultInfo::SCALAR;
-
-    acousticSourceDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
-    DefineFieldResult( acousticSourceDensityCoef_,loadDensity );
+    acousticRhsDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( acousticRhsDensityCoef_,loadDensity );
 
     // === PML Output Parameters ===
     // Vector holding the eigenvalues of the PML matrix

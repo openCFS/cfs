@@ -304,6 +304,7 @@ namespace CoupledField {
     std::string resultName = sol->GetResultInfo()->resultName;
 
     LOG_DBG(h5Out) << "AR sol=" << resultName;
+    std::cout << "In AdResult: " << resultName << std::endl;
 
     // try to determine, if current result is a history or mesh result
     bool isHistory = false;
@@ -318,6 +319,7 @@ namespace CoupledField {
     }
 
     if( !isHistory) {
+      std::cout << "In AddResult: AR sol=" << resultName << std::endl;
       AddMeshResult( sol );
     } else {
       AddHistResult( sol );
@@ -344,6 +346,7 @@ namespace CoupledField {
   void SimOutputHDF5::AddMeshResult( shared_ptr<BaseResult> sol) {
 
     LOG_DBG(h5Out) << "AMR sol=" << sol->GetResultInfo()->resultName;
+    std::cout << "In AddMeshResult, AMR sol=" << sol->GetResultInfo()->resultName << std::endl;
     // No need to aquire lock, as this method just gets called from
     // SimOutputHDF5::AddResult()
     

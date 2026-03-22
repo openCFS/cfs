@@ -250,6 +250,8 @@ namespace CoupledField {
       if(actContext.functor) {
         LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
         << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
+        std::cout << "In UpdateResult: result " << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
+        << "' on '" << actContext.result->GetEntityList()->GetName() << std::endl;
         
         shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
         timer->Start();
@@ -498,7 +500,8 @@ namespace CoupledField {
     // Fetch postprocs
     StdVector<shared_ptr<PostProc> > postProcs;
     PostProc::CreatePostProc(postProcNode,  domain->GetGrid(), postProcs);
-                              
+                  
+    std::cout << "In RegisterResuktRec, number: " << postProcs.GetSize() << std::endl;
     // iterate over all postprocs 
     for( UInt i = 0; i < postProcs.GetSize(); i++ )
     {
