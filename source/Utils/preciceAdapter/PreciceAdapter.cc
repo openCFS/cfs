@@ -470,8 +470,6 @@ namespace CoupledField
             // Loop over our runtime read results to see if one matches.
             for (const auto &result : runtimeReadResults_) {
                 if (result->getConfig().cfsname == cfsResultName) {
-                    // We assume here that we are dealing with an element-based result.
-                    // (A similar branch would be added for node-based results.)
                     if (result->getResultType() == ResultType::ELEMENT) {
                         Result<Double>& actSol = static_cast<Result<Double>&>(*baseResult);
                         EntityIterator it = actSol.GetEntityList()->GetIterator();
@@ -486,6 +484,26 @@ namespace CoupledField
                             const Elem* el = it.GetElem();
                             auto search = elemMap.find(el->GetElemNum());
                             if (search != elemMap.end()) {
+                                const Vector<double>& tempField = search->second;
+                                for (UInt iDim = 0; iDim < result->getConfig().quantitydim; iDim++) {
+                                    vec[it.GetPos() * result->getConfig().quantitydim + iDim] = tempField[iDim];
+                                }
+                            }
+                        }
+                    } else if (result->getResultType() == ResultType::NODE) {
+                        Result<Double>& actSol = static_cast<Result<Double>&>(*baseResult);
+                        EntityIterator it = actSol.GetEntityList()->GetIterator();
+                        Vector<Double>& vec = actSol.GetVector();
+                        vec.Resize(it.GetSize() * result->getConfig().quantitydim);
+                        NodeResult* nodeResult = dynamic_cast<NodeResult*>(result.get());
+                        if (!nodeResult) {
+                            EXCEPTION("Expected a NodeResult for node-based data.");
+                        }
+                        const auto& nodeMap = nodeResult->getNodeResultMap();
+                        for (it.Begin(); !it.IsEnd(); it++) {
+                            int nodeNum = it.GetNode();
+                            auto search = nodeMap.find(nodeNum);
+                            if (search != nodeMap.end()) {
                                 const Vector<double>& tempField = search->second;
                                 for (UInt iDim = 0; iDim < result->getConfig().quantitydim; iDim++) {
                                     vec[it.GetPos() * result->getConfig().quantitydim + iDim] = tempField[iDim];
@@ -599,39 +617,41 @@ namespace CoupledField
 
     std::cout << "regions.ToString() (PreciceAdapter.cc): " << regions.ToString() << "\n";
     
-   shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+   for(auto &result : runtimeReadResults_) {
+        // Select entity list and definedOn type based on whether the result is node- or element-based.
+        shared_ptr<EntityList> entityList;
+        ResultInfo::EntityUnknownType definedOnType;
 
-   std::cout << list << "\n";
-
-   if(list){
-        // For each runtime quantity that is element-based (i.e. does not have nodal results)
-        for(auto &result : runtimeReadResults_) {
-            // If nodal results are empty but we have element results, then we treat it as an element result.
-                // Create a new shallow result object.
-                shared_ptr<BaseResult> sol(new Result<Double>());
-                sol->SetEntityList(list);
-                
-                // Create a new ResultInfo to describe this element result.
-                shared_ptr<ResultInfo> ri(new ResultInfo());
-                ri->resultName = result->getConfig().cfsname;
-                ri->resultType = result->getConfig().solutiontype;
-                ri->definedOn  = ResultInfo::ELEMENT;
-                // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
-                ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
-                ri->dofNames = "";
-                sol->SetResultInfo(ri);
-                
-                // Prepare additional parameters for registration.
-                StdVector<std::string> outDest;
-                outDest.Push_back("");
-                
-                // Register the result with the result handler.
-                // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
-                resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
-                                        domain_->GetSingleDriver()->GetNumSteps(),
-                                        outDest, "", true, false);
-            
+        if (result->getResultType() == ResultType::NODE) {
+            entityList = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, gridCFS->GetRegionName(regions[0]));
+            definedOnType = ResultInfo::NODE;
+        } else {
+            entityList = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+            definedOnType = ResultInfo::ELEMENT;
         }
+
+        if (!entityList) {
+            EXCEPTION("PreciceAdapter::RegisterExternalResults: Could not get entity list for result "
+                      << result->getConfig().cfsname);
+        }
+
+        shared_ptr<BaseResult> sol(new Result<Double>());
+        sol->SetEntityList(entityList);
+
+        shared_ptr<ResultInfo> ri(new ResultInfo());
+        ri->resultName = result->getConfig().cfsname;
+        ri->resultType = result->getConfig().solutiontype;
+        ri->definedOn  = definedOnType;
+        ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
+        ri->dofNames = "";
+        sol->SetResultInfo(ri);
+
+        StdVector<std::string> outDest;
+        outDest.Push_back("");
+
+        resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                                   domain_->GetSingleDriver()->GetNumSteps(),
+                                   outDest, "", true, false);
    }
 
 
