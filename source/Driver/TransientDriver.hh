@@ -68,6 +68,9 @@ namespace CoupledField {
 
     bool adaptTimestep();
 
+    void SetAdaptiveType();
+    
+
   protected:
 
     //! Read restart information

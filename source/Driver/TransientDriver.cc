@@ -76,6 +76,7 @@ namespace CoupledField {
 
     simulationENDTime_ = firstdt_ * numstep_;
     simulationEndTimeReached_ = false;
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "ERROR_Scheme", 0.0);
 
     // Get time stepping information from parameter object
     PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
@@ -89,6 +90,7 @@ namespace CoupledField {
       deltaTMin_   = adaptiveNode->Get("deltaTMin")->MathParse<Double>();
       deltaTMax_  = adaptiveNode->Get("deltaTMax")->MathParse<Double>();
       sigma_ = adaptiveNode->Get("sigma")->MathParse<Double>();
+      SetAdaptiveType();
 
 
       // optional parameters 
@@ -193,6 +195,7 @@ namespace CoupledField {
   {
      mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", 0.0);
      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected",    0.0);
+     
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
@@ -466,12 +469,27 @@ namespace CoupledField {
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected") == 0.0);
     std::cout << "*******************************************************\n";
-    std::cout << " Adaptive Timestepping -> dt= " << dt_
+    std::cout << " Adaptive Timestepping -> dt= " << dt_ 
               << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
               << "  accepted= " << accepted << "\n";
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
     return accepted;
+  }
+
+  void TransientDriver::SetAdaptiveType()
+  {
+    int type = 0;
+    if(adaptiveTimestepping_ == "maxlocalError")
+    {
+      type = 1;
+    }else if (adaptiveTimestepping_ == "normalizedError")
+    {
+      type =2;
+    }else{
+      EXCEPTION("Errorscheme not yet implemented");
+    }
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "ERROR_Scheme", type);
   }
 
 } // end of namespace

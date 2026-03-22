@@ -42,7 +42,7 @@ class GLMScheme{
   Double dtPrev1_;
   Double dtPrev2_;
   bool adaptiveBDF2;
-  Double max_error_;
+  Double local_error_;
 
   /// Enumeration for each GLM scheme available
   typedef enum{

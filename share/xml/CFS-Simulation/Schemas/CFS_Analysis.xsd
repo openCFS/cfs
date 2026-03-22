@@ -106,8 +106,8 @@
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="minStep"/>
-                    <!-- <xsd:enumeration value="NormalizedError"/> "Future Implmentation of additional Scheme"-->
+                    <xsd:enumeration value="maxlocalError"/>
+                    <xsd:enumeration value="normalizedError"/>
                   </xsd:restriction>
                 </xsd:simpleType>
               </xsd:attribute>

@@ -651,8 +651,13 @@ namespace CoupledField{
     Double c2 = (1.0 + h2 / h1) / h1;
     Double c3 = h2 / (h1 * h0);
 
+    Double ErrorScheme = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "ERROR_Scheme");
+    
+    double l2_norm = 0.0;
+
     Double maxLTE = 0.0;
     UInt n = stageVector_[0]->GetSize();
+    Double sum = 0.0;
     for (UInt j = 0; j < n; j++) {
         Double yNp2, yNp1, yN, yNm1;
         stageVector_[0]->GetEntry(j, yNp2);
@@ -665,16 +670,26 @@ namespace CoupledField{
             - c2 * (yNp1 - yN)
             + c3 * (yN  - yNm1)
         ));
-        if (lte > maxLTE) maxLTE = lte;
+        if(ErrorScheme == 2){sum = sum + std::pow(lte,2);}
+        if (lte > maxLTE){ maxLTE = lte; }
     }
-    curScheme_->max_error_ = maxLTE;
-    mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", maxLTE);
+
+    if(ErrorScheme == 2)
+    { // Normalized (Eucleadian) Error 
+      l2_norm = std::sqrt(sum/n);
+      curScheme_->local_error_ = l2_norm;
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", l2_norm);
+    }else
+    {
+      curScheme_->local_error_ = maxLTE;
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", maxLTE);
+    }
   }
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
     Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
-    Double est   = curScheme_->max_error_;
+    Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
 
     const Double z_U      = 0.1;
