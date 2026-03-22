@@ -113,25 +113,37 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMa
   const Elem* sourceElem = NULL;
   
   sourceElem = lpm.ptEl;
-  Vector<DATA_TYPE> elemSol;
-  Vector<DATA_TYPE> ptSol(1);
-  ptSol.Init();
-
-  // handle this with the preciceAdapter_
-  //Klaus has GetElemResult here, which i guess is because we are interpolating?
-  //otherwise we would use GetNodeResult?
-  //elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
-  elemSol = preciceAdapter_->GetNodeResult(this->solType_, sourceElem->elemNum);
-
-  //elemSol = [0] here, elemSol[0] = 0, maybe thats okay?
-  //only okay if supposed to be 0 for first step i guess
-  if(elemSol.GetSize() != 1){
-    EXCEPTION("Elem solution has wrong size: " << elemSol.GetSize() << ", should be 1 for scalar.");
+  StdVector<UInt> nodes = sourceElem->connect;
+  Vector<DATA_TYPE> nodeSol;
+  Vector<DATA_TYPE> solAv(1);
+  solAv.Init();
+  for( UInt i = 0; i < nodes.GetSize(); i++  ) {
+    nodeSol = preciceAdapter_->GetNodeResult(this->solType_, nodes[i]);
+    solAv[0] += nodeSol[0];
   }
-  //std::cout << "elemSol: " << elemSol << "\n";
-  //std::cout << "elemSol[0]:" << elemSol[0] << "\n";
+  solAv[0] /= DATA_TYPE(nodes.GetSize());
+  CoefMat = solAv[0];
 
-  CoefMat = elemSol[0];
+  // Vector<DATA_TYPE> elemSol;
+  // Vector<DATA_TYPE> ptSol(1);
+  // ptSol.Init();
+
+  // // handle this with the preciceAdapter_
+  // //Klaus has GetElemResult here, which i guess is because we are interpolating?
+  // //otherwise we would use GetNodeResult?
+  // //elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  // elemSol = preciceAdapter_->GetNodeResult(this->solType_, sourceElem->elemNum);
+
+  // UInt numEntries = elemSol.GetSize();
+
+  // //elemSol = [0] here, elemSol[0] = 0, maybe thats okay?
+  // //only okay if supposed to be 0 for first step i guess
+  // if(elemSol.GetSize() != 1){
+  //   EXCEPTION("Elem solution has wrong size: " << elemSol.GetSize() << ", should be 1 for scalar.");
+  // }
+  // //std::cout << "elemSol: " << elemSol << "\n";
+  // //std::cout << "elemSol[0]:" << elemSol[0] << "\n";
+  // CoefMat = elemSol[0];
 }
 
 template<typename DATA_TYPE>
@@ -168,7 +180,7 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::DetermineResult(std::string
   }
 
   for (const auto &entry : test) {
-    std::cout << "Result name: " << entry.first->GetResultInfo()->resultName << "\n";
+    //std::cout << "Result name: " << entry.first->GetResultInfo()->resultName << "\n";
       
     if( entry.first->GetResultInfo()->resultType == this->solType_ ) {
       this->resultInfo_ = entry.first->GetResultInfo();

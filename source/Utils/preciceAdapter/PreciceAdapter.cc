@@ -282,7 +282,7 @@ namespace CoupledField
                 addUniqueNode(gridCFS, nodenum, cfsNodeNumsVec_, nodeNumCoordMap_);
             }
 
-            // Nodes
+            // Elements
             it = elemlist->GetIterator();
             for (it.Begin(); !it.IsEnd(); it++) {
                 const Elem * el = it.GetElem();
