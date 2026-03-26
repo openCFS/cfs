@@ -22,7 +22,7 @@
 
 namespace CFSDat{
 
-Node2CellInterpolator::Node2CellInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+Node2CellInterpolator::Node2CellInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -89,7 +89,7 @@ void Node2CellInterpolator::PrepareCalculation(){
 
 
   std::cout << "\t\t 2/2 Generating interpolation info ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
+  shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
   interpolData_.reserve(allTrgElems.size());
   StdVector<UInt> tempNodeNums;
   StdVector<UInt> sEqn;

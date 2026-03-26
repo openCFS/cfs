@@ -621,15 +621,15 @@ bool ParamNode::As<bool>() const
   EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
 }
 
-boost::shared_ptr<Timer> ParamNode::AsTimer(const Timer* parent) 
+shared_ptr<Timer> ParamNode::AsTimer(const Timer* parent) 
 {
   if(value_.has_value() == false)
-    value_ = boost::make_shared<Timer>(parent);
+    value_ = make_shared<Timer>(parent);
   
-  if(value_.type() != typeid(boost::shared_ptr<Timer>))
+  if(value_.type() != typeid(shared_ptr<Timer>))
     EXCEPTION("param node " << name_ << " cannot be returned as timer");
 
-  return std::any_cast<boost::shared_ptr<Timer> >(value_);
+  return std::any_cast<shared_ptr<Timer> >(value_);
 }
 
 template<typename TYPE>
@@ -842,7 +842,7 @@ PtrParamNode ParamNode::TokenizedHasAndGet(const string& name,
     const TYPE& value, bool restrictToVal) const
 {
   StdVector<string> tokens = SplitIntoTokens(name);
-  PtrParamNode ptr = boost::const_pointer_cast<ParamNode>(shared_from_this());
+  PtrParamNode ptr = std::const_pointer_cast<ParamNode>(shared_from_this());
   for (unsigned int i = 0; i < tokens.GetSize(); i++)
   {
 
@@ -996,9 +996,9 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if(value_.type() == typeid(boost::shared_ptr<Timer>))
+  if(value_.type() == typeid(shared_ptr<Timer>))
   {
-    boost::shared_ptr<Timer> timer = std::any_cast<boost::shared_ptr<Timer> >(value_);
+    shared_ptr<Timer> timer = std::any_cast<shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
     ret = timer->ToXMLFormat(name_);
     return;
@@ -1356,7 +1356,7 @@ void ParamNode::AdjustElementType()
   // which do their own xml formatting by ToXMLFormat(), they are of type SELF_XML
   if(   value_.type() == typeid(Matrix<Double>*) || value_.type() == typeid(Matrix<Complex>*)
      || value_.type() == typeid(Matrix<Double>)  || value_.type() == typeid(Matrix<Complex>)
-     || value_.type() == typeid(boost::shared_ptr<Timer>))
+     || value_.type() == typeid(shared_ptr<Timer>))
   {
     type_ = SELF_XML;
   }
@@ -1426,7 +1426,7 @@ INSTANTIATE_METHOD_AS(Vector<Double>*)
 INSTANTIATE_METHOD_AS(Vector<Complex>*)
 INSTANTIATE_METHOD_AS(Matrix<Double>*)
 INSTANTIATE_METHOD_AS(Matrix<Complex>*)
-INSTANTIATE_METHOD_AS(boost::shared_ptr<Timer>)
+INSTANTIATE_METHOD_AS(shared_ptr<Timer>)
 
 #define INSTANTIATE_METHOD_MATH_PARSE(TYPE)\
   template\
@@ -1453,7 +1453,7 @@ INSTANTIATE_METHOD_GETVALUE(Vector<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Vector<Complex>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Double>*)
 INSTANTIATE_METHOD_GETVALUE(Matrix<Complex>*)
-INSTANTIATE_METHOD_GETVALUE(boost::shared_ptr<Timer>)
+INSTANTIATE_METHOD_GETVALUE(shared_ptr<Timer>)
 // B)Now just the integral types
 // -----------------------------
 #define INSTANTIATE_METHODS_INT(TYPE)\

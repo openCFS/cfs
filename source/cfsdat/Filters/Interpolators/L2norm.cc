@@ -23,7 +23,7 @@
 
 namespace CFSDat{
 
-L2norm::L2norm(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+L2norm::L2norm(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;
@@ -47,7 +47,7 @@ bool L2norm::UpdateResults(std::set<uuids::uuid>& upResults) {
   //current element
   UInt curE;
   CF::StdVector<UInt> eqns;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(filterResIds[0]);
 
 
   // for every element in the target mesh
@@ -109,7 +109,7 @@ void L2norm::PrepareCalculation(){
 
 
   std::cout << "\t\t 2/2 Generating interpolation info ..." << std::endl;
-  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
+  shared_ptr<EqnMapSimple> upMap = resultManager_->GetEqnMap(upRes);
   interpolData_.reserve(allTrgElems.size());
   StdVector<UInt> tempNodeNums;
   StdVector<UInt> sEqn;

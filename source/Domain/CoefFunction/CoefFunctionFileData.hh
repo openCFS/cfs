@@ -1,7 +1,7 @@
 #ifndef COEFFUNCTIONFILEDATA_HH_
 #define COEFFUNCTIONFILEDATA_HH_
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 
@@ -19,7 +19,7 @@ namespace CoupledField
  *  * following double values (one for scalar, more for vectors)
  *  * valid separators are space, tab, comma, semicolon and multiples of it and mixing. Hence almost everything
  *  * see also StringParse in testbed.cc  */
-class CoefFunctionFileData : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionFileData>
+class CoefFunctionFileData : public CoefFunction, public enable_shared_from_this<CoefFunctionFileData>
 {
 public:
 

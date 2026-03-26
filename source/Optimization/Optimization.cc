@@ -919,7 +919,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   assert(baseOptimizer_->ValidateTimers());
 
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
+  shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 

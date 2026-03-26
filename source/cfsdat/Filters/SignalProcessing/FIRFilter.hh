@@ -23,7 +23,7 @@ class FIRFilter : public BaseFilter{
 public:
 
   //!  Constructor.
-  FIRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  FIRFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~FIRFilter(){
   };

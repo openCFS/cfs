@@ -1898,7 +1898,7 @@ namespace CoupledField
   void Matrix<TYPE>::PerformRotation( const Matrix<Double>& R,  Matrix<TYPE>& retMat ) const {
     
     // Note; Currently the rotation only works for 3x3, 3x6, 6x3 and 6x6 matrices.
-    // However, we should generalize the rotation also for 2x2, 2x4 and 4x4 matrices for the
+    // However, we should generalize the rotation also for 2x4 and 4x4 matrices for the
     // 2D and axi case for mechanics.
 
     //get dimension of matrix

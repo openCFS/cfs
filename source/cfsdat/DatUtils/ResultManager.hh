@@ -50,13 +50,13 @@ class ResultManager{
 
 public:
 
-  typedef str1::shared_ptr<ExtendedResultInfo> InfoPtr;
+  typedef shared_ptr<ExtendedResultInfo> InfoPtr;
 
-  typedef str1::shared_ptr<const ExtendedResultInfo> ConstInfoPtr;
+  typedef shared_ptr<const ExtendedResultInfo> ConstInfoPtr;
 
-  typedef str1::shared_ptr<GenericResultCache> ResPtr;
+  typedef shared_ptr<GenericResultCache> ResPtr;
 
-  typedef str1::shared_ptr<const GenericResultCache> ConstResPtr;
+  typedef shared_ptr<const GenericResultCache> ConstResPtr;
 
   ResultManager();
 
@@ -129,7 +129,7 @@ public:
   //! Return the equation map of a result
   //! \param (in) requestedId  unique id of result
   //! \return shared pointer to equation map
-  str1::shared_ptr<EqnMapSimple> GetEqnMap(uuids::uuid requestedId);
+  shared_ptr<EqnMapSimple> GetEqnMap(uuids::uuid requestedId);
 
   //! Return reference to BaseResult vector of result adapter. Used e.g. in output filters
   //! to copy the values in SimOut conformal matter

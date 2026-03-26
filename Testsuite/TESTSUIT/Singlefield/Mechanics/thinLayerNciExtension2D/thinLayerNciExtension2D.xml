@@ -55,7 +55,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
         </ncInterfaceList>
         <nodeList>
             <nodes name="fixNode">
-                <coord x="-0.25" y="0"/>
+                <coord x="-0.25" y="0.0001"/>
             </nodes>
         </nodeList>
     </domain>

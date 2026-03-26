@@ -31,7 +31,7 @@ class CentroidInterpolator : public MeshFilter{
 
 public:
 
-  CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~CentroidInterpolator();
 

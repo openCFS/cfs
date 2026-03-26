@@ -70,7 +70,7 @@ void ShapeOptimizer::SolveProblem()
   if(topgrad_)
   {
     // make a new TopGrad object
-    boost::shared_ptr<TopGrad> ptrTGtmp(new TopGrad(optimization, shoptpn, levelset_));
+    shared_ptr<TopGrad> ptrTGtmp(new TopGrad(optimization, shoptpn, levelset_));
     std::swap(ptrTG_, ptrTGtmp);
     assert(ptrTG_ != NULL);
   }
@@ -78,7 +78,7 @@ void ShapeOptimizer::SolveProblem()
   if(levelset_)
   {
     // build LevelSet (mandatorily needed for shape optimization)
-    boost::shared_ptr<LevelSet> ptrLStmp(new LevelSet(optimization, shoptpn));
+    shared_ptr<LevelSet> ptrLStmp(new LevelSet(optimization, shoptpn));
     std::swap(ptrLS_, ptrLStmp);
     assert(ptrLS_ != NULL);
   }

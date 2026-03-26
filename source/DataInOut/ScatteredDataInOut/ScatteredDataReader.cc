@@ -13,7 +13,7 @@ namespace CoupledField
 {
 
   std::map< std::string,
-            boost::shared_ptr<ScatteredDataReader> > ScatteredDataReader::readers_;
+            shared_ptr<ScatteredDataReader> > ScatteredDataReader::readers_;
 
   std::map<std::string, std::string > ScatteredDataReader::quantities2Readers_;
 
@@ -68,7 +68,7 @@ namespace CoupledField
       std::string fn = scatteredNodes[i]->Get("fileName")->As<std::string>();
       std::string type = scatteredNodes[i]->GetName();
 
-      boost::shared_ptr<ScatteredDataReader> reader;
+      shared_ptr<ScatteredDataReader> reader;
       if(type == "csv") 
       {
         ScatteredDataReaderCSV* SCRCSV = new ScatteredDataReaderCSV(scatteredNodes[i]);

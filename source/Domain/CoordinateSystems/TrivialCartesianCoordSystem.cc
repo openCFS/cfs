@@ -83,7 +83,6 @@ namespace CoupledField{
 
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
-
   }
   
   TrivialCartesianCoordSystem::~TrivialCartesianCoordSystem(){
@@ -91,15 +90,21 @@ namespace CoupledField{
 
   void TrivialCartesianCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
                                                        const Vector<Double> & loc ) const {
-    Vector<Double> temp(3);
-    UInt n=loc.GetSize();
-    
-    for(UInt i=0; i < n; i++)
-      temp[i] = loc[i];
-    
-    // rotate local cartesian coordinate system to global one
     glob.Resize(3);
-    invRotationMat_.Mult(temp,glob);
+
+    // rotate local cartesian coordinate system to global one
+    if (loc.GetSize() == 3) 
+    {
+      invRotationMat_.Mult(loc, glob); // common 3D path: no temp allocation
+    } 
+    else 
+    {
+      std::array<double,3> tmp_array; // avoid dynamic allocation
+      Vector<Double> temp(tmp_array.size(), tmp_array.data(), false); // don't copy data but wrap it
+      for(unsigned int i = 0; i < loc.GetSize(); i++) 
+        temp[i] = loc[i];
+      invRotationMat_.Mult(temp, glob);
+    }
 
     // add global coordinate midpoint
     glob += origin_;
@@ -107,33 +112,20 @@ namespace CoupledField{
   
   void TrivialCartesianCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
                                                        const Vector<Double> & glob ) const {
-    Vector<Double> temp(3);
-    UInt n=glob.GetSize();
     loc.Resize(3);
-    
-    for(UInt i=0; i < n; i++)
-      temp[i] = glob[i];
-    
-    // calculate differential vector   
-    Vector<Double> d(3);
-    d = temp - origin_; 
-    
+   
+    // calculate differential vector (stack-allocated; zero-pads missing glob components)
+    // we want to have d = glob - origin_, but this works only for 3D.
+    // for 2D we want to have d[3] = -origin_[3], but glob[3] does not exist.
+    assert(glob.GetSize() <= 3);
+    std::array<double, 3> d{-origin_[0], -origin_[1], -origin_[2]};
+    for(unsigned int i = 0; i < glob.GetSize(); i++) 
+      d[i] += glob[i];
+
     // rotate global cartesian coordinate system to local one
     loc[0] = axisFactors_[0] * d[axisMap_[0]];
     loc[1] = axisFactors_[1] * d[axisMap_[1]];
     loc[2] = axisFactors_[2] * d[axisMap_[2]];
-  }
-
-  void  TrivialCartesianCoordSystem::
-  GetGlobRotationMatrix( Matrix<Double> & rotMat,
-                         const Vector<Double>& point ) const {
-    rotMat =  invRotationMat_;
-  }
-
-  void  TrivialCartesianCoordSystem::
-  GetFullGlobRotationMatrix( Matrix<Double> & rotMat,
-                             const Vector<Double>& point ) const {
-    rotMat =  invRotationMatFull_;
   }
 
   void TrivialCartesianCoordSystem::
@@ -222,26 +214,21 @@ namespace CoupledField{
     invRotationMatFull_.SetSubMatrix( invRotationMat_, 0, 0);
   }
 
-
-  UInt TrivialCartesianCoordSystem::GetVecComponent( const std::string & dof ) const{
-    UInt component = 0;
-    
+  UInt TrivialCartesianCoordSystem::GetVecComponent( const std::string & dof, bool silent ) const
+  {
     if ( dof == "x" )
-      component = 1;
+      return 1;
     if ( dof == "y" )
-      component = 2;
+      return 2;
     if ( dof == "z" )
-      component = 3;
+      return 3;
     
-    if ( component == 0 ) {
-      EXCEPTION( "TrivialCartesianCoordSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in the global cylinder coordinate system '"
-                 << name_ << "'!" );
-    }
-
-    return component;
-  }  
+    if(!silent)
+      EXCEPTION( "TrivialCartesianCoordSystem:GetVecComponent: invalid of '" << dof  << "' for dimension " << dim_);
+    
+    return INVALID_DOF;
+  } 
+     
 
   const std::string TrivialCartesianCoordSystem::GetDofName( const UInt dof ) const {
     std::string ret = "";
@@ -267,7 +254,7 @@ namespace CoupledField{
 
   void TrivialCartesianCoordSystem::ToInfo( PtrParamNode in ) {
     
-    in = in->Get("trivialCaresionCoordinateSystem");
+    in = in->Get("trivialCartesianCoordinateSystem");
     
     in->Get("id")->SetValue(name_);
     PtrParamNode originNode = in->Get("origin");

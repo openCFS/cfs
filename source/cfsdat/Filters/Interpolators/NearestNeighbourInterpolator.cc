@@ -37,7 +37,7 @@ namespace CFSDat{
   DEFINE_LOG(nearestNeighbourInterpolator, "NearestNeighbourInterpolator")
 
 // constructor
-NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan):AbstractInterpolator(numWorkers,config,resMan) {
+NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan):AbstractInterpolator(numWorkers,config,resMan) {
   interpolatorName_ = "NearestNeighbourInterpolator";
 #ifndef USE_CGAL
     EXCEPTION(interpolatorName_ << " needs to be compiled with USE_CGAL=ON!");

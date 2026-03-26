@@ -28,7 +28,7 @@ class AbstractInterpolator : public MeshFilter {
   
 public:
 
-  AbstractInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  AbstractInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~AbstractInterpolator();
 
@@ -56,13 +56,13 @@ protected:
   UInt numEquPerEnt_;
   
   //! Entity map used for source values
-  str1::shared_ptr<EqnMapSimple> scrMap_;
+  shared_ptr<EqnMapSimple> scrMap_;
 
   //! if true, then element values are the interpolation target
   bool useElemAsSource_;
 
   //! Entity map used for target values
-  str1::shared_ptr<EqnMapSimple> trgMap_;
+  shared_ptr<EqnMapSimple> trgMap_;
   
   //! if true, then element values are the interpolation target
   bool useElemAsTarget_;

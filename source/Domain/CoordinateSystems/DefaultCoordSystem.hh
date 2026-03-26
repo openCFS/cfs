@@ -82,21 +82,14 @@ namespace CoupledField {
     GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
                                const Vector<Double>& point ) const;
 
-    //! Returns for a given coordinate name the according index
+    /** For 2D "x"->1 and "y"->2 but in the axisymmetric case also "r"->1 and "z"->2
+     *  For 3D "z"->3 
+     * @see CoordSystem::GetVecComponent() */
+    UInt GetVecComponent( const std::string & dof, bool silent = false ) const;
 
-    //! This method returns for a given coordinate name (rad,phi,ax)
-    //! the according index in the local vector representation.
-    //! \param dof (in) name of a coordinate component
-    //! \return index of the coordinate component
-    UInt GetVecComponent( const std::string & dof ) const;
-
-    //! Returns for a given coordinate index the according name
-
-    //! This method returns for a given coordinate index (1,2,3)
-    //! the according name (rad,phi,ax).
-    //! \param dof (in) index of the coordinate component
-    //! \return name of the coordinate component
-    const std::string GetDofName( const UInt dof ) const;
+    /** 1-> "x", 2-> "y" and for 3D 3-> "z"
+     * aysymmetric case is not considered but could be implemented */
+     const std::string GetDofName( const UInt dof ) const;
 
 
   protected:

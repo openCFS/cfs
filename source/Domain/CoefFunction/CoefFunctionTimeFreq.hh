@@ -2,7 +2,7 @@
 #define COEFFUNCTIONTIMEFREQ_HH
 
 #include <boost/signals2.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 #include "CoefFunctionExpression.hh"
@@ -32,7 +32,7 @@ class CoefFunctionTimeFreq : public CoefFunction {
 //! Real-valued coefficient function, depending on time / frequency
 template<>
 class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
-                                     public boost::enable_shared_from_this<CoefFunctionTimeFreq<Double> > {
+                                     public enable_shared_from_this<CoefFunctionTimeFreq<Double> > {
   public:
 
   //! Constructor
@@ -207,7 +207,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
 //! Complex-valued coefficient function, depending on time / frequency
 template<>
 class CoefFunctionTimeFreq<Complex> : public CoefFunctionAnalytic,
-                                      public boost::enable_shared_from_this<CoefFunctionTimeFreq<Complex> > {
+                                      public enable_shared_from_this<CoefFunctionTimeFreq<Complex> > {
 public:
   
   //! Constructor

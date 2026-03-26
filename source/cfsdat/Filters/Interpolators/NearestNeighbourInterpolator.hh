@@ -32,7 +32,7 @@ class NearestNeighbourInterpolator : public AbstractInterpolator {
 
 public:
 
-  NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~NearestNeighbourInterpolator();
 

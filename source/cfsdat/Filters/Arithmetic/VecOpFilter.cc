@@ -33,7 +33,7 @@ FilterPtr VecOpFilter::GenerateVectorOperator(PtrParamNode vecOpNode, PtrResultM
 }
 
 template<class Operator>
-GenericVecOpFilter<Operator>::GenericVecOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+GenericVecOpFilter<Operator>::GenericVecOpFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                              :VecOpFilter(numWorkers,config,resMan){
   this->filtStreamType_ = FIFO_FILTER;
   this->res1Name = config->Get("quantity1")->Get("resultName")->As<std::string>();

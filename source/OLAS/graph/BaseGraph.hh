@@ -239,7 +239,7 @@ namespace CoupledField
 
     /** this is the full graph timer (a sub-timer) 
      * Started by BaseGraph constructor and ended by AlgebraicSystem::StopGraphTimers()  */
-    boost::shared_ptr<Timer> timer;
+    shared_ptr<Timer> timer;
 
   protected:
 

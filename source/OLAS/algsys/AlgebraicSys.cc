@@ -3069,8 +3069,10 @@ namespace CoupledField
     LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
     LOG_DBG2(algSys) << "SER: vector " << elemRHS.GetSize() << " -> " << elemRHS.ToString();
     LOG_DBG2(algSys) << "SER: eqnNrs " << eqnNrs.GetSize() << " -> " << eqnNrs.ToString();
-    // Ensure that there are as many equations as vector entries
-    //assert(eqnNrs.GetSize() == elemRHS.GetSize());
+
+    // heat source can be named nodes (typically) or named elements
+    // in the later case we have e.g. 1 elemRHS entry but e.g. 4 nodes/equations
+    // see broadcase handling at end of this function
 
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
@@ -3113,13 +3115,18 @@ namespace CoupledField
 
         LOG_DBG3(algSys) << "SER: rhs is:\n " << (*rhs_).ToString();
         LOG_DBG3(algSys) << "vecP: \n " << vecP.ToString();
-        LOG_DBG3(algSys) << "vecN: \n " << vecP.ToString();
+        LOG_DBG3(algSys) << "vecN: \n " << vecN.ToString();
 
       } else{
         SingleVector &vec = (*rhs_)(rowBlock);
         if ( rowNum > 0 && rowNum <= lastFreeRowIndex ) {
           if ( rowNum <= lastFreeRowIndex ) {
-            vec.AddToEntry( rowNum-1, elemRHS[iRow]);
+            // elemRHS may have size 1 (e.g. SingleEntryInt on an ELEM_LIST):
+            // see comment at begin of this function. Then broadcast scalar to all equations
+            // we cannot identify nodal end element source here easily. 
+            assert((elemRHS.GetSize() == eqnNrs.GetSize()) ||  elemRHS.GetSize() == 1);
+            unsigned int rhsIdx = (elemRHS.GetSize() == 1) ? 0 : iRow;
+            vec.AddToEntry( rowNum-1, elemRHS[rhsIdx]);
           }
         } // loop over rows
       }

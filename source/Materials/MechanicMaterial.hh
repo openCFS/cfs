@@ -86,6 +86,9 @@ namespace CoupledField {
     static Matrix<Complex> GetFullStiffTensor(BaseMaterial::SymmetryType symType,
                                               BaseMaterial::CoefMap &coefMap);
 
+    //! Compute the constant full viscous tensor from the Kelvin-Voigt definition
+    static Matrix<Complex> GetFullViscousTensorKV(BaseMaterial::SymmetryType symType, BaseMaterial::CoefMap &coefMap);
+
   private:
 
     /** Calculates orthotrope Youngs moduli.

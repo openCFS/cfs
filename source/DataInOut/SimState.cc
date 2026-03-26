@@ -113,7 +113,7 @@ class MaterialHandler;
 
     // Generate material reader
     
-    shared_ptr<XMLMaterialHandler> matHandler = boost::make_shared<XMLMaterialHandler>();
+    shared_ptr<XMLMaterialHandler> matHandler = std::make_shared<XMLMaterialHandler>();
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node
@@ -171,7 +171,7 @@ class MaterialHandler;
 
       // generate input reader for same file
       PtrParamNode node(new ParamNode());
-      boost::shared_ptr<SimInputHDF5> in;
+      shared_ptr<SimInputHDF5> in;
       inFile_.reset(new SimInputHDF5(h5FileName.string(), node, infoNode));
 
       // Initialize module

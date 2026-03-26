@@ -23,7 +23,7 @@
 
 namespace CFSDat{
 
-InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
             : BaseFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = INPUT_FILTER;
@@ -254,12 +254,12 @@ void InputFilter::CreateAvailableResultInfos(){
   std::map<UInt, BasePDE::AnalysisType>::iterator anaIter = analysis.begin();
   for(;anaIter!=analysis.end();++anaIter){
     std::cout << "\t\t-> Input Filter with id \"" << this->filterId_ << "\" detected sequence step #" << anaIter->first << " with " << numSteps[anaIter->first] << " steps" << std::endl;
-    CF::StdVector<boost::shared_ptr<ResultInfo> > infos;
+    CF::StdVector<shared_ptr<ResultInfo> > infos;
     inFile_->GetResultTypes(anaIter->first,infos,false);
     std::map<UInt, Double> steps;
-    CF::StdVector<boost::shared_ptr<EntityList> > entList;
+    CF::StdVector<shared_ptr<EntityList> > entList;
     for(UInt aRes=0;aRes < infos.GetSize(); ++aRes){
-      str1::shared_ptr<ResultInfo> curRes = infos[aRes];
+      shared_ptr<ResultInfo> curRes = infos[aRes];
       inFile_->GetStepValues(anaIter->first,curRes,steps,false);
       inFile_->GetResultEntities(anaIter->first,curRes,entList,false);
 

@@ -263,28 +263,21 @@ namespace CoupledField{
   }
 
 
-  UInt CylCoordSystem::GetVecComponent( const std::string & dof ) const{
-    
-    
-    UInt component = 0;
-    
+  UInt CylCoordSystem::GetVecComponent( const std::string & dof, bool silent ) const
+  {
     if ( dof == "r" )
-      component = 1;
+      return 1;
     if ( dof == "phi" )
-      component = 2;
+      return 2;
     if ( dof == "z" )
-      component = 3;
+      return 3;
+
+    if(!silent)
+      EXCEPTION( "CylSystem:GetVecComponent: invalid dof '" << dof  << "' in local cylindrical coordinate system " << name_);
     
-    if ( component == 0 ) {
-      EXCEPTION( "CylSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in a local cylindric coordinate system '"
-                 << name_ << "'!" );
-    }
-
-    return component;
-  }  
-
+    return INVALID_DOF;
+  }    
+    
   const std::string CylCoordSystem::GetDofName( const UInt dof ) const {
     
     std::string ret = "";

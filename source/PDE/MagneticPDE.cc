@@ -696,7 +696,7 @@ namespace CoupledField {
         if (!ncIf) {
           EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
         }
-        shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+        shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
         assert(mortarIf);
         
         if (formulation == "Nitsche") {          

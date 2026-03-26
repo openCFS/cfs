@@ -70,7 +70,7 @@ private:
   typedef enum { DIVERGENCE, GRADIENT, CURL } DerivType;
   
   Grid* grid_;
-  boost::shared_ptr<std::set<std::string> > regNames_;
+  shared_ptr<std::set<std::string> > regNames_;
   
   ResultInfo::EntryType inputType_;
   DerivType derivType_;

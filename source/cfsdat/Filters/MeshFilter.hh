@@ -63,7 +63,7 @@ public:
   //! Also the source- and target-regions are read from the xml-file
   //! Last step of this constructor is to read the target-mesh and create
   //! a new GridCFS-object
-  MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  MeshFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~MeshFilter(){
     delete trgGrid_;
@@ -78,7 +78,7 @@ protected:
 
   //! Collects global entity numbers (nodeNums or elemNums), according to the specified regions of the grid.
   //! If an equation-number is not used for the calculation, the according entry in entities is UInt_MAX
-   void GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+   void GetUsedMappedEntities(const shared_ptr<EqnMapSimple>& map,
                              StdVector<CF::UInt>& entities,
                              const std::set<std::string>& regions,
                              Grid* grid);
@@ -97,7 +97,7 @@ protected:
   std::set<std::string> trgRegions_;
 
   //Siminput pointer to target mesh
-  str1::shared_ptr<CoupledField::SimInput> trgMeshInp_;
+  shared_ptr<CoupledField::SimInput> trgMeshInp_;
 
   ///Pointer to new grid object
   Grid* trgGrid_;

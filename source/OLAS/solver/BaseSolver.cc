@@ -127,10 +127,10 @@ namespace CoupledField {
     // Assert that info Node is set
     assert( infoNode_ );
 
-    setupTimer_ = boost::shared_ptr<Timer>(new Timer("setup_" + solverType.ToString(GetSolverType())));
+    setupTimer_ = shared_ptr<Timer>(new Timer("setup_" + solverType.ToString(GetSolverType())));
     infoNode_->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue(setupTimer_);
 
-    solveTimer_ = boost::shared_ptr<Timer>(new Timer("solve_" + solverType.ToString(GetSolverType())));
+    solveTimer_ = shared_ptr<Timer>(new Timer("solve_" + solverType.ToString(GetSolverType())));
     infoNode_->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue(solveTimer_);
   }
   

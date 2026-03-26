@@ -51,12 +51,7 @@ namespace CoupledField {
     isAllowed_.insert(NONLIN_DEPENDENCY);
     isAllowed_.insert(MAGNETOSTRICTION_TENSOR_h_mech);
     isAllowed_.insert(PIEZO_TENSOR);
-    //    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
-    //    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
-    //    isAllowed_.insert( MECH_VISCOK_VECTOR );
-    //    isAllowed_.insert( MECH_VISCOG_VECTOR );
-    //    isAllowed_.insert( ACOU_ALPHA );
-    //    isAllowed_.insert( FRACTIONAL_EXPONENT );
+    isAllowed_.insert(MECH_KV_VISCOUS_TENSOR);
   }
 
   void MechanicMaterial::Finalize() {
@@ -453,7 +448,6 @@ namespace CoupledField {
       break;
     }
   }
- 
 
   void MechanicMaterial::ComputeFullStiffTensor() {
     if (tensorCoef_.find(MECH_STIFFNESS_TENSOR) != tensorCoef_.end()) {
@@ -948,6 +942,26 @@ namespace CoupledField {
             << MaterialTypeEnum.ToString(MECH_STIFFNESS_TENSOR) << "'.");
     }
 
+    return tensor;
+  }
+
+  // Compute the viscoelastic stiffness tensor from Kelvin-Voigt input data
+  Matrix<Complex> MechanicMaterial::GetFullViscousTensorKV(BaseMaterial::SymmetryType symType, BaseMaterial::CoefMap &coefMap)
+  {
+    Matrix<Complex> tensor(6, 6);
+    LocPointMapped lpm;
+
+    switch (symType) {
+    case GENERAL:
+      if (coefMap.find(MECH_KV_VISCOUS_TENSOR) == coefMap.end()) {
+        EXCEPTION("Property '" << MaterialTypeEnum.ToString(MECH_KV_VISCOUS_TENSOR) << "' is undefined.");
+      }
+      coefMap[MECH_KV_VISCOUS_TENSOR]->GetTensor(tensor, lpm);
+      break;
+
+    default:
+      EXCEPTION("Unknown symmetry type '" << SymmetryTypeEnum.ToString(symType) << "' for property '" << MaterialTypeEnum.ToString(MECH_KV_VISCOUS_TENSOR) << "'.");
+    }
     return tensor;
   }
 

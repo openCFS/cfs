@@ -604,7 +604,7 @@ private:
 
   bool printProgressBar_ = false;
 
-  boost::shared_ptr<Timer> calc_u1ku2_timer_;
+  shared_ptr<Timer> calc_u1ku2_timer_;
 
 };
 

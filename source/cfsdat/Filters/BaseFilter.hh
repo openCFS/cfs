@@ -18,7 +18,7 @@
 #include <map>
 #include <set>
 #include <cfsdat/DatUtils/DataStructs.hh>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 // https://github.com/boostorg/uuid/issues/91 applies for the gitlabrunners with cfsdat
 #define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
@@ -39,7 +39,7 @@ public:
   typedef enum  {FIFO_FILTER, ACCUMULATIVE_FILTER, OUTPUT_FILTER, INPUT_FILTER, NO_STREAM } StreamType;
 
 
-  static void Connect(str1::shared_ptr<BaseFilter> source, str1::shared_ptr<BaseFilter> sink){
+  static void Connect(shared_ptr<BaseFilter> source, shared_ptr<BaseFilter> sink){
     sink->AddInput(source);
     source->AddOutput(sink);
   }
@@ -47,7 +47,7 @@ public:
   static FilterPtr Generate(PtrParamNode filtNode,PtrResultManager resMana);
 
 
-  BaseFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  BaseFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~BaseFilter(){
 
@@ -83,11 +83,11 @@ public:
 
 protected:
 
-  virtual void AddInput(str1::shared_ptr<BaseFilter> filt){
+  virtual void AddInput(shared_ptr<BaseFilter> filt){
     this->sources_.Push_back(filt);
   }
 
-  virtual void AddOutput(str1::shared_ptr<BaseFilter> filt){
+  virtual void AddOutput(shared_ptr<BaseFilter> filt){
     this->sinks_.Push_back(filt);
   }
 
@@ -423,10 +423,10 @@ protected:
   StreamType filtStreamType_;
 
   /// Pointers to upstream filters
-  CF::StdVector< str1::shared_ptr<BaseFilter> > sources_;
+  CF::StdVector< shared_ptr<BaseFilter> > sources_;
 
   /// Pointers to downstream filters
-  CF::StdVector< str1::shared_ptr<BaseFilter> > sinks_;
+  CF::StdVector< shared_ptr<BaseFilter> > sinks_;
   
   /// counter for InitResults function, should not exceed the number of sources
   UInt initSourceResults_;
@@ -447,7 +447,7 @@ protected:
 
   boost::uuids::uuid filterTag_;
 
-  str1::shared_ptr<ResultManager> resultManager_;
+  shared_ptr<ResultManager> resultManager_;
 
   /// timer for performance usage
   std::map<boost::uuids::uuid , CF::shared_ptr<CF::Timer> > theTimers;

@@ -502,6 +502,10 @@ namespace CoupledField {
       if (mech->Get("damping")->Has("adaptedLossTangensDelta")) {
         ReadLossTanDeltaDamping(mech->Get("damping")->Get("adaptedLossTangensDelta"), material);
       }
+      // Read Kelvin-Voigt viscous tensor
+      if (mech->Get("damping")->Has("kelvinVoigt")) {
+        ReadKelvinVoigtDamping(mech->Get("damping")->Get("kelvinVoigt"), material);
+      }
     }
 
     // read real magmech coupling tensor
@@ -2798,6 +2802,32 @@ namespace CoupledField {
     return BM::NOSYMMETRY;
   }
 
+  // Read the Kelvin-Voigt viscous tensor
+  BM::SymmetryType XMLMaterialHandler::ReadViscousTensorKV(PtrParamNode ptrNode, Global::ComplexPart type, BM::CoefMap &coefMap)
+  {
+    PtrCoefFct coef;
+    if (ptrNode->HasByVal("tensor", "dim1", "6") || ptrNode->HasByVal("tensor", "dim1", "3")) {
+      PtrParamNode tensor = ptrNode->Get("tensor");
+      coef = ReadTensor(tensor, type);
+      coefMap[MECH_KV_VISCOUS_TENSOR] = coef;
+      return BM::GENERAL;
+    }
+
+    if (ptrNode->Has("isotropic")) {
+      EXCEPTION("'Isotropic' declaration of viscous tensor is currently not supported!");
+    }
+
+    if (ptrNode->Has("transversalIsotropic")) {
+      EXCEPTION("'transversalIsotropic' declaration of viscous tensor is currently not supported!");
+    }
+
+    if (ptrNode->Has("orthotropic")) {
+      EXCEPTION("'orthotropic' declaration of viscous tensor is currently not supported!");
+    }
+
+    return BM::NOSYMMETRY;
+  }
+
   // Read a smooth stiffness tensor
   BM::SymmetryType XMLMaterialHandler::ReadStiffnessTensorSmooth(PtrParamNode ptrNode,
                                                                   Global::ComplexPart type,
@@ -2923,6 +2953,30 @@ namespace CoupledField {
   {
     material->SetString(paramNode->Get("value")->As<std::string>(), LOSS_TANGENS_DELTA);
     material->SetRayleighType(BaseMaterial::ADAPTED_LOSS_TANGENS);
+  }
+
+  void XMLMaterialHandler::ReadKelvinVoigtDamping(PtrParamNode paramNode, BaseMaterial *material)
+  {
+    PtrParamNode linearNode = paramNode->Get("linear");
+    if (linearNode) {
+      PtrParamNode tensorNode = linearNode->Get("tensor");
+      if (tensorNode) {
+        BM::SymmetryType symType = BM::NOSYMMETRY;
+        BM::CoefMap coefMap;
+        // read the linear viscous tensor
+        symType = ReadViscousTensorKV(linearNode, Global::COMPLEX, coefMap);
+        for (const auto &coefIt : coefMap) {
+          material->SetCoefFct(coefIt.first, coefIt.second);
+        }
+        material->SetSymmetryType(MECH_KV_VISCOUS_TENSOR, symType);
+      }
+      else {
+        EXCEPTION("Kelvin-Voigt viscous tensor must be given as 'tensor'");
+      }
+    }
+    else {
+      EXCEPTION("Kelvin-Voigt viscous tensor must be 'linear'");
+    }
   }
 
   BaseMaterial::MatDescriptorNl

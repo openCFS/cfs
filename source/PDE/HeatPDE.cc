@@ -22,6 +22,7 @@
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Domain/CoefFunction/CoefFunctionSUPG.hh"
+#include "Domain/CoefFunction/CoefFunctionRotation.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -310,6 +311,33 @@ void HeatPDE::DefineIntegrators() {
       if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
         curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
       }
+
+      // alligns the heat conductivity tensor with a vector field
+      std::string rotationId = curRegNode->Get("rotateMaterialTensorsId")->As<std::string>();      
+      if((rotationId != "")) {
+        LOG_DBG(heatcondpde) << "rotateMaterialTensorsId: " << rotationId;
+
+        // reads from the rotationList, gets rotation
+        PtrParamNode rotation = myParam_->Get("rotationList")->GetByVal("rotation","name",rotationId.c_str());
+        PtrParamNode rotNode_1 = rotation->Get("refVec");
+        PtrParamNode rotNode_2 = rotation->Get("targetVec");
+        shared_ptr<ResultInfo> rotInfo ( new ResultInfo );
+        rotInfo->SetVectorDOFs(dim_, isaxi_);
+        rotInfo->definedOn = ResultInfo::ELEMENT;
+        rotInfo->entryType = ResultInfo::VECTOR;
+
+        // Read vector fields as coefficient function
+        PtrCoefFct vec1, vec2;
+        std::set<UInt> definedDofs;
+        ReadUserFieldValues( actSDList, rotNode_1, rotInfo->dofNames, rotInfo->entryType, isComplex_, vec1, definedDofs, updatedGeo_ );
+        ReadUserFieldValues( actSDList, rotNode_2, rotInfo->dofNames, rotInfo->entryType, isComplex_, vec2, definedDofs, updatedGeo_ );
+        LOG_DBG(heatcondpde) << "vector 1 (start): " << vec1;
+        LOG_DBG(heatcondpde) << "vector 2 (start): " << vec2;
+        // saves the conductivity tensoras a rotation coefficient function
+        CoefFunctionRotation* tmpRotCoeff = new CoefFunctionRotation(curCoef, vec1, vec2);
+        curCoef.reset(tmpRotCoeff);
+      }
+
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->HasDesign()) {
@@ -1442,6 +1470,18 @@ void HeatPDE::ThermalRadiationBC(){
       EXCEPTION("Thermal Radiation is not implemented for the symmetric formulation of the LinFLow-Heat-Coupling.")
     }
 
+    // Check if SUPG is enabled
+    // Get volume neighbour region from the FIRST element only — just once
+    EntityIterator entit = ent[i]->GetIterator();
+    entit.Begin();
+    RegionIdType volRegion = (mySpace->GetVolElem(entit.GetElem()))->regionId;
+
+    // Now single call instead of per-element traversal
+    PtrCoefFct factor = nullptr;
+    StabilisationType stabilisation = GetStabilisation(volRegion, factor);
+    if (stabilisation == StabilisationType::SUPG)
+      EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
+
 	  //========================================================================================
 	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
 	  //========================================================================================
@@ -1525,9 +1565,6 @@ void HeatPDE::ThermalRadiationBC(){
 	  ctx->SetFeFunction(myFct);
 	  assemble_->AddLinearForm(ctx);
     
-    // check if volume neighbour has SUPG enabled
-    if (VolNeighbourHasSUPG(ent[i]->GetIterator()))
-      EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
   }
 }
 

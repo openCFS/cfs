@@ -93,7 +93,7 @@ namespace CoupledField {
     //! the according index in the local vector representation.
     //! \param dof (in) name of a coordinate component
     //! \return index of the coordinate component
-    UInt GetVecComponent( const std::string & dof ) const;
+    UInt GetVecComponent( const std::string & dof, bool silent = false ) const;
 
     //! Returns for a given coordinate index the according name
 

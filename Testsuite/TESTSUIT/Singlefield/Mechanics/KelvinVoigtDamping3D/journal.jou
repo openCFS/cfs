@@ -1,0 +1,40 @@
+## coreform_cubit
+## Coreform Cubit Version 2023.11
+## Coreform Cubit Build b14f6c8f
+## Revised Thu Nov 2 20:37:30 2023 +0000
+## Running 12/03/2024 10:06:35 
+reset
+## Command Options:
+brick x 1 y 1 z 1
+webcut volume 1 with plane xplane offset -0.49 imprint merge
+
+volume all size 0.5
+mesh volume all
+block 1 add volume 1
+block 1 name "spring"
+block 2 add volume 2
+block 2 name "mass"
+
+nodeset 1 add surface 10 14
+nodeset 1 name "zm"
+nodeset 2 add surface 8 15
+nodeset 2 name "zp"
+nodeset 3 add surface 4
+nodeset 3 name "xm"
+nodeset 4 add surface 6
+nodeset 4 name "xp"
+nodeset 5 add surface 9 16
+nodeset 5 name "ym"
+nodeset 6 add surface 11 13
+nodeset 6 name "yp"
+
+export ansys cdb "./Cube.cdb" overwrite
+
+
+
+
+
+
+
+
+

@@ -46,7 +46,7 @@
 
 namespace CFSDat{
 
-FEBasedInterpolator::FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+FEBasedInterpolator::FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                      :AbstractInterpolator(numWorkers,config,resMan){
   interpolatorName_ = "FEBasedInterpolator";
   
@@ -352,9 +352,9 @@ void FEBasedInterpolator::CopyElemeVectorEntries(UInt sourceIdx, UInt targetIdx,
 }
 
 void FEBasedInterpolator::FindTargetElements(Grid* findGrid, std::set<std::string>& findRegions, 
-                          StdVector<CF::UInt>& findEntitites, bool findElems, str1::shared_ptr<EqnMapSimple> findMap,
+                          StdVector<CF::UInt>& findEntitites, bool findElems, shared_ptr<EqnMapSimple> findMap,
                           Grid* searchGrid, std::set<std::string>& searchRegions, 
-                          StdVector<CF::UInt>& searchEntitites, bool searchElems, str1::shared_ptr<EqnMapSimple> searchMap,
+                          StdVector<CF::UInt>& searchEntitites, bool searchElems, shared_ptr<EqnMapSimple> searchMap,
                           StdVector<CF::UInt>& foundElements, StdVector< LocPoint >& locCoords, std::vector<bool>& hasFoundElement,
                           StdVector< StdVector<CF::UInt>* >& foundReplacementEntities, StdVector< StdVector<CF::Double>* >& foundReplacementDistances) {
   std::cout << "\t\t\t" << ++iSteps_ << "/" << nSteps_ << " Getting Coordinates" << std::endl;

@@ -17,7 +17,7 @@
 
 namespace CFSDat{
 
-TemporalBlendFilter::TemporalBlendFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+TemporalBlendFilter::TemporalBlendFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : BaseFilter(numWorkers,config, resMan){
 
   // This filter is a filter of the type First In First Out (FIFO)

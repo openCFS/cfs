@@ -108,7 +108,7 @@ ErsatzMaterial::ErsatzMaterial() :
   method_ = method.Parse(pn->Get("method")->As<std::string>());
 
   // we set the calc_u1ku2_timer_ only for non-regular meshes but then as sub-timer
-  calc_u1ku2_timer_ = grid->IsGridRegular() ? boost::shared_ptr<Timer>() : boost::shared_ptr<Timer>(new Timer("calc_U1KU2", true));
+  calc_u1ku2_timer_ = grid->IsGridRegular() ? shared_ptr<Timer>() : shared_ptr<Timer>(new Timer("calc_U1KU2", true));
 
   // region stuff - we might have the attribute region or a list in region but not both or none
   if(!pn->Has("region") && !pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
@@ -1023,6 +1023,9 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
     else // pamping*rho'(1-2*rho)
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
     assert(this->method_ != ErsatzMaterial::PARAM_MAT || pamping == 0.0);
+  }
+  else if (ctxt->pde->GetDamping(regionId) == KELVIN_VOIGT) {
+    EXCEPTION("Currently not supported!!!")
   }
   assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0 && alpha_m == 0.0 && pamping_m == 0.0)); // note that we might have very_small negative eigenvalues!
   const unsigned int srows = S.GetNumRows();
@@ -3996,7 +3999,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
     if(context->DoLBM()) {
       // in scale case we are still in the BaseOptimizer constructor
-      boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
+      shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : shared_ptr<Timer>();
       if(eval_timer)
         eval_timer->Stop();
 
@@ -4243,7 +4246,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
   LOG_DBG(em) << "SAP f=" << f->ToString();
 
-  boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
+  shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
 
@@ -4756,7 +4759,7 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   SinglePDE* linEla_pde = linEla_ctxt->pde;
 
   // timer
-  boost::shared_ptr<Timer> rhs_timer = optInfoNode->Get(ParamNode::SUMMARY)->Get("construct_adjoint_rhs/timer")->AsTimer();
+  shared_ptr<Timer> rhs_timer = optInfoNode->Get(ParamNode::SUMMARY)->Get("construct_adjoint_rhs/timer")->AsTimer();
   optInfoNode->Get(ParamNode::SUMMARY)->Get("construct_adjoint_rhs/timer")->SetValue(rhs_timer);
   rhs_timer->Start();
 

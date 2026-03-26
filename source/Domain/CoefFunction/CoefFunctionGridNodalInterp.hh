@@ -48,7 +48,7 @@ namespace CoupledField{
  */
 template<typename DATA_TYPE>
 class CoefFunctionGridNodalInterp : public CoefFunctionGridNodal<DATA_TYPE>
-                                   ,public boost::enable_shared_from_this<CoefFunctionGridNodalInterp<DATA_TYPE> >{
+                                   ,public enable_shared_from_this<CoefFunctionGridNodalInterp<DATA_TYPE> >{
 public:
 
   CoefFunctionGridNodalInterp(Domain* ptDomain,

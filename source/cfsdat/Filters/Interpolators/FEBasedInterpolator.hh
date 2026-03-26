@@ -46,7 +46,7 @@ class FEBasedInterpolator : public AbstractInterpolator {
 
 public:
 
-  FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  FEBasedInterpolator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~FEBasedInterpolator();
 
@@ -83,9 +83,9 @@ private:
   
   //! find some search entitites (search***) inside the elements of a target grid (find***), find replacements if not found and 100 %
   void FindTargetElements(Grid* findGrid, std::set<std::string>& findRegions, 
-                          StdVector<CF::UInt>& findEntitites, bool findElems, str1::shared_ptr<EqnMapSimple> findMap,
+                          StdVector<CF::UInt>& findEntitites, bool findElems, shared_ptr<EqnMapSimple> findMap,
                           Grid* searchGrid, std::set<std::string>& searchRegions, 
-                          StdVector<CF::UInt>& searchEntitites, bool searchElems, str1::shared_ptr<EqnMapSimple> searchMap,
+                          StdVector<CF::UInt>& searchEntitites, bool searchElems, shared_ptr<EqnMapSimple> searchMap,
                           StdVector<CF::UInt>& foundElements, StdVector< LocPoint >& locCoords, std::vector<bool>& hasFoundElement,
                           StdVector< StdVector<CF::UInt>* >& foundReplacementEntities, StdVector< StdVector<CF::Double>* >& foundReplacementDistances);
   

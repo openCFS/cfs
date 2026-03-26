@@ -93,6 +93,10 @@ protected:
      * @param scalingFactor is a factor the material tensor to be multiplied by */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
 
+    /** Returns a Kelvin-Voigt damping integrator appropriate to the actual problem (e.g. 3D)
+     * @param isComplex either from complex material or bloch mode */
+    BaseBDBInt *GetKelvinVoigtDampingIntegrator(BaseMaterial *actSDMat, RegionIdType regionId, bool isComplex);
+
     /** Returns an integrator for prestressing
      * @param preStressFct is a tensor coefficient function for prestressing
      * @param isComplex either from complex material or bloch mode */
@@ -151,7 +155,10 @@ protected:
     
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
-    
+
+    //! Stores Kelvin-Voigt damping definition (viscous tensor as coef function) for each region
+    std::map<RegionIdType, PtrCoefFct > regionKelvinVoigtDamping_;
+
     //! Stores the linear stiffness for each region
     std::map<RegionIdType, PtrCoefFct > regionStiffness_;
 

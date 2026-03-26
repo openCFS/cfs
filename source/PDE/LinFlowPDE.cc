@@ -531,7 +531,7 @@ namespace CoupledField {
           if(myParam_->Get("storeResults")->GetByVal("nodeResult","type","meanFluidMechVelocity")->Has("allRegions")) { 
             
             //iterate over allRegions 
-            for (boost::shared_ptr<ParamNode> region : regionListAll) {
+            for (shared_ptr<ParamNode> region : regionListAll) {
               
               //Check if a background flow is defined
               if(!region->Has("flowId")) {
@@ -546,7 +546,7 @@ namespace CoupledField {
             ParamNodeList regionListMeanFlow = myParam_->Get("storeResults")->GetByVal("nodeResult","type","meanFluidMechVelocity")->Get("regionList")->GetList("region");
             
             //iterate over all regions meanFluidMechVelocity is calculated on
-            for (boost::shared_ptr<ParamNode> regionMean : regionListMeanFlow) {
+            for (shared_ptr<ParamNode> regionMean : regionListMeanFlow) {
 
               //Check if the meanFluidMechVelocity region is defined in the region list
               if(myParam_->Get("regionList")->HasByVal("region","name",regionMean->Get("name")->As<std::string>())) {

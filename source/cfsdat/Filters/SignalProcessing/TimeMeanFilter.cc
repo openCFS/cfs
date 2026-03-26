@@ -19,7 +19,7 @@ namespace CFSDat{
 
 TimeMeanFilter::TimeMeanMap TimeMeanFilter::tMeanMap_ = TimeMeanFilter::init_mean_map();
 
-TimeMeanFilter1::TimeMeanFilter1(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+TimeMeanFilter1::TimeMeanFilter1(UInt numWorkers, CoupledField::PtrParamNode config, shared_ptr<ResultManager> resMan)
 : TimeMeanFilter(numWorkers,config,resMan){
  //ok, so either the user specifies
  //results to be differentiated or we choose default possibilities from our map

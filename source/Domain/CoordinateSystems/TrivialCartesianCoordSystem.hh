@@ -50,9 +50,9 @@ namespace CoupledField {
     //! so that it represents the current one in that point.
     //! \param rotMatrix rotation matrix for global point
     //! \param point point w.r.t. to global Cartesian coordinate system
-    virtual void 
-    GetGlobRotationMatrix( Matrix<Double> & rotMatrix,
-                           const Vector<Double>& point ) const;
+    void GetGlobRotationMatrix(Matrix<Double>& rotMat, const Vector<Double>& /*point*/) const {
+       rotMat = invRotationMat_;
+     }
 
     //! Returns the full 3x3 global rotation matrix for a given point
 
@@ -61,9 +61,9 @@ namespace CoupledField {
     //! it represents the current one in that point.
     //! \param rotMatrix rotation matrix for global point
     //! \param point point w.r.t. to global Cartesian coordinate system
-    virtual void 
-    GetFullGlobRotationMatrix( Matrix<Double> & rotMatrix,
-                               const Vector<Double>& point ) const;
+    void GetFullGlobRotationMatrix(Matrix<Double>& rotMat, const Vector<Double>& /*point*/) const {
+       rotMat = invRotationMatFull_;
+     }
 
     //@{
     //! Transform local vector into global one for a given global model point
@@ -94,7 +94,7 @@ namespace CoupledField {
     //! the according index in the local vector representation.
     //! \param dof (in) name of a coordinate component
     //! \return index of the coordinate component
-    UInt GetVecComponent( const std::string & dof ) const;
+    UInt GetVecComponent( const std::string & dof, bool silent = false ) const;
 
     //! Returns for a given coordinate index the according name
 

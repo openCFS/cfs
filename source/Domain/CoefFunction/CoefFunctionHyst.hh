@@ -348,7 +348,7 @@ namespace CoupledField {
   // ============================================================================
   //! Provide a coefficient for hysteresis modeling
   //! \note This class only works for real-valued scalar data.
-  class CoefFunctionHyst : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionHyst> {
+  class CoefFunctionHyst : public CoefFunction, public enable_shared_from_this<CoefFunctionHyst> {
   public:
 
     //! Constructor

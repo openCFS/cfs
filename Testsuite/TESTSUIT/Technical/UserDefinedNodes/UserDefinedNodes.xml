@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>tests and demonstrates user defined nodes</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-03-04</date>
+    <description>In domain/nodeList we define user defined nodes by coordinates and different methods.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+    
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+    </regionList>
+    <nodeList>
+    
+      <!-- closest node to given virtual coordinate --> 
+      <nodes name="coord">
+        <coord x=".15" y=".1" />
+      </nodes>
+
+      <!-- all nodes are traversed and what matches (within eps) is in. Very fast -->
+      <nodes name="bounds_1d" >
+        <bounds eps="1e-9"> <!-- 1e-9 this is the default value -->
+          <fixed comp="x" value=".5" />
+          <range comp="y" min=".6" max=".7" />
+        </bounds>
+      </nodes>
+      
+      <nodes name="bounds_2d">
+        <bounds>
+          <range comp="x" min=".7" max=".76" />
+          <range comp="y" min=".6" max=".66" />
+        </bounds>
+      </nodes>
+
+     <!-- we want no straight line but only every second node --> 
+      <nodes name="list_coarse">
+        <list>
+          <freeCoord comp="y"  start=".3" stop=".4" inc="0.025"/>
+          <fixedCoord comp="x" value=".3"/>
+        </list>
+      </nodes>
+
+      <!-- legacy line via list. bounds is faster and easier --> 
+      <nodes name="list_1d">
+        <list>
+          <freeCoord comp="y"  start=".3" stop=".4" inc="0.0125"/>
+          <fixedCoord comp="x" value=".5"/>
+        </list>
+      </nodes>
+
+      <!-- legacy rectangle via list. bounds is much faster --> 
+      <nodes name="list_2d">
+        <list>
+          <freeCoord comp="x"  start=".7" stop=".76" inc="0.0125"/>
+          <freeCoord comp="y"  start=".34" stop=".4" inc="0.0125"/>
+        </list>
+      </nodes>
+      
+      <!-- debug test for oversampling (nodes are always unique) -->
+      <nodes name="list_fine">
+        <list>
+          <freeCoord comp="y"  start=".1" stop=".2" inc="0.002"/>
+          <fixedCoord comp="x" value=".3"/>
+        </list>
+      </nodes>
+
+      <!-- all nodes are traversed and the condition is checked. 
+           Use lt (lower-than) and gt (greater-then) for comparison -->
+      <nodes name="condition">
+        <!-- a circle of radius sqrt(.015)=0.122 -->
+        <test condition="(x-.2)^2 + (y-.8)^2 lt .015" />
+      </nodes>
+
+      <!-- virtual coordinates are generated and for each the closest node is searched. -->
+      <nodes name="expression_func">
+        <!-- classical function with x running y=f(x). Sample sufficiently fine -->
+        <expression>
+          <sample comp="x" start="0.2" stop=".9" inc=".0025" />
+          <eval comp="y" value="-.1*sin(4*pi*x) + .8" />
+        </expression>      
+      </nodes>
+      
+      <nodes name="expression_u">
+        <!-- quadratic Bezier curve with auxiliary parameter u running from 0 to 1  -->
+        <expression>
+          <sample comp="u" start="0" stop="1" inc=".01" />
+          <eval comp="x" value="(1-u)^2*0.6 + 2*(1-u)*u*0.9 + u^2*0.9" />
+          <eval comp="y" value="(1-u)^2*0.1 + 2*(1-u)*u*0.1 + u^2*0.4" />
+        </expression>      
+      </nodes>
+
+      <!-- not checked here but quite fast -->
+      <nodes name="all_nodes">
+        <allNodesInRegion regName="mech"/>
+      </nodes>
+    </nodeList>
+  </domain>
+    
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+                
+        <bcsAndLoads>
+          <temperature name="left" value="0"/>
+          <heatSource name="coord" value="-.5"/>
+          <heatSource name="list_coarse" value="-2"/>
+          <heatSource name="list_fine" value="2"/>
+          <heatSource name="list_1d" value="1"/>
+          <heatSource name="bounds_1d" value="1"/>
+          <heatSource name="list_2d" value="-2"/>
+          <heatSource name="expression_func" value="-1"/>
+          <heatSource name="expression_u" value="0.5"/>
+        </bcsAndLoads>
+                
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+    <!-- <linearSystems>
+      <system>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems>     -->
+  </sequenceStep>
+  
+</cfsSimulation>

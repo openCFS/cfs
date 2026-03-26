@@ -25,7 +25,7 @@ class AeroacousticBase : public MeshFilter{
 
 public:
 
-  AeroacousticBase(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  AeroacousticBase(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~AeroacousticBase();
 

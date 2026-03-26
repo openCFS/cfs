@@ -68,26 +68,23 @@ namespace CoupledField{
     mat = invRotationMatFull_;
   }
 
-  UInt DefaultCoordSystem::GetVecComponent( const std::string & dof )  const {
+  UInt DefaultCoordSystem::GetVecComponent( const std::string& dof, bool silent )  const 
+  {
+    assert(ptGrid_ != nullptr);
 
-    
-    UInt component = 0;
-  
-    if ( dof == "x" )
-      component = 1;
-    if ( dof == "y" )
-      component = 2;
-    if ( dof == "z" && dim_ == 3 )
-      component = 3;
+    if(dof == "x" || (ptGrid_->IsAxi() && dof == "r"))
+      return 1;
+    if(dof == "y")
+      return 2;
+    if(dof == "z" && dim_ == 3 )
+      return 3;
+    if(dof == "z" && ptGrid_->IsAxi())
+      return 2; 
 
-    if ( component == 0 ) {
-      EXCEPTION( "DefaultCoordSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in the global Cartesian coordinate system " 
-                 << "of dimension " << dim_ << "!");
-    }
+    if(!silent)
+      EXCEPTION( "DefaultCoordSystem:GetVecComponent: invalid dof '" << dof  << "' for dimension " << dim_);
     
-    return component;
+    return INVALID_DOF;
   }
 
   

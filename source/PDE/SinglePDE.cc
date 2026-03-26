@@ -1920,7 +1920,7 @@ namespace CoupledField {
         
         Domain * inDomain = NULL;
         // create SimState (for input)
-        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+        shared_ptr<SimState> inState(new SimState(true, domain_));
         
         try {
           LOG_DBG(singlepde) << pdename_ << ": Use initial condition from sequenceStep " << sequenceStep;
@@ -1932,7 +1932,7 @@ namespace CoupledField {
           // newly created Domain object
           PtrParamNode node(new ParamNode());
           PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "",ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
-          boost::shared_ptr<SimInputHDF5> in;
+          shared_ptr<SimInputHDF5> in;
           in.reset(new SimInputHDF5(fileName, node, infoNode));
           inState->SetInputHdf5Reader(in);
 
@@ -2812,7 +2812,7 @@ namespace CoupledField {
 
     Domain * inDomain = NULL;
     // create SimState (for input)
-    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+    shared_ptr<SimState> inState(new SimState(true, domain_));
     shared_ptr<SimInput> reader;
     shared_ptr<SimInputHDF5> in;
     sequenceStep = esNode->Get("index")->As<UInt>();
@@ -2904,7 +2904,7 @@ namespace CoupledField {
       // ====================
       shared_ptr<RegionList> regions;
       if (list->GetType() == EntityList::REGION_LIST) {
-        regions = boost::static_pointer_cast<RegionList>(list);
+        regions = std::static_pointer_cast<RegionList>(list);
       } else {
         RegionList* regionList = new RegionList(ptGrid_);
         regionList->SetRegion(list->GetRegion());
@@ -2969,7 +2969,7 @@ namespace CoupledField {
         Domain * inDomain = NULL;
 
         // create SimState (for input)
-        boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+        shared_ptr<SimState> inState(new SimState(true, domain_));
         shared_ptr<SimInput> reader;
         shared_ptr<SimInputHDF5> in;
 

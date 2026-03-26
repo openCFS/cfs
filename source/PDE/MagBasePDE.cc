@@ -774,8 +774,8 @@ namespace CoupledField
     } // loop: coils
   }
 
-  void MagBasePDE::GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, boost::shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
-    CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
+  void MagBasePDE::GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
+    CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, shared_ptr<CoupledField::BaseFeFunction> &feFct) {
 
     if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC)
     {
@@ -886,7 +886,7 @@ namespace CoupledField
   }
 
   void MagBasePDE::GenerateMaxwellForce(CoupledField::StdVector<std::string> &vecComponents,
-    CoupledField::PtrCoefFct &bFunc, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
+    CoupledField::PtrCoefFct &bFunc, shared_ptr<CoupledField::BaseFeFunction> &feFct) {
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
       // === MAXWELL FORCE DENSITY ===
       shared_ptr<ResultInfo> mfd(new ResultInfo);
@@ -924,7 +924,7 @@ namespace CoupledField
 
 
   void MagBasePDE::GenerateVWPForce(CoupledField::StdVector<std::string> &vecComponents,
-    CoupledField::PtrCoefFct &bFunc, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
+    CoupledField::PtrCoefFct &bFunc, shared_ptr<CoupledField::BaseFeFunction> &feFct) {
     if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
       // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
       shared_ptr<ResultInfo> vwp(new ResultInfo);

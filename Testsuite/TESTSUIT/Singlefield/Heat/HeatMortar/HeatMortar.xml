@@ -88,14 +88,19 @@
         <nodeList>
             <nodes name="excite_one">
                 <list>
-                    <freeCoord comp="x" start="3.2" stop="6.8" inc="0.1"/>
-                    <freeCoord comp="y" start="3.2" stop="3.8" inc="0.1"/>
+                    <!-- originally stop was 6.8 and 3.8 but the end node was not found by the 
+                        legacy list implementation (change 03.2026)
+                        The new list implementation is more robust in including stop but we want to re-use the binary reference.
+                        For new projects better use 'bounds' instead of 'list' -->
+                    <freeCoord comp="x" start="3.2" stop="6.799" inc="0.1"/>
+                    <freeCoord comp="y" start="3.2" stop="3.799" inc="0.1"/>
                 </list>
             </nodes>
             <nodes name="excite_two">
                 <list>
-                    <freeCoord comp="x" start="8.2" stop="11.8" inc="0.1"/>
-                    <freeCoord comp="y" start="3.2" stop="3.8" inc="0.1"/>
+                    <!-- originally stop was 11.8 and 3.8 and the legacy implementation found 11.8 but not 3.8 -->
+                    <freeCoord comp="x" start="8.2" stop="11.801" inc="0.1"/>
+                    <freeCoord comp="y" start="3.2" stop="3.799" inc="0.1"/>
                 </list>
             </nodes>            
         </nodeList>

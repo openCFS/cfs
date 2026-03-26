@@ -1124,8 +1124,8 @@ namespace CoupledField {
     //UInt saveBegin, saveEnd, saveInc;
     std::vector<std::string> entityNames;
     ResDescType::const_iterator it, end;
-    std::vector< boost::shared_ptr<BaseResult> >::const_iterator solIt, solEnd;
-    boost::shared_ptr<ResultInfo> resInfo, actResInfo;
+    std::vector< shared_ptr<BaseResult> >::const_iterator solIt, solEnd;
+    shared_ptr<ResultInfo> resInfo, actResInfo;
 
     if( !isHistory ) {
       it = registeredMeshResults_.begin();

@@ -128,13 +128,15 @@ namespace CoupledField {
     //@}
     
 
-    //! Returns for a given coordinate name the according index
-
+    
+    static constexpr unsigned int INVALID_DOF = 123456; 
     //! This method returns for a given coordinate name (x,y,z,rad,...)
     //! the according index in the local vector representation.
-    //! \param dof (in) name of a coordinate component
-    //! \return index of the coordinate component
-    virtual UInt GetVecComponent( const std::string & dof ) const = 0;
+    //! \param dof  name of a coordinate component
+    //! \param silent no exception is thrown for invalid dof but INVALID_DOF is returned
+    //! \return index of the coordinate component or INVALID_DOF
+    virtual UInt GetVecComponent( const std::string & dof, bool silent = false ) const = 0;
+
 
     //! Returns for a given coordinate index the according name
 

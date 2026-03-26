@@ -59,7 +59,7 @@ namespace CoupledField
     info_ = infoNode;
     lin_forms_given_ = false;
     skipElemAssembly_=false;
-    timer_ = boost::shared_ptr<Timer>(new Timer());
+    timer_ = shared_ptr<Timer>(new Timer());
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones
@@ -1717,12 +1717,12 @@ namespace CoupledField
       std::string regionName;
       if( context.GetFirstEntities()->GetType() == EntityList::ELEM_LIST )
       {
-        shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetFirstEntities());
+        shared_ptr<ElemList> list = dynamic_pointer_cast<ElemList,EntityList>(context.GetFirstEntities());
         regionName = list->GetName();
       }
       else if ( context.GetFirstEntities()->GetType() == EntityList::SURF_ELEM_LIST )
       {
-        shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetFirstEntities());
+        shared_ptr<SurfElemList> list = dynamic_pointer_cast<SurfElemList,EntityList>(context.GetFirstEntities());
         regionName = list->GetName();
       }
       inf->Get("region")->SetValue(regionName);
@@ -1824,11 +1824,11 @@ namespace CoupledField
       // region name of entity list
       std::string regionName;
       if( context.GetEntities()->GetType() == EntityList::ELEM_LIST ) {
-        shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
+        shared_ptr<ElemList> list = dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
       else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST ) {
-        shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
+        shared_ptr<SurfElemList> list = dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 

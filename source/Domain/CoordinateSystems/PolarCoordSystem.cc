@@ -247,25 +247,18 @@ namespace CoupledField{
   }
 
 
-  UInt PolarCoordSystem::GetVecComponent( const std::string & dof ) const{
-    
-    
-    UInt component = 0;
-    
+  UInt PolarCoordSystem::GetVecComponent( const std::string & dof, bool silent ) const
+  {
     if ( dof == "r" )
-      component = 1;
+      return 1;
     if ( dof == "phi" )
-      component = 2;
-    
-    if ( component == 0 ) {
-      EXCEPTION( "PolarSystem:GetVecComponent:\n"
-                 << "The component with name '" << dof 
-                 << "' is not known in a local polar coordinate system '"
-                 << name_ << "'!" );
-    }
+      return 2;
 
-    return component;
-  }  
+    if(!silent)
+      EXCEPTION( "PolarSystem:GetVecComponent: invalid dof '" << dof  << "' in local polar coordinate system " << name_);
+    
+    return INVALID_DOF;
+  }    
 
   const std::string PolarCoordSystem::GetDofName( const UInt dof ) const {
     

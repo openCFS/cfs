@@ -5,7 +5,7 @@
 #include <string>
 #include <chrono>
 #include <cassert>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace CoupledField
 {
@@ -31,7 +31,7 @@ class Timer
   Timer(const std::string& name = "", bool sub = false, bool start_immediately = false);
 
   /** parent is not stored, just it's id_ is read. */
-  Timer(const boost::shared_ptr<Timer>& parent);
+  Timer(const std::shared_ptr<Timer>& parent);
   Timer(const Timer* parent);
   Timer(int parent);
 
@@ -39,7 +39,7 @@ class Timer
    * A sub-timer is not counted by performance.py. E. the parent "assemble" has sub timers 
    * which are not counted, otherwise the sum of timers would be larger than the total runtime. 
    * @param parent of parent available it's id. But still sets to sub-timer */
-  void SetSub(const boost::shared_ptr<Timer>& parent);
+  void SetSub(const std::shared_ptr<Timer>& parent);
   void SetSub(int parent = -1); 
 
   /** Start a timer. Handles nesting by throwing an exception it already running and not nesting.

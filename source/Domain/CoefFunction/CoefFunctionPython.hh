@@ -1,7 +1,7 @@
 #ifndef COEFFUNCTIONPYTHON_HH_
 #define COEFFUNCTIONPYTHON_HH_
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 
@@ -13,7 +13,7 @@ namespace CoupledField
  * hold a own python script (module) but is based on the script (module) of the singleton python kernel.
  * This is defined by the python element in the document root.
  * There are no options to be passed from xml to the function. */
-class CoefFunctionPython : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionPython>
+class CoefFunctionPython : public CoefFunction, public enable_shared_from_this<CoefFunctionPython>
 {
 public:
 

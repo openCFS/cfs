@@ -166,7 +166,7 @@ void TopGrad::SolveProblemCommon(const unsigned int iter)
 
 }
 
-void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> lsptr)
+void TopGrad::SolveProblem(const unsigned int iter, shared_ptr<LevelSet> lsptr)
 {
   assert(lsptr != NULL);
   auto before_time = std::chrono::steady_clock::now();

@@ -75,23 +75,23 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     masterId = uuids::nil_uuid();
   }
 
-  str1::shared_ptr<CF::ResultInfo> GetResultInfo(){
-    return str1::shared_ptr<CF::ResultInfo>(this);
+  shared_ptr<CF::ResultInfo> GetResultInfo(){
+    return shared_ptr<CF::ResultInfo>(this);
   }
 
   uuids::uuid generatorId;
 
   UInt sequenceStep;
 
-  str1::shared_ptr< CF::StdVector<Double> > timeLine;
+  shared_ptr< CF::StdVector<Double> > timeLine;
 
-  str1::shared_ptr< CF::StdVector<UInt> > stepNumbers;
+  shared_ptr< CF::StdVector<UInt> > stepNumbers;
 
-  str1::shared_ptr< std::set<std::string> > regNames;
+  shared_ptr< std::set<std::string> > regNames;
 
-  str1::shared_ptr< CF::StdVector<UInt> > entityNumbers;
+  shared_ptr< CF::StdVector<UInt> > entityNumbers;
 
-  str1::shared_ptr< CF::StdVector<UInt> > eqnNumbers;
+  shared_ptr< CF::StdVector<UInt> > eqnNumbers;
 
   ResDType dType;
 
@@ -129,7 +129,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     return isEqual;
   }
 
-  void operator=(str1::shared_ptr<ExtendedResultInfo> other){
+  void operator=(shared_ptr<ExtendedResultInfo> other){
     this->dType               = other->dType;
     this->regNames            = other->regNames;
     this->entityNumbers       = other->entityNumbers;
@@ -149,7 +149,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
     this->slaveIds            = other->slaveIds;
   }
 
-  void ImportResultInfo(str1::shared_ptr<ResultInfo> info){
+  void ImportResultInfo(shared_ptr<ResultInfo> info){
     this->definedOn           = info->definedOn;
     this->isStatic            = info->isStatic;
     this->dofNames            = info->dofNames;
@@ -164,7 +164,7 @@ struct ExtendedResultInfo : public CF::ResultInfo, enable_shared_from_this<Exten
 
 private:
 
-  void CopyInfoFrom(str1::shared_ptr<ExtendedResultInfo> other){
+  void CopyInfoFrom(shared_ptr<ExtendedResultInfo> other){
     this->dType               = other->dType;
     this->regNames            = other->regNames;
     this->entityNumbers       = other->entityNumbers;
@@ -193,11 +193,11 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::string, resultName)
     (CFSDat::ExtendedResultInfo::ResDType, dType)
     (bool, isOutput)
-    (CFSDat::str1::shared_ptr< CoupledField::StdVector<Double> >,  timeLine)
-    (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  stepNumbers)
-    (CFSDat::str1::shared_ptr< std::set<std::string> >,  regNames)
-    (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  entityNumbers)
-    (CFSDat::str1::shared_ptr< CoupledField::StdVector<UInt> >,  eqnNumbers)
+    (shared_ptr< CoupledField::StdVector<Double> >,  timeLine)
+    (shared_ptr< CoupledField::StdVector<UInt> >,  stepNumbers)
+    (shared_ptr< std::set<std::string> >,  regNames)
+    (shared_ptr< CoupledField::StdVector<UInt> >,  entityNumbers)
+    (shared_ptr< CoupledField::StdVector<UInt> >,  eqnNumbers)
     (CFSDat::UInt, sequenceStep )
     (CoupledField::ResultInfo::EntryType , entryType)
     (CoupledField::StdVector<std::string>, dofNames)
@@ -300,7 +300,7 @@ void print_ExtInfoFields(const C & c)
 //  }
 //
 //  //can we make his a const pointer?
-//  boost::shared_ptr<EqnMapSimple> GetEqnMap(){
+//  shared_ptr<EqnMapSimple> GetEqnMap(){
 //    return mapping_;
 //  }
 //
@@ -317,12 +317,12 @@ void print_ExtInfoFields(const C & c)
 //
 //  Double stepVal_;
 //
-//  boost::shared_ptr<EqnMapSimple> mapping_;
+//  shared_ptr<EqnMapSimple> mapping_;
 //
 //  bool isUpToDate_;
 //};
 //
-////typedef CF::StdVector<boost::shared_ptr<DataStruct> > ResultList;
+////typedef CF::StdVector<shared_ptr<DataStruct> > ResultList;
 //
 //
 //struct InOutInfo{

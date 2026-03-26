@@ -62,10 +62,10 @@ namespace CoupledField
     void Solve(const BaseVector &rhs, BaseVector &sol);
 
     /** either OmpExecutor::create(), ReferenceExecutor::create() or the HIP (CUDA) variant in future */
-    std::shared_ptr<gko::Executor> exec;
-    std::variant<std::shared_ptr<gko::log::Convergence<float>>,std::shared_ptr<gko::log::Convergence<double>>> logger;
-    std::shared_ptr<gko::LinOpFactory> precond;
-    std::shared_ptr<gko::LinOp> solver;
+    shared_ptr<gko::Executor> exec;
+    std::variant<shared_ptr<gko::log::Convergence<float>>,shared_ptr<gko::log::Convergence<double>>> logger;
+    shared_ptr<gko::LinOpFactory> precond;
+    shared_ptr<gko::LinOp> solver;
 
     /** for single precision we need a csr values array copy and cast from the double precision cfs matrix.
         The double precision is not need for runtime but is there to avoid static asserts from std::get */

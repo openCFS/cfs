@@ -17,7 +17,7 @@
 
 #include "SingleDriver.hh"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 namespace CoupledField
@@ -97,7 +97,7 @@ public:
 protected:
 
   //! Timer for estimating remaining runtime
-  boost::shared_ptr<Timer> timer_;
+  shared_ptr<Timer> timer_;
 };
 
 }

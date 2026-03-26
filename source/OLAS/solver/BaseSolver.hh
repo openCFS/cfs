@@ -84,8 +84,8 @@ namespace CoupledField {
     virtual SolverType GetSolverType() = 0;
 
     /** Gives the timer located within PtrParamNode */
-    boost::shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
-    boost::shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
+    shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
+    shared_ptr<Timer> GetSolveTimer() { return solveTimer_; }
 
     void SetUsingPenalty(bool usingPenalty) {
       usingPenalty_ = usingPenalty;
@@ -120,8 +120,8 @@ namespace CoupledField {
     BasePrecond* ptPrecond_;
     
     /** This is a pointer to the setup timer. Located within PtrParamNode*/
-    boost::shared_ptr<Timer> setupTimer_;
-    boost::shared_ptr<Timer> solveTimer_;
+    shared_ptr<Timer> setupTimer_;
+    shared_ptr<Timer> solveTimer_;
 
     bool usingPenalty_;
   };

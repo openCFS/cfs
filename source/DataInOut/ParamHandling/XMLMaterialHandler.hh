@@ -156,6 +156,12 @@ namespace CoupledField {
                                                    Global::ComplexPart type,
                                                    BaseMaterial::CoefMap &coefMap);
 
+    //! Read the Kelvin-Voigt damping information
+    void ReadKelvinVoigtDamping(PtrParamNode paramNode, BaseMaterial *material);
+
+    //! Read the viscous tensor for Kelvin-Voigt Damping (similar to reading a stiffness tensor)
+    BaseMaterial::SymmetryType ReadViscousTensorKV(PtrParamNode ptrNode, Global::ComplexPart type, BaseMaterial::CoefMap &coefMap);
+
     //! Read a smooth stiffness tensor
     BaseMaterial::SymmetryType ReadStiffnessTensorSmooth(PtrParamNode ptrNode,
                                                           Global::ComplexPart type,

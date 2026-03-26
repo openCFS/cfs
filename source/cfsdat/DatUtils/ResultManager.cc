@@ -131,7 +131,7 @@ CF::Vector<T>&  ResultManager::GetResultVector(uuids::uuid requestedId){
 //  return resAdapt->resultVector;
 //}
 
-str1::shared_ptr<EqnMapSimple> ResultManager::GetEqnMap(uuids::uuid requestedId) {
+shared_ptr<EqnMapSimple> ResultManager::GetEqnMap(uuids::uuid requestedId) {
   checkFinalized();
   return resultMap_[requestedId].second->mapping;
 }
@@ -472,9 +472,9 @@ void ResultManager::Finalize(){
     if (cInfo->masterId == uuidIter->first) {
       UInt cacheSteps = 1 + cInfo->maxStepOffset - cInfo->minStepOffset;
       if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps, cInfo->isStatic));
+        uuidIter->second.second = shared_ptr<GenericResultCache>(new ResultCache<CF::Complex>(cacheSteps, cInfo->isStatic));
       } else if(cInfo->dType == ExtendedResultInfo::DOUBLE){
-        uuidIter->second.second = str1::shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps, cInfo->isStatic));
+        uuidIter->second.second = shared_ptr<GenericResultCache>(new ResultCache<CF::Double>(cacheSteps, cInfo->isStatic));
       }else{
         EXCEPTION("Only Complex and Double results supported yet. Result: " << cInfo->resultName)
       }
@@ -554,7 +554,7 @@ void ResultManager::Finalize(){
     }
 
     //no offset results here...
-    StdVector< str1::shared_ptr<CF::BaseResult> >& resVec = cRes->baseResultVector;
+    StdVector< shared_ptr<CF::BaseResult> >& resVec = cRes->baseResultVector;
 
     if(cInfo->isMeshResult){
       //this loop body is adapted for mesh results. no matter what we have in entitynumbers from
@@ -564,12 +564,12 @@ void ResultManager::Finalize(){
         UInt idx = resVec.GetSize();
 
         if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-          resVec.Push_back(str1::shared_ptr< BaseResult >(new Result<CF::Complex>() ) );
+          resVec.Push_back(shared_ptr< BaseResult >(new Result<CF::Complex>() ) );
         }else{
-          resVec.Push_back(str1::shared_ptr< BaseResult >(new Result<CF::Double>() ) );
+          resVec.Push_back(shared_ptr< BaseResult >(new Result<CF::Double>() ) );
         }
 
-        str1::shared_ptr<EntityList> aList;
+        shared_ptr<EntityList> aList;
         if(cInfo->definedOn == ExtendedResultInfo::NODE){
           aList = cInfo->ptGrid->GetEntityList(EntityList::NODE_LIST,*regIter);
         }else if(cInfo->definedOn == ExtendedResultInfo::ELEMENT){
@@ -582,9 +582,9 @@ void ResultManager::Finalize(){
     }else{
       UInt idx = resVec.GetSize();
       if(cInfo->dType == ExtendedResultInfo::COMPLEX){
-        resVec.Push_back(str1::shared_ptr< BaseResult >(new Result<CF::Complex>() ) );
+        resVec.Push_back(shared_ptr< BaseResult >(new Result<CF::Complex>() ) );
       }else{
-        resVec.Push_back(str1::shared_ptr< BaseResult >(new Result<CF::Double>() ) );
+        resVec.Push_back(shared_ptr< BaseResult >(new Result<CF::Double>() ) );
       }
       resVec[idx]->SetResultInfo(cInfo->GetResultInfo());
     }

@@ -455,7 +455,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
   if(!this->consInterpReady_){
     std::cout << "++ Preparing for conservative interpolation of external data... ";
     std::cout.flush();
-    boost::shared_ptr<Timer> t(new Timer);
+    shared_ptr<Timer> t(new Timer);
     t->Start();
 
     //ok so we need to gather the formation

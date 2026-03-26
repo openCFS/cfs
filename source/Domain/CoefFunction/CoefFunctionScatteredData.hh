@@ -288,7 +288,7 @@ namespace CoupledField {
 
 
 #ifdef USE_CGAL
-    boost::shared_ptr<Tree> searchTree_;
+    shared_ptr<Tree> searchTree_;
 
     void KNNSearch_CGAL(const Vector<Double> globPoint,
                         StdVector< Vector<Double> >& neighbors,

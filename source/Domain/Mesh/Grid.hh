@@ -467,7 +467,7 @@ namespace CoupledField
     void GetRegionNames(StdVector<std::string>& out);
 
     //! Get the region id for the region with name
-    RegionIdType GetRegionId(const std::string name);
+    RegionIdType GetRegionId(const std::string& name, bool silent = false) const;
 
     //! Get vector with all volume region identifiers
 
@@ -869,6 +869,11 @@ namespace CoupledField
     //! Raises exception if the connection has not been set yet. 
     void GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId);
 
+
+    /** This is an public auto-start timer. The base for sub-timers */
+    shared_ptr<Timer> timer;
+    shared_ptr<Timer> readMeshTimer; // for any file type
+
   protected:
     //! Computes an external grid layer that can be used as a PML region. 
     //! The actual function is implemented in GridCFS
@@ -921,6 +926,8 @@ namespace CoupledField
     //! surfaces.
     std::map<RegionIdType, StdVector<RegionIdType>> volumeSurfaceRegionMap_;
 
+
+    shared_ptr<Timer> mapToBBTimer_;
 
     // =======================================================================
     // MISCELLANEOUS

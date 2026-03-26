@@ -22,7 +22,7 @@
 
 namespace CFSDat{
 
-DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+DivergenceDifferentiator::DivergenceDifferentiator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                      :MeshFilter(numWorkers,config,resMan){
 
 

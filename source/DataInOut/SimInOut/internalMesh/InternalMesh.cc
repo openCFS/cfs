@@ -7,7 +7,7 @@
 
 #include "InternalMesh.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
-
+#include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
 
 namespace CoupledField
 {
@@ -211,29 +211,6 @@ void InternalMesh::ReadMesh(Grid *mi)
 
   for(UInt i = 0, ss = nodeNames.GetSize(); i < ss; ++i)
     mi_->AddNamedNodes(nodeNames[i], indices[i]);
-
-
-
-
-
-
-
-  // Get Named Elements
-  /* no named elements atm
-    std::vector< std::string > elemNames;
-
-    GetElemNames( names );
-    indices.clear();
-    GetNamedElems( indices, elemNames );
-
-    names.Clear();
-    for(UInt i = 0; i<elemNames.size(); i++)
-      names.Push_back(elemNames[i]);
-
-    for(UInt i = 0; i<elemNames.size(); i++) {
-      mi_->AddNamedElems(names[i], indices[i]);
-    }
-   */
 }
 
 UInt InternalMesh::GetNumElems(const Integer dim)
@@ -323,36 +300,11 @@ void InternalMesh::GetNodeNames(StdVector<string> &nodeNames)
   }
 }
 
-void InternalMesh::GetElemNames(StdVector<string> &elemNames) 
-{
-  // no named element for now
-}
 
 // ======================================================
 // ENTITY ACCESS
 // ======================================================
 
-void InternalMesh::GetNodesOfRegions(StdVector<StdVector<UInt> > &nodes,
-    const StdVector<RegionIdType> &regionId) 
-{
-  std::set<UInt>::iterator it;
-  UInt index, iNode;
-
-  nodes.Resize(regionId.GetSize());
-
-  for(UInt iRegion = 0, ss = regionId.GetSize(); iRegion < ss; ++iRegion) 
-  {
-    iNode = 0;
-    index = regionId[iRegion];
-    nodes[iRegion].Resize(regionNodes_[index].size());
-
-    for(it = regionNodes_[index].begin(); it != regionNodes_[index].end();
-        ++it, ++iNode)
-    {
-      nodes[iRegion][iNode] = *it;
-    }
-  }
-}
 
 void InternalMesh::GetElements(StdVector<StdVector<UInt> > & elems,
     StdVector<StdVector<Elem::FEType> > & elemTypes,
@@ -458,9 +410,8 @@ void InternalMesh::GetElements(StdVector<StdVector<UInt> > & elems,
           EXCEPTION("not supported dimension for internal mesh");
         }
 
-        elemTypes[regionIndex].Push_back(AnsysType2ElemType(eType));
+        elemTypes[regionIndex].Push_back(SimInputMESH::AnsysType2ElemType(eType));
         elemNums[regionIndex].Push_back(eNum);
-
       }
 
   // Set flag which indicates, that elements of given dimension
@@ -593,54 +544,6 @@ void InternalMesh::GetNamedNodes(StdVector<StdVector<UInt> > &nodes,
   }
   default:
     EXCEPTION("not supported dimension for internal mesh");
-  }
-}
-
-void InternalMesh::GetNamedElems(StdVector<StdVector<UInt> > & elems,
-    StdVector<string> & elemNames) 
-{
-  // no named elements atm
-}
-
-Elem::FEType InternalMesh::AnsysType2ElemType(const UInt itype) 
-{
-  switch(itype)
-  {
-  case 101:
-    return Elem::ET_LINE3;
-  case 100:
-    return Elem::ET_LINE2;
-  case 4:
-    return Elem::ET_TRIA3;
-  case 5:
-    return Elem::ET_TRIA6;
-  case 6:
-    return Elem::ET_QUAD4;
-  case 7:
-    return Elem::ET_QUAD8;
-  case 107:
-    return Elem::ET_QUAD9;
-  case 8:
-    return Elem::ET_TET4;
-  case 9:
-    return Elem::ET_TET10;
-  case 10:
-    return Elem::ET_HEXA8;
-  case 11:
-    return Elem::ET_HEXA20;
-  case 111:
-    return Elem::ET_HEXA27;
-  case 12:
-    return Elem::ET_PYRA5;
-  case 13:
-    return Elem::ET_PYRA13;
-  case 14:
-    return Elem::ET_WEDGE6;
-  case 15:
-    return Elem::ET_WEDGE15;
-  default:
-    // This place should never be reached!
-    return Elem::ET_UNDEF;
   }
 }
 

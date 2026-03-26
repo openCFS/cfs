@@ -408,7 +408,7 @@ void CFS::SetupIO(PtrParamNode rootNode )
     // a dynamic cast leads for icc to error: cannot convert pointer to base class "CoupledField::SimOutput" to pointer to derived class "CoupledField::SimOutputHDF5" -- base class is virtual
     // in boost/smart_ptr/shared_ptr.hpp(805) itself :(
     if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) 
-      hdf5Writer = boost::dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
+      hdf5Writer = dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
   }
   for(; inputIt != inFiles.end(); inputIt++) 
     resultHandler->AddInputReader(inputIt->second, inputIt->first);

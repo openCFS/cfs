@@ -16,7 +16,7 @@ class CoefFunctionImpedanceModel : public CoefFunctionTimeFreq<Complex> {
 //! Coefficient function for calculating the impedance
 template<>
 class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>,
-                           public boost::enable_shared_from_this<CoefFunctionImpedanceModel<Complex> > {
+                           public enable_shared_from_this<CoefFunctionImpedanceModel<Complex> > {
   public:
     //! Constructor with given field
     CoefFunctionImpedanceModel(MathParser* mp, \

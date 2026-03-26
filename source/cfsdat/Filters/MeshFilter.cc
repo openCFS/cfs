@@ -20,7 +20,7 @@
 
 namespace CFSDat{
 
-MeshFilter::MeshFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+MeshFilter::MeshFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
                       :BaseMeshFilterType(numWorkers,config,resMan){
 
   // Aeroacoustic-Filters choose their input and output results independently because
@@ -97,7 +97,7 @@ CF::UInt MeshFilter::CountUsedEntities(const StdVector<CF::UInt>& entities) {
   return numEntities;
 }
 
-void MeshFilter::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>& map,
+void MeshFilter::GetUsedMappedEntities(const shared_ptr<EqnMapSimple>& map,
                                                   StdVector<CF::UInt>& entities,
                                                   const std::set<std::string>& regions,
                                                   Grid* grid) {
@@ -134,7 +134,7 @@ void MeshFilter::Node2Cell(Vector<T>& returnVec,
   UInt curE;
   CF::StdVector<UInt> eqns;
 
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
 
   // for every element in the target mesh
@@ -170,7 +170,7 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
   CF::Vector<Double> shFnc;
   CF::StdVector<UInt> eqns;
   CF::shared_ptr<ElemShapeMap> eShape;
-  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
+  shared_ptr<EqnMapSimple> downMap = resultManager_->GetEqnMap(resId);
 
   for(UInt i=0;i < interpolData.size();++i){
     QuantityStruct aStru = interpolData[i];

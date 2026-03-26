@@ -3,7 +3,7 @@
 
 #include "SingleDriver.hh"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 namespace CoupledField {
 
@@ -147,7 +147,7 @@ namespace CoupledField {
     Double timePerStep_;
     
     //! Timer for estimating remaining runtime 
-    boost::shared_ptr<Timer> timer_;
+    shared_ptr<Timer> timer_;
 
     //! Holds Simulation End Time, 
     double simulationENDTime_;

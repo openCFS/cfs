@@ -92,12 +92,7 @@ namespace CoupledField
     //! Returns a vector which contains all names of named nodes.
     //! \param nodeNames (output) vector with names of named nodes
     void GetNodeNames(StdVector<string> &nodeNames);
-  
-    //! Get vector with all names of named elements
-
-    //! Returns a vector which contains all names of named elements.
-    //! \param elemNames (output) vector with names of named elements
-    void GetElemNames(StdVector<string> &elemNames);
+ 
 
     //@}
 
@@ -105,19 +100,6 @@ namespace CoupledField
     // ENTITY ACCESS
     // =======================================================================
     //@{ \name Entity Access
-    
-    //! Get vector of nodes for each region
-
-    //! This method reads the node numbers of each region into a 
-    //! separate vector. 
-    //! \param nodes (output) vector containing the node numbers for each
-    //!                       region. The access is like \c elems 
-    //!                       \c [regionNr] \c [nodeNr]
-    //! \param regionId (output) vector containing the region Ids of the
-    //!                          nodes corresponding to the outer index in the
-    //!                          nodes vector
-    void GetNodesOfRegions(StdVector<StdVector<UInt> > &nodes,
-                           const StdVector<RegionIdType> & regionId);
     
     //! Read all elements of given dimension
 
@@ -149,48 +131,13 @@ namespace CoupledField
     void GetNamedNodes(StdVector<StdVector<UInt> > & nodes,
                        StdVector<string> & nodeNames );
 
-    //! Read all named elements
-
-    //! This method reads in all named elements with their according names.
-    //! \param elems (output) vector containing node numbers for each region.
-    //!                       The access is like \c elems \c [nameNr] 
-    //!                       \c [elemNr]
-    //! \param elemNames (output) vector containing the corresponding
-    //!                           element names 
-    void GetNamedElems(StdVector<StdVector<UInt> > & elems,
-                       StdVector<string> & elemNames );
     //@}
     
-    // =========================================================================
-    // GENERAL SOLUTION INFORMATION
-    // =========================================================================
-    //@{ \name General Solution Information
-    //! Fill pre-initialized results object with values of specified step
-    virtual void GetResult( UInt sequenceStep,
-                            UInt stepValue,
-                            shared_ptr<BaseResult> result,
-                            bool isHistory = false ) {
-      
-    } 
-    //@}
-
-
   private:
     
     // =======================================================================
     // AUXILLIARY METHODS
     // =======================================================================
-
-    //@{
-    //! \name Auxilliary Methods
-   
-    //! Transform type of elem in pointer to base class BaseFE
-
-    //! This method maps the type number of an element - as given in the 
-    //! mesh file - to a pointer to a reference finite element.
-    //! \param itype (input) element type number as read in from the mesh
-    Elem::FEType AnsysType2ElemType(const UInt itype);
-    //@}
 
     /** Parses the boundary conditions defined in xml file */
     void ParseBoundary(PtrParamNode bdr);

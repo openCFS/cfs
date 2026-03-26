@@ -176,14 +176,14 @@ namespace CoupledField
 
     inline bool DoCoilOptimization() { return coilOptimization_; }
 
-    void GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, boost::shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
-      CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) ;
+    void GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
+      CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, shared_ptr<CoupledField::BaseFeFunction> &feFct) ;
 
     void GenerateMaxwellForce(CoupledField::StdVector<std::string> &vecComponents,
-      CoupledField::PtrCoefFct &bFunc, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct);
+      CoupledField::PtrCoefFct &bFunc, shared_ptr<CoupledField::BaseFeFunction> &feFct);
 
     void GenerateVWPForce(CoupledField::StdVector<std::string> &vecComponents,
-      CoupledField::PtrCoefFct &bFunc, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct);
+      CoupledField::PtrCoefFct &bFunc, shared_ptr<CoupledField::BaseFeFunction> &feFct);
 
     //! This coefficient function describes the velocity field.
     shared_ptr<CoefFunctionMulti> VelocityCoef_;

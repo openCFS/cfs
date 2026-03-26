@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title> Kelvin Voigt Damping 2D </title>
+    <authors>
+      <author>Patrick Heidegger</author>
+    </authors>
+    <date>2026-03-17</date>
+    <keywords>
+      <keyword>kelvin-voigt damping</keyword>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references> no references, only functionality test </references>
+    <isVerified>yes</isVerified>
+    <description> This is a simple functionality test for the time-harmonic Kelvin-Voigt damping in 2D. The domain represents/approximates a damped 1D mass-spring system, where the spring is modeled as an low-density material, while the mass is modeled as an high-stiffness material. Simulation is done at the damped eigenfrequency, where w0 = 1, xi=0.5, wd = sqrt(1-xi^2). The solution is checked against an equal setup with Rayleigh damping, where beta=1 and alpha=0.</description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="KelvinVoigtDamping2DHarmonic.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mass" material="massKelvinVoigt"/>
+      <region name="spring" material="springKelvinVoigt"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="xm"/>
+      <surfRegion name="xp"/>
+      <surfRegion name="ym"/>
+      <surfRegion name="yp"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="monitor">
+        <coord x="-0.5" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="0.866"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mass" dampingId="kv"/>
+          <region name="spring" dampingId="kv"/>
+        </regionList>
+        <dampingList>
+          <kelvinVoigt id="kv"/>
+        </dampingList>
+        <bcsAndLoads>
+          <forceDensity name="xm">
+            <comp value="1" dof="x"/>
+          </forceDensity>
+          <fix name="yp">
+            <comp dof="y"/>
+          </fix>
+          <fix name="ym">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xm">
+            <comp dof="y"/>
+          </fix>
+          <fix name="xp">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

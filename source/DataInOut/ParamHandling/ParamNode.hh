@@ -2,8 +2,7 @@
 #define ParamNode_HH_
 
 #include <string>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/tokenizer.hpp>
 #include <any>
 
@@ -18,10 +17,10 @@ namespace CoupledField
   class Timer;
   class ParamNode;
   
-  /** Definitions of pointers, using boost::shared_ptr */
-  typedef boost::shared_ptr<ParamNode> PtrParamNode;
-  typedef boost::weak_ptr<ParamNode> WeakPtrParamNode;
-  typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
+  /** Definitions of pointers, using shared_ptr */
+  typedef std::shared_ptr<ParamNode> PtrParamNode;
+  typedef std::weak_ptr<ParamNode> WeakPtrParamNode;
+  typedef StdVector<std::shared_ptr<ParamNode> > ParamNodeList;
   
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.
@@ -66,7 +65,7 @@ namespace CoupledField
    *    as child?
    *  
    * */  
-  class ParamNode : public boost::enable_shared_from_this<ParamNode>
+  class ParamNode : public std::enable_shared_from_this<ParamNode>
   {
   public:
     
@@ -270,8 +269,8 @@ namespace CoupledField
 
     /** This is a special case where the timer is created if it does not already exist.
      * Therefore no constness */
-    boost::shared_ptr<Timer> AsTimer(const Timer* parent = nullptr);
-    boost::shared_ptr<Timer> AsTimer(const boost::shared_ptr<Timer>& parent) { return AsTimer(parent.get());  }
+    std::shared_ptr<Timer> AsTimer(const Timer* parent = nullptr);
+    std::shared_ptr<Timer> AsTimer(const std::shared_ptr<Timer>& parent) { return AsTimer(parent.get());  }
 
     /** @return the integer if this is convertible
     * @throws an exception if the value is not set or not convertible */

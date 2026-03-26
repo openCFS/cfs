@@ -28,7 +28,7 @@ public:
 
 
 #ifdef USE_CGAL
-  boost::shared_ptr<Tree> searchTree_;
+  shared_ptr<Tree> searchTree_;
 
   // This knn-search method is used by RBF, NearestNeighborInterpolator
   void KNN_CGAL_Interpolation(const Vector<Double> globPoint,

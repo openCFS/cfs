@@ -22,7 +22,7 @@
 
 namespace CFSDat{
 
-CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+CurlDifferentiator::CurlDifferentiator(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :MeshFilter(numWorkers,config,resMan){
 
   this->filtStreamType_ = FIFO_FILTER;

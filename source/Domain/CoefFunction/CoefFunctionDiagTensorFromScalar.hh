@@ -2,7 +2,7 @@
 #define COEFFUNCTION_TENSOR_FROM_SCALAR_HH
 
 // #include <boost/tr1/type_traits.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "CoefFunction.hh"
 
@@ -13,7 +13,7 @@ namespace CoupledField {
 //! This class generates a tensorial coefficient function, where the diagonal
 //! elements are defined in terms of scalar-valued coefficient functions.
 class CoefFunctionDiagTensorFromScalar : public CoefFunction,
-                                         public boost::enable_shared_from_this<CoefFunctionDiagTensorFromScalar> {
+                                         public enable_shared_from_this<CoefFunctionDiagTensorFromScalar> {
 public:
   //! Constructor
   CoefFunctionDiagTensorFromScalar(const StdVector<PtrCoefFct> &scalVals, std::string subType = "");

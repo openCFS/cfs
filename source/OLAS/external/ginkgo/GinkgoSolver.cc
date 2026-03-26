@@ -184,7 +184,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
   // the std::move makes sure we don't call a copy constructor
   auto csr = gko::share(gko::matrix::Csr<GK_T, int>::create_const(exec, gko::dim<2>(nrow,ncol), std::move(vv), std::move(cv), std::move(rv)));
   logger = gko::share(gko::log::Convergence<GK_REAL_T>::create());
-  std::shared_ptr<gko::LinOpFactory> factory;
+  shared_ptr<gko::LinOpFactory> factory;
 
   // we set this information every time as we handle the options here in detail
   PtrParamNode ip = infoNode_->Get("precond");
@@ -271,7 +271,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
   }
 
   solver = factory->generate(csr);
-  solver->add_logger(std::get<std::shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger)); // C++ is so ugly :()
+  solver->add_logger(std::get<shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger)); // C++ is so ugly :()
 }
 
 void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
@@ -330,7 +330,7 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
     sol.SetEntry(i, (CFS_T) x->at(i));
 
   assert(solver->get_loggers().size() == 1);
-  auto mylogger = std::get<std::shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger);
+  auto mylogger = std::get<shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger);
   bool conv = mylogger->has_converged();
   size_t iters = mylogger->get_num_iterations();
   // in the cuda case we live on the GPU and need to copy to CPU

@@ -566,7 +566,7 @@ namespace CoupledField {
         {
           EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
         }
-        shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+        shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
         assert(mortarIf);
         
         // TODO: WHAT THE HELL? IT DOESN'T WORK WITH pz = -1...

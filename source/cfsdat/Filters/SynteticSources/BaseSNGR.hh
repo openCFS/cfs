@@ -26,7 +26,7 @@ namespace CFSDat{
 class SNGRFilter : public BaseFilter{
 public:
 
-  SNGRFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  SNGRFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~SNGRFilter(){
 

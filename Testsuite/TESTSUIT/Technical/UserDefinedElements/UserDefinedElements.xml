@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>tests and demonstrates user defined nodes</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-03-08</date>
+    <description>
+      We give user defined named elements in domain/elemList. 
+      The elements are defined by their barycenter coordinates.
+      This test lists the full range of options for defining user defined elements.
+      See also UserDefinedNodes.xml 
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+    
+  <domain geometryType="plane">
+    <variableList>
+      <!-- To disturb barycenter coordinates. The plain coordinates from the 
+       UserDefinedNodes test case are exactly between element center coordinates for search
+       cases (coord, list, expression). Disturbing makes the result precise. 
+       Has nothing to do with eps in bounds. -->
+      <var name="e" value="1e-3" />
+    </variableList>
+    <regionList>
+      <region name="mech" material="99lines"/>
+    </regionList>
+    
+    <elemList>
+      <!-- closest element to given virtual coordinate (barycenter) --> 
+      <elems name="coord">
+        <coord x=".15" y=".1" />
+      </elems>
+
+      <!-- all elements are traversed and what matches (within eps) is in. Very fast -->
+      <elems name="bounds_1d" >
+        <bounds eps="1e-9"> 
+          <fixed comp="x" value=".5" />
+          <range comp="y" min=".6" max=".7" />
+        </bounds>
+      </elems>
+      
+       <elems name="bounds_2d">
+        <bounds>
+          <range comp="x" min=".7" max=".76" />
+          <range comp="y" min=".6" max=".66" />
+        </bounds>
+      </elems>   
+      
+      <!-- we want no straight line but only every second element --> 
+      <elems name="list_coarse">
+        <list>
+          <!-- Mesh nodes (0.3, 0.3125, ...) are exactly between element barycenters. 
+               We disturb a little to avoid noise for nearest entitiy  -->
+          <freeCoord comp="y"  start=".3-e" stop=".4" inc="0.025"/>
+          <fixedCoord comp="x" value=".3-e"/>
+        </list>
+      </elems>
+
+      <!-- legacy line via list. bounds is faster and easier --> 
+      <elems name="list_1d">
+        <list>
+          <freeCoord comp="y"  start=".3-e" stop=".4" inc="0.0125"/>
+          <fixedCoord comp="x" value=".5-e"/>
+        </list>
+      </elems>
+
+      <!-- legacy rectangle via list. bounds is much faster --> 
+      <elems name="list_2d">
+        <list>
+          <freeCoord comp="x"  start=".7-e" stop=".76" inc="0.01"/>
+          <freeCoord comp="y"  start=".34-e" stop=".4" inc="0.01"/>
+        </list>
+      </elems>
+      
+      <!-- debug test for oversampling (nodes are always unique) -->
+      <elems name="list_fine">
+        <list>
+          <freeCoord comp="y"  start=".1-e" stop=".2" inc="0.002"/>
+          <fixedCoord comp="x" value=".3-e"/>
+        </list>
+      </elems>
+
+      <!-- all elements are traversed and the condition is checked -->
+      <elems name="condition">
+        <test condition="(x-.2-e)^2 + (y-.8-e)^2 lt .015" />
+      </elems>
+
+      <!-- As with list virtual coordinates are generated and for each the closest node is searched. -->
+      <elems name="expression_func">
+        <expression>
+          <sample comp="x" start="0.2-e" stop=".9-e" inc=".0025" />
+          <eval comp="y" value="-.1*sin(4*pi*x) + .8-e" />
+        </expression>      
+      </elems> 
+      
+      <elems  name="expression_u">
+        <expression>
+          <sample comp="u" start="0" stop="1" inc=".01" />
+          <eval comp="x" value="(1-u)^2*0.60001 + 2*(1-u)*u*0.9 + u^2*0.90001" />
+          <eval comp="y" value="(1-u)^2*0.10001 + 2*(1-u)*u*0.1 + u^2*0.40001" />
+        </expression>      
+      </elems>
+ 
+      <!-- not checked here but quite fast -->
+      <elems name="all_nodes">
+        <allNodesInRegion regName="mech"/>
+      </elems>
+    </elemList>
+  </domain>
+    
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+                
+        <bcsAndLoads>
+          <temperature name="left" value="0"/>
+          <heatSource name="coord" value="-.5"/>
+          <heatSource name="list_coarse" value="-2"/>
+          <heatSource name="list_fine" value="2"/>
+          <heatSource name="list_1d" value="1"/>
+          <!-- <heatSource name="bounds_1d" value="1"/> -->
+          <heatSource name="list_2d" value="-2"/>
+          <!-- <heatSource name="expression_func" value="-1"/>
+          <heatSource name="expression_u" value="0.5"/> -->
+        </bcsAndLoads>
+                
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+    <!-- <linearSystems>
+      <system>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems>     -->
+  </sequenceStep>
+  
+</cfsSimulation>

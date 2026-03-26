@@ -12,7 +12,7 @@
 
 #include "SingleDriver.hh"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 
 namespace CoupledField
@@ -130,7 +130,7 @@ protected:
   Double timePerStep_;
   
   //! Timer for estimating remaining runtime 
-  boost::shared_ptr<Timer> timer_;
+  shared_ptr<Timer> timer_;
 
   //! pointer to loadRHS: source
   PtrCoefFct rhsSource_;

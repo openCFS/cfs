@@ -1194,6 +1194,9 @@
 
   <!-- Base element type for specifying boundary conditions -->
   <xsd:complexType name="DT_DampingBasic">
+    <xsd:annotation>
+      <xsd:documentation> Define a damping type and ID corresponding to the available damping models of the PDE and the definitions in the material file. </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
@@ -1215,6 +1218,12 @@
     <xsd:complexContent>
       <xsd:extension base="DT_DampingBasic">
       </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DampingKelvinVoigt">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic"></xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 

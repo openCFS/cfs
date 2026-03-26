@@ -229,6 +229,10 @@ namespace CoupledField {
           in->Get("alpha_M")->SetValue(actRaylCoeffs.alpha);
           in->Get("alpha_K")->SetValue(actRaylCoeffs.beta);
         }
+        // if Kelvin-Voigt damping is specified, read the viscous tensor and assign its coeffunction to the region
+        else if (dampingList_[actRegionId] == KELVIN_VOIGT) {
+          regionKelvinVoigtDamping_[actRegionId] = materials_[actRegionId]->GetTensorCoefFnc(MECH_KV_VISCOUS_TENSOR, tensorType_, Global::REAL);
+        }
       }
     }
   }
@@ -449,21 +453,37 @@ namespace CoupledField {
         BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
+        assemble_->AddBiLinearForm(stiffIntDescr);
+        bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
+        LOG_DBG(mechpde) << "Add Lin BDB" << std::endl;
 
         // check for Rayleigh damping (stiffness part)
         if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
           RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
           stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
         }
+        // check for Kelvin-Voigt damping
+        else if (dampingList_[actRegion] == KELVIN_VOIGT) {
+          if (harmonicPML) {
+            EXCEPTION("Kelvin-Voigt damping and harmonic PML is not implemented/tested.");
+          }
+          if (isMapping) {
+            EXCEPTION("Kelvin-Voigt damping and mapping is not implemented/tested.");
+          }
+          // add damping integrators the same way as stiffness integrators are defined
+          BaseBDBInt *dampInt;
+          dampInt = GetKelvinVoigtDampingIntegrator(actSDMat, actRegion, isComplex);
+          dampInt->SetName("LinDampInt");
+          dampInt->SetFeSpace(mySpace);
 
-        assemble_->AddBiLinearForm( stiffIntDescr );
-        
-        // Important: Add bdb-integrator to global list, as we need them later
-        // for calculation of postprocessing results
-        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
-        LOG_TRACE(mechpde) << "Add Lin BDB" << std::endl;
+          BiLinFormContext *dampIntDescr = new BiLinFormContext(dampInt, DAMPING);
+          dampIntDescr->SetEntities(actSDList, actSDList);
+          dampIntDescr->SetFeFunctions(myFct, myFct);
+          assemble_->AddBiLinearForm(dampIntDescr);
+          LOG_TRACE(mechpde) << "Add Kelvin Voigt Damp BDB" << std::endl;
+        }
       }
-      
+
       // ====================================================================
       //  Geometric Nonlinear Stiffness
       // ====================================================================
@@ -506,6 +526,9 @@ namespace CoupledField {
         if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
           RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
           nlContext->SetSecDestMat(DAMPING, actDamp.beta);
+        }
+        else if (dampingList_[actRegion] == KELVIN_VOIGT) {
+          EXCEPTION("Kelvin-Voigt damping and non-linear elasticity is not implemented/tested.");
         }
 
         // Important: Add bdb-integrator to global list, as we need them later
@@ -586,6 +609,10 @@ namespace CoupledField {
         preStressContext->SetFeFunctions( myFct, myFct );
         
         assemble_->AddBiLinearForm( preStressContext );
+
+        if (dampingList_[actRegion] == KELVIN_VOIGT) {
+          EXCEPTION("Kelvin-Voigt damping and prestress is not implemented/tested.");
+        }
       }
       
       // ====================================================================
@@ -938,7 +965,7 @@ namespace CoupledField {
           {
             EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
           }
-          shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+          shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
           assert(mortarIf);
           
           PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
@@ -2222,10 +2249,40 @@ namespace CoupledField {
         integ = new BDBInt<Double, Double>(bOp, curCoefScl, 1.0, updatedGeo_);
     }
     
-    
+
     return integ;
   }
-  
+
+  BaseBDBInt *MechPDE::GetKelvinVoigtDampingIntegrator(BaseMaterial *actSDMat, RegionIdType regionId, bool isComplex)
+  {
+    // Obtain linear viscous tensor (has been read in ReadDampingInformation)
+    PtrCoefFct curCoef = regionKelvinVoigtDamping_[regionId];
+
+    // Determine correct damping integrator (more or less copy-paste from GetStiffIntegrator)
+    BaseBDBInt *integ = nullptr;
+    BaseBOperator *bOp = GetStrainOperator(isComplex, false);
+
+    if (regionSoftening_[regionId] == "icModesTW") {
+      // ICModes Softening
+      EXCEPTION("Kelvin-Voigt damping and icModes is not implemented/tested.");
+      BaseBOperator *gOp = GetStrainOperator(isComplex, true);
+      if (isComplex)
+        integ = new ICModesInt<Complex>(bOp, gOp, curCoef, 1.0);
+      else
+        integ = new ICModesInt<Double>(bOp, gOp, curCoef, 1.0);
+    }
+    else {
+      // Standard Kelvin Voigt-Damping (like stiffness)
+      if (isComplex) {
+        integ = new BDBInt<Complex>(bOp, curCoef, 1.0, updatedGeo_);
+      }
+      else {
+        integ = new BDBInt<Double>(bOp, curCoef, 1.0, updatedGeo_);
+      }
+    }
+    return integ;
+  }
+
   BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor)
   {
     BaseBDBInt *preStressInt = NULL;
@@ -3650,7 +3707,7 @@ namespace CoupledField {
     Domain * inDomain = NULL;
     PtrCoefFct stressVec;
     //Get Stress CoefFunction from previous state
-    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+    shared_ptr<SimState> inState(new SimState(true, domain_));
     
     PtrParamNode icInfo = infoNode_->Get("Prestressing");
     PtrParamNode isInfo = icInfo->Get("ComputedLHS");
@@ -3658,7 +3715,7 @@ namespace CoupledField {
       std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
       PtrParamNode node(new ParamNode());
       PtrParamNode infoNode = ParamNode::GenerateWriteNode("", "", ParamNode::APPEND); // empty filename means we don't write and ignore ParamNode::ToFile()
-      boost::shared_ptr<SimInputHDF5> in;
+      shared_ptr<SimInputHDF5> in;
       in.reset(new SimInputHDF5(fileName, node, infoNode));
       inState->SetInputHdf5Reader(in);
       SimState::GridMap gridMap = domain_->GetGridMap();

@@ -32,13 +32,13 @@ namespace CoupledField {
     //! Destructor
     virtual ~CoefFunctionSUPG(){;}
 
-    virtual string GetName() const { return "CoefFunctionSUPG"; }
+    virtual string GetName() const override { return "CoefFunctionSUPG"; }
 
     //! \see CoefFunction::GetScalar
-    virtual void GetScalar(Double& scal, const LocPointMapped& lpm);
+    virtual void GetScalar(Double& scal, const LocPointMapped& lpm) override;
 
     //! \see CoefFunction::GetVector
-    virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm );
+    virtual void GetVector(Vector<Double>& vec, const LocPointMapped& lpm ) override;
 
   protected:
 

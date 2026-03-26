@@ -30,7 +30,7 @@ public:
 
   static FilterPtr GenerateVectorOperator(PtrParamNode node, PtrResultManager resMana);
 
-  VecOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+  VecOpFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
     :BaseFilter(numWorkers,config,resMan){
 
   }
@@ -87,7 +87,7 @@ class GenericVecOpFilter : public VecOpFilter{
 
 public:
 
-  GenericVecOpFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan);
+  GenericVecOpFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan);
 
   virtual ~GenericVecOpFilter(){
 

@@ -105,7 +105,7 @@ namespace CoupledField
 
 
     /** returns the eval_[grad]_obj or eval_[grad]_const_timer_ or NULL if none is running */
-    boost::shared_ptr<Timer> GetRunningEvalTimer();
+    shared_ptr<Timer> GetRunningEvalTimer();
 
     /** validate that no main timer within optimization is running. Make virtual to add optimizer local timers.
      * Has internal asserts().
@@ -129,7 +129,7 @@ namespace CoupledField
     }
     
     /** this is the generic optimizer timer. Public to use it easily as parent for sub-timers */
-    boost::shared_ptr<Timer> opt_timer;
+    shared_ptr<Timer> opt_timer;
 
     Optimization* optimization;
 
@@ -272,10 +272,10 @@ namespace CoupledField
 
     /** Determine the time spent in the external optimizer.
      * This is SolveProblem minus all evaluations */
-    boost::shared_ptr<Timer> eval_obj_timer_;
-    boost::shared_ptr<Timer> eval_grad_obj_timer_;
-    boost::shared_ptr<Timer> eval_const_timer_;
-    boost::shared_ptr<Timer> eval_grad_const_timer_;
+    shared_ptr<Timer> eval_obj_timer_;
+    shared_ptr<Timer> eval_grad_obj_timer_;
+    shared_ptr<Timer> eval_const_timer_;
+    shared_ptr<Timer> eval_grad_const_timer_;
 
     /** this is the link to the general optimization where we can find autoscale. Is not NULL */
     PtrParamNode gen_opt_pn_;

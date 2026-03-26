@@ -34,7 +34,7 @@
 
 namespace CFSDat{
 
-Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+Lighthill::Lighthill(UInt numWorkers, CF::PtrParamNode config, shared_ptr<ResultManager> resMan)
 :AeroacousticBase(numWorkers,config,resMan){
 
 #ifndef USE_CGAL

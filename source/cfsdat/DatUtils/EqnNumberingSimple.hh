@@ -18,7 +18,7 @@
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "Utils/ThreadLocalStorage.hh"
-#include "boost/shared_ptr.hpp"
+#include <memory>
 #include "Domain/Results/BaseResults.hh"
 #include "cfsdat/DatUtils/Defines.hh"
 
