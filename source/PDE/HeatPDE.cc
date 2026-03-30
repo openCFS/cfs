@@ -1522,6 +1522,28 @@ void HeatPDE::ThermalRadiationBC(){
 	  feFunctions_[HEAT_TEMPERATURE]->AddEntityList(ent[i]);
 	  assemble_->AddBiLinearForm(thermRadContext);
 
+    // SUPG LHS term: (tau * u * grad(v)) * 4*eps*sigma*T^3_{k-1} * T dS
+    if (stabilisation == StabilisationType::SUPG) {
+      PtrCoefFct coeffLHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffLHS, CoefXpr::OP_MULT));
+      BiLinearForm *thermRadIntSUPG = nullptr;
+      BaseBOperator *bOperator = nullptr;
+      if (dim_ == 2) {
+        bOperator = new ConvectiveOperator<FeH1,2,1>();
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        thermRadIntSUPG = new ABInt<>(bOperator, new IdentityOperator<FeH1,2,1,Double>(), coeffLHSSUPG, 1.0, updatedGeo_);
+      } else {
+        bOperator = new ConvectiveOperator<FeH1,3,1>();
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        thermRadIntSUPG = new ABInt<>(bOperator, new IdentityOperator<FeH1,3,1,Double>(), coeffLHSSUPG, 1.0, updatedGeo_);
+      }
+      thermRadIntSUPG->SetName("ThermalRadiationLHSNonLinIntSUPG");
+      thermRadIntSUPG->SetFeSpace(feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+      BiLinFormContext *thermRadContextSUPG = new BiLinFormContext(thermRadIntSUPG, STIFFNESS);
+      thermRadContextSUPG->SetEntities(ent[i], ent[i]);
+      thermRadContextSUPG->SetFeFunctions(myFct, myFct);
+      assemble_->AddBiLinearForm(thermRadContextSUPG);
+    }
+
 	  // =======================================================================================
 	  //  Second Part of heat transfer BC \int_{\Gamma} \epsilon * \sigma  (3 *T_{k-1}^4 + T0^4) T' dS
 	  // =======================================================================================
@@ -1561,7 +1583,30 @@ void HeatPDE::ThermalRadiationBC(){
 	  ctx->SetEntities(ent[i]);
 	  ctx->SetFeFunction(myFct);
 	  assemble_->AddLinearForm(ctx);
-    
+
+    // SUPG RHS term: (tau * u * grad(v)) * eps*sigma*(3*T^4_{k-1}+T0^4) dS
+    if (stabilisation == StabilisationType::SUPG) {
+      PtrCoefFct coeffRHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffRHS, CoefXpr::OP_MULT));
+      LinearForm *linSUPG = nullptr;
+      BaseBOperator *bOperator = nullptr;
+      if (dim_ == 2) {
+        bOperator = new ConvectiveOperator<FeH1,2,1>();
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        linSUPG = new BUIntegrator<Double>(bOperator, 1.0, coeffRHSSUPG, coefUpdateGeo);
+      } else {
+        bOperator = new ConvectiveOperator<FeH1,3,1>();
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        linSUPG = new BUIntegrator<Double>(bOperator, 1.0, coeffRHSSUPG, coefUpdateGeo);
+      }
+      linSUPG->SetName("ThermalRadiationRHSNonLinIntSUPG");
+      linSUPG->SetFeSpace(feFunctions_[HEAT_TEMPERATURE]->GetFeSpace());
+      linSUPG->SetSolDependent();
+      LinearFormContext *ctxSUPG = new LinearFormContext(linSUPG);
+      ctxSUPG->SetEntities(ent[i]);
+      ctxSUPG->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctxSUPG);
+    }
+
   }
 }
 
