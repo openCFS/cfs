@@ -77,6 +77,7 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   updatedGeo_        = true;
   isLinFlowPDECoupled_ = false;
   isCouplingFormulationSymmetric_ = false;
+  pdeStabilisationType_ = NO_STABILISATION;
 
   interfaceDrivenHeatSource_ = false;
 
@@ -188,8 +189,18 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
 
 
 void HeatPDE::DefineIntegrators() {
+  // Scan all regions to determine the highest stabilisation type in use.
+  // Used later to warn when BC entries have no volumeRegion but SUPG is active.
+  pdeStabilisationType_ = NO_STABILISATION;
+  for(UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+    PtrCoefFct dummy;
+    StabilisationType st = GetStabilisation(regions_[iRegion], dummy);
+    if (static_cast<int>(st) > static_cast<int>(pdeStabilisationType_))
+      pdeStabilisationType_ = st;
+  }
+
   RegionIdType actRegion;
-  BaseMaterial * actSDMat = NULL;  
+  BaseMaterial * actSDMat = NULL;
 
   // Define integrators for "standard" materials
   std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -242,18 +253,19 @@ void HeatPDE::DefineIntegrators() {
     }
 
     // ====================================================================
-    // Init stabilisation
-    // ====================================================================
-    StabilisationType stabilisation = NO_STABILISATION;
-    PtrCoefFct stabilisationFactor = NULL;
-    stabilisation = GetStabilisation(actRegion, stabilisationFactor);
-   
-    // ====================================================================
     // stiffness integrator
     // ====================================================================
 
     //get possible nonlinearities defined in this region
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
+    // ====================================================================
+    // Init stabilisation for this region
+    // ====================================================================
+    StabilisationType stabilisation = NO_STABILISATION;
+    PtrCoefFct stabilisationFactor = NULL;
+    stabilisation = GetStabilisation(actRegion, stabilisationFactor);
+
     if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
       // ====================================================================
       // nonlinear stiffness integrator
@@ -442,12 +454,9 @@ void HeatPDE::DefineIntegrators() {
       assemble_->AddBiLinearForm( massNLContext );
       //bdbInts_[actRegion] = massIntNL;
 
-      switch (stabilisation) 
+      if (stabilisation == StabilisationType::SUPG)
       {
-        // SUPG mass matrix term
-        case StabilisationType::SUPG:
         {
-          //EXCEPTION("SUPG is not validated for nonlinear materials.");
           PtrCoefFct massSUPGfactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, stabilisationFactor, nlMassCoeff, CoefXpr::OP_MULT ));
           
           // Create the integrators
@@ -476,10 +485,7 @@ void HeatPDE::DefineIntegrators() {
           massNLContext->SetEntities( actSDList, actSDList );
           massNLContext->SetFeFunctions( feFunc,feFunc);
           assemble_->AddBiLinearForm( massNLContext );
-          break;
         }
-        default:
-        {break;}
       }
     }
     else {
@@ -516,10 +522,8 @@ void HeatPDE::DefineIntegrators() {
       massContext->SetFeFunctions( feFunc,feFunc);
       assemble_->AddBiLinearForm( massContext );
 
-      switch (stabilisation) 
+      if (stabilisation == StabilisationType::SUPG)
       {
-        // SUPG mass matrix term
-        case StabilisationType::SUPG:
         {
           PtrCoefFct massSUPGfactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, stabilisationFactor, massFactor, CoefXpr::OP_MULT ));
          
@@ -549,10 +553,7 @@ void HeatPDE::DefineIntegrators() {
           massContext->SetEntities( actSDList, actSDList );
           massContext->SetFeFunctions( feFunc,feFunc);
           assemble_->AddBiLinearForm( massContext );
-          break;
         }
-        default:
-        {break;}
       }
     }
 
@@ -627,13 +628,10 @@ void HeatPDE::DefineIntegrators() {
       PtrParamNode in = infoNode_->Get("velocity");
       in->Get("id")->SetValue(velocityId);
 
-      switch (stabilisation)
+      if (stabilisation != StabilisationType::NO_STABILISATION)
       {
-        // Linear and nonlinear SUPG and ARTIFICIAL_DIFFUSION convective term
-        case StabilisationType::SUPG:
-        case StabilisationType::ARTIFICIAL_DIFFUSION:
         {
-          // combination for material properites and stabilisation coeffitient for bilinear terms
+          // combination for material properties and stabilisation coefficient for bilinear terms
           PtrCoefFct velFactorSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, stabilisationFactor, velFactor, CoefXpr::OP_MULT ));
 
           // Create the integrators
@@ -665,11 +663,6 @@ void HeatPDE::DefineIntegrators() {
           convectiveContextStiffSUPG->SetEntities( actSDList, actSDList );
           convectiveContextStiffSUPG->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunc);
           assemble_->AddBiLinearForm( convectiveContextStiffSUPG );
-          break;
-        }
-        default:
-        {
-          break;
         }
       }
     } //end convective term
@@ -721,22 +714,13 @@ void HeatPDE::DefineIntegrators() {
     assemble_->AddLinearForm(ctx);
     myFct->AddEntityList(ent[i]);
     
-    // Stabilisation
-    StabilisationType stabilisation = NO_STABILISATION;
-    PtrCoefFct factor = NULL;
-    ReadVolumeRegions("elecPowerDensity", volumeRegions);
-    RegionIdType volReg = NO_REGION_ID;
-
-    // check if volume neighbour has SUPG enabled
-    if ((volumeRegions[i] == "") && VolNeighbourHasSUPG(ent[i]->GetIterator())) {
-      EXCEPTION("For enabled SUPG, please define a volumeRegion for the elecPowerDensity boundary condition.");
-    }
-    if (volumeRegions[i] != ""){
-      volReg = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+    // Stabilisation — use the load's own volume region directly
+    {
+      StabilisationType stabilisation = NO_STABILISATION;
+      PtrCoefFct factor = NULL;
+      RegionIdType volReg = ent[i]->GetRegion();
       stabilisation = GetStabilisation(volReg, factor);
-    }
-    // SUPG heat flux RHS term
-    if (stabilisation == StabilisationType::SUPG){
+      if (stabilisation == StabilisationType::SUPG){
       PtrCoefFct newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, factor, coef[i], CoefXpr::OP_MULT ));
 
       LinearForm *linSUPG = NULL;
@@ -773,7 +757,8 @@ void HeatPDE::DefineIntegrators() {
       ctxSUPG->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctxSUPG);
       myFct->AddEntityList(ent[i]);
-    }
+      }
+    } // end stabilisation block
   } // end loop over entities
 
 
@@ -781,9 +766,8 @@ void HeatPDE::DefineIntegrators() {
   // Heat flux boundary condition
   // ======================================================================
   ReadRhsExcitation( "heatFlux", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+  ReadVolumeRegions("heatFlux", volumeRegions);
   if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-    // Get the volumeRegions for the heatFlux, because the reference temperature of the volumeRegion is needed to make the system symmetric
-    ReadVolumeRegions("heatFlux", volumeRegions);
     if( ent.GetSize() != volumeRegions.GetSize()){
       EXCEPTION("Define a volumeRegion for the heatFlux or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
     }
@@ -824,58 +808,54 @@ void HeatPDE::DefineIntegrators() {
     myFct->AddEntityList(ent[i]);
 
     // Stabilisation
-    StabilisationType stabilisation = NO_STABILISATION;
-    PtrCoefFct factor = NULL;
-    ReadVolumeRegions("heatFlux", volumeRegions);
-    RegionIdType volReg = NO_REGION_ID;
+    if (pdeStabilisationType_ != NO_STABILISATION) {
+      if (volumeRegions[i].empty() && (pdeStabilisationType_ == StabilisationType::SUPG)) {
+        WARN("SUPG is enabled but no volumeRegion is specified for 'heatFlux' BC. "
+             "To include the BC in the SUPG stabilisation, specify a volumeRegion for the volume with SUPG enabled. Results will be wrong otherwise!");
+      } else if (!volumeRegions[i].empty()) {
+        PtrCoefFct factor = NULL;
+        RegionIdType volReg = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+        StabilisationType stabilisation = GetStabilisation(volReg, factor);
+        if (stabilisation == StabilisationType::SUPG){
+          PtrCoefFct newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, factor, coef[i], CoefXpr::OP_MULT ));
 
-    // check if volume neighbour has SUPG enabled
-    if ((volumeRegions[i] == "") && VolNeighbourHasSUPG(ent[i]->GetIterator())) {
-      EXCEPTION("For enabled SUPG, please define a volumeRegion for the heatFlux boundary condition.");
-    }
-    if (volumeRegions[i] != ""){
-      volReg = ptGrid_->GetRegion().Parse(volumeRegions[i]);
-      stabilisation = GetStabilisation(volReg, factor);
-    }
-    // SUPG heat flux RHS term
-    if (stabilisation == StabilisationType::SUPG){
-      PtrCoefFct newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, factor, coef[i], CoefXpr::OP_MULT ));
+          LinearForm *linSUPG = NULL;
+          BaseBOperator *bOperator = NULL;
+          if( isComplex_ ) {
+            if(dim_ == 2)
+              bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+            else
+              bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
+          } else{
+            if(dim_ == 2)
+              bOperator = new ConvectiveOperator<FeH1,2,1>();
+            else
+              bOperator = new ConvectiveOperator<FeH1,3,1>();
+          }
+          bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
 
-      LinearForm *linSUPG = NULL;
-      BaseBOperator *bOperator = NULL;
-      if( isComplex_ ) {
-        if(dim_ == 2)
-          bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
-        else
-          bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
-      } else{
-        if(dim_ == 2)
-          bOperator = new ConvectiveOperator<FeH1,2,1>();
-        else
-          bOperator = new ConvectiveOperator<FeH1,3,1>();
-      }
-      bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
-
-      if( dim_ == 2) {
-        if(isComplex_) {
-          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, updatedGeo_ );
-        } else {
-          linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
+          if( dim_ == 2) {
+            if(isComplex_) {
+              linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, updatedGeo_ );
+            } else {
+              linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
+            }
+          } else  {
+            if(isComplex_) {
+              linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, updatedGeo_ );
+            } else {
+              linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
+            }
+          }
+          linSUPG->SetName("HeatFluxIntSUPG");
+          LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
+          ctxSUPG->SetEntities( ent[i] );
+          ctxSUPG->SetFeFunction(myFct);
+          assemble_->AddLinearForm(ctxSUPG);
+          myFct->AddEntityList(ent[i]);
         }
-      } else  {
-        if(isComplex_) {
-          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, updatedGeo_ );
-        } else {
-          linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
-        }
       }
-      linSUPG->SetName("HeatFluxIntSUPG");
-      LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
-      ctxSUPG->SetEntities( ent[i] );
-      ctxSUPG->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctxSUPG);
-      myFct->AddEntityList(ent[i]);
-    }
+    } // end stabilisation block
   } // end loop over entities
 
 
@@ -1128,33 +1108,6 @@ CoupledField::BasePDE::StabilisationType HeatPDE::GetStabilisation(RegionIdType 
     }
   }
   return stabilisation;
-}
-
-bool HeatPDE::VolNeighbourHasSUPG(EntityIterator entit) {
-  shared_ptr<FeSpace> mySpace = feFunctions_[HEAT_TEMPERATURE]->GetFeSpace();
-  StabilisationType stabilisation = NO_STABILISATION;
-  RegionIdType volReg;
-  PtrCoefFct factor = nullptr;
-
-  // loop over enitities and find volume or neighbours:
-  for ( entit.Begin(); !entit.IsEnd(); entit++) {
-    switch (entit.GetType()) {
-      case EntityList::ELEM_LIST:
-      case EntityList::SURF_ELEM_LIST:
-      {
-        // find volume neighbour
-        volReg = (mySpace->GetVolElem(entit.GetElem()))->regionId;
-        stabilisation = GetStabilisation(volReg, factor);
-        if (stabilisation == StabilisationType::SUPG){
-          return true;
-        }
-        break;
-      }
-      default:
-      {break;}
-    }
-  }
-  return false;
 }
 
 
@@ -1465,20 +1418,26 @@ void HeatPDE::ThermalRadiationBC(){
 	  PtrCoefFct T0Coef = CoefFunction::Generate(mp_, Global::REAL, T0);
 	  PtrCoefFct sigmaCoef = CoefFunction::Generate(mp_, Global::REAL, sigma);
 
+    // Determine SUPG stabilisation for this BC from its volumeRegion attribute
+    std::string volRegName;
+    xml->GetValue("volumeRegion", volRegName, ParamNode::PASS);
+    RegionIdType volReg = NO_REGION_ID;
+    StabilisationType stabilisation = NO_STABILISATION;
+    PtrCoefFct supgFactor = NULL;
+    if (pdeStabilisationType_ != NO_STABILISATION) {
+      if (volRegName.empty() && (pdeStabilisationType_ == StabilisationType::SUPG)) {
+        WARN("SUPG is enabled but no volumeRegion is specified for 'thermalRadiation' BC. "
+             "To include the BC in the SUPG stabilisation, specify a volumeRegion for the volume with SUPG enabled. Results will be wrong otherwise!");
+      } else if (!volRegName.empty()) {
+        volReg = ptGrid_->GetRegion().Parse(volRegName);
+        stabilisation = GetStabilisation(volReg, supgFactor);
+      }
+    }
+
     if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
       EXCEPTION("Thermal Radiation is not implemented for the symmetric formulation of the LinFLow-Heat-Coupling.")
     }
 
-    // Check if SUPG is enabled
-    // Get volume neighbour region from the FIRST element only — just once
-    EntityIterator entit = ent[i]->GetIterator();
-    entit.Begin();
-    RegionIdType volRegion = (mySpace->GetVolElem(entit.GetElem()))->regionId;
-    // Now single call instead of per-element traversal
-    PtrCoefFct factor = nullptr;
-    StabilisationType stabilisation = GetStabilisation(volRegion, factor);
-    if (stabilisation == StabilisationType::SUPG)
-      EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
 	  //========================================================================================
 	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
 	  //========================================================================================
@@ -1523,17 +1482,19 @@ void HeatPDE::ThermalRadiationBC(){
 	  assemble_->AddBiLinearForm(thermRadContext);
 
     // SUPG LHS term: (tau * u * grad(v)) * 4*eps*sigma*T^3_{k-1} * T dS
+    // tau - stabilisation parameter, u - velocity, v - test function, sigma - Stefan-Boltzmann constant, 
+    // eps - emissivity, T^3_{k-1} - temperature from previous iteration, T - current temperature
     if (stabilisation == StabilisationType::SUPG) {
-      PtrCoefFct coeffLHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffLHS, CoefXpr::OP_MULT));
+      PtrCoefFct coeffLHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, supgFactor, coeffLHS, CoefXpr::OP_MULT));
       BiLinearForm *thermRadIntSUPG = nullptr;
       BaseBOperator *bOperator = nullptr;
       if (dim_ == 2) {
         bOperator = new ConvectiveOperator<FeH1,2,1>();
-        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
         thermRadIntSUPG = new ABInt<>(bOperator, new IdentityOperator<FeH1,2,1,Double>(), coeffLHSSUPG, 1.0, updatedGeo_);
       } else {
         bOperator = new ConvectiveOperator<FeH1,3,1>();
-        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
         thermRadIntSUPG = new ABInt<>(bOperator, new IdentityOperator<FeH1,3,1,Double>(), coeffLHSSUPG, 1.0, updatedGeo_);
       }
       thermRadIntSUPG->SetName("ThermalRadiationLHSNonLinIntSUPG");
@@ -1586,16 +1547,16 @@ void HeatPDE::ThermalRadiationBC(){
 
     // SUPG RHS term: (tau * u * grad(v)) * eps*sigma*(3*T^4_{k-1}+T0^4) dS
     if (stabilisation == StabilisationType::SUPG) {
-      PtrCoefFct coeffRHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffRHS, CoefXpr::OP_MULT));
+      PtrCoefFct coeffRHSSUPG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, supgFactor, coeffRHS, CoefXpr::OP_MULT));
       LinearForm *linSUPG = nullptr;
       BaseBOperator *bOperator = nullptr;
       if (dim_ == 2) {
         bOperator = new ConvectiveOperator<FeH1,2,1>();
-        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
         linSUPG = new BUIntegrator<Double>(bOperator, 1.0, coeffRHSSUPG, coefUpdateGeo);
       } else {
         bOperator = new ConvectiveOperator<FeH1,3,1>();
-        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volRegion));
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
         linSUPG = new BUIntegrator<Double>(bOperator, 1.0, coeffRHSSUPG, coefUpdateGeo);
       }
       linSUPG->SetName("ThermalRadiationRHSNonLinIntSUPG");
@@ -1634,7 +1595,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
   ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo );
   if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-    // Get the volumeRegions for the heatSourceDensity, because the reference temperature of the volumeRegion is needed to make the system symmetric
+    // Get the volumeRegions for the heatSourceDensity
     ReadVolumeRegions("heatSourceDensity", volumeRegions);
     if( ent.GetSize() != volumeRegions.GetSize()){
       EXCEPTION("Define a volumeRegion for the heatSourceDensity or set the attribute symmetric=\"false\" in <couplingList> -> <direct> -> <linFlowHeatDirect>");
@@ -1678,58 +1639,50 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     ctx->SetFeFunction(myFct);
     assemble_->AddLinearForm(ctx);
 
-    // Stabilisation
-    StabilisationType stabilisation = NO_STABILISATION;
-    PtrCoefFct factor = NULL;
-    ReadVolumeRegions("heatSourceDensity", volumeRegions);
-    RegionIdType volReg = NO_REGION_ID;
-
-    // check if volume neighbour has SUPG enabled
-    if ((volumeRegions[i] == "") && VolNeighbourHasSUPG(ent[i]->GetIterator())) {
-      EXCEPTION("For enabled SUPG, please define a volumeRegion for the heatSourceDensity boundary condition.");
-    }
-    if (volumeRegions[i] != ""){
-      volReg = ptGrid_->GetRegion().Parse(volumeRegions[i]);
+    // Stabilisation — use the load's own volume region directly
+    {
+      StabilisationType stabilisation = NO_STABILISATION;
+      PtrCoefFct factor = NULL;
+      RegionIdType volReg = ent[i]->GetRegion();
       stabilisation = GetStabilisation(volReg, factor);
-    }
-    // SUPG heat source RHS term
-    if (stabilisation == StabilisationType::SUPG){
-      PtrCoefFct newCoef;
-      newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, factor, coef[i], CoefXpr::OP_MULT ));
+      if (stabilisation == StabilisationType::SUPG){
+        PtrCoefFct newCoef;
+        newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, factor, coef[i], CoefXpr::OP_MULT ));
 
-      LinearForm *linSUPG = NULL;
-      BaseBOperator *bOperator = NULL;
-      if( isComplex_ || newCoef->IsComplex() ) {
-        if(dim_ == 2)
-          bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
-        else
-          bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
-      } else {
-        if(dim_ == 2)
-          bOperator = new ConvectiveOperator<FeH1,2,1>();
-        else
-          bOperator = new ConvectiveOperator<FeH1,3,1>();
-      }
-      bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
-      if(isComplex_) {
-          //pure complex case (harmonic simulation)
-          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, coefUpdateGeo);
-      } else  {
-        if(newCoef->IsComplex()){
-          // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
-          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, coefUpdateGeo, true,
-                                                newCoef->IsComplex() );
-        }else{
-          linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, coefUpdateGeo, true,
-                                                newCoef->IsComplex() );
+        LinearForm *linSUPG = NULL;
+        BaseBOperator *bOperator = NULL;
+        if( isComplex_ || newCoef->IsComplex() ) {
+          if(dim_ == 2)
+            bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+          else
+            bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
+        } else {
+          if(dim_ == 2)
+            bOperator = new ConvectiveOperator<FeH1,2,1>();
+          else
+            bOperator = new ConvectiveOperator<FeH1,3,1>();
         }
+        bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
+        if(isComplex_) {
+            //pure complex case (harmonic simulation)
+            linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, coefUpdateGeo);
+        } else  {
+          if(newCoef->IsComplex()){
+            // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+            linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, coefUpdateGeo, true,
+                                                  newCoef->IsComplex() );
+          }else{
+            linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, coefUpdateGeo, true,
+                                                  newCoef->IsComplex() );
+          }
+        }
+        linSUPG->SetName("HeatSourceDensityIntSUPG");
+        LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
+        ctxSUPG->SetEntities( ent[i] );
+        ctxSUPG->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctxSUPG);
       }
-      linSUPG->SetName("HeatSourceDensityIntSUPG");
-      LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
-      ctxSUPG->SetEntities( ent[i] );
-      ctxSUPG->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctxSUPG);
-    }
+    } // end stabilisation block
   }// end loop over entities
 
   // ========================

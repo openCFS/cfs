@@ -67,8 +67,6 @@ namespace CoupledField {
      */
     CoupledField::BasePDE::StabilisationType GetStabilisation(RegionIdType ent, PtrCoefFct &factor);
 
-    /** Check if volume neighbour has SUPG enabled. */
-    bool VolNeighbourHasSUPG(EntityIterator entit);
 
     void ReadDampingInformation();
 
@@ -164,6 +162,10 @@ namespace CoupledField {
     bool isLinFlowPDECoupled_;
     //! Whether to use a symmetric formulation or not in coupling (to LinFlowPDE)
     bool isCouplingFormulationSymmetric_;
+
+    //! Maximum stabilisation type across all regions; set at the start of DefineIntegrators().
+    //! Used to issue warnings when BCs have no volumeRegion but SUPG is active somewhere.
+    StabilisationType pdeStabilisationType_;
 
   };
 
