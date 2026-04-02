@@ -440,11 +440,9 @@ namespace CoupledField{
         bool accepted = ComputeAdaptiveStepSize();
 
         if (!accepted) {
-          // Reset LTE history so the next 2 accepted steps rebuild consistent
-          // dt-sequence data before LTE is trusted again.  Without this, a
-          // large dt drop (e.g. 1e-5 → 1e-9) leaves dtPrev1_/dtPrev2_ at the
-          // old scale and the LTE formula explodes, causing an infinite loop.
-          adaptiveStepCount_ = 0;
+          std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
+                    << " > tol, retrying with dt= "
+                    << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
           ResetGlmVector();
           return;
         }
@@ -642,6 +640,8 @@ namespace CoupledField{
 
   void TimeSchemeGLM::LTELocalErrorEstimation()
   {
+    // Error BDF2
+    
     Double h2 = curScheme_->dtCurrent_;  // h_{n+2}
     Double h1 = curScheme_->dtPrev1_;    // h_{n+1}
     Double h0 = curScheme_->dtPrev2_;    // h_n
@@ -723,17 +723,21 @@ namespace CoupledField{
     // Apply user-defined bounds after the stability cap
     Double dtMin = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMin");
     Double dtMax = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMax");
+    Double h_next_unclamped = h_next;  // save before bounds to detect genuine dtMin floor hit
     h_next = std::max(h_next, dtMin);
     h_next = std::min(h_next, dtMax);
 
-    // If clamped up to dtMin, we cannot reduce further — force accept
-    if (!accepted && h_next >= dtMin)
+    // Force-accept only when the formula truly wanted to go below dtMin —
+    // i.e. the bounds prevented further shrinking, not just any rejected step.
+    if (!accepted && h_next_unclamped < dtMin)
     {
       accepted = true;
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
     }
     
     mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",           h_next);
     mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected", accepted ? 0.0 : 1.0);
+
     return accepted;
   }
 

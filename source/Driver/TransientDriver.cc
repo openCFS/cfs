@@ -102,9 +102,16 @@ namespace CoupledField {
       {
         tol_ = 1.0e-6; // default Max Error
       }
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",    tol_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin", deltaTMin_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax", deltaTMax_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",            tol_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin",         deltaTMin_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax",         deltaTMax_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRetryCount",        0.0);
+
+      if(deltaTMin_ > deltaTMax_)
+      {
+        EXCEPTION("Exception: .xml config is Wrong. DeltaTMin has to be smaller then deltaTmax.")
+      }
       
     }else
     {
@@ -238,6 +245,7 @@ namespace CoupledField {
     UInt count = 0;
     dt_ = firstdt_;
     actTimeStep_ = startStep;
+    int retryCount = 0;
 
     while (actTimeStep_ <= endStep_ && simulationEndTimeReached_ == false) {     
 
@@ -256,7 +264,9 @@ namespace CoupledField {
       // Reset rejection flag each attempt so steps not checked by LTE are
       // not falsely treated as rejected (stepRejected could linger at 1.0
       // from a previous genuine rejection when adaptiveStepCount_ < 2).
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected", 0.0 );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected",          0.0 );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0 );
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR",       0.0 );
 
       // Determine when to write logging information on terminal
       bool log = false;
@@ -310,11 +320,14 @@ namespace CoupledField {
         Double dt_used = dt_;
         actTime_ += dt_used;
 
+        mathParser_->SetValue(MathParser::GLOB_HANDLER, "stepRetryCount", static_cast<Double>(retryCount));
         bool accepted = adaptTimestep();  // updates dt_ to h_next
         if (!accepted) {
+          retryCount++;
           actTime_ -= dt_used;  // undo with the same dt that was added
           continue;             // redo this step with reduced dt_
         }
+        retryCount = 0;
 
         // Write results only for accepted steps
         resHandler->BeginStep( actTimeStep_, actTime_ - dt_used );
@@ -465,13 +478,23 @@ namespace CoupledField {
 
   bool TransientDriver::adaptTimestep()
   {
-    // bounds and dt already handled by ComputeAdaptiveStepSize inside FinishStep
+    Double retries = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRetryCount");
+    if(static_cast<int>(retries) > 10)
+    {
+      EXCEPTION("ERROR: The Simulation stopped after 10 Reruns of the same timestep.")
+    }
+    
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
-    bool accepted = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected") == 0.0);
+    bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
+    bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);
     std::cout << "*******************************************************\n";
-    std::cout << " Adaptive Timestepping -> dt= " << dt_ 
+    std::cout << " Adaptive Timestepping -> dt= " << dt_
               << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
-              << "  accepted= " << accepted << "\n";
+              << "  retries= " << static_cast<int>(retries) << "\n";
+    if (tolNotReachable) {
+      std::cout << " WARNING: tolerance could not be reached!" 
+                << " -- step force-accepted with error above tolerance.\n";
+    }
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
     return accepted;
