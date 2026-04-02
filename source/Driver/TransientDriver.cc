@@ -479,11 +479,11 @@ namespace CoupledField {
   bool TransientDriver::adaptTimestep()
   {
     Double retries = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRetryCount");
-    if(static_cast<int>(retries) > 10)
+    if(static_cast<int>(retries) > 50)
     {
-      EXCEPTION("ERROR: The Simulation stopped after 10 Reruns of the same timestep.")
+      EXCEPTION("ERROR: The Simulation stopped after 50 Reruns of the same timestep.")
     }
-    
+
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
     bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);

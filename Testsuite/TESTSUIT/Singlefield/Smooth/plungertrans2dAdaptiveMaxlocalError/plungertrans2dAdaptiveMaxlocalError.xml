@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>transient 2D plunger without damping - adaptive timestepping maxlocalError</title>
+    <authors>
+      <author>dorninger</author>
+    </authors>
+    <date>2026-04-02</date>
+    <keywords>
+      <keyword>smooth</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <isVerified>no</isVerified>
+    <description>
+      Transient simulation of a plunger excited via an inhomogeneous Dirichlet BC with
+      adaptive timestepping using the maxlocalError scheme. Based on plungertrans2d.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="plungertrans2dAdaptiveMaxlocalError.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="Plunger" material="FluidMat"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="Fix_t"/>
+      <surfRegion name="Fix_b"/>
+      <surfRegion name="Fix_r"/>
+      <surfRegion name="Excite"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>20</numSteps>
+        <deltaT>5e-5</deltaT>
+        <adaptiveTimeStepping scheme="maxlocalError">
+          <deltaTMin>1e-12</deltaTMin>
+          <deltaTMax>3e-3</deltaTMax>
+          <tol>1e-12</tol>
+          <sigma>0.75</sigma>
+        </adaptiveTimeStepping>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="Plunger"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="Fix_r">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <fix name="Fix_t">
+            <comp dof="y"/>
+          </fix>
+          <fix name="Fix_b">
+            <comp dof="y"/>
+          </fix>
+          <displacement name="Excite">
+            <comp dof="x" value="1e-6*sin(2*pi*1000*t)*(1-exp(-(t/1e-3)^1))"/>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="smoothVelocity">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="smoothDeformEnergyDensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="smoothDeformEnergy">
+             <allRegions outputIds="hdf5"/>
+          </regionResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>
