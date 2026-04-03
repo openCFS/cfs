@@ -119,6 +119,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
       return curScheme_->sizeGLMVec_;
     }
 
+    void reset_dt();
+
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
     virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
                                   std::map<FEMatrixType,Double> & matFactors);

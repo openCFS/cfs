@@ -41,6 +41,10 @@ class GLMScheme{
   Double dtCurrent_;
   Double dtPrev1_;
   Double dtPrev2_;
+  Double prev_dtCurrent_;
+  Double prev_dtPrev1_;
+  Double prev_dtPrev2_;
+
   bool adaptiveBDF2;
   Double local_error_;
 

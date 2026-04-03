@@ -444,7 +444,14 @@ namespace CoupledField{
                     << " > tol, retrying with dt= "
                     << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
           ResetGlmVector();
+          reset_dt();
           return;
+        }else
+        {
+          //Saves ResetValues for when a step is rerun
+          curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;  
+          curScheme_->prev_dtPrev1_= curScheme_->dtPrev1_;    
+          curScheme_->prev_dtPrev2_ = curScheme_->dtPrev2_;    
         }
       }
       // First 2 steps: run with user-defined dt from XML, no adaptation
@@ -693,7 +700,7 @@ namespace CoupledField{
     Double h     = curScheme_->dtCurrent_;
 
     const Double z_U      = 0.1;
-    const Double z_S      = 1.2;
+    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2
     const Double F_U      = 10.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
 
@@ -713,6 +720,9 @@ namespace CoupledField{
         h_next = h / z;    accepted = false;
       }
     }
+
+    std::cout << "[DEBUG] h=" << h << " est=" << est 
+          << " Rtol=" << Rtol << "\n";
 
 
     // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
@@ -739,6 +749,13 @@ namespace CoupledField{
     mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected", accepted ? 0.0 : 1.0);
 
     return accepted;
+  }
+
+  void TimeSchemeGLM::reset_dt()
+  {
+    curScheme_->dtCurrent_ = curScheme_->prev_dtCurrent_;  
+    curScheme_->dtPrev1_ =curScheme_->prev_dtPrev1_;    
+    curScheme_->dtPrev2_ = curScheme_->prev_dtPrev2_;    
   }
 
 }

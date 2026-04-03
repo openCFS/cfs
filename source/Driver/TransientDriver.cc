@@ -107,6 +107,8 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax",         deltaTMax_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRetryCount",        0.0);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveSigma", sigma_);
+      
 
       if(deltaTMin_ > deltaTMax_)
       {
