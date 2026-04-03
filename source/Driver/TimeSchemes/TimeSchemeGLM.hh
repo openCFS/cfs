@@ -151,6 +151,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
       nLinType_ = INCREMENTAL;
     }
 
+    double standartStepsize(bool * accepted);
+    double smoothStepsize(bool * accepted);
+
   protected:
     // Pointer to Mathpaerser Instance
     MathParser * mathparser_ = nullptr;

@@ -101,13 +101,23 @@
                 <xsd:element name="deltaTMin" type="xsd:token"/>
                 <xsd:element name="deltaTMax" type="xsd:token"/>
                 <xsd:element name="tol"       type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="sigma"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="sigma"     type="xsd:token" minOccurs="0" maxOccurs="1"  default="1.2" />
+                <xsd:element name="beta"     type="xsd:token" minOccurs="0" maxOccurs="1" />
+                <xsd:element name="alpha"     type="xsd:token" minOccurs="0" maxOccurs="1" />
               </xsd:sequence>
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
                     <xsd:enumeration value="maxlocalError"/>
                     <xsd:enumeration value="normalizedError"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="Stepsizesmoothing" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="ON"/>
+                    <xsd:enumeration value="OFF"/>
                   </xsd:restriction>
                 </xsd:simpleType>
               </xsd:attribute>

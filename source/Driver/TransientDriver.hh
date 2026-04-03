@@ -126,6 +126,15 @@ namespace CoupledField {
     //! restartCount_ : tracks howmany restarts were done
     UInt restartCount_;
 
+    //!  Smoothing_ : if adaptiv Var sets if stepsizesmoothing is on 
+    bool Smoothing_;
+
+    //!  alpha_: Param for stepsizesmoothing 
+    Double alpha_;
+
+    //!  beta_: Param for stepsizesmoothing 
+    Double beta_ ;
+
     // =======================================================================
     //  Restart related data
     // =======================================================================
@@ -155,6 +164,8 @@ namespace CoupledField {
     //! Flag, Is set when simulationENDTime_ is reached
     bool simulationEndTimeReached_;
 
+    //! Saves Previus LTE Error for PI Controll 
+    double prevLTEerror_;
 
   };
 

@@ -54,12 +54,19 @@ namespace CoupledField {
     initialTime_ = 0.0;
     firstdt_ = 0.0;
     restartCount_ = 0;
+    Smoothing_ = false;
     restartStep_ = 0;
     simulationENDTime_ = 0.0;
     endStep_ = 0;
     adaptiveEnabeled_ = false;
     dt_ = 0.0;
+    sigma_ = 1.2;
     isRestarted_ = false;
+    alpha_ = 0.7;
+    beta_ = 0.5;
+    prevLTEerror_ = 0.0;
+
+    Double parse_Smoothing = 0.0;
 
     // get parameter node
     param_ = param_->Get("transient");
@@ -92,6 +99,18 @@ namespace CoupledField {
       sigma_ = adaptiveNode->Get("sigma")->MathParse<Double>();
       SetAdaptiveType();
 
+      // optional Stepsize Smoothing (PI Controller) 
+      std::string String_Smoothing = adaptiveNode->Get("Stepsizesmoothing")->As<std::string>();
+      if(String_Smoothing == "ON")
+      {
+        Smoothing_ = true;
+        parse_Smoothing = 1.0;
+        alpha_   = adaptiveNode->Get("alpha")->MathParse<Double>();
+        beta_   = adaptiveNode->Get("beta")->MathParse<Double>();
+      }else
+      {
+        parse_Smoothing = 0.0;
+      }
 
       // optional parameters 
       PtrParamNode tolNode = adaptiveNode->Get("tol", ParamNode::PASS);
@@ -102,13 +121,17 @@ namespace CoupledField {
       {
         tol_ = 1.0e-6; // default Max Error
       }
+
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",            tol_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin",         deltaTMin_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax",         deltaTMax_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRetryCount",        0.0);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveSigma", sigma_);
-      
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "alpha", alpha_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "beta", beta_);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "Smoothing", parse_Smoothing);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", 0.0);
 
       if(deltaTMin_ > deltaTMax_)
       {
@@ -481,6 +504,9 @@ namespace CoupledField {
   bool TransientDriver::adaptTimestep()
   {
     Double retries = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRetryCount");
+    prevLTEerror_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR");
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", prevLTEerror_);
+    
     if(static_cast<int>(retries) > 50)
     {
       EXCEPTION("ERROR: The Simulation stopped after 50 Reruns of the same timestep.")

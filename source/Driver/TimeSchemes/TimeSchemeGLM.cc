@@ -695,36 +695,19 @@ namespace CoupledField{
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
-    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
-    Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
-
-    const Double z_U      = 0.1;
-    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2
-    const Double F_U      = 10.0;
+    bool   accepted = false;
+    Double h_next = 0.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
 
-    Double h_next;
-    bool   accepted;
-
-    if (est == 0.0) {
-      h_next   = F_U * h;
-      accepted = true;
-    } else {
-      Double z = z_S * std::pow((est / Rtol), (1.0 / 3.0));
-      if (z <= z_U) {
-        h_next = F_U * h;  accepted = true;
-      } else if (z <= z_S) {
-        h_next = h / z;    accepted = true;
-      } else {
-        h_next = h / z;    accepted = false;
-      }
+    if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 0)
+    {
+      h_next = standartStepsize(&accepted);
+    }else
+    {
+      h_next = smoothStepsize(&accepted);
     }
-
-    std::cout << "[DEBUG] h=" << h << " est=" << est 
-          << " Rtol=" << Rtol << "\n";
-
-
+    
     // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
     // Shrinking is always stable for BDF2, so only the growth direction is capped.
     if (h_next / h > maxRatio)
@@ -749,6 +732,66 @@ namespace CoupledField{
     mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected", accepted ? 0.0 : 1.0);
 
     return accepted;
+  }
+
+  Double TimeSchemeGLM::standartStepsize(bool* accepted)
+  {
+    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
+    Double est   = curScheme_->local_error_;
+    Double h     = curScheme_->dtCurrent_;
+
+    const Double z_U      = 0.1;
+    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2
+    const Double F_U      = 10.0;
+    Double h_next;
+
+    if (est == 0.0) {
+      h_next   = F_U * h;
+      *accepted = true;
+    } else {
+      Double z = z_S * std::pow((est / Rtol), (1.0 / 3.0));
+      if (z <= z_U) {
+        h_next = F_U * h;  *accepted = true;
+      } else if (z <= z_S) {
+        h_next = h / z;    *accepted = true;
+      } else {
+        h_next = h / z;    *accepted = false;
+      }
+    }
+
+    return h_next;
+  }
+
+  Double TimeSchemeGLM::smoothStepsize(bool* accepted)
+  {
+    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
+    Double est   = curScheme_->local_error_;
+    Double h     = curScheme_->dtCurrent_;
+    const Double F_U      = 5.0;
+    Double h_next;
+    
+    Double prev_error_ = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "prevError");
+    Double alpha = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "alpha");
+    Double beta  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "beta");
+
+    if (est == 0.0) {
+      h_next = F_U * h;
+      *accepted = true;
+    } else {
+      Double ratio_I = std::pow(Rtol / est, alpha);
+      Double ratio_P = 1.0;
+
+      if (prev_error_ > 0.0) {
+        ratio_P = std::pow(prev_error_ / est, beta);
+      }
+      Double factor = ratio_I * ratio_P;
+
+      h_next = h * factor;
+
+      *accepted = (est <= Rtol);
+    }
+  
+    return h_next;
   }
 
   void TimeSchemeGLM::reset_dt()
