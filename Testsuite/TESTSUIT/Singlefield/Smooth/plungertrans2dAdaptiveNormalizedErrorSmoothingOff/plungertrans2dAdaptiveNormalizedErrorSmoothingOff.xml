@@ -2,11 +2,11 @@
 <cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
 
   <documentation>
-    <title>transient 2D plunger without damping - adaptive timestepping maxlocalError</title>
+    <title>transient 2D plunger without damping - adaptive timestepping normalizedError smoothing OFF</title>
     <authors>
       <author>dorninger</author>
     </authors>
-    <date>2026-04-02</date>
+    <date>2026-04-04</date>
     <keywords>
       <keyword>smooth</keyword>
       <keyword>transient</keyword>
@@ -14,13 +14,14 @@
     <isVerified>no</isVerified>
     <description>
       Transient simulation of a plunger excited via an inhomogeneous Dirichlet BC with
-      adaptive timestepping using the maxlocalError scheme. Based on plungertrans2d.
+      adaptive timestepping using the normalizedError scheme with PI step-size smoothing OFF.
+      Based on plungertrans2d.
     </description>
   </documentation>
 
   <fileFormats>
     <input>
-      <hdf5 fileName="plungertrans2dAdaptiveMaxlocalError.h5ref"/>
+      <hdf5 fileName="plungertrans2dAdaptiveNormalizedErrorSmoothingOff.h5ref"/>
     </input>
     <output>
       <hdf5/>
@@ -45,9 +46,9 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="maxlocalError" Stepsizesmoothing="OFF">
-          <deltaTMin>1e-8</deltaTMin>
-          <deltaTMax>3e-3</deltaTMax>
+        <adaptiveTimeStepping scheme="normalizedError" Stepsizesmoothing="OFF">
+          <deltaTMin>1e-7</deltaTMin>
+          <deltaTMax>1e-4</deltaTMax>
           <tol>5e-8</tol>
           <sigma>0.75</sigma>
         </adaptiveTimeStepping>

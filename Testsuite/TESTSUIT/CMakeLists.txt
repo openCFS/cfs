@@ -182,8 +182,10 @@ ADD_SUBDIRECTORY(Singlefield/AcousticMixed/channel3d_sfem_abc)
 # Subdirectories for smoothPDE test cases.
 #-------------------------------------------------------------------------------
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2d)
-#ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveMaxlocalError)  do to adaptive nature not ideal for testing TODO: Repair
-ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedError)
+ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveMaxlocalError)
+ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveMaxlocalErrorSmoothingOn)
+ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorSmoothingOff)
+ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorSmoothingOn)
 ADD_SUBDIRECTORY(Singlefield/Smooth/RotatedChamberL2Norm2D)
 ADD_SUBDIRECTORY(Singlefield/Smooth/ChamberL2Norm2DHarmonic)
 ADD_SUBDIRECTORY(Singlefield/Smooth/StaticShearStrainStiffening2D)
