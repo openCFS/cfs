@@ -741,7 +741,7 @@ namespace CoupledField{
     Double h     = curScheme_->dtCurrent_;
 
     const Double z_U      = 0.1;
-    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2
+    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2 
     const Double F_U      = 10.0;
     Double h_next;
 
@@ -767,18 +767,20 @@ namespace CoupledField{
     Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
     Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
-    const Double F_U      = 5.0;
+    const Double F_U      = 10.0;
     Double h_next;
+    Double sigma = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma");
     
     Double prev_error_ = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "prevError");
-    Double alpha = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "alpha");
-    Double beta  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "beta");
+    double k = 3; // For BDF2
+    Double alpha = 0.3/k ;
+    Double beta  = 0.4/k;
 
     if (est == 0.0) {
       h_next = F_U * h;
       *accepted = true;
     } else {
-      Double ratio_I = std::pow(Rtol / est, alpha);
+      Double ratio_I = std::pow(sigma * Rtol / est, alpha);
       Double ratio_P = 1.0;
 
       if (prev_error_ > 0.0) {

@@ -167,6 +167,10 @@ namespace CoupledField {
     //! Saves Previus LTE Error for PI Controll 
     double prevLTEerror_;
 
+    //! Saves Previus Error to stop controller windup
+    double antiWindupError_;
+
+
   };
 
 }

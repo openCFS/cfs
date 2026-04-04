@@ -65,6 +65,7 @@ namespace CoupledField {
     alpha_ = 0.7;
     beta_ = 0.5;
     prevLTEerror_ = 0.0;
+    antiWindupError_ = 1;
 
     Double parse_Smoothing = 0.0;
 
@@ -105,8 +106,6 @@ namespace CoupledField {
       {
         Smoothing_ = true;
         parse_Smoothing = 1.0;
-        alpha_   = adaptiveNode->Get("alpha")->MathParse<Double>();
-        beta_   = adaptiveNode->Get("beta")->MathParse<Double>();
       }else
       {
         parse_Smoothing = 0.0;
@@ -128,8 +127,6 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRetryCount",        0.0);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveSigma", sigma_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "alpha", alpha_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "beta", beta_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "Smoothing", parse_Smoothing);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", 0.0);
 
@@ -515,6 +512,12 @@ namespace CoupledField {
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
     bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);
+
+    if(!accepted & (retries == 0)) // Saves Error befor rerunning (Solves Integrator Windup when min step size is limited)
+    {
+      antiWindupError_ = prevLTEerror_;
+    }
+
     std::cout << "*******************************************************\n";
     std::cout << " Adaptive Timestepping -> dt= " << dt_
               << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
@@ -522,6 +525,7 @@ namespace CoupledField {
     if (tolNotReachable) {
       std::cout << " WARNING: tolerance could not be reached!" 
                 << " -- step force-accepted with error above tolerance.\n";
+      prevLTEerror_ = antiWindupError_;
     }
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
