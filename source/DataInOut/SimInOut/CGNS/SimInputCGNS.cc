@@ -27,7 +27,8 @@ namespace algo=boost::algorithm;
 #include "SimInputCGNS.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
+#include "Domain/Results/BaseResults.hh"
 
 
 // Size of string buffers (32 characters + terminating null byte)
@@ -1676,41 +1677,33 @@ namespace CoupledField {
                                            StdVector<std::string> &names,
                                            bool isHistory)
   {
-    if (sequenceStep != 1) {
-      if (numBases_ == 1) {
-        EXCEPTION("Analysis step no. " << sequenceStep << " is invalid." <<
-            "There is only one analysis step in CGNS file '" << fileName_ << "'");
-      }
-      else {
-        EXCEPTION("NACS currently supports only one analysis step per CGNS file.");
-      }
+    if (sequenceStep != 1) 
+    {
+      if (numBases_ == 1) 
+        EXCEPTION("Analysis step no. " << sequenceStep << " is invalid. There is only one analysis step in CGNS file '" << fileName_ << "'")
+      else 
+        EXCEPTION("openCFS currently supports only one analysis step per CGNS file.")
     }
 
     names.Clear();
-    if (isHistory)  {
+    if (isHistory)  
       return;
-    }
     
-    std::map< shared_ptr<ResultInfo>, std::set<std::string> >::iterator
-        resIt = resultEntities_.begin(),
-        resEnd = resultEntities_.end();
-    for ( ; resIt != resEnd; ++resIt) {
-      if (*info == *(resIt->first)) {
-        break;
-      }
-    }
-    
-    if (resIt == resEnd) {
+    auto resIt = resultEntities_.begin();
+    for (; resIt != resultEntities_.end(); ++resIt)
+        if (*info == *resIt->first)
+            break;
+
+    if (resIt == resultEntities_.end()) 
       return;
-    }
     
-    std::set<std::string> &nameSet = resIt->second;
+    std::set<std::string>& nameSet = resIt->second;
     names.Reserve(nameSet.size());
-    std::copy(nameSet.begin(), nameSet.end(), std::back_inserter(names));
+    for(const auto& name : nameSet)
+      names.Push_back(name);    
   }
 
-  void SimInputCGNS::
-  GetResultEntities( UInt sequenceStep,
+  void SimInputCGNS::GetResultEntities( UInt sequenceStep,
                      shared_ptr<ResultInfo> info,
                      StdVector<shared_ptr<EntityList> >& list,
                      bool isHistory )
@@ -1721,39 +1714,29 @@ namespace CoupledField {
             "There is only one analysis step in CGNS file '" << fileName_ << "'");
       }
       else {
-        EXCEPTION("NACS currently supports only one analysis step per CGNS file.");
+        EXCEPTION("openCFS currently supports only one analysis step per CGNS file.");
       }
     }
 
     list.Clear();
-    if (isHistory)  {
+    if (isHistory)
       return;
-    }
-    
-    std::map< shared_ptr<ResultInfo>, std::set<std::string> >::iterator
-        resIt = resultEntities_.begin(),
-        resEnd = resultEntities_.end();
-    for ( ; resIt != resEnd; ++resIt) {
-      if (*info == *(resIt->first)) {
+
+    auto resIt = resultEntities_.begin();
+    for (; resIt != resultEntities_.end(); ++resIt)
+      if (*info == *resIt->first)
         break;
-      }
-    }
-    
-    if (resIt == resEnd) {
+
+    if (resIt == resultEntities_.end())
       return;
-    }
-    
-    std::set<std::string> &names = resIt->second;
-    UInt numRegions = names.size();
-    list.Reserve(numRegions);
+
+    const std::set<std::string>& names = resIt->second;
+    list.Reserve(names.size());
     EntityList::ListType listType = resIt->first->definedOn == ResultInfo::NODE ?
                                     EntityList::NODE_LIST : EntityList::ELEM_LIST;
-    
-    std::set<std::string>::iterator nameIt = names.begin(),
-                                    nameEnd = names.end();
-    for ( ; nameIt != nameEnd; ++nameIt) {
-      list.push_back(mi_->GetEntityList(listType, *nameIt));
-    }
+
+    for (const std::string& name : names)
+      list.Push_back(mi_->GetEntityList(listType, name));
   }
 
   void SimInputCGNS::GetResult( UInt sequenceStep,

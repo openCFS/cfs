@@ -12,6 +12,7 @@ SET(MATVEC_SRCS
   Vector.cc
   VBR_Matrix.cc
   Matrix.cc
+  CoordFormat.cc
 )
 
 IF(MKL_INCLUDE_DIR)

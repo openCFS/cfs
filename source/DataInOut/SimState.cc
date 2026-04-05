@@ -6,6 +6,7 @@
 
 #include <map>
 #include <boost/bind/bind.hpp>
+#include <boost/signals2.hpp>
 
 // include hdf5 cpp file
 #include "H5Cpp.h"
@@ -45,6 +46,7 @@ class MaterialHandler;
     parentParser_ = NULL;
     parentHandle_= 0;
     interpol_ = NO_INTERPOLATION;
+    conn_ = std::make_unique<boost::signals2::connection>();
     
   }
   
@@ -57,7 +59,7 @@ class MaterialHandler;
     feFcts_.clear();
     
     // de-register callback
-    conn_.disconnect();
+    if(conn_) conn_->disconnect();
     if( parentParser_ ) {
       parentParser_->ReleaseHandle(parentHandle_);
       parentParser_ = NULL;
@@ -240,7 +242,7 @@ class MaterialHandler;
     
     // only add callback, if interpolation is not CONSTANT
     if( type != CONSTANT ) {
-      conn_ = parentParser_->AddExpChangeCallBack(
+      *conn_ = parentParser_->AddExpChangeCallBack(
           boost::bind(&SimState::UpdateTimeFreqStep, this ),
           parentHandle_ );
     }

@@ -862,8 +862,8 @@ namespace CoupledField
     if(id.ToString(true) != "") // filename variant
       base += "_" + id.ToString(true);
 
-    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<string>());
-    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<string>());
+    BaseMatrix::OutputFormat mat_format = MatrixOutputFormatEnum.Parse(els->Get("format")->As<string>());
+    BaseMatrix::OutputFormat vec_format = MatrixOutputFormatEnum.Parse(els->Get("vecFormat")->As<string>());
 
     LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
@@ -938,7 +938,7 @@ namespace CoupledField
           for(unsigned int i = 0; i < eigenValues_->GetSize(); i++)
           {
             GetEigenMode(i);
-            sol_->Export(base + "_mode_" + lexical_cast<string>(i+1), vec_format);
+            sol_->Export(base + "_mode_" + std::to_string(i+1), vec_format);
           }
         }
       }
@@ -4171,7 +4171,7 @@ namespace CoupledField
             BaseMatrix::StorageType sT = BaseMatrix::SPARSE_NONSYM;
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
                 << ", " << sbmCol+1 << ") is "
-                << BaseMatrix::storageType.ToString(sT);
+                << MatrixStorageTypeEnum.ToString(sT);
             retMat->SetSubMatrix ( sbmRow, sbmCol, entryType, sT, nrows, ncols, graph->GetNNE() );
             LOG_DBG(algSys)<< "Inserting a SubMatrix at: " << "[" << sbmRow << "," << sbmCol << "]";
             LOG_DBG(algSys)<< "SubMatrix has size of: " << "[" <<nrows<< "," << ncols << "]";
@@ -4202,7 +4202,7 @@ namespace CoupledField
             if(sbmRow != sbmCol){
               LOG_DBG(algSys) << "storage Type of matrix (" << sbmCol +1
                   << ", " << sbmRow+1 << ") is "
-                  << BaseMatrix::storageType.ToString(sT);
+                  << MatrixStorageTypeEnum.ToString(sT);
               retMat->SetSubMatrix ( sbmCol, sbmRow, entryType, sT, nrows, ncols, graph->GetNNE() );
 
               if( sharePattern ) {
@@ -4260,7 +4260,7 @@ namespace CoupledField
             BaseMatrix::StorageType sT = solStrat_->GetStorageType(sbmRow);
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
                 << ", " << sbmCol+1 << ") is "
-                << BaseMatrix::storageType.ToString(sT);
+                << MatrixStorageTypeEnum.ToString(sT);
 
             // If we perform static condensation and this is the
             // inner-inner block, we use the variable block row
@@ -4280,7 +4280,7 @@ namespace CoupledField
                 nrows, ncols, graph->GetNNE() );
             LOG_DBG(algSys) << "storage Type of matrix (" << sbmRow +1
                 << ", " << sbmCol+1 << ") is "
-                << BaseMatrix::storageType.ToString(BaseMatrix::SPARSE_NONSYM);
+                << MatrixStorageTypeEnum.ToString(BaseMatrix::SPARSE_NONSYM);
           }
 
           // check, if matrix pattern can be shared and
@@ -4369,7 +4369,7 @@ namespace CoupledField
       }
 
       matNode->GetValue("storage",storageString, ParamNode::INSERT);
-      storType = BaseMatrix::storageType.Parse(storageString);
+      storType = MatrixStorageTypeEnum.Parse(storageString);
 
       // check, if unphysical setting was set
       if( !isDiagBlockSymm_[0] && storType == BaseMatrix::SPARSE_SYM) {
@@ -4455,13 +4455,13 @@ namespace CoupledField
           //  a) we can change matrix -> do so
           storType = *solverStorTypes.begin();
           if( canChangeMatFormat) {
-            storageString = BaseMatrix::storageType.ToString(storType);
+            storageString = MatrixStorageTypeEnum.ToString(storType);
             matNode->Get("storage")->SetValue(storageString);
           } else {
             EXCEPTION("Solver '" << solverNode->GetName()
                       << "' can not operate on matrix with storage type '"
                       << storageString << "'. \nChange format to '"
-                      << BaseMatrix::storageType.ToString(storType)
+                      << MatrixStorageTypeEnum.ToString(storType)
                       << "'.");
             // b) we can not change matrix -> EXCEPTION
           } // canChangeFormat
@@ -4515,13 +4515,13 @@ namespace CoupledField
                   solverStorTypes.find(storType) != solverStorTypes.end() );
 
           if( canChangeMatFormat && isCompatibleWithSolver) {
-            storageString = BaseMatrix::storageType.ToString(storType);
+            storageString = MatrixStorageTypeEnum.ToString(storType);
             matNode->Get("storage")->SetValue(storageString);
           } else {
             EXCEPTION("Precond '" << precondNode->GetName()
                       << "' can not operate on matrix with storage type '"
                       << storageString << "'. \nChange format to '"
-                      << BaseMatrix::storageType.ToString(storType)
+                      << MatrixStorageTypeEnum.ToString(storType)
                       << "'.");
             // b) we can not change matrix -> EXCEPTION
           } // canChangeFormat
@@ -4607,7 +4607,7 @@ namespace CoupledField
         bool canChangeMatFormat = false;
 
         matNode->GetValue("storage",storageString, ParamNode::INSERT);
-        storType = BaseMatrix::storageType.Parse(storageString);
+        storType = MatrixStorageTypeEnum.Parse(storageString);
 
 
         // -----------------------------------------------
@@ -4654,7 +4654,7 @@ namespace CoupledField
             EXCEPTION("Solver '" << solverNode->GetName()
                       << "' can not operate on matrix with storage type '"
                       << storageString << "'. \nChange format to '"
-                      << BaseMatrix::storageType.ToString(storType)
+                      << MatrixStorageTypeEnum.ToString(storType)
                       << "'.");
           }
         }
@@ -4706,13 +4706,13 @@ namespace CoupledField
             bool isCompatibleWithSolver = (solverStorTypes.size() == 0 || solverStorTypes.find(storType) != solverStorTypes.end() );
 
             if( canChangeMatFormat && isCompatibleWithSolver) {
-              storageString = BaseMatrix::storageType.ToString(storType);
+              storageString = MatrixStorageTypeEnum.ToString(storType);
               matNode->Get("storage")->SetValue(storageString);
             } else {
               EXCEPTION("Precond '" << precondNode->GetName()
                         << "' can not operate on matrix with storage type '"
                         << storageString << "'. \nChange format to '"
-                        << BaseMatrix::storageType.ToString(storType)
+                        << MatrixStorageTypeEnum.ToString(storType)
                         << "'.");
               // b) we can not change matrix -> EXCEPTION
             } // canChangeFormat
@@ -4811,7 +4811,7 @@ namespace CoupledField
         mNode->Get("blockCol")->SetValue(smId.colInd);
 
         string storageType =
-            BaseMatrix::storageType.ToString(stdMat->GetStorageType());
+            MatrixStorageTypeEnum.ToString(stdMat->GetStorageType());
         mNode->Get("storageType")->SetValue(storageType);
         mNode->Get("numRows")->SetValue(stdMat->GetNumRows());
         mNode->Get("numCols")->SetValue(stdMat->GetNumCols());
@@ -5005,7 +5005,7 @@ namespace CoupledField
     if ( sType != BaseMatrix::SPARSE_NONSYM ) {
       EXCEPTION( "AlgebraicSys::BuildAMGEdgeAuxMatrix(): AMG requires the system matrix"
           << " to be a CRS_Matrix i.e. sparseNonSym. The system matrix you supplied is a "
-          << " matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " matrix in " << MatrixStorageTypeEnum.ToString( sType )
           << " format." );
     }
 
@@ -5150,7 +5150,7 @@ namespace CoupledField
       EXCEPTION( "AlgebraicSys::BuildAMGLagrangeAuxMatrix(): AMG requires the"
           << " system matrix to be a CRS_Matrix i.e. sparseNonSym. "
           << " The system matrix you supplied is a "
-          << " matrix in " << BaseMatrix::storageType.ToString( sType ) << " format." );
+          << " matrix in " << MatrixStorageTypeEnum.ToString( sType ) << " format." );
     }
 
     // Down-cast to CRS_Matrix

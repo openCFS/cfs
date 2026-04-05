@@ -587,7 +587,7 @@ namespace CoupledField {
           assert(matDataTensorSla);
           
           std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
-          Double nitscheFactor = lexical_cast<Double>(nitFac);
+          Double nitscheFactor = boost::lexical_cast<Double>(nitFac);
           // master & slave penalty integrals
           BiLinearForm *pnlt_PhiM_PsiM = NULL;
           BiLinearForm *pnlt_PhiM_PsiS = NULL;
@@ -1542,7 +1542,7 @@ namespace CoupledField {
       UInt numLaminas = actComp.thickness.GetSize();
       for( UInt i=0; i<numLaminas; i++ ) {
         std::string dofName = "ep";
-        dofName += lexical_cast<std::string>(i+1);
+        dofName += std::to_string(i+1);
         res1->dofNames.Push_back( dofName );
       }
       res1->unit = MapSolTypeToUnit(ELEC_POTENTIAL);

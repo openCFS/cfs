@@ -2,7 +2,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "MatVec/Matrix.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "Optimization/Optimizer/BFGS.hh"

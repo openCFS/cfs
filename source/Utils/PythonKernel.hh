@@ -23,7 +23,6 @@ class PythonOptimizer;
 class FeaturedDesign;
 class PythonKernel;
 
-/** The PythonKernel always exists as a global instance to be accessed via this pointer. Defined in tools.cc */
 extern PythonKernel* python;
 
   /** This class exists always in exactly one instance.

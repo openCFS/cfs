@@ -8,7 +8,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/regex.hpp>
 
-#include "tools.hh"
+#include "ToolsFull.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -24,13 +24,8 @@
   #include <libproc.h>
 #endif
 
-using boost::char_separator;
-using boost::tokenizer;
-using boost::bad_lexical_cast;
-
 // global pointer to singleton object. Cannot be in PythonKernel.cc as we don't compile/link it w/o USE_EMBEDDED_PYTHON
 PythonKernel* CoupledField::python = NULL;
-
 
 DEFINE_LOG(tools, "tools")
 
@@ -90,10 +85,10 @@ namespace CoupledField {
 
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
   {
-    char_separator<char> sep(" ,\t\n");
-    tokenizer<char_separator<char> > tok(s, sep);
-    for(tokenizer<char_separator<char> >::iterator beg=tok.begin(); beg!=tok.end();++beg)
-      strVec.Push_back(*beg);
+    boost::char_separator<char> sep(" ,\t\n");
+    boost::tokenizer<boost::char_separator<char> > tok(s, sep);
+    for(const auto& token : tok)
+      strVec.Push_back(token);
   }
 
 
@@ -553,11 +548,10 @@ namespace CoupledField {
       if(data == (peak ? "VmPeak:" : "VmSize:"))
       {
         file >> data; // read next value
-        try
-        {
-          return lexical_cast<int>(data);
-        }
-        catch(boost::bad_lexical_cast &) {} // will return 0 below
+        int val = 0; // complicated but save and non-throwing
+        auto [ptr, ec] = std::from_chars(data.data(), data.data() + data.size(), val);
+        if (ec == std::errc{})
+          return val;
       }
     }
     return 0;

@@ -15,7 +15,7 @@
 #pragma once
 
 #include <Filters/BaseMeshFilterType.hh>
-
+#include "DataInOut/SimInput.hh"
 #include <limits>
 
 namespace CFSDat{

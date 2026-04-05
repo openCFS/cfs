@@ -51,7 +51,7 @@
 #include "Optimization/Tune.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/PythonKernel.hh"
 #include <filesystem>
 #include "def_use_ipopt.hh"
@@ -263,7 +263,7 @@ void Optimization::PostInitSecond()
       if(g->GetType() != Function::EIGENFREQUENCY || log.plot_ev)
         log.AddToHeader(g->ToString());
       if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch())
-        log.AddToHeader("ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv");
+        log.AddToHeader("ef_" + std::to_string(g->GetEigenValueID()) + "_wv");
     }
     else {
       log.AddToHeader((g->GetBound() != Condition::LOWER_BOUND ? "max_abs_" : "min_abs_") + g->ToString());
@@ -1717,7 +1717,7 @@ void Optimization::Log::Init(Optimization* opt, const string& log_name, PtrParam
 
     StdVector<string> found;
     for(unsigned int i = 0; i < ev.GetSize(); i++) {
-      std::string key = "ev_" + lexical_cast<string>(ev[i]->GetEigenValueID()) + (ev[i]->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max");
+      std::string key = "ev_" + std::to_string(ev[i]->GetEigenValueID()) + (ev[i]->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max");
       // we have wave vector times each ev, add only one!
       if(!found.Contains(key)) {
         bloch_info.Push_back(std::make_tuple(key, -1.0));

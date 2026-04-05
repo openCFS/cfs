@@ -13,6 +13,7 @@
 #endif
 
 using std::string;
+using boost::lexical_cast;
 
 namespace CoupledField{
 

@@ -39,7 +39,7 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 class DenseMatrix ;

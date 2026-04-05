@@ -7,6 +7,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
+#include "Utils/ToolsFull.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Condition.hh"
@@ -84,7 +85,7 @@ std::string Objective::GetName() const
   if(std::get<0>(coord) == -1)
     return type.ToString(type_);
   else
-    return type.ToString(type_) + "E" + lexical_cast<std::string>(std::get<0>(coord)) + lexical_cast<std::string>(std::get<1>(coord));
+    return type.ToString(type_) + "E" + std::to_string(std::get<0>(coord)) + std::to_string(std::get<1>(coord));
 }
 
 

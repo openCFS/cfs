@@ -74,7 +74,7 @@
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/Timer.hh"
 
 namespace CoupledField {
@@ -521,7 +521,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         {
           info->Get(g->ToString())->SetValue(g->GetValue());
           if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch()) {
-            string label = "ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv";
+            string label = "ef_" + std::to_string(g->GetEigenValueID()) + "_wv";
             info->Get(label)->SetValue(g->bloch.col);
           }
         }
@@ -604,7 +604,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       // replace the key, we have only "bandgap" in log
       //iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
-      std::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
+      std::get<0>(log.bloch_info.First()) ="bandgap_" + std::to_string(g->GetEigenValueID()) + "_" + std::to_string(n->GetEigenValueID());
       std::get<1>(log.bloch_info.First()) = upper - lower;
 
       LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
@@ -1536,7 +1536,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       break;
     // no default, gcc warns
   }
-  LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
+  LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : boost::lexical_cast<std::string>(result));
   return result;
 }
 
@@ -4383,7 +4383,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
       if(els)
       {
-        BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+        BaseMatrix::OutputFormat vec_format = MatrixOutputFormatEnum.Parse(els->Get("vecFormat")->As<std::string>());
 
         std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
         AnalysisID& id = context->GetDriver()->GetAnalysisId();

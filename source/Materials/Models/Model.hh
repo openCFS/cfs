@@ -10,9 +10,8 @@
 
 #include <list>
 
-#include <boost/utility.hpp>
-
 #include "MatVec/Vector.hh"
+#include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 

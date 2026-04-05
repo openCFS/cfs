@@ -8,7 +8,7 @@
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 DEFINE_LOG(mat, "mat")
 
@@ -1135,10 +1135,10 @@ namespace CoupledField {
 
     // Compute the long-term stiffness tensor
     coefMap[MECH_KMODULUS] = CoefFunction::Generate(mp_, Global::REAL,
-        CoefXprBinOp(mp_, initBulk, lexical_cast<std::string>(bulkInf),
+        CoefXprBinOp(mp_, initBulk, boost::lexical_cast<std::string>(bulkInf),
                      CoefXpr::OP_MULT));
     coefMap[MECH_GMODULUS] = CoefFunction::Generate(mp_, Global::REAL,
-        CoefXprBinOp(mp_, initShear, lexical_cast<std::string>(shearInf),
+        CoefXprBinOp(mp_, initShear, boost::lexical_cast<std::string>(shearInf),
                      CoefXpr::OP_MULT));
     Matrix<Complex> longTermTensor = GetFullStiffTensor(ISOTROPIC, coefMap);
     shared_ptr< CoefFunctionConst<Double> > longTermFct(

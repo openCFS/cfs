@@ -9,12 +9,14 @@
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/array.hpp>
+#include <array>
 
 #if defined(USE_CGAL) && defined(USE_LIBFBI)
 #error "Either USE_CGAL or USE_LIBFBI can be active, but not both!"
 #endif
 
+// Grid.hh is heavily included in cfs, one can significantly reduce compile time by hiding
+// CGAL from this major include file. 
 #ifdef USE_CGAL
 #include <CGAL/box_intersection_d.h>
 #include <CGAL/Bbox_2.h>
@@ -22,11 +24,15 @@
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polygon_2_algorithms.h>
 #include <CGAL/Simple_cartesian.h>
+// Silence compile warnings from external code
 #ifdef USE_EIGEN
+#pragma GCC diagnostic push 
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable" // also for clang >= 13
 #include <CGAL/Monge_via_jet_fitting.h>
 #include <CGAL/Eigen_svd.h>
 #include <CGAL/Eigen_matrix.h>
 #include <CGAL/Eigen_vector.h>
+#pragma GCC diagnostic pop
 #endif // USE_EIGEN
 #endif // USE_CGAL
 
@@ -1368,7 +1374,7 @@ namespace CoupledField
                                    bool updatedGeo = false );
     
     //! Define type for bounding boxes
-    typedef std::pair<boost::array<Double,6>, UInt> BoxType;
+    typedef std::pair<std::array<Double,6>, UInt> BoxType;
     
     //! Define for each dimension type (key) bounding boxes (value)
     std::map<UInt, StdVector<BoxType> > elemBoxes_;

@@ -8,9 +8,6 @@
 
 #include "Materials/Composite.hh"
 #include "FeBasis/FeFunctions.hh"
-#include "FeBasis/FeSpace.hh"
-#include "Domain/CoefFunction/CoefFunctionMulti.hh"
-#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField {
   
@@ -19,9 +16,12 @@ namespace CoupledField {
   class BasePairCoupling;
   class WriteResults;
   class StdSolveStep;
-
+  class CoefFunctionMulti;
+  template<class T> class CoefFunctionMaterialModel;
   class BiotSavart;
-  class BaseFeFunction;
+  class SolStrategy;
+  struct ResultInfo;
+  class AlgebraicSys;
   
   //! Base class for all single-field and direct-coupled problems
   

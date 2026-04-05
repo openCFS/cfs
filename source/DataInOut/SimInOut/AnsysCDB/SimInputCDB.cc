@@ -12,9 +12,10 @@
 #include <cstdlib>
 #include "SimInputCDB.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/tokenizer.hpp>
 
 
 DEFINE_LOG(sicdb, "SimInputCDB")

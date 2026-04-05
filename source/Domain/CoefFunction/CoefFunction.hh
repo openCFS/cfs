@@ -15,15 +15,11 @@
 #ifndef COEFFUNCTION_HH
 #define COEFFUNCTION_HH
 
-#include <boost/utility.hpp>
+#include <list>
 
-#include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
-#include "Domain/Domain.hh"
-#include "Domain/ElemMapping/Elem.hh"
-#include "Domain/ElemMapping/ElemShapeMap.hh"
-#include "Domain/ElemMapping/EntityLists.hh"
+#include "General/Enum.hh" // moving the Enum to Environment.hh could speed up comiliation
 
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
@@ -40,6 +36,14 @@ class CoefFunction;
 template < typename TYPE > class CoefFunctionConst;
 class FeSpace;
 class BaseFeFunction;
+struct Elem;
+class EntityList;
+class ElemList;
+class BaseMaterial;
+class StdPDE;
+struct LocPointMapped;
+class MathParser;
+class Grid;
 
 using std::string; // shortcut for GetDescription
 

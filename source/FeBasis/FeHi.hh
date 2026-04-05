@@ -1,7 +1,7 @@
 #ifndef FILE_FE_HI_HH
 #define FILE_FE_HI_HH
 
-#include <boost/array.hpp>
+#include <array>
 
 #include "BaseFE.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -76,10 +76,10 @@ public:
 
   //! Sets the order of a given face number (0-based) to a given order.
   //! The order is specified in terms of face-local directions.
-  void SetFaceOrder( UInt faceNum, const boost::array<UInt,2>& order );
+  void SetFaceOrder( UInt faceNum, const std::array<UInt,2>& order );
 
   //! Set polynomial order for element interior
-  void SetInteriorOrder( const boost::array<UInt,3>& order ); 
+  void SetInteriorOrder( const std::array<UInt,3>& order ); 
 
   //! Return edge order
   const StdVector<UInt>& GetEdgeOrder( ) const {
@@ -87,12 +87,12 @@ public:
   }
 
   //! Return face order 
-  const StdVector<boost::array<UInt,2> >& GetFaceOrder( ) const {
+  const StdVector<std::array<UInt,2> >& GetFaceOrder( ) const {
     return orderFace_;
   }
 
   //! Return interior order
-  const boost::array<UInt,3>& GetInnerOrder( ) const {
+  const std::array<UInt,3>& GetInnerOrder( ) const {
     return orderInner_;
   }
   
@@ -151,10 +151,10 @@ protected:
   StdVector<UInt> orderEdge_;
 
   //! Polynomial order of faces (#faces x 2 local directions)
-  StdVector<boost::array<UInt,2> > orderFace_;
+  StdVector<std::array<UInt,2> > orderFace_;
 
   //! Polynomial order of inner (1 x 3 local directions)
-  boost::array<UInt,3> orderInner_;
+  std::array<UInt,3> orderInner_;
   //@}
 }; // FeHi class
 

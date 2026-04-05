@@ -280,9 +280,9 @@ std::string StateSolution::ToString()
   std::stringstream ss;
   ss << " excite=" << (excitation != NULL ? excitation->GetFullLabel() : "NULL");
   ss << " func=" << (func != NULL ? func->ToString() : "NULL");
-  ss << " raw=" << (raw != NULL ? (int) raw->GetSize() : -1 ) << " " << (raw != NULL ? BaseMatrix::entryType.ToString(raw->GetEntryType()) : "");
-  ss << " rhs=" << (rhs != NULL ? (int) rhs->GetSize() : -1 ) << " " << (rhs != NULL ? BaseMatrix::entryType.ToString(rhs->GetEntryType()) : "");
-  ss << " select=" << (select != NULL ? (int) select->GetSize() : -1) << " " << (select != NULL ? BaseMatrix::entryType.ToString(select->GetEntryType()) : "");
+  ss << " raw=" << (raw != NULL ? (int) raw->GetSize() : -1 ) << " " << (raw != NULL ? MatrixEntryTypeEnum.ToString(raw->GetEntryType()) : "");
+  ss << " rhs=" << (rhs != NULL ? (int) rhs->GetSize() : -1 ) << " " << (rhs != NULL ? MatrixEntryTypeEnum.ToString(rhs->GetEntryType()) : "");
+  ss << " select=" << (select != NULL ? (int) select->GetSize() : -1) << " " << (select != NULL ? MatrixEntryTypeEnum.ToString(select->GetEntryType()) : "");
   return ss.str();
 }
 

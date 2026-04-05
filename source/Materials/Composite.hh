@@ -2,7 +2,7 @@
 #define FILE_COMPOSITE
 
 
-#include "General/Environment.hh"
+#include "Utils/StdVector.hh"
 
 
 namespace CoupledField {

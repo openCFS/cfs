@@ -15,7 +15,7 @@
 #include "Optimization/Optimizer/SnOpt.hh"
 #include "Optimization/Optimizer/SnOptInterface.hh"
 #include "Utils/Timer.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 
 // declare class specific logging stream

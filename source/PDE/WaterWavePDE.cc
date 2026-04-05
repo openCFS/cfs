@@ -38,7 +38,6 @@
 #include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 
 

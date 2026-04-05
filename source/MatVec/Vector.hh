@@ -3,13 +3,11 @@
 
 #include "SingleVector.hh"
 #include <array>
+#include <set>
+#include <algorithm>
 #include <boost/container/small_vector.hpp>
-
 #include <def_build_type_options.hh>
 #include <def_use_embedded_python.hh>
-
-#include "Utils/boost-serialization.hh"
-
 #ifdef USE_EXPRESSION_TEMPLATES
 #include "exprt/xpr1.hh"
 #else
@@ -28,6 +26,7 @@ namespace CoupledField {
 // !Forward class declarations
 template<typename T> class Matrix;
 template<typename T> class Vector;
+template<typename T> class StdVector;
 template<typename T> class NodeStoreSol;
 template<typename T> class ElemStoreSol;
 

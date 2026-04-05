@@ -243,11 +243,11 @@ void FeSpaceHi::SetRegionOrder( RegionIdType region,
     if( ptGrid_->GetDim() == 3 ) {
       UInt numFaces = el.extended->faces.GetSize();
       LOG_DBG3(feSpaceHi) << "Checking " << numFaces << " faces ";
-      const StdVector<boost::array<UInt,2> >& faceOrders = 
+      const StdVector<std::array<UInt,2> >& faceOrders = 
           myFe->GetFaceOrder();
       for( UInt iFace = 0; iFace < numFaces; ++iFace ){
         UInt faceNum = el.extended->faces[iFace];
-        boost::array<UInt,2> faceOrder = faceOrders[iFace];
+        std::array<UInt,2> faceOrder = faceOrders[iFace];
 
         // check if face got already mapped
         if( orderFaces_.find(faceNum) == orderFaces_.end() ) {
@@ -255,7 +255,7 @@ void FeSpaceHi::SetRegionOrder( RegionIdType region,
           LOG_DBG3(feSpaceHi) << "\tface #" << faceNum << ", order: " 
               << faceOrder[0] << ", " << faceOrder[1];
         } else {
-          boost::array<UInt,2> oldOrder = orderFaces_[faceNum];
+          std::array<UInt,2> oldOrder = orderFaces_[faceNum];
           LOG_DBG3(feSpaceHi) << "\tface #" << faceNum 
               << " -> Already set to " << oldOrder[0] << ", " 
               << oldOrder[1];
@@ -394,7 +394,7 @@ void FeSpaceHi::AdjustEntityOrder() {
   if( ptGrid_->GetDim() < 3) return;
 
   // Create temporary map for faces
-  std::unordered_map<UInt, boost::array<UInt,2> > faceOrders;
+  std::unordered_map<UInt, std::array<UInt,2> > faceOrders;
 
   // Loop over all adjusted faces
   LOG_DBG(feSpaceHi) << "Adjusting face order";

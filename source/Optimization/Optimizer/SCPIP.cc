@@ -13,7 +13,7 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/Optimizer/SCPIP.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 using namespace CoupledField;
 
@@ -67,11 +67,11 @@ void SCPIP::ToInfo(PtrParamNode pn)
 
   PtrParamNode pn_ = pn->Get("icntl");
   for(int i = 0; i < 13; i++)
-    pn_->Get("i" + lexical_cast<std::string>(i + 1))->SetValue(icntl[i]);
+    pn_->Get("i" + std::to_string(i + 1))->SetValue(icntl[i]);
 
   pn_ = pn->Get("rcntl");
   for(int i = 0; i < 7; i++)
-    pn_->Get("r" + lexical_cast<std::string>(i + 1))->SetValue(rcntl[i]);
+    pn_->Get("r" + std::to_string(i + 1))->SetValue(rcntl[i]);
 }
 
 void SCPIP::SolveProblem()

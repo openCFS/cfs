@@ -5,8 +5,10 @@
 
 #include "BaseVector.hh"
 #include "SingleVector.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
+
 
   //! This is the vector class associated to the SBM_Matrix class
   class SBM_Vector : public BaseVector {

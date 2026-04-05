@@ -15,6 +15,7 @@
 #include "SimInputEnsight.hh"
 
 #include "Domain/Results/ResultInfo.hh"
+#include "Domain/Results/BaseResults.hh"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"

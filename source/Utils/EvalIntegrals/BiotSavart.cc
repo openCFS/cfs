@@ -264,7 +264,7 @@ DEFINE_LOG(bisa, "biotSavart")
     delete[] buf;
 
     // split lines and omit comments
-    typedef boost::tokenizer<char_separator<char> > Tok;
+    typedef boost::tokenizer<boost::char_separator<char> > Tok;
     boost::char_separator<char> sep("\n\r");
     Tok t(data, sep);
     Tok::iterator it, end;

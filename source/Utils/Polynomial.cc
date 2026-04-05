@@ -9,9 +9,9 @@ namespace CoupledField {
 
 //! Helper method for adding up two boost arrays
 template<UInt DIM>
-boost::array<UInt,DIM> Add(const boost::array<UInt,DIM>&a, 
-                           const boost::array<UInt,DIM>&b ) {
-  boost::array<UInt,DIM> ret;
+std::array<UInt,DIM> Add(const std::array<UInt,DIM>&a, 
+                           const std::array<UInt,DIM>&b ) {
+  std::array<UInt,DIM> ret;
   for( UInt i=0; i < DIM; ++i ) {
     ret[i] = a[i] + b[i];
   }
@@ -20,9 +20,9 @@ boost::array<UInt,DIM> Add(const boost::array<UInt,DIM>&a,
 
 //! Helper method for subtracting two boost arrays
 template<UInt DIM>
-boost::array<UInt,DIM> Sub(const boost::array<UInt,DIM>&a, 
-                           const boost::array<UInt,DIM>&b ) {
-  boost::array<UInt,DIM> ret;
+std::array<UInt,DIM> Sub(const std::array<UInt,DIM>&a, 
+                           const std::array<UInt,DIM>&b ) {
+  std::array<UInt,DIM> ret;
   for( UInt i=0; i < DIM; ++i ) {
     ret[i] = a[i] - b[i];
   }
@@ -31,7 +31,7 @@ boost::array<UInt,DIM> Sub(const boost::array<UInt,DIM>&a,
 
 //! Helper method to print the exponents
 template<UInt DIM>
-std::string OrdToString( const boost::array<UInt, DIM>& a ) {
+std::string OrdToString( const std::array<UInt, DIM>& a ) {
   std::stringstream out;
    for( UInt i = 0; i < DIM; ++i ) {
      out << a[i];
@@ -41,7 +41,7 @@ std::string OrdToString( const boost::array<UInt, DIM>& a ) {
 
 //! Helper method to zero an array
 template<UInt DIM>
-void Zero( boost::array<UInt, DIM>& a) {
+void Zero( std::array<UInt, DIM>& a) {
   for( UInt i = 0; i < DIM; ++i ) {
     a[i] = 0;
   }
@@ -127,14 +127,14 @@ const typename Polynomial<T,DIM>::COEFMAP& Polynomial<T,DIM>::Coefs() const {
 
 template<typename T, UInt DIM>
 void Polynomial<T,DIM>::Cleanup( Double tol ) {
-  std::set<boost::array<UInt,DIM> > del;
+  std::set<std::array<UInt,DIM> > del;
   COEF_IT it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
     if(  std::abs(it->second) < tol ) {
       del.insert(it->first);
     }
   }
-  typename std::set<boost::array<UInt,DIM> >::const_iterator it2 = del.begin();
+  typename std::set<std::array<UInt,DIM> >::const_iterator it2 = del.begin();
   for( ; it2 != del.end(); ++it2 ) {
     coefs_.erase(*it2);
   }
@@ -194,7 +194,7 @@ Polynomial<T,DIM>& Polynomial<T,DIM>::operator+=( const Polynomial<T,DIM>& a ) {
 
 template<typename T, UInt DIM> 
 Polynomial<T,DIM>& Polynomial<T,DIM>::operator+=( const T& a ) {
-  boost::array<UInt,DIM> zero;
+  std::array<UInt,DIM> zero;
   Zero<DIM>(zero);
   coefs_[zero] += a;
   return *this;
@@ -210,7 +210,7 @@ Polynomial<T,DIM>& Polynomial<T,DIM>::operator-=( const Polynomial<T,DIM>& a ) {
 }
 template<typename T, UInt DIM> 
 Polynomial<T,DIM>& Polynomial<T,DIM>::operator-=( const T& a ) {
-  boost::array<UInt,DIM> zero;
+  std::array<UInt,DIM> zero;
   Zero<DIM>(zero);
   coefs_[zero] -= a;
   return *this;

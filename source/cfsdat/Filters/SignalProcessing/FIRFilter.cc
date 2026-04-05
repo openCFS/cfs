@@ -16,6 +16,7 @@
 #include "FIRFilter.hh"
 
 #include <cstdlib>
+#include <boost/tokenizer.hpp>
 
 namespace CFSDat{
 

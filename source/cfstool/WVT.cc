@@ -11,6 +11,7 @@
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeSpace.hh"
 #include "FeBasis/H1/H1Elems.hh"
+#include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/CurlOperator.hh"
 

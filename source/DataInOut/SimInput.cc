@@ -7,6 +7,7 @@
 #include "FeBasis/FeSpace.hh"
 
 #include "SimInput.hh"
+#include "Domain/Results/BaseResults.hh"
 
 namespace CoupledField 
 {

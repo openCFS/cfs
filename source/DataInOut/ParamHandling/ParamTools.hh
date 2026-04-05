@@ -3,17 +3,16 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Exception.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "MatVec/Matrix.hh"
-#include "boost/lexical_cast.hpp"
 #include "boost/algorithm/string.hpp"
 #include "Domain/CoefFunction/CoefFunction.hh"
 
 namespace CoupledField
 {
   /** This class provides an extension to the ParamNode class. It is kept
-   * seperate from the ParamNode as the inline implementation is convenient
-   * for the template function but the ParamNode is better lightwight. */
+   * separate from the ParamNode as the inline implementation is convenient
+   * for the template function but the ParamNode is better lightweight. */
   class ParamTools
   {
     public:

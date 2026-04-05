@@ -17,6 +17,7 @@
 
 #include <fstream>
 #include <set>
+#include <string>
 
 #include "BaseTimeScheme.hh"
 #include "GLMSchemeLib.hh"
@@ -197,7 +198,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
   private:
 
     ///just export the scheme to a file
-    void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter){
+    void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter){
       std::string fname = "glmExport_" + pdeName + "_feFctId" + std::to_string(feFctId) +  "_step" + std::to_string(curStep) + "_coupleIter" + std::to_string(coupleIter) + ".txt";
       std::fstream myfile(fname,  std::ios::out);
       myfile << "This is the GLM Vector" << std::endl;

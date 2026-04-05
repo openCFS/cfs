@@ -13,13 +13,14 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 
 #include "Utils/boost-serialization.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/AllocationLog.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "BLASLAPACKInterface.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 using boost::tokenizer;
+using boost::char_separator;
 
 DEFINE_LOG(matrix, "matrix")
 

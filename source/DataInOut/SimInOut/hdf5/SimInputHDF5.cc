@@ -14,6 +14,7 @@
 
 namespace fs = std::filesystem;
 using boost::char_separator;
+using boost::lexical_cast;
 
 namespace CoupledField {
 

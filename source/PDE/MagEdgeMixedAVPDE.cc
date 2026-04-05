@@ -44,6 +44,8 @@
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
+using boost::lexical_cast;
+
 // declare class specific logging stream
 DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 

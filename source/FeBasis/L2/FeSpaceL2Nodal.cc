@@ -12,6 +12,7 @@
  */
 //================================================================================================
 
+#include <boost/tokenizer.hpp>
 #include "FeSpaceL2Nodal.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 

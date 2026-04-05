@@ -176,7 +176,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
           Double conductivity = 0.0;
           materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
-          PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+          PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(conductivity));
 
           // This switch is necessary because we need to select which harmonic component
           // we want to assemble in the rhs
@@ -250,7 +250,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
           Double conductivity = 0.0;
           materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
-          PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+          PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(conductivity));
           CoefXprVecScalOp uVec = CoefXprVecScalOp(mp_, eJscaled, conduccoef, CoefXpr::OP_MULT);
           PtrCoefFct sigma_gradV = CoefFunction::Generate(mp_, part, uVec);
 
@@ -275,7 +275,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
           // === Lower Diagonal PART (single line per coil) ===
           // compute coefficient: gamma*Gard(V).Grad(V') where Gard(V).Grad(V') is read from the first step
-          PtrCoefFct totR = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, lexical_cast<std::string>(gradVsource_[partIt->second]), conduccoef, CoefXpr::OP_MULT) );
+          PtrCoefFct totR = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, boost::lexical_cast<std::string>(gradVsource_[partIt->second]), conduccoef, CoefXpr::OP_MULT) );
           SingleEntryBiLinInt * totRBiLin = new SingleEntryBiLinInt(1, totR, mp_);
           totRBiLin->SetName( "LowerDiagIntegrator" );
           BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, DAMPING );
@@ -735,7 +735,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           if( analysistype_ == MULTIHARMONIC){
             PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
                 CoefXprVecScalOp(mp_, coilCurrentDens_[*regIt],
-                    lexical_cast<std::string>(0.5), CoefXpr::OP_MULT));
+                    boost::lexical_cast<std::string>(0.5), CoefXpr::OP_MULT));
             h1 = tmp;
           }else{
             h1 = coilCurrentDens_[*regIt];
@@ -764,7 +764,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     Double conductivity = 0.0;
     for( ; regIt != regions_.End(); ++regIt ){
       materials_[*regIt]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
-      PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+      PtrCoefFct conduccoef = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(conductivity));
       PtrCoefFct eddyC = CoefFunction::Generate( mp_, part,
                          CoefXprVecScalOp(mp_, GetCoefFct( ELEC_FIELD_INTENSITY), conduccoef, CoefXpr::OP_MULT));
       eddyCoef->AddRegion(*regIt, eddyC);

@@ -8,6 +8,7 @@
 #include "arpackFortranInterface.hh"
 
 namespace CoupledField {
+
   // =========================================================================
   //   ARPACK SOLVER FOR SYMMETRIC REAL SYSTEMS
   // =========================================================================

@@ -102,7 +102,7 @@ namespace CoupledField {
         EXCEPTION( "LDLSolver::Setup: The LDLSolver requires the system "
                  << "matrix to be an SCRS_Matrix, i.e. sparseSym. The system "
                  << "matrix you supplied is a matrix in '"
-                 << BaseMatrix::storageType.ToString( sType )
+                 << MatrixStorageTypeEnum.ToString( sType )
                  << "' format." );
       }
 

@@ -28,7 +28,6 @@
 #include "PDE/SinglePDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "Utils/StdVector.hh"
-#include "boost/lexical_cast.hpp"
 
 namespace CoupledField {
 class DenseMatrix;

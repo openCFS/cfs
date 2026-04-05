@@ -1,7 +1,7 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-/** LightTools.hh is includes almost nothing, here we include slightly more
+/** ToolsCore.hh is includes almost nothing, here we include slightly more
  * but still try to have not too many dependencies */
 
 #include <cmath>
@@ -9,16 +9,15 @@
 #include <string>
 #include <array>
 #include <map>
-#include <boost/lexical_cast.hpp>
 
-#include <def_use_cuda.hh>
+#include "def_use_cuda.hh"
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
   #include <omp.h>
 #endif
 
 #include "General/defs.hh"
-#include "Utils/LightTools.hh"
+#include "Utils/ToolsCore.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField 

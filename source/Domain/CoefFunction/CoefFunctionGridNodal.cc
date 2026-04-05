@@ -1,3 +1,4 @@
+
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*- 
 // vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
 // kate: space-indent on; indent-width 2; encoding utf-8;
@@ -5,7 +6,7 @@
 //================================================================================================
 /*!
  *       \file     CoefFunctionGridNodal.cc 
- *       \brief    Implementation of nodal grid inteprolation 
+ *       \brief    Implementation of nodal grid interpolation 
  *
  *       \date     11/21/2012
  *       \author   Andreas Hueppe
@@ -18,7 +19,6 @@
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <boost/lexical_cast.hpp>
 #include <set>
 #include <string>
 #include <limits>

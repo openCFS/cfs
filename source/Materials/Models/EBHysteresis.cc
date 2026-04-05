@@ -11,6 +11,7 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Domain/ElemMapping/Elem.hh"
 
 namespace CoupledField {
 

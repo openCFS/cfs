@@ -3,11 +3,12 @@
 #include <unordered_map>
 #include <boost/bind/bind.hpp>
 #include "Utils/mathParser/mathParser.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "PDE/SinglePDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "BaseFE.hh"
+#include "Domain/Results/BaseResults.hh"
 #include "H1/H1Elems.hh"
 #include "HCurl/HCurlElems.hh"
 #include "Forms/BiLinForms/BBInt.hh"

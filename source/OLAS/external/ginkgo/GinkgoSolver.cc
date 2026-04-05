@@ -125,7 +125,7 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
 
 void GinkgoSolver::Setup(BaseMatrix &sysmat)
 {
-  LOG_DBG(ginkgo) << "Setup: e=" << sysmat.entryType.ToString(sysmat.GetEntryType()) << " s=" << sysmat.storageType.ToString(sysmat.GetStorageType())
+  LOG_DBG(ginkgo) << "Setup: e=" << MatrixEntryTypeEnum.ToString(sysmat.GetEntryType()) << " s=" << MatrixStorageTypeEnum.ToString(sysmat.GetStorageType())
                   << " r=" << sysmat.GetNumRows() << " c=" << sysmat.GetNumCols();
 
   if(sysmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM)

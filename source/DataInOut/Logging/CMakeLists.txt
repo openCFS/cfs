@@ -1,4 +1,9 @@
-SET(LOGGING_SRCS LogConfigurator.cc)
+if(DEBUG)
+  set(LOGGING_SRCS LogConfigurator.cc)
+else()
+  # release mode we need no logging but have dummy code to avoid linker warnings/errors
+  set(LOGGING_SRCS LogConfiguratorDummy.cc)
+endif()
 
 SET(TARGET_LL
   paramh

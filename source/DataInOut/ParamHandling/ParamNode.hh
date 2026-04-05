@@ -3,9 +3,9 @@
 
 #include <string>
 #include <memory>
-#include <boost/tokenizer.hpp>
 #include <any>
 
+#include "General/defs.hh"
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
 
@@ -17,10 +17,7 @@ namespace CoupledField
   class Timer;
   class ParamNode;
   
-  /** Definitions of pointers, using shared_ptr */
-  typedef std::shared_ptr<ParamNode> PtrParamNode;
-  typedef std::weak_ptr<ParamNode> WeakPtrParamNode;
-  typedef StdVector<std::shared_ptr<ParamNode> > ParamNodeList;
+  /** Definitions of PtrParamNode, WeakPtrParamNode and ParamNodeList are in defs.hh */
   
   /** This class realizes the following concept of param handling, mainly the representation
    * of the XML file.

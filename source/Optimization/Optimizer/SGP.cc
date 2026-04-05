@@ -23,7 +23,7 @@
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/StdPDE.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/StdVector.hh"
 
 DEFINE_LOG(sgpopt, "sgp")

@@ -1,6 +1,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Excitation.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 

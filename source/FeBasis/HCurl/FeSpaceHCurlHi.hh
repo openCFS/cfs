@@ -2,7 +2,7 @@
 #define FILE_CFS_FESPACE_HCURL_HI_HH
 
 #include "FeBasis/FeSpaceHi.hh"
-#include <boost/array.hpp>
+#include <array>
 #include <unordered_map>
 #include <unordered_set>
 

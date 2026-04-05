@@ -7,6 +7,9 @@
 
 #include <iostream>
 #include "MatVec/BaseMatrix.hh"
+#include "General/EnvironmentTypes.hh"
+#include "General/Exception.hh"
+
 //#include "MatVec/typedefs.hh"
 
 

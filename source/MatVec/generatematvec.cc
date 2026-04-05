@@ -322,8 +322,8 @@ try {\
     if ( retMat == NULL ) {
       EXCEPTION( "GenerateStdMatrixObject: Failed to generate StdMatrix "
                << "by copying an StdMatrix of type ( sType = "
-               << BaseMatrix::storageType.ToString( sType ) << " , eType = "
-               << BaseMatrix::entryType.ToString( eType ) );
+               << MatrixStorageTypeEnum.ToString( sType ) << " , eType = "
+               << MatrixEntryTypeEnum.ToString( eType ) );
     }
 
 

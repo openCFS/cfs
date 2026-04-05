@@ -17,7 +17,7 @@
 #include "FeBasis/H1/H1Elems.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/LinearForm.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Domain/Domain.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"

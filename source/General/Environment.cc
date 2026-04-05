@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "Environment.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/AllocationLog.hh"
 #include "Domain/Domain.hh"
 #include "def_use_blas.hh"
@@ -45,6 +45,10 @@ namespace CoupledField {
   Enum<MaterialTensorNotation> tensorNotation;
   Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
+  Enum<BaseMatrix::StructureType> MatrixStructureTypeEnum;
+  Enum<BaseMatrix::EntryType> MatrixEntryTypeEnum;
+  Enum<BaseMatrix::StorageType> MatrixStorageTypeEnum;
+  Enum<BaseMatrix::OutputFormat> MatrixOutputFormatEnum;
   Enum<FEMatrixType> feMatrixType;
 
   UInt MAX_NUM_FE_MATRICES;
@@ -872,7 +876,36 @@ namespace CoupledField {
     NonLinMethodTypeEnum.Add( HYST_DELTAMAT_IT, "HYST_deltaMat_IT" );
     NonLinMethodTypeEnum.Add( HYST_DELTAMAT_TS, "HYST_deltaMat_TS" );
     NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
+
+    MatrixStructureTypeEnum.SetName("MatrixStructureTypeEnum");
+    MatrixStructureTypeEnum.Add(BaseMatrix::NOSTRUCTURETYPE, "noStructureType");
+    MatrixStructureTypeEnum.Add(BaseMatrix::SBM_MATRIX, "SBM");
+    MatrixStructureTypeEnum.Add(BaseMatrix::SPARSE_MATRIX, "sparse");
+    MatrixStructureTypeEnum.Add(BaseMatrix::DENSE_MATRIX, "dense");
+
+    MatrixEntryTypeEnum.SetName("MatrixEntryTypeEnum");
+    MatrixEntryTypeEnum.Add(BaseMatrix::NOENTRYTYPE, "noEntryType");
+    MatrixEntryTypeEnum.Add(BaseMatrix::INTEGER, "integer");
+    MatrixEntryTypeEnum.Add(BaseMatrix::DOUBLE, "double");
+    MatrixEntryTypeEnum.Add(BaseMatrix::COMPLEX, "complex");
+    MatrixEntryTypeEnum.Add(BaseMatrix::F77REAL8, "F77REAL8");
+    MatrixEntryTypeEnum.Add(BaseMatrix::F77COMPLEX16, "F77COMPLEX16");
+
+    MatrixStorageTypeEnum.SetName("MatrixStorageTypeEnum");
+    MatrixStorageTypeEnum.Add(BaseMatrix::NOSTORAGETYPE, "noStorageType");
+    MatrixStorageTypeEnum.Add(BaseMatrix::SPARSE_SYM, "sparseSym");
+    MatrixStorageTypeEnum.Add(BaseMatrix::SPARSE_NONSYM, "sparseNonSym");
+    MatrixStorageTypeEnum.Add(BaseMatrix::DIAG, "diag");
+    MatrixStorageTypeEnum.Add(BaseMatrix::VAR_BLOCK_ROW, "variableBlockRow");
+    MatrixStorageTypeEnum.Add(BaseMatrix::LAPACK_GBMATRIX, "lapackGBMatrix");
+
+    MatrixOutputFormatEnum.SetName("MatrixOutputFormatEnum");
+    MatrixOutputFormatEnum.Add(BaseMatrix::MATRIX_MARKET, "matrix-market");
+    MatrixOutputFormatEnum.Add(BaseMatrix::HARWELL_BOEING, "harwell-boeing");
+    MatrixOutputFormatEnum.Add(BaseMatrix::PLAIN, "plain");
   }
+
+
 
   void AddGenericSolution(std::string name, Domain* domain) {
     // use the given name and assign a generic result based on the internal counter

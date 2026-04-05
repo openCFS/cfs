@@ -6,7 +6,6 @@
 #include <limits>
 
 #include "CoefFunctionHarmBalance.hh"
-#include <boost/lexical_cast.hpp>
 #include <memory>
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Mesh/Grid.hh"

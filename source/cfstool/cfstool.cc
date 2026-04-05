@@ -14,6 +14,7 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ColoredConsole.hh"
+#include "Forms/Operators/BaseBOperator.hh"
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"

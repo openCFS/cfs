@@ -18,7 +18,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 // https://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
 #if defined(WIN32)

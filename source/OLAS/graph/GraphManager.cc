@@ -6,11 +6,11 @@
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/IDBC_Graph.hh"
 #include "Utils/Timer.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 
-auto graphMan = LogConfigurator::getLogger("graphManager");
+DEFINE_LOG(graphMan, "graphManager")
 
   // ===============
   //   Constructor

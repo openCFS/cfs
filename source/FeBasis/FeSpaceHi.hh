@@ -1,9 +1,6 @@
 #ifndef FILE_CFS_FESPACE_HI_HH
 #define FILE_CFS_FESPACE_HI_HH
 
-#include<boost/unordered_set.hpp>
-#include<boost/unordered_map.hpp>
-
 #include "FeSpace.hh"
 
 namespace CoupledField {
@@ -127,7 +124,7 @@ protected:
   std::unordered_map<UInt, UInt> orderEdges_;
 
   //! Map containing the order of adjusted faces (key: face number)
-  std::unordered_map<UInt, boost::array<UInt, 2> > orderFaces_;
+  std::unordered_map<UInt, std::array<UInt, 2> > orderFaces_;
 
   //! Associate entity name with mapping context
   std::map<std::string, MapContext*> entityCtx_;

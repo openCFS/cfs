@@ -3,8 +3,6 @@
 
 #include <list>
 
-#include <boost/utility.hpp>
-
 #include "MatVec/Vector.hh"
 #include "Domain/Domain.hh"
 #include "Model.hh"

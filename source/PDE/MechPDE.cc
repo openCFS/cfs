@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <set>
+#include <boost/tokenizer.hpp>
 
 #include "../Forms/Operators/PiolaStressOperator.hh"
 #include "General/defs.hh"
@@ -980,7 +981,7 @@ namespace CoupledField {
           if (formulation == "Nitsche")
           {
             std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
-            Double nitscheFactor = lexical_cast<Double>(nitFac);
+            Double nitscheFactor = std::stod(nitFac);
             // master & slave penalty integrals
             BiLinearForm *pnlt_uM_vM = NULL;
             BiLinearForm *pnlt_uM_vS = NULL;

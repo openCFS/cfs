@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <fstream>
 #include <filesystem>
-
+#include <boost/lexical_cast.hpp>
 #include <def_cfs_stats.hh>
 
 #include "DataInOut/ProgramOptions.hh"
@@ -21,6 +21,8 @@
 #include "FeBasis/BaseFE.hh"
 #include "Utils/Timer.hh"
 #include "hdf5io.hh"
+
+using boost::lexical_cast;
 
 namespace CoupledField {
 

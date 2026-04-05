@@ -25,7 +25,7 @@
 #include "Optimization/StressConstraint.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/MechPDE.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 class BaseMaterial;

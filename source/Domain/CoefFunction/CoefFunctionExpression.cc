@@ -1,4 +1,6 @@
+#include <boost/lexical_cast.hpp>
 #include "CoefFunctionExpression.hh"
+#include "Domain/Domain.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
@@ -174,13 +176,13 @@ std::string CoefFunctionExpression<Double>::ToString() const {
       return "";
       break;
     case SCALAR:
-      return lexical_cast<std::string>(this->coefScalar_);
+      return boost::lexical_cast<std::string>(this->coefScalar_);
       break;
     case VECTOR:
       return this->coefVec_.ToString(TS_PYTHON);
       break;
     case TENSOR:
-      ret = lexical_cast<string>(this->numRows_) + "x" + lexical_cast<string>(this->numCols_) + " tensor:\n";
+      ret = std::to_string(this->numRows_) + "x" + std::to_string(this->numCols_) + " tensor:\n";
       for (int i=0; i<(int)this->numRows_;i++) {
         for (int j=0; j<(int)this->numCols_;j++) {
           int n = i*this->numCols_+j;
@@ -433,7 +435,7 @@ std::string CoefFunctionExpression<Complex>::ToString() const {
       return ret;
       break;
     case TENSOR:
-      ret = lexical_cast<string>(this->numRows_) + "x" + lexical_cast<string>(this->numCols_) + " tensor:\n";
+      ret = std::to_string(this->numRows_) + "x" + std::to_string(this->numCols_) + " tensor:\n";
       for (int i=0; i<(int)this->numRows_;i++) {
         for (int j=0; j<(int)this->numCols_;j++) {
           int n = i*this->numCols_+j;

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <boost/lexical_cast.hpp>
+#include <boost/container_hash/hash.hpp>
 
 #include "IntScheme.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

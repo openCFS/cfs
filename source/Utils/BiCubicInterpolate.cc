@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/BiCubicInterpolate.hh"
 #include "Utils/BiCubicInterpolateCoeff.hh"

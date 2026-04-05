@@ -547,8 +547,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
         
         // get hold of preconditioner subnode for given block
         PtrParamNode actNode = 
-            precondNode->GetByVal( "precond", "block", 
-                                   lexical_cast<std::string>(i+1) );
+            precondNode->GetByVal( "precond", "block", std::to_string(i+1));
         if( !actNode ) {
           EXCEPTION("No preconditioner was defined for block #" << i+1 );
         }

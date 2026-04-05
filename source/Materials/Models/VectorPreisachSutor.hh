@@ -1,6 +1,8 @@
 #ifndef FILE_VECPREISACHV10_2016
 #define FILE_VECPREISACHV10_2016
 
+#include <list>
+#include <iomanip>
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Hysteresis.hh"

@@ -2,10 +2,8 @@
 #define DOMAIN_HH
 
 #include <map>
+#include "General/defs.hh"
 #include "Utils/StdVector.hh"
-#include "General/Environment.hh"  
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/SimState.hh"
 
 namespace CoupledField
 {

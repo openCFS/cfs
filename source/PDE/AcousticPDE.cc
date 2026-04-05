@@ -40,7 +40,6 @@
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 
 

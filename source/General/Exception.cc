@@ -5,8 +5,8 @@
 namespace CoupledField {
     // Initialization of static members
     bool Exception::segfault_ = false;
-    boost::function<void(Exception&)> Exception::exCallback_;
-    boost::function<void(Exception&)> Exception::warnCallback_;
+    std::function<void(Exception&)> Exception::exCallback_;
+    std::function<void(Exception&)> Exception::warnCallback_;
     
 
     /** this is the constructor for the EXCEPTION macro */
@@ -139,12 +139,12 @@ namespace CoupledField {
     }
 
 
-    void Exception::SetCallbackEx(boost::function<void (Exception& x)> cb)
+    void Exception::SetCallbackEx(std::function<void (Exception& x)> cb)
     {
     exCallback_ = cb;
     }
     
-    void Exception::SetCallbackWarn(boost::function<void (Exception& x)> cb)
+    void Exception::SetCallbackWarn(std::function<void (Exception& x)> cb)
     {
       warnCallback_ = cb;
     }

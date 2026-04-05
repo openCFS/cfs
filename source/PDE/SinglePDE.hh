@@ -7,13 +7,11 @@
 #include <map>
 
 #include "Domain/Results/ResultInfo.hh"
-#include "Domain/BCs.hh"
-#include "Domain/Results/BaseResults.hh"
-#include "Driver/TimeSchemes/GLMSchemeLib.hh"
 
 namespace CoupledField
 {
   // forward class declaration
+  class BaseResult;
   class SpaceErrorEstimator;
   class DirectCoupledPDE;
   class Assemble;
@@ -28,6 +26,7 @@ namespace CoupledField
   class CoefFunctionFormBased;
   class IterCoupledPDE;
   class MathParser;
+  class GLMScheme;
   
   //! Base class for all kinds of single field problems.
 

@@ -1,11 +1,12 @@
 #ifndef FILE_CFS_EXCEPTION_HH
 #define FILE_CFS_EXCEPTION_HH
 
-#include <boost/function.hpp>
+#include <functional>
 #include <exception>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <iomanip>
 
 namespace CoupledField {
 
@@ -100,10 +101,10 @@ public:
   virtual ~Exception();
 
   //! Set callback method for exceptions
-  static void SetCallbackEx(boost::function<void(Exception &x)> cb);
+  static void SetCallbackEx(std::function<void(Exception &x)> cb);
 
   //! Set callback method for warning
-  static void SetCallbackWarn(boost::function<void(Exception &x)> cb);
+  static void SetCallbackWarn(std::function<void(Exception &x)> cb);
 
   //! Return message with file name and line number
   virtual const char *what() const throw();
@@ -139,10 +140,10 @@ private:
   unsigned int lineNum_;
 
   //! callback function for exception level
-  static boost::function<void(Exception &x)> exCallback_;
+  static std::function<void(Exception &x)> exCallback_;
 
   //! callback functions for warning level
-  static boost::function<void(Exception &x)> warnCallback_;
+  static std::function<void(Exception &x)> warnCallback_;
 
   //! The exception which lead to the current exception
   Exception *reason_;

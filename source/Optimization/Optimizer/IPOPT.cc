@@ -6,6 +6,7 @@
 #include "Optimization/Optimizer/BaseOptimizer.hh"
 #include "General/Exception.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/ToolsFull.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "coin-or/IpSolveStatistics.hpp"

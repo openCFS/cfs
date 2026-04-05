@@ -2,13 +2,12 @@
 #define FILE_MATRIX_2004
 
 #include <def_build_type_options.hh>
-
-#include <boost/type_traits/is_complex.hpp>
 #include <boost/container/small_vector.hpp>
+
 #include "MatVec/promote.hh"
 #include "MatVec/SingleVector.hh"
 #include "MatVec/opdefs.hh"
-#include "Utils/LightTools.hh"
+#include "Utils/ToolsCore.hh"
 
 #ifdef USE_EXPRESSION_TEMPLATES
 #include "MatVec/exprt/xpr2.hh"
@@ -22,6 +21,8 @@ namespace CoupledField
 
   //! Forward class declaration
   template<class TYPE> class Vector;
+  template<class TYPE> class StdVector;
+
   
   /** Matrix is mathematical matrix for integers, doubles and complex.
    * Similar to Vector it uses a boost::small_vector with stack data for 6x6 entries.

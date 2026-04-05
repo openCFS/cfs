@@ -7,9 +7,9 @@
 
 
 #include <iostream>
-
-#include "General/Enum.hh"
 #include "General/defs.hh"
+#include "General/Exception.hh"
+
 
 namespace CoupledField {
 
@@ -35,7 +35,7 @@ namespace CoupledField {
     //! - SBM_MATRIX
     //! - SPARSE_MATRIX
     typedef enum { NOSTRUCTURETYPE, SBM_MATRIX, SPARSE_MATRIX, DENSE_MATRIX } StructureType;
-    static Enum<StructureType> structureType;
+    // see Enum<BaseMatrix::StructureType> MatrixStructureTypeEnum in Environment.hh
 
     //! Entry type of the matrix.
 
@@ -50,7 +50,7 @@ namespace CoupledField {
     //! - F77REAL8
     //! - F77COMPLEX16
     typedef enum { NOENTRYTYPE, INTEGER, DOUBLE, COMPLEX,	UINT, F77REAL8, F77COMPLEX16 } EntryType;
-    static Enum<EntryType> entryType;
+    // see MatrixEntryTypeEnum
 
     //! Storage type of the matrix.
 
@@ -62,7 +62,7 @@ namespace CoupledField {
     //! - LAPACK_GBMATRIX
     typedef enum { NOSTORAGETYPE, SPARSE_SYM, SPARSE_NONSYM,
        LAPACK_GBMATRIX, DIAG, VAR_BLOCK_ROW} StorageType;
-    static Enum<StorageType> storageType;
+    // see MatrixStorageTypeEnum   
 
     //! Available output formats for matrices.
 
@@ -71,7 +71,7 @@ namespace CoupledField {
     //! - MATRIX_MARKET
     //! - HARWELL_BOEING
     typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2, PLAIN} OutputFormat;
-    static Enum<OutputFormat> outputFormat;
+    // see MatrixOutputFormatEnum
     
     //! Default Constructor
     BaseMatrix(){

@@ -1,7 +1,7 @@
 #ifndef LIGHT_TOOLS_HH
 #define LIGHT_TOOLS_HH
 
-/** here he have tools which require not expensive includes, in contrast to tools.hh */
+/** here he have tools which require not expensive includes, in contrast to ToolsFull.hh */
 
 #include <cmath>
 #include "General/defs.hh"

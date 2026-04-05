@@ -114,8 +114,7 @@ namespace CoupledField {
       PtrCoefFct density = flowMat->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct viscosity = flowMat->GetScalCoefFnc( FLUID_DYNAMIC_VISCOSITY, Global::REAL );
       
-      oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
+      oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
 
       WARN("fluid density: " << density->ToString() << " dynamic viscosity " << viscosity->ToString());
 

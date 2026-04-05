@@ -3,25 +3,16 @@
 
 // defines test framework including function main,
 // which will call the subsequently defined test cases
-
-#pragma clang diagnostic push
-#pragma GCC diagnostic push
-// boost 1.78: boost/test/impl/debug.ipp:674:25: warning: variable 'junk' set but not used
-#pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#pragma GCC diagnostic ignored "-Wsign-compare"
-
 #include <boost/test/included/unit_test.hpp>
 #include <boost/mpl/list.hpp>
 #include <chrono>
 #include <thread>
-
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
-
+#include <algorithm>
 #undef max // prevent Windows issue
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 #include "Utils/Timer.hh"
+#include "Utils/StdVector.hh"
 
 /* Example unit tests for CFS.
  *
@@ -311,7 +302,7 @@ BOOST_AUTO_TEST_CASE(small_direct_solver)
   std::cout << "b=" << b.ToString() << std::endl;
   std::cout << "x=" << x.ToString() << std::endl;
   std::cout << std::endl;
-  BOOST_TEST(x.GetSize() == 3);
+  BOOST_TEST((int) x.GetSize() == 3);
 }
 
 BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
@@ -328,7 +319,7 @@ BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
   Vector<double> x;
 
   A.CholeskySolveLapack(chol,x,b,true);
-  BOOST_TEST(x.GetSize() == 2);
+  BOOST_TEST(x.GetSize() == 2u);
 
   A[0][0] = -1;
   bool ok = A.CholeskySolveLapack(chol,x,b,false);

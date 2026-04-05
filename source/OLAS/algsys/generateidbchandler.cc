@@ -70,7 +70,7 @@ DEFINE_LOG(genIdbc, "genIdbc")
       else {
         EXCEPTION( "GenerateIDBC_HandlerObject: Cannot generate "
                  << "IDBC_Handler<T> object with T = '"
-                 << BaseMatrix::entryType.ToString( eType ) << "'");
+                 << MatrixEntryTypeEnum.ToString( eType ) << "'");
       }
 
     }
@@ -135,7 +135,7 @@ GenerateIDBC_HandlerObjectMH( const std::set<FEMatrixType> usedFEMatrices,
     else {
       EXCEPTION( "GenerateIDBC_HandlerObject: Can only generate "
                << "IDBC_HandlerMH<Complex>  not for T = '"
-               << BaseMatrix::entryType.ToString( eType ) << "'");
+               << MatrixEntryTypeEnum.ToString( eType ) << "'");
     }
 
   }
@@ -175,7 +175,7 @@ GenerateIDBC_HandlerObjectMH( const std::set<FEMatrixType> usedFEMatrices,
     else {
       EXCEPTION( "GenerateIDBC_HandlerObject: Cannot generate "
                << "IDBC_HandlerPenalty<T> object with T = '"
-               << BaseMatrix::entryType.ToString( eType ) << "'");
+               << MatrixEntryTypeEnum.ToString( eType ) << "'");
     }
 
     return retVal;

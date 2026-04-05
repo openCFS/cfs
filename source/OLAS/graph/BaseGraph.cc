@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/Timer.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -260,8 +260,8 @@ namespace CoupledField {
       }
       break;
     case 1:
-      os << "rows: " << ::ToString<unsigned int>(rows, numNodes + 1) << " (" << numNodes << "+1)" << std::endl;
-      os << "cols: " << ::ToString<unsigned int>(cols, rows[numNodes_]) << " (" << rows[numNodes] << ")";
+      os << "rows: " << CoupledField::ToString<unsigned int>(rows, numNodes + 1) << " (" << numNodes << "+1)" << std::endl;
+      os << "cols: " << CoupledField::ToString<unsigned int>(cols, rows[numNodes_]) << " (" << rows[numNodes] << ")";
       break;
     case 2: // metis graph file format (1-based)
       os << numNodes << std::endl;
