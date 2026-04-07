@@ -2,6 +2,7 @@
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -63,8 +64,7 @@ namespace CoupledField
   // declare class specific logging stream
   DEFINE_LOG(gridcfs, "grid.cfs")
 
-  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,
-      const std::string &id, bool buildExtend)
+  GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info, const std::string &id)
   : Grid( param, info ) {
     gridId_ = id;
     isQuadratic_ = false;
@@ -73,22 +73,25 @@ namespace CoupledField
 
     numNodes_ = 0;
     numElems_ = 0;
-    numFaces_ = 0;
-    numEdges_ = 0;
     numNcSurfElems_ = 0;
-    edgesMapped_ = false;
-    facesMapped_ = false;
     maxNumElemNodes_ = 0;
     mapNodeToElems_.Resize(0);
-    buildExtendedElemInfo_ = buildExtend;
-
-    userDefinedTimer_  = make_shared<Timer>(this->timer);
+    
+    finishInitTimer_   = make_shared<Timer>(this->timer);
+    userDefinedTimer_  = make_shared<Timer>(finishInitTimer_);
     // the following timers are only with --d 
     checkRegularTimer_ = make_shared<Timer>(this->timer);
     mapToBBTimer_      = make_shared<Timer>(this->timer);
     // both for nanoflann only but not necessarily always subtimers of userDefinedTimer_
     initKDTreeTimer_   = make_shared<Timer>(this->timer);
     searchKDTreeTimer_ = make_shared<Timer>(this->timer);
+    volumeTimer_       = make_shared<Timer>(this->timer);
+    correctElemTimer_  = make_shared<Timer>(finishInitTimer_);
+    // MapFaces() and MapEdges() are called from several places but not grid - so have no parent for the sub-timer
+    // Still we have it in grid in the .info.xml
+    mapFacesEdgesTimer_  = make_shared<Timer>("mapFacesEdges", true); 
+
+
 #ifdef USE_NANOFLANN
     use_nanoflann_ = true;  
 #else
@@ -587,254 +590,167 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
   return min_idx+1; // node numbers start with 1
 }
 
-  void GridCFS::MapFaces() {
+void GridCFS::MapFaces()
+{
+  mapFacesEdgesTimer_->Start();
+  LOG_DBG(gridcfs) << "MF: Starting to map faces. size=" << faces_.GetSize();
 
-    LOG_DBG(gridcfs) << "Starting to map faces ";
+    
+  assert(isInitialized_ == true);
+  if(faces_.GetSize() > 0)
+    return;
 
-    // assert that any mesh was already read in
-    assert( isInitialized_ == true );
+  faces_.Reserve(numNodes_ * 4); // conservative; trimmed at end
 
-    // If faces are already mapped ->leave
-    if( facesMapped_ == true ) {
-      return;
+  // key: up to 4 sorted corner-node IDs (tri faces padded with 0)
+  // boost::unordered_flat_map: open-addressing, O(1), cache-friendly
+  boost::unordered_flat_map<std::array<unsigned int, 4>, unsigned int> face_num_map;
+  face_num_map.reserve(numNodes_ * 4);
+
+  std::bitset<5> orientation; // for Normalize() in the inner loop
+  Face map_search_face;       // to query the map_key
+
+  // when we test all elements, we use this for Normalize()
+ StdVector<unsigned int> faceNodes(4); // key for map_search_face, to avoid repeated allocation in inner loop
+
+  // interestingly we traverse all elements and do not sort out lower-dimensional elements since < 2014.
+  for(Elem* elem : orderedElems_)
+  {
+    const ElemShape& shape = Elem::shapes[elem->type];
+
+    assert(elem->extended != nullptr);
+    assert(elem->extended->faces.IsEmpty());
+
+    if(shape.numFaces == 0)
+      continue;
+
+    elem->extended->faces.Resize(shape.numFaces);
+    elem->extended->faceFlags.Resize(shape.numFaces);
+
+    for(unsigned int iface = 0; iface < shape.numFaces; iface++)
+    {
+      const StdVector<unsigned int>& faceVerts = shape.faceVertices[iface];
+      assert(faceVerts.GetSize() == 3 || faceVerts.GetSize() == 4); 
+
+      faceNodes.Resize(faceVerts.GetSize());
+      for(unsigned int i = 0; i < faceVerts.GetSize(); i++)
+        faceNodes[i] = elem->connect[faceVerts[i] - 1];
+
+      // takes the current nodes and normalize them - does also set orientation  
+      // nodes is is either faceNodes3 or faceNodes4 
+      // this releases the variable map_search_face from duty.
+      map_search_face.Normalize(orientation, faceNodes); 
+
+      // sorted key from corner nodes, padded to 4 entries with 0
+      std::array<unsigned int, 4> key = {0, 0, 0, 0};
+      assert(faceVerts.GetSize() <= 4);
+      std::copy_n(faceNodes.Begin(), faceVerts.GetSize(), key.begin());
+      // In the legacy code a sorted std::set was used as key. 
+      // std::sort(key.begin(), key.end()); shall here not be necessary as we normalize
+      auto [map_iter, inserted] = face_num_map.emplace(key, (unsigned int)face_num_map.size() + 1);
+      if(inserted)
+      {
+        Face& face = faces_.Push_back(); // create new instance 
+        unsigned int newFaceNum = map_iter->second;
+        LOG_DBG2(gridcfs) << "MF: elem=" << elem->elemNum << " test=" << ToString(key) << " Adding face #" << newFaceNum;
+        face.neighbors.Reserve(2); // a face has at most 2 neighbors
+        face.neighbors.Push_back(elem); // leave the second Push_back for the else case
+      }
+      else
+      {
+        unsigned int faceNum = map_iter->second;
+        LOG_DBG3(gridcfs) << "MF: elem=" << elem->elemNum << " test=" << ToString(key) << " Face already mapped as #" << faceNum << " neighbors=" << ToString(faces_[faceNum - 1].neighbors);
+        // a face can have at most two neighbors and we pushed the other element above
+        //assert(faces_[faceNum - 1].neighbors.GetSize() == 1); 
+        faces_[faceNum - 1].neighbors.Push_back(elem);
+      }
+      elem->extended->faces[iface]     = (int) map_iter->second; // for both cases valid
+      elem->extended->faceFlags[iface] = orientation;
     }
 
-    // map containing the nodes for each face
-    std::map<std::set<UInt>, UInt > faceNums;
-    
-    // create counter for number of faces
-    UInt actFaceNum = 1;
-
-    // vectors for local / global nodes
-    StdVector<UInt> faceIndices, faceNodes;
-
-    // iterate over all elements
-    for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
-
-      // remember current element
-      Elem & actElem = *orderedElems_[iElem];
-      ElemShape & actShape = Elem::shapes[actElem.type];
-
-      // if element is of wrong dimension (surface element )
-      // ->leave
-      //if ( actElem.ptElem->GetDim() < dim_ ) { continue; }
-
-      // get number of element faces
-      UInt numFaces = actShape.numFaces;
-
-      // adapt size of faces and orientation array of element
-      actElem.extended->faces.Resize( numFaces );
-      actElem.extended->faceFlags.Resize( numFaces );
-
-      // iterate over all faces of this element
-      for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
-
-        // get local nodal indices of current face
-        faceIndices = actShape.faceVertices[iFace];
-
-        // create new Face object
-        Face actFace;
-        StdVector<UInt> faceNodes;
-        UInt numFaceIndices = faceIndices.GetSize();
-        faceNodes.Resize( numFaceIndices );
-
-        // insert node numbers into current face definition
-        for( UInt iNode = 0; iNode < numFaceIndices; iNode++ ) {
-          faceNodes[iNode] = actElem.connect[faceIndices[iNode]-1];
-        }
-
-        LOG_DBG3(gridcfs) << "Checking face with nodes : "
-                          << faceNodes.Serialize();
-
-        // Re-orientate face to match global orientation and
-        // obtain the orientation flags
-        std::bitset<5> orientation;
-        actFace.Normalize( orientation, faceNodes );
-
-        LOG_DBG3(gridcfs) << "Normalized : "
-                          << faceNodes.Serialize();
-        LOG_DBG3(gridcfs) << "Orientation: " << orientation;
-
-        // copy all nodes in a set
-        std::set<UInt> nodeSet;
-        nodeSet.insert(faceNodes.Begin(), faceNodes.End());
-
-        // check if face was already numbered
-        if( faceNums.find(nodeSet) == faceNums.end() ) {
-        
-        //if( faceNums_.find( actFace ) == faceNums_.end() ) {
-          LOG_DBG2(gridcfs) << "Adding face number " << actFaceNum << std::endl;
-          faceNums[nodeSet] = actFaceNum;
-          actFace.neighbors.Push_back( orderedElems_[iElem]);
-          actElem.extended->faces[iFace] = actFaceNum;
-          faces_.Push_back( actFace );
-          actFaceNum++;
-        } else {
-          UInt faceNum = faceNums[nodeSet];
-          actElem.extended->faces[iFace] = faceNum;
-          faces_[faceNum-1].neighbors.Push_back( orderedElems_[iElem]);
-          LOG_DBG2(gridcfs) << "--> already defined\n";
-        }
-
-        // Set also orientation flags for face
-        actElem.extended->faceFlags[iFace] = orientation;
-      } // loop over faces
-
-      // Print information about connectivity and faces
-      LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
-      LOG_DBG2(gridcfs) << "===================";
-      LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-      LOG_DBG2(gridcfs) << "Faces: " << actElem.extended->faces.Serialize();
-
-      LOG_DBG2(gridcfs) << "Finished to map faces\n";
-
-    } // loop over elements
-
-
-    // Trim vector containing faces
-    faces_.Trim();
-    
-    // Set flag for mapping of sub-entities
-    numFaces_ = actFaceNum-1;
-    LOG_DBG2(gridcfs) << "Total number of faces: " << numFaces_;
-
-    // Set flag
-    facesMapped_ = true;
-
-    LOG_DBG(gridcfs) << "Finished mapping faces\n";
-
+    LOG_DBG2(gridcfs) << "MF: Elem Nr. " << elem->elemNum
+                      << " Connectivity: " << elem->connect.Serialize()
+                      << " Faces: " << elem->extended->faces.Serialize();
   }
 
+  faces_.Trim();
+  LOG_DBG2(gridcfs) << "MF: Total number of faces: " << face_num_map.size();
 
+  mapFacesEdgesTimer_->Stop();
+}
 
-  void GridCFS::MapEdges() {
+  void GridCFS::MapEdges() 
+  {
+    mapFacesEdgesTimer_->Start();
+    LOG_DBG(gridcfs) << "ME: Starting to map edges. size=" << edges_.GetSize();
 
-    LOG_DBG(gridcfs) << "Starting to map edges";
-
-    // assert that any mesh was already read in
     assert( isInitialized_ == true );
-
-    // If edges/surfaces were already mapped ->leave
-    if( edgesMapped_ == true ) {
+    if(edges_.GetSize() > 0) 
       return;
-    }
 
-    // map with edge numbers
-    std::map<std::set<UInt>, UInt > edgeNums;
-    
-    // create counter for number of edges
-    UInt actEdgeNum = 1;
-    StdVector<UInt> locEdge(2), globEdge(2);
+    // this and elem->extended->edges get the data  
+    edges_.Reserve(numNodes_ * 6); // too much but easy and we trim anyway in the end
 
-    // iterate over all elements
-    for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
+    // encode two sorted 32-bit node IDs into one uint64_t key (bijective, trivially hashable).
+    // boost::unordered_flat_map uses open addressing -> cache-friendly, no heap per entry.
+    boost::unordered_flat_map<uint64_t, unsigned int> edge_num_map;
+    edge_num_map.reserve(numNodes_ * 6); 
 
-      // remember current element
-      Elem & actElem = *orderedElems_[iElem];
-      ElemShape & actShape = Elem::shapes[actElem.type];
-      
-      // get number of edges
-      UInt numEdges= actShape.numEdges;
+    for(Elem* elem : orderedElems_ ) 
+    {
+      const ElemShape& shape = Elem::shapes[elem->type];
 
-      //in case the extended element info is not yet created we do it here
-      if(!actElem.extended){
-        actElem.extended = new ExtendedElementInfo();
+      assert(elem->extended != nullptr);
+      assert(elem->extended->edges.IsEmpty());
+      elem->extended->edges.Resize(shape.numEdges);
+
+      assert(shape.edgeVertices.GetSize() == shape.numEdges); // otherwise we would not need to map edges
+      // traverse the local edges the element
+      for(unsigned int ie = 0; ie < shape.numEdges; ie++)
+      {
+        const StdVector<unsigned int>& edge = shape.edgeVertices[ie];
+
+        // obtain global node numbers of the edge
+        const unsigned int n0 = elem->connect[edge[0] - 1];
+        const unsigned int n1 = elem->connect[edge[1] - 1];
+
+        // our hash is the two 32 bit numbers as 64 bit, with sorted node numbers
+        uint64_t key = n0 < n1 ? ((uint64_t)n0 << 32 | n1) : ((uint64_t)n1 << 32 | n0);
+        int orientation = n0 < n1 ? 1 : -1;      
+
+        // get the edge iterator for the edge has and the info if it was queried the first time
+        auto [map_iter, inserted] = edge_num_map.emplace(key, (unsigned int) edge_num_map.size() + 1);
+        if(inserted) 
+        {
+          unsigned int newEdgeNum = map_iter->second;
+          LOG_DBG2(gridcfs) << "ME: test elem=" << elem->elemNum << " Adding edge number " << newEdgeNum << " with nodes: " << n0 << ", " << n1;
+          Edge& actEdge = edges_.Push_back(); // create new edge (we have space reserved)
+          actEdge.neighbors.Reserve(shape.dim == 2 ? 2 : 4); // 2D: exact; 3D: hexa-friendly estimate
+          actEdge.neighbors.Push_back(elem); // the new edge stats with this element as neighbor
+          // encode the edge number with orientation. Edge number is 1-based so first Push_back is ok
+          elem->extended->edges[ie] = edges_.size() * orientation;
+        } 
+        else 
+        {
+          // we just add this element to the existing edge
+          unsigned int edgeNum = map_iter->second;
+          LOG_DBG3(gridcfs) << "ME: test elem=" << elem->elemNum << " Edge " << n0 << ", " << n1 << " was already mapped with number #" << edgeNum;
+          elem->extended->edges[ie] = edgeNum * orientation; 
+          edges_[edgeNum-1].neighbors.Push_back(elem);
+        }
       }
 
-      // adapt size of edge number array of element
-      actElem.extended->edges.Resize( numEdges );
-
-      // iterate over all edges of this element
-      for( UInt iEdge = 0; iEdge < numEdges; iEdge++ ) {
-
-        // get local edge indices
-        locEdge = actShape.edgeVertices[iEdge];
-        // create new edge
-        Edge actEdge;
-        StdVector<UInt> edgeNodes(2);
-        edgeNodes[0] = actElem.connect[locEdge[0]-1];
-        edgeNodes[1] = actElem.connect[locEdge[1]-1];
-
-        // check if ordering is correct
-        Integer orientation = 1;
-
-        if( edgeNodes[1] < edgeNodes[0] ) {
-          std::swap(edgeNodes[1], edgeNodes[0]);
-          // swap factor for orientation
-          orientation = -1;
-        }
-        
-        std::set<UInt> nodeSet;
-        nodeSet.insert(edgeNodes.Begin(), edgeNodes.End());
-
-        // check if edge was already numbered
-        if( edgeNums.find( nodeSet) == edgeNums.end() ) {
-          LOG_DBG2(gridcfs) << "Adding edge number " << actEdgeNum;
-          LOG_DBG3(gridcfs) << "with nodes: " << edgeNodes.Serialize() << std::endl;
-          edgeNums[nodeSet] = actEdgeNum;
-          actEdge.neighbors.Push_back(orderedElems_[iElem]);
-          actElem.extended->edges[iEdge] = actEdgeNum*orientation;
-          edges_.Push_back( actEdge );
-          actEdgeNum++;
-        } else {
-          UInt edgeNum = edgeNums[nodeSet];
-          LOG_DBG3(gridcfs) << "Edge was already mapped with number #" << edgeNum << std::endl;
-          actElem.extended->edges[iEdge] = edgeNum*orientation;
-          edges_[edgeNum-1].neighbors.Push_back(orderedElems_[iElem]);
-        }
-        
-
-      }
-
-      // Print information about connectivity and edges
-      LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
-      LOG_DBG2(gridcfs) << "===================";
-      LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-      LOG_DBG2(gridcfs) << "Edges: " << actElem.extended->edges.Serialize();
-
-      LOG_DBG2(gridcfs) << "Finished to map edges\n";
+      LOG_DBG2(gridcfs) << "ME: Elem Nr. " << elem->elemNum << " Connectivity: " << elem->connect.Serialize() << " Edges: " << elem->extended->edges.Serialize();
     }
 
-    // Trim vector containing faces
-    edges_.Trim();
-        
-    // Set flag for mapping of sub-entities
-    numEdges_ = actEdgeNum-1;
-    LOG_DBG2(gridcfs) << "Total number of edges: " << numEdges_ << std::endl;
+    edges_.Trim(); // we made a rough conservative space estimation and reduce to release memory
 
-    // Set flag
-    edgesMapped_ = true;
-  }
+    for(unsigned int i = 0; i < edges_.GetSize(); i++)
+      LOG_DBG3(gridcfs) << "ME: Edge idx=" << i << " -> " << ToString(edges_[i].neighbors);
 
-  UInt GridCFS::GetNumEdges() {
-    return numEdges_;
+    LOG_DBG2(gridcfs) << "ME: Total number of edges: " << edges_.GetSize();
 
-  }
-
-  UInt GridCFS::GetNumFaces() {
-    return numFaces_;
-
-  }
-
-
-  const Edge&  GridCFS::GetEdge( UInt edgeNr ) {
-    if( !edgesMapped_ ) {
-      EXCEPTION( "Edges are not mapped yet!");
-    }
-
-    Edge const & ret = edges_[edgeNr-1];
-
-    return ret;
-  }
-
-  const Face&  GridCFS::GetFace( UInt faceNr ) {
-    if( !facesMapped_ ) {
-      EXCEPTION( "Surfaces are not mapped yet!" );
-    }
-
-    Face const & ret = faces_[faceNr-1];
-
-    return ret;
+    mapFacesEdgesTimer_->Stop();
   }
 
   RegionIdType GridCFS::CheckPatternRegion(StdVector<bool>& replace)
@@ -891,7 +807,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
 
   void GridCFS::FinishInit()
   {
-    
+    finishInitTimer_->Start();
     LOG_TRACE(gridcfs) << "Finalizing GridCFS (FinishInit)";
     volRegionIds_.Clear();
     surfRegionIds_.Clear();
@@ -970,7 +886,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
           volRegionElems[el->regionId].Push_back(el);
           LOG_DBG3(gridcfs) << "\tadding elem #" << el->elemNum 
                                     << " to list of volume elements.";
-          const StdVector<UInt> & connect = el->connect;
+          const StdVector<UInt>& connect = el->connect;
           UInt numNodes = connect.GetSize();
           for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
               volRegionNodes[el->regionId].Push_back(connect[iNode]);
@@ -985,7 +901,6 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     std::set<UInt>::iterator setIt, setEnd;
     UInt region = 0;
 
-    
     regionElemIt = volRegionElems.begin();
     regionElemEnd = volRegionElems.end();
     regionNodeIt = volRegionNodes.begin();
@@ -1096,6 +1011,8 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     deltCoords_.Trim();
     orderedElems_.Trim();
 
+    finishInitTimer_->Stop();
+
     // print information to file - checks for exportGrid
     if(domain && info_) // we have no domain in the cfstool case
     {
@@ -1115,8 +1032,8 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
                                         StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
                                         StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems){
 
-    assert(edgesMapped_ == true);
-    assert(facesMapped_ == true);
+    assert(edges_.GetSize() > 0);
+    assert(faces_.GetSize() > 0);
     std::cout << "   ++ Generating Surface Elements for DG-Methods ...";
     std::cout.flush();
     //ok now we generate an entitylist conaining all volume elements
@@ -1378,7 +1295,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     if(!el->extended)
     {
       Point cP;
-      shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(el,isupdated);
+      const shared_ptr<ElemShapeMap>& esm = this->GetElemShapeMap(el,isupdated);
       esm->CalcBarycenter(cP);
       center = cP.data;
     }
@@ -1824,15 +1741,12 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     assert(rd.id == reg);
     assert(rd.type != NOT_SET);
 
-    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? 
-        volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-    assert(rd.type == VOLUME_REGION ? 
-        volRegionIds_[rd.type_idx] == rd.id : 
-        surfRegionIds_[rd.type_idx] == rd.id);
+    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+    assert(rd.type == VOLUME_REGION ? volRegionIds_[rd.type_idx] == rd.id : surfRegionIds_[rd.type_idx] == rd.id);
 
-    LOG_DBG2(gridcfs) << "CFRR volume=" << (rd.type == VOLUME_REGION) 
-        << " #elems=" << elems.GetSize();
-    if(elems.GetSize() == 0) return false;
+    LOG_DBG2(gridcfs) << "CFRR volume=" << (rd.type == VOLUME_REGION) << " #elems=" << elems.GetSize();
+    if(elems.GetSize() == 0) 
+      return false;
 
     // we do not know of the order of the nodes within the element,
     // hence we have to find the diameter vector and compare it.
@@ -1858,24 +1772,29 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     Vector<Double> diameter; // diameter of reference (first) element
 
     esm->CalcDiameter(diameter);
-    Double dist_tol = diameter.NormL2() * 1e-6;
-    LOG_DBG2(gridcfs) << "CFRR diameter=" << diameter.ToString() << " tol=" << dist_tol;
+    double dist_tol = diameter.NormL2() * 1e-6;
+    double dist_tol_sq = dist_tol * dist_tol; // no sqrt in the loop
+    LOG_DBG2(gridcfs) << "CFRR: diameter=" << diameter.ToString() << " tol=" << dist_tol;
 
     Vector<Double> test_diameter; // diameter of current element;
-    Vector<Double> diff; // difference vector
     for(unsigned int i = 1, in = elems.GetSize(); i < in; i++)
     {
-      shared_ptr<ElemShapeMap> testEsm = (this->GetElemShapeMap(elems[i]));
+      const shared_ptr<ElemShapeMap>& testEsm = (this->GetElemShapeMap(elems[i]));
       Elem::ShapeType testShape = Elem::GetShapeType(elems[i]->type);
       if(testShape != refShape) return false;
 
       testEsm->CalcDiameter(test_diameter);
 
-      diff = diameter-test_diameter;
-      LOG_DBG3(gridcfs) << "CFRR test=" << elems[i]->elemNum
-                        << " dist=" << diff.NormL2()
-                        << " test_diameter=" << test_diameter.ToString();
-      if( diff.NormL2() > dist_tol) return false;
+      double diff_sq = 0.0;
+      for(unsigned int d = 0; d < diameter.GetSize(); d++) 
+      {
+        double delta = diameter[d] - test_diameter[d];
+        diff_sq += delta * delta;
+      }      
+      
+      LOG_DBG3(gridcfs) << "CFRR: test=" << elems[i]->elemNum << " diff_sq=" << diff_sq << " test_diameter=" << test_diameter.ToString();
+      if( diff_sq > dist_tol_sq) 
+         return false;
     }
 
     checkRegularTimer_->Stop();
@@ -2412,6 +2331,9 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
 
   void GridCFS::AddElems(unsigned int nElems)
   {
+    if(nElems > 0 && edges_.GetSize() > 0)
+      EXCEPTION("GridCFS::AddElems() with " << nElems << " elements and " << edges_.GetSize() << " edges already set");
+
     orderedElems_.Resize(numElems_ + nElems);
 
     unsigned int idx = numElems_;
@@ -2419,11 +2341,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     for(unsigned int i = 0; i<nElems; i++, idx++)
     {
       orderedElems_[idx] = new Elem();
-
-      if(buildExtendedElemInfo_){
-        orderedElems_[idx]->extended = new ExtendedElementInfo();
-      }
-
+      orderedElems_[idx]->extended = new ExtendedElementInfo();
       orderedElems_[idx]->elemNum = idx+1;
     }
 
@@ -2609,8 +2527,6 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
         nodes[elem->connect[n]].Push_back(elem);
     }
-
-    LOG_DBG3(gridcfs) << "FEN: nodes=" << nodes.ToString();
 
     // this is a temporary neighborhood, copied to the elements when the size is known.
     StdVector<std::pair<Elem*, int> > neighborhood;
@@ -4271,9 +4187,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       myElem->type = oldElem->type;
       myElem->regionId = oldElem->regionId;
       myElem->connect = oldElem->connect;
-      if(buildExtendedElemInfo_){
-        myElem->extended = new ExtendedElementInfo;
-      }
+      myElem->extended = new ExtendedElementInfo();
       surfElems[iEl] = myElem;
 
       // delete old volume element
@@ -4414,8 +4328,10 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     // main grid timer and parent of all other timers
     gridNode->Get("timer")->SetValue(timer); 
     gridNode->Get("readMesh/timer")->SetValue(readMeshTimer);
+    gridNode->Get("finishInit/timer")->SetValue(finishInitTimer_);
     gridNode->Get("userDefined/timer")->SetValue(userDefinedTimer_);
-
+    gridNode->Get("finishInit/timer")->SetValue(finishInitTimer_);
+    gridNode->Get("mapFacesEdges/timer")->SetValue(mapFacesEdgesTimer_); // a parent-less sub-timer
     // these timers are only of interest when grid reading is too slow and one wants to debug
     if(progOpts->DoDetailedInfo()) 
     {
@@ -4425,6 +4341,8 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       #endif
       gridNode->Get("mapPointsToBoundingBox/timer")->SetValue(mapToBBTimer_);
       gridNode->Get("checkRegular/timer")->SetValue(checkRegularTimer_);
+      gridNode->Get("correctElemConn/timer")->SetValue(correctElemTimer_);
+      gridNode->Get("calcVolume/timer")->SetValue(volumeTimer_);
   
       // we only have this info when doing homogenization
       in->Get("hull_volume")->SetValue(CalcHullVolume());
@@ -4738,6 +4656,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
 
   double GridCFS::CalcVolumeOfRegion(const RegionIdType regionId, bool updated)
   {
+    volumeTimer_->Start();
     StdVector<Elem*> elems;
     GetElems(elems,regionId);
 
@@ -4747,12 +4666,13 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
     // only CalcVolumeOfEntityList uses CalcVolume(true) in GridNACS
     for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
       volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
-
+    volumeTimer_->Stop();
     return volume;
   }
   
-  Double GridCFS::CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
-                                          bool updated ) {
+  Double GridCFS::CalcVolumeOfEntityList( shared_ptr<EntityList> ent, bool updated ) 
+  {
+    volumeTimer_->Start();
     Double volume = 0.0;
     // get elements of entity list
     if( ent->GetType() == EntityList::ELEM_LIST ||
@@ -4760,12 +4680,10 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       EntityIterator it = ent->GetIterator();
       
       // loop over all elements
-      for( ; !it.IsEnd(); it++ ) {
-        
+      for( ; !it.IsEnd(); it++ ) 
+      {
         const Elem * ptEl = it.GetElem();
-        
-        
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap( ptEl, updated );
+        const shared_ptr<ElemShapeMap>& esm = GetElemShapeMap( ptEl, updated );
         // sum up element contribution
         // enable scaling with depth_ for 2d plane case as it is done in NACS
         volume += esm->CalcVolume(true);
@@ -4774,6 +4692,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       EXCEPTION( "CalcVolumeOfEntityList only possible for element "
           << "and surface element list" );
     }
+    volumeTimer_->Stop();
     return volume;
   }
   
@@ -4876,35 +4795,34 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
                                  const StdVector< SurfElem* > & surfelems,
                                  StdVector< UInt > & elemids)
   {
-    UInt i, n;
-    UInt numNodes;
-
     if(!isInitialized_)
       EXCEPTION("Cannot add surface elements to uninitialized grid!");
 
-    Integer regionIdx = surfRegionIds_.Find(regionid);
+    int regionIdx = surfRegionIds_.Find(regionid);
 
     if(regionIdx == -1)
       EXCEPTION("Surface regionid not found!");
 
-    n=surfelems.GetSize();
+    unsigned int n = surfelems.GetSize();
     elemids.Resize(n);
 
     StdVector<UInt> surfRegionNodes;
     GetNodesByRegion( surfRegionNodes, regionid);
-    for(i=0; i<n; i++)
+    for(unsigned int i=0; i<n; i++)
     {
       // TODO: a check should be added to avoid insertions
       // of already existing elements
       surfelems[i]->regionId = regionid;
       numElems_++;
       surfelems[i]->elemNum = numElems_;
+      if(surfelems[i]->extended == nullptr)
+        surfelems[i]->extended = new ExtendedElementInfo();
 
       orderedElems_.Push_back(surfelems[i]);
       surfElems_[regionIdx].Push_back(surfelems[i]);
       elemids[i] = numElems_;
 
-      numNodes = surfelems[i]->connect.GetSize();
+      unsigned int numNodes = surfelems[i]->connect.GetSize();
 
       // Loop over all nodes an check, if they are already contained in
       // the list of nodes
@@ -4955,7 +4873,8 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       volelems[i]->regionId = regionid;
       numElems_++;
       volelems[i]->elemNum = numElems_;
-
+      if(volelems[i]->extended == nullptr)
+        volelems[i]->extended = new ExtendedElementInfo();
       orderedElems_.Push_back(volelems[i]);
       volElems_[regionIdx].Push_back(volelems[i]);
       elemids[i] = numElems_;
@@ -5067,24 +4986,24 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
   }
   
   void GridCFS::CorrectElementConnectivities(RegionIdType regionId) {
+    correctElemTimer_->Start();
     // define variables
     Matrix<Double> jacobian;
     std::set<const Elem*> corrElems, failedElems;
     Double jacDet = 0;
-    UInt numElems;
-    StdVector<Elem*> elems;
+    StdVector<Elem*> localElems;
+    const StdVector<Elem*>* elems;
     // if no region id is passed, check all elements on the mesh.
     // otherwise, check only the specified region elements.
     if (regionId == -1) {
-      numElems = numElems_;
-      elems = orderedElems_;
+      elems = &orderedElems_;
     } else {
-      GetElems(elems, regionId);
-      numElems = elems.GetSize();
+      GetElems(localElems, regionId);
+      elems = &localElems;
     }
-    for (UInt iElems = 0; iElems < numElems; ++iElems) {
-      Elem* el = elems[iElems];
-      shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
+    for (UInt iElems = 0; iElems < elems->GetSize(); ++iElems) {
+      Elem* el = (*elems)[iElems];
+      const shared_ptr<ElemShapeMap>& esm = GetElemShapeMap( el, false );
 
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
       if( jacDet < 0 ) {
@@ -5099,8 +5018,9 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
           //before we give up, lets try a brute force attack
           WARN("Trying to correct connectivity by permutating array. This can be costly! Recheck the mesh!");
           bool success = false;
+          const shared_ptr<ElemShapeMap>& esmTMP = GetElemShapeMap( el, false );
           do{
-            shared_ptr<ElemShapeMap> esmTMP = GetElemShapeMap( el, false );
+            esmTMP->SetElem(el, false);
             jacDet = esmTMP->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
             if(jacDet > 0){
               success = true;
@@ -5148,6 +5068,7 @@ unsigned int GridCFS::FindNearestEntity( bool isNode, Vector<Double>& c, double 
       out << "\n\nPlease check your mesh!\n";
       EXCEPTION( out.str() );
     }
+    correctElemTimer_->Stop();
   }
 
   void GridCFS::makeNameNodesFromLines()

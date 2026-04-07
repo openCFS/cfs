@@ -84,21 +84,26 @@ namespace CoupledField
                            StdVector<UInt>* vertexOrder,
                            StdVector<UInt>* edgeOrder = nullptr );
 
-    //! Add edges between vertices and their neighbours
+    //! Add edges between vertices and their neighbors
 
-    //! This method can be used to add neighbours to the neighbour list of
+    //! This method can be used to add neighbors to the neighbour list of
     //! vertices. For each vertex contained in the vertexList vector we add
     //! an edge connecting the vertex to each vertex contained in the
     //! neighbourList.
     //! \note Both input parameters are zero-based STL vectors!
-    //! \param vertexList     a vector containing vertex numbers of vertices
+    //! \param vertexList     a vector containing vertex numbers of vertices 
     //!                       to which neighbours/edges are to be added
     //! \param neighbourList  a vector containing vertex numbers of the
     //!                       neighbours of the vertices in vertexList
-    void AddVertexNeighbours( std::vector<UInt>& vertexList,
-                              std::vector<UInt>& neighbourList );
+    inline void AddVertexNeighbours(const std::vector<UInt>& vertexList, const std::vector<UInt>& neighbourList)
+    { // time critical, therefore inlined
+      for(unsigned int v : vertexList) {
+        auto& row_map = setElements_[v];
+        for(unsigned int n : neighbourList) 
+          row_map.insert(n);
+      }
+    }
 
-    
     //! Set block definition
     
     //! This method can be used to define non-overlapping blocks within a

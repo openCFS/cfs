@@ -6,6 +6,7 @@
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/IDBC_Graph.hh"
 #include "Utils/Timer.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 
@@ -467,7 +468,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
                                     bool setCounterPart) {
 
     // Just some logging for debugging
-    LOG_TRACE(graphMan) << "Setting element connectivity";
+    LOG_DBG(graphMan) << "Setting element connectivity";
     LOG_DBG3(graphMan) << "setCounterPart: " << (setCounterPart ? "yes" : "no");
     LOG_DBG3(graphMan) << "\t(rowBlock, rowNum)";
     for( UInt i = 0; i < rowBlocks.GetSize(); ++i ) {
@@ -499,18 +500,13 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
 
       // Compute index of graph in graph pointer matrix
       // get hold of vertex and edgelists
+      // TODO: make sure we are not called in parallel!
       std::vector<UInt>& vList1 = vertexList1_[rowBlock];
       std::vector<UInt>& vList2 = vertexList2_[rowBlock];
       // get limits of free indices
 
-      UInt l;
-      if(isMultHarm_){
-        l = blockInfoMH_->numLastFreeIndex;
-      }else{
-        l = blockInfo_[rowBlock]->numLastFreeIndex;
-      }
-      const UInt & lastFreeRowIndex = l;
-
+      unsigned lastFreeRowIndex = isMultHarm_ ? blockInfoMH_->numLastFreeIndex : blockInfo_[rowBlock]->numLastFreeIndex;
+    
       // STEP 1: Generate vertex list from first connect array, dropping
       //         equation numbers for dofs fixed by inhomogeneous Dirichlet
       //         boundary conditions
@@ -536,14 +532,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
       std::vector<UInt>& eList2 = edgeList2_[colBlock];
 
       // get limits of free indices
-
-      UInt l;
-      if(isMultHarm_){
-        l = blockInfoMH_->numLastFreeIndex;
-      }else{
-        l = blockInfo_[colBlock]->numLastFreeIndex;
-      }
-      const UInt & lastFreeColIndex = l;
+      unsigned lastFreeColIndex = isMultHarm_ ? blockInfoMH_->numLastFreeIndex : blockInfo_[colBlock]->numLastFreeIndex;
 
       // STEP 2: Split the second connect array into two edge lists, one for
       //         the graph and one for the IDBCgraph (which handles the indices
@@ -557,10 +546,7 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
         }
       }
     } // loop over cols
-
-
-
-    
+   
     // loop over all blocks and pass for every block the information to
     // the corresponding graph / IDBC graph
     if( isMultHarm_ ){
@@ -590,45 +576,30 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
               }
             }
 
-            // --- logging output ---
-            //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
-              LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
-                  << sbmRow << ", " << sbmCol << ")";
-
-              LOG_DBG3(graphMan) << "vertexList1: ";
-              for(UInt i=0; i <vertexList1_[0].size(); ++i )
-                LOG_DBG3(graphMan) << "\t" << vertexList1_[0][i];
-
-              LOG_DBG3(graphMan) << "vertexList2: ";
-              for(UInt i=0; i <vertexList2_[0].size(); ++i )
-                LOG_DBG3(graphMan) << "\t" << vertexList2_[0][i];
-
-              LOG_DBG3(graphMan) << "edgeList1: ";
-              for(UInt i=0; i <edgeList1_[0].size(); ++i )
-                LOG_DBG3(graphMan) << "\t" << edgeList1_[0][i];
-
-              LOG_DBG3(graphMan) << "edgeList2: ";
-              for(UInt i=0; i <edgeList2_[0].size(); ++i )
-                LOG_DBG3(graphMan) << "\t" << edgeList2_[0][i];
-            //}
-
+            LOG_DBG3(graphMan) << "IDBC/Graph insertion for block (" << sbmRow << ", " << sbmCol << ")";
+            LOG_DBG3(graphMan) << "vertexList1: " << ToString(vertexList1_[0]);
+            LOG_DBG3(graphMan) << "vertexList2: " << ToString(vertexList2_[0]);
+            LOG_DBG3(graphMan) << "edgeList1: " << ToString(edgeList1_[0]);
+            LOG_DBG3(graphMan) << "edgeList2: " << ToString(edgeList2_[0]);
             // Insert information into graph for real dofs
             graph_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList1_[0] );
 
             // Insert information into graph for fixed dofs
-            graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList2_[0] );
-            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmRow << ", " << sbmCol << ")" << std::endl;
+            if(graphIDBC_[idx] != nullptr)
+              graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[0], edgeList2_[0] );
+            LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmRow << ", " << sbmCol << ")";
 
             if ( setCounterPart == true ) {
 
               idx = ComputeIndex( sbmCol, sbmRow );
-              LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmCol << ", " << sbmRow << ")" << std::endl;
+              LOG_DBG3(graphMan) << "IDBC: Inserting into (" << sbmCol << ", " << sbmRow << ")";
 
               // Insert information into (transpose) graph for real dofs
               graph_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList1_[0]);
 
               // Insert information into graph for fixed dofs
-              graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList2_[0]  );
+              if(graphIDBC_[idx] != nullptr)
+                graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[0], vertexList2_[0]  );
 
             }
           }
@@ -660,47 +631,30 @@ auto graphMan = LogConfigurator::getLogger("graphManager");
             }
           }
 
-          // --- logging output ---
-          //if( IS_LOG_ENABLED(graphMan, dbg3) ) {
-            LOG_DBG3(graphMan) << "IDBC/Graph insertion for block ("
-                << row << ", " << col << ")";
-
-            LOG_DBG3(graphMan) << "vertexList1: ";
-            for(UInt i=0; i <vertexList1_[row].size(); ++i )
-              LOG_DBG3(graphMan) << "\t" << vertexList1_[row][i];
-
-            LOG_DBG3(graphMan) << "vertexList2: ";
-            for(UInt i=0; i <vertexList2_[row].size(); ++i )
-              LOG_DBG3(graphMan) << "\t" << vertexList2_[row][i];
-
-            LOG_DBG3(graphMan) << "edgeList1: ";
-            for(UInt i=0; i <edgeList1_[col].size(); ++i )
-              LOG_DBG3(graphMan) << "\t" << edgeList1_[col][i];
-
-            LOG_DBG3(graphMan) << "edgeList2: ";
-            for(UInt i=0; i <edgeList2_[col].size(); ++i )
-              LOG_DBG3(graphMan) << "\t" << edgeList2_[col][i];
-          //}
+          LOG_DBG3(graphMan) << "IDBC/Graph insertion for block (" << row << ", " << col << ")";
+          LOG_DBG3(graphMan) << "vertexList1: " << ToString(vertexList1_[row]);
+          LOG_DBG3(graphMan) << "vertexList2: " << ToString(vertexList2_[row]);
+          LOG_DBG3(graphMan) << "edgeList1: " << ToString(edgeList1_[col]);
+          LOG_DBG3(graphMan) << "edgeList2: " << ToString(edgeList2_[col]);
 
           // Insert information into graph for real dofs
           graph_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList1_[col] );
 
           // Insert information into graph for fixed dofs
-          graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
+          if(graphIDBC_[idx] != nullptr)
+            graphIDBC_[idx]->AddVertexNeighbours( vertexList1_[row], edgeList2_[col] );
 
           if ( setCounterPart == true ) {
 
             idx = ComputeIndex( col, row );
-            LOG_DBG3(graphMan) << "Transposed IDBC/Graph insertion for block ("
-                << row << ", " << col << ")";
-            // LOG_DBG3(graphMan) << "IDBC: Inserting into (" << col << ", " << row << ")" << std::endl;
+            LOG_DBG3(graphMan) << "Transposed IDBC/Graph insertion for block (" << row << ", " << col << ")";
 
             // Insert information into (transpose) graph for real dofs
             graph_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList1_[row]);
 
             // Insert information into graph for fixed dofs
-            graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
-
+            if(graphIDBC_[idx] != nullptr)
+              graphIDBC_[idx]->AddVertexNeighbours( edgeList1_[col], vertexList2_[row]  );
           }
         }
       }

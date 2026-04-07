@@ -30,7 +30,6 @@ namespace CoupledField {
   // Abbreviation for global handle
   static const int MathParser_GLOB_HANDLER = 0;
 
-
   //! number of threads for parallel CFS loops
   extern unsigned int CFS_NUM_THREADS;
 
@@ -47,12 +46,19 @@ namespace CoupledField {
   //! HE - hermitian matrix
   typedef enum {ZSYSVMTX, ZGESVMTX, ZHESVMTX} lapackSysMatType;
 
+  /** for Vector and StdVector on handling external data */
+  typedef enum { WRAP = 0, COPY = 1 } ExternalDataMode;
 
   //! logging configurator
   extern LogConfigurator* logConf;
   
   //! Global pointer to domain object
   extern Domain* domain;
+
+  /** Global::REAL, ... is widely used but it could be simplified. */
+  struct Global {
+    typedef enum {INTEGER, REAL, IMAG, COMPLEX} ComplexPart;
+  };
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,

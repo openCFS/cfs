@@ -5,6 +5,7 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 #include "Matrix.hh"
+#include "Utils/tools.hh"
 #include "Utils/SyncAccess.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS

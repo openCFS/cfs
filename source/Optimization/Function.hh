@@ -17,6 +17,7 @@
 #include "MatVec/Vector.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/StdVector.hh"
+#include "Optimization/EigenInfo.hh"
 
 namespace CoupledField {
 class ErsatzMaterial;

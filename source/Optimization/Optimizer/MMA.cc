@@ -197,9 +197,9 @@ void MMA::PostInit()
   xval.Resize(n);
   optimization->GetDesign()->WriteDesignToExtern(xval, true);
   optimization->GetDesign()->WriteBoundsToExtern(std_xmin,std_xmax);
-  // creates a reference to std_xmin in xmin, the meomorz still belongs to std_xmin
-  xmin.Replace(std_xmin.GetSize(), std_xmin.GetPointer(), false);
-  xmax.Replace(std_xmax.GetSize(), std_xmax.GetPointer(), false);
+  // creates a reference to std_xmin in xmin, the memory still belongs to std_xmin
+  xmin.Replace(std_xmin.GetPointer(), std_xmin.GetSize());
+  xmax.Replace(std_xmax.GetPointer(), std_xmax.GetSize());
 
   grad_objective.Resize(n,0.0);
   constraints.Resize(m,0.0);

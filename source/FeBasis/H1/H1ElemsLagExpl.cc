@@ -1,5 +1,6 @@
 #include "H1ElemsLagExpl.hh"
 
+#include <array>
 #include "Utils/AutoDiff.hh"
 
 
@@ -163,7 +164,7 @@ namespace CoupledField {
   void FeH1LagrangeExpl::MapQuadSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
                                                const StdVector<UInt>& commonIndex, 
                                                const LocPoint& surfIntPoint, 
-                                               StdVector<Double>& volIntPoint) {
+                                               std::array<double, 2>& volIntPoint) {
     // consider orientation of the surface
     switch (commonIndexMap.at(commonIndex[0])) {
       // first index is 1
@@ -261,7 +262,7 @@ namespace CoupledField {
   void FeH1LagrangeExpl::MapTriaSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
                                                 const StdVector<UInt>& commonIndex, 
                                                 const LocPoint& surfIntPoint, 
-                                                StdVector<Double>& volIntPoint,
+                                                std::array<double, 2>& volIntPoint,
                                                 bool isEquilateral) {
     if (!isEquilateral) {
       // consider orientation of the rectangular triangles
@@ -1000,7 +1001,7 @@ namespace CoupledField {
       // Surface [1,2,3,4] is common: downside surface, normal in -zeta direction
       case 24: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}, {4, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];
@@ -1013,7 +1014,7 @@ namespace CoupledField {
       // Surface [5,6,7,8] is common: upside surface normal in +zeta direction
       case 1680: {
         const std::map<UInt, UInt> commonIndexMap{{5, 1}, {6, 2}, {7, 3}, {8, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];
@@ -1026,7 +1027,7 @@ namespace CoupledField {
       // Surface [2,3,7,6] is common: right-side surface, normal in +xi direction
       case 252: {
         const std::map<UInt, UInt> commonIndexMap{{2, 1}, {3, 2}, {7, 3}, {6, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 1.0;
         volIntPoint[1] = tmpVolIntPoint[0];
@@ -1039,7 +1040,7 @@ namespace CoupledField {
       // Surface [1,4,8,5] is common: left-side surface, normal in -xi direction
       case 160: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {4, 2}, {8, 3}, {5, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = -1.0;
         volIntPoint[1] = tmpVolIntPoint[0];
@@ -1052,7 +1053,7 @@ namespace CoupledField {
       // Surface[4,3,7,8] is common: back-side surface, normal in +eta direction
       case 672: {
         const std::map<UInt, UInt> commonIndexMap{{4, 1}, {3, 2}, {7, 3}, {8, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = 1.0;
@@ -1065,7 +1066,7 @@ namespace CoupledField {
       // Surface[1,2,6,5] is common: front-side surface, normal in -eta direction
       case 60: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {6, 3}, {5, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = -1.0;
@@ -1240,7 +1241,7 @@ namespace CoupledField {
       // Surface[1,2,3] is common: downside triangular surface, normal in -zeta direction
       case 6: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];
@@ -1253,7 +1254,7 @@ namespace CoupledField {
       // Surface[4,5,6] is common: upside triangular surfa, normal in +zeta direction
       case 15: {
         const std::map<UInt, UInt> commonIndexMap{{4, 1}, {5, 2}, {6, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];
@@ -1266,7 +1267,7 @@ namespace CoupledField {
       // Surface[2,3,5,6] is common: right-side quadrilateral surface, normal in +xi+eta direction
       case 16: {
         const std::map<UInt, UInt> commonIndexMap{{3, 1}, {2, 2}, {5, 3}, {6, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 0.5 + tmpVolIntPoint[0] / 2.0;
         volIntPoint[1] = 0.5 - tmpVolIntPoint[0] / 2.0;
@@ -1279,7 +1280,7 @@ namespace CoupledField {
       // Surface[1,3,6,4] is common: left-side quadrilateral surface, normal in -xi direction
       case 14: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {3, 2}, {6, 3}, {4, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 0.0;
         volIntPoint[1] = 0.5 + tmpVolIntPoint[0] / 2.0;
@@ -1292,7 +1293,7 @@ namespace CoupledField {
       // Surface[1,2,5,4] is common: back-side quadrilateral surface, normal in -eta direction
       case 12: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {5, 3}, {4, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 0.5 + tmpVolIntPoint[0] / 2.0;
         volIntPoint[1] = 0.0;
@@ -2453,7 +2454,7 @@ namespace CoupledField {
       // Surface [1,2,4] is common: front surface, normal in -eta direction
       case 8: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {4, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = 0.0;
@@ -2467,7 +2468,7 @@ namespace CoupledField {
       case 24: {
         // use mapping algorithm of the standard tria element onto a 2D equilateral triangle with coords 1:(-1,0), 2:(1,0), 3:(0,sqrt(3))
         const std::map<UInt, UInt> commonIndexMap{{4, 1}, {2, 2}, {3, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
         // map back to 3D space
         volIntPoint[0] = (1 + tmpVolIntPoint[0]) / 2.0 - tmpVolIntPoint[1] / sqrt(12.0);
@@ -2481,7 +2482,7 @@ namespace CoupledField {
       // Surface[1,3,4] is common: upper-left surface, normal in -xi direction
       case 12: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {3, 2}, {4, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 0.0;
         volIntPoint[1] = tmpVolIntPoint[0];
@@ -2494,7 +2495,7 @@ namespace CoupledField {
       // Surface[1,2,3] is common: bottom surface, normal in -zeta direction
       case 6: {
         const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];
@@ -3464,7 +3465,7 @@ namespace CoupledField {
       // Surface[2,1,5] is common: rear triangular surface, normal in +eta+zeta direction
       case 10: {
         const std::map<UInt, UInt> commonIndexMap{{2, 1}, {1, 2}, {5, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = 1.0 - tmpVolIntPoint[1] / sqrt(3.0);
@@ -3477,7 +3478,7 @@ namespace CoupledField {
       // Surface[2,3,5] is common: left triangular surface , normal in -xi+zeta direction
       case 30: {
         const std::map<UInt, UInt> commonIndexMap{{2, 1}, {3, 2}, {5, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
         volIntPoint[0] = -1.0 + tmpVolIntPoint[1] / sqrt(3.0);
         volIntPoint[1] = -tmpVolIntPoint[0];
@@ -3490,7 +3491,7 @@ namespace CoupledField {
       // Surface[3,4,5] is common: front triangular surface, normal in -eta+zeta direction
       case 60: {
         const std::map<UInt, UInt> commonIndexMap{{3, 1}, {4, 2}, {5, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = -1.0 + tmpVolIntPoint[1] / sqrt(3.0);
@@ -3503,7 +3504,7 @@ namespace CoupledField {
       // Surface[4,1,5] is common: right triangular surface, normal in +xi+zeta direction
       case 20: {
         const std::map<UInt, UInt> commonIndexMap{{4, 1}, {1, 2}, {5, 3}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
         volIntPoint[0] = 1.0 - tmpVolIntPoint[1] / sqrt(3.0);
         volIntPoint[1] = tmpVolIntPoint[0];
@@ -3516,7 +3517,7 @@ namespace CoupledField {
       // Surface[3,4,1,2] is common: bottom quadrilateral surface, normal in zeta direction
       case 24: {
         const std::map<UInt, UInt> commonIndexMap{{3, 1}, {4, 2}, {1, 3}, {2, 4}};
-        StdVector<Double> tmpVolIntPoint(2);
+        std::array<double, 2> tmpVolIntPoint;
         MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = tmpVolIntPoint[1];

@@ -1347,7 +1347,7 @@ void ParamNode::AdjustElementType()
   // -> not possible in XML tree
   if (type_ == ATTRIBUTE && children_.GetSize())
   {
-    WARN("Node '" << name_ << "' is a ATTRIBUTE and has child nodes. "
+    WARN("Node '" << name_ << "' is an ATTRIBUTE and has child nodes. "
         << "This is not possible in a xml tree!");
     assert(false); // find the stuff
   }

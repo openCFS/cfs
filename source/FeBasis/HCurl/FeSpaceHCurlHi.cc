@@ -214,6 +214,10 @@ namespace CoupledField{
     // default: use no gradients
     useGradients_[region] = false;
 
+
+    if(!refElems_[region].empty()) // FIXME: Fabian - first check why this is called multiple times?!
+      WARN("FeSpaceHCurlHi::SetRegionElements: overwrite " << refElems_[region].size() << " elements for regions " << region << " will create memory leaks!");
+
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
     refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();

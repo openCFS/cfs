@@ -4,11 +4,11 @@
 #include <def_build_type_options.hh>
 
 #include <boost/type_traits/is_complex.hpp>
-
+#include <boost/container/small_vector.hpp>
 #include "MatVec/promote.hh"
 #include "MatVec/SingleVector.hh"
 #include "MatVec/opdefs.hh"
-#include "Utils/tools.hh"
+#include "Utils/LightTools.hh"
 
 #ifdef USE_EXPRESSION_TEMPLATES
 #include "MatVec/exprt/xpr2.hh"
@@ -23,8 +23,10 @@ namespace CoupledField
   //! Forward class declaration
   template<class TYPE> class Vector;
   
-
-  //! Concrete implementation of a dense matrix
+  /** Matrix is mathematical matrix for integers, doubles and complex.
+   * Similar to Vector it uses a boost::small_vector with stack data for 6x6 entries.
+   * If resized above, transparently dynamic memory is allocated on the heap.
+   * check with cfs -d to see the actual (remaining) allocations in the .info.xml */
   template<class TYPE>
 #ifdef USE_EXPRESSION_TEMPLATES
   class Matrix: public DenseMatrix, public Dim2<TYPE, Matrix<TYPE> >
@@ -42,6 +44,11 @@ namespace CoupledField
     // =======================================================================
     
     //! \name Construction, Destruction, Initialization and Resizing
+
+    /** @see buffer_ */
+    static constexpr unsigned int CalcBufferSizeBytes(unsigned int nRows, unsigned int nCols) {
+       return sizeof(TYPE*) * nRows + sizeof(TYPE) * nCols * nRows;
+    }
 
     //@{ 
     //! Default constructor 
@@ -790,14 +797,18 @@ namespace CoupledField
     TYPE Adjunct (UInt i, UInt j) const;
 
     //! Number of rows 
-    UInt size_row_;
+    UInt size_row_ = 0;
   
     //! Number of columns
-    UInt size_col_;
+    UInt size_col_ = 0;
 
     //! Data of the matrix
-    TYPE** data_;
+    TYPE** data_ = nullptr;
 
+    /** keeps the actual data with single allocation and rows and data as 
+     * continuous memory for better cache performance */
+    boost::container::small_vector<std::byte, CalcBufferSizeBytes(6,6)> buffer_;
+    // one can replace small_vector by std::vector<std::byte> buffer_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

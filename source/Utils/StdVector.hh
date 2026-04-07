@@ -1,6 +1,7 @@
 #ifndef FILE_STDVECTOR_2004
 #define FILE_STDVECTOR_2004
 
+#include <array>
 #include <boost/iterator/iterator_facade.hpp>
 #include <vector>
 #include "General/Exception.hh"
@@ -18,7 +19,10 @@ namespace CoupledField {
   //! in sequential order. In contrast to the CFS-Vector, this class
   //! requires no arithmetic functionality for its elements.
   //! This class replaces the use of std::vector<>-class and therefore
-  //! provides a similar interface
+  //! provides a similar interface. 
+  //! One advantage is that we have range checks in debug mode
+  //! Has some constructors and Replace() to wrap external data.
+  //! Resizing with external data is allowed as long as we stay within the capacity
   template<class TYPE>
   class StdVector{
   public:
@@ -37,12 +41,8 @@ namespace CoupledField {
     // facade concept.
 
     //! Define iterator class
-    class iterator 
-      :  public boost::iterator_facade
-      < iterator, 
-        TYPE,
-        boost::random_access_traversal_tag
-        > {
+    class iterator : public boost::iterator_facade<iterator, TYPE, boost::random_access_traversal_tag> 
+    {
     public: 
       
       //! default constructor
@@ -95,12 +95,8 @@ namespace CoupledField {
     };
     
     //! Define CONST iterator class
-    class const_iterator 
-    :  public boost::iterator_facade
-    < const_iterator, 
-    TYPE const,
-    boost::random_access_traversal_tag
-    > {
+    class const_iterator : public boost::iterator_facade<const_iterator, TYPE const, boost::random_access_traversal_tag>
+    {
     public: 
 
       //! default constructor
@@ -202,25 +198,73 @@ namespace CoupledField {
     // =======================================================================
 
     //! Constructor
-    StdVector();
+    StdVector() { }; // default is fine
 
     //! Constructor with initial size.
     //! All entries are filled with zeroes
-    explicit StdVector(size_type size);
+    explicit StdVector(size_type size) {
+      size_ = size;
+      capacity_ = size;
+      data_ = new TYPE[size];
+      Init();
+    }
 
-    //! Copy constructor
-    StdVector(const StdVector<TYPE> & vec);
+    //! Copy constructor - we copy to own memory. 
+    StdVector(const StdVector<TYPE>& vec) {
+       size_ = vec.size_;
+       capacity_ = vec.size_;
+       data_ = new TYPE [vec.size_];
+       std::copy(vec.data_, vec.data_+size_, data_);
+    }
 
-    //! Copy constructor with std::vector
-    StdVector(const std::vector<TYPE> & vec);
+    /** will copy data to own memory */
+    StdVector(const std::vector<TYPE>& vec) : StdVector(vec.data(), vec.size()) {}
+    
+    /** UseStdVector as wrapper to existing data, e.g. std::array<double, 4>.
+     * Avoids dynamic memory allocation on head. Saves > 10 times for small vectors. 
+     * @see heap_vs_stack() in testbed.cc
+     * We do not copy nor own the data. Resizing() is allowed (assert in debug)
+     * This is a wrapper, it acts directly with the external data
+     * @see Replace() */
+    StdVector(TYPE* data, size_type size, ExternalDataMode mode = WRAP) {
+      Replace(data, size, mode);
+    }
+
+    /** const data is copied by default. It must not be wrapped.
+     * If you want the other way, const_cast yourself */
+    StdVector(const TYPE* data, size_type size) {
+      Replace(const_cast<TYPE*>(data), size, COPY); 
+    }
+
+    /** Use this if you want to provide hast stack data to be wrapped. */
+    template<std::size_t N>
+    explicit StdVector(std::array<TYPE, N>& arr) {
+      size_ = N;
+      capacity_ = N;
+      data_ = arr.data(); 
+      wrapped_ = true;
+    }
 
     //! STL-compatible version
     template <class InputIterator>
-    StdVector (InputIterator first, InputIterator last);
+    StdVector(InputIterator first, InputIterator last);
 
     //! Destructor
-    ~StdVector();  
+    ~StdVector() 
+    {
+      if(!wrapped_)
+        delete[] data_;
+    }
 
+    /** helper for easy usage with a stack array as buffer to be wrapped by a StdVector. Use like
+     * auto [myvec, buffer] = StdVector<double>::CreateWithStackData<4>(size);
+     * myvec will be a vector, buffer is just there to be the underlaying data. */ 
+    template<std::size_t N>
+    static std::pair<StdVector<TYPE>, std::array<TYPE, N>> CreateWithStackData() {
+      std::array<TYPE, N> arr; // compiler magic will allocate the objects on the callers stack
+      return std::make_pair(StdVector<TYPE>(arr), arr);
+    }
+    
     //! Clear the vector
 
     //! This method clears the vector, i.e. it sets its size
@@ -237,7 +281,10 @@ namespace CoupledField {
       \param entry (input) Entry vector gets initialized with
     */
     //! \note this method does not change the size of the vector!
-    void Init(const TYPE entry = TYPE());
+    void Init(const TYPE entry = TYPE()) {
+      std::fill(data_, data_+size_, entry);
+    }
+
 
     //! True, if vector is empty
     inline bool IsEmpty() const {return (size_? false : true);}
@@ -279,25 +326,52 @@ namespace CoupledField {
 
     /** Set the length of the vector but keep the capacity.
      * When we shrink, capacity will remain. If we grow beyond capacity we copy 
+     * When we are wrapped it is allowed as long as we are within the capacity
      * @param size if smaller capacity only the internal size parameter is adjusted.
      *        If larger than the current capacity the old data is copied!
      * @note Additional data is NOT initialized, use the other constructor Resize with init parameter sets ALL data */
-    void Resize(size_type size);
+    inline void Resize(size_type size)
+    {
+      if(size > capacity_)
+      {
+        assert(!wrapped_);
+        TYPE* help = new TYPE[size];
+        for (unsigned int i=0; i<size_; i++)
+          help[i] = data_[i];
+        delete[] data_;
+        data_ = help;
+        capacity_ = size;
+      }
+      size_ = size;
+    }
 
     /** Resize by keeping the capacity. In case we grow beyond capacity, the data is not copied. */ 
-    void ResizeNoCopy(size_type size);
+    void ResizeNoCopy(size_type size)
+    {
+      if(size > capacity_)
+      {
+        assert(!wrapped_);
+        delete[] data_;
+        data_ = new TYPE[size];
+        capacity_ = size;
+      }
+      size_ = size;
+    }
 
     /** Set the length of the vector and initialize
      * @note Init() is called with this value */
-    void Resize(size_type size, TYPE entry);
-    
+    inline void Resize(size_type size, TYPE entry) {
+      ResizeNoCopy(size);
+      Init(entry);
+    }
+
     /** extract part of the vector by a pattern
      * @param start this is index of the first item to be returned
      * @param stride the returned values are for start, start+stride, start+2*stride, ... */
     StdVector Slice(size_type start, size_type stride);
 
     //! Overloading of operation =
-    StdVector     &operator=      (const StdVector &);
+    StdVector& operator= (const StdVector &);
 
     //! Overloading for operator=
 
@@ -307,17 +381,19 @@ namespace CoupledField {
     inline StdVectorListInitializer<TYPE> operator=(const TYPE x);
 
     //! Build vector from std::vector
-    StdVector & operator= (const std::vector<TYPE> & vec);
+    StdVector& operator= (const std::vector<TYPE> & vec);
   
     //! Returns the last entry of vector
     inline TYPE& Last();
     inline TYPE Last() const;
  
-
     //! Returns the first entry of vector
     inline TYPE& First();
     inline TYPE First() const;
 
+    /** convenience when having a pointer. In debug the operator checks bounds */
+    inline TYPE& At(size_type i) { return data_[i]; }
+    inline const TYPE& At(size_type i) const { return data_[i]; }
 
     //! General access operator
     inline TYPE& operator[] (const unsigned int i);
@@ -330,8 +406,10 @@ namespace CoupledField {
 
     /** Imports data from external, adjusts internal size and capacity. The data is copied.
      * Any existing data is overwritten.
-     * @see Assign() */
-    void Import(const TYPE* source, size_type size);
+     * @see Replace(COPY) what is actually done */
+    void Import(const TYPE* source, size_type size) { 
+      Replace(const_cast<TYPE*>(source), size, COPY); 
+    }
 
     /** Import data from an external stl container. Resizes this vector accordingly.
      * Not all containers have a size, e.g. boost::tokenizer. If possible provide it, otherwise Push_back might have to
@@ -350,28 +428,50 @@ namespace CoupledField {
          Push_back(*it);
     }
 
-    /** Take over external data including memory ownership, data is not copied.
-     * Note that the destructor will delete current data. If your source is Vector::GetPointer() call Vector::DecoupleMeme().
-     * To prevent deletion of the assigned data, assign NULL with delete_old_data=true before this StdVector is destructed.
-     * @param delete_old_data if true this StdVector forgets about current data. Make sure there is no memory leak.
+    /** Make a wrapper or copy external data to internal data (will be resized).
+     * Own memory will be deleted first when we wrap. Otherwise we leave the object deletion to the assignment operator.
+     * Usefull e.g. to assign a stack buffer std::array<T,N> 
      * @see Import() */
-    void Assign(TYPE* source, size_type size, bool delete_old_data);
+    inline void Replace(TYPE* data, size_type length, ExternalDataMode mode = WRAP)
+    {
+      assert(mode == WRAP || mode == COPY);
+      if(mode == WRAP) {
+        if(!wrapped_)
+          delete[] data_;
+        data_ = data;
+        size_ = length;
+        capacity_ = length;
+        wrapped_ = true;
+      } else {
+        assert(data != nullptr && length > 0);
+        if(wrapped_) { // when we are wrapped but shall copy, we allocate own memory and are not wrapped any more
+          data_ = nullptr;
+          size_ = 0;
+          capacity_ = 0;
+          wrapped_ = false; // reset from wrapped before calling ResizeNoCopy()
+        }
+        ResizeNoCopy(length); 
+        std::copy_n(data, length, data_);
+        assert(wrapped_ == false);
+      }
+    } 
 
-    
     /** Add element of the same type at the end of the vector.
      * If there is not enough capacity (GetCapacity()) the data is copied to a new data of doubled size.
      * Note that this invalidates all pointers to data entries! If you have such an issue, make sure you Reserve() sufficient
      * space before Push_back() the first element.
      * @param no_expand throws an exception if the capacity is too small and data expanding would be necessary
      * @see HasSpace() to check if Push_back() does not need expansion */
-    inline void Push_back(const TYPE & y = TYPE(), bool no_expand = false) {
+    inline TYPE& Push_back(const TYPE & y = TYPE(), bool no_expand = false) 
+    {
       if ( size_ < capacity_ ) {
         data_[size_++] = y;
       } else {
         if(no_expand)
-          EXCEPTION("Capacity " << capacity_ << " for Push_back() to small but data expansion not allowed");
-        _Push_back_expand(y);
+          EXCEPTION("Capacity " << capacity_ << " for Push_back() too small but data expansion not allowed");
+        Push_back_expand(y);
       }
+      return data_[size_-1];
     }
 
     /** Lower-case version for STL compatibility */
@@ -513,17 +613,20 @@ namespace CoupledField {
   protected:
 
     //! Internal push back command for resizing
-    void _Push_back_expand(const TYPE & y);
+    void Push_back_expand(const TYPE & y);
 
     //! Length of the vector
-    size_type size_;
+    size_type size_ = 0;
     
     //! Capacity of the vector
-    size_type capacity_;
-
+    size_type capacity_ = 0;
 
     //! Data of the vector
-    TYPE* data_;
+    TYPE* data_ = nullptr;
+
+    /** there is the case of being a wrapper for external data, as in Vector.hh,
+     * however we may Resize() within the capacity - so we need a flag */
+    bool wrapped_ = false;
   };
 
   // ******************************************************
@@ -549,7 +652,7 @@ namespace CoupledField {
 
   private:
     //! pointer to vector
-    StdVector<TYPE> * vec_;
+    StdVector<TYPE>* vec_;
   };
 
   // ******************************************************
@@ -558,13 +661,11 @@ namespace CoupledField {
   
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE & StdVector<TYPE>::operator[] (size_type i)
+  TYPE& StdVector<TYPE>::operator[] (size_type i)
   {     
     #ifdef CHECK_INDEX
     if (i >= size_){
-      EXCEPTION( "Invalid access to element "
-                 << i+1
-                 << " \n Length of vector: " << size_ );
+      EXCEPTION( "Invalid access to element " << i+1 << " Length of vector: " << size_ );
     }
     #endif
     return  data_[i];
@@ -572,7 +673,7 @@ namespace CoupledField {
 
   //! Element can be referred to as v[i]
   template<class TYPE>
-  const TYPE & StdVector<TYPE>::operator[] (size_type i) const
+  const TYPE& StdVector<TYPE>::operator[] (size_type i) const
   {     
 #ifdef CHECK_INDEX
      if (i >= size_){

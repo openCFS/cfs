@@ -1916,27 +1916,13 @@ namespace CoupledField
                                     FEMatrixType matrixType,
                                     bool setCounterPart ) {
 
-    LOG_DBG(algSys) << "Setting element position for fctIds ("
-                     << fctId1 << ", " << fctId2 << ")";
-    LOG_DBG2(algSys) << "matrixType: " << feMatrixType.ToString(matrixType);
-    LOG_DBG2(algSys) << "counterPart: " << (setCounterPart ? "yes" : "no");
-    LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
-    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
-
-//    std::cout << "Setting element position for fctIds ("
-//                     << fctId1 << ", " << fctId2 << ")" << std::endl;
-//    std::cout << "matrixType: " << feMatrixType.ToString(matrixType) << std::endl;
-//    std::cout << "counterPart: " << (setCounterPart ? "yes" : "no") << std::endl;
-//    std::cout << "EqnVec1: " << eqnNrs1.ToString() << std::endl;
-//    std::cout << "EqnVec2: " << eqnNrs2.ToString() << std::endl;
+    LOG_DBG(algSys) << "SEP: fctIds (" << fctId1 << ", " << fctId2 << ") mt=" << feMatrixType.ToString(matrixType) << " cp=" << (setCounterPart ? "yes" : "no");
+    LOG_DBG2(algSys) << "SEP: EqnVec1: " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "SEP: EqnVec2: " << eqnNrs2.ToString();
 
     // check, if registration was already finished
-#ifndef NDEBUG
-    if( !registrationFinished_ ) {
-      EXCEPTION("Element connectivity can only be set after "
-                "AlgebraicSys::FinishRegistration() was called" );
-    }
-#endif
+    assert(registrationFinished_);
+
     StdVector<UInt>& rowBlocks    = rowBlocks_.Mine();
     StdVector<UInt>& colBlocks    = colBlocks_.Mine();
     StdVector<UInt>& rowNums      = rowNums_.Mine();
@@ -1947,7 +1933,6 @@ namespace CoupledField
       MapFctIdEqnToIndex_MultHarm(fctId1, eqnNrs1, rowBlocks, rowNums, nnzSBMInd_);
       MapFctIdEqnToIndex_MultHarm(fctId2, eqnNrs2, colBlocks, colNums, nnzSBMInd_);
     }else{
-//      std::cout << "MapFctIdEqnToIndex" << std::endl;
       MapFctIdEqnToIndex(fctId1, eqnNrs1, rowBlocks, rowNums);
       MapFctIdEqnToIndex(fctId2, eqnNrs2, colBlocks, colNums);
     }
@@ -1960,8 +1945,6 @@ namespace CoupledField
     if( fctId1 == fctId2 )
       setCounterPart = true;
 
-
-//    std::cout << "setCounterPart? " << setCounterPart << std::endl;
     graphManager_->SetElementPos( rowBlocks, rowNums,
                                   colBlocks, colNums,
                                   matrixType,

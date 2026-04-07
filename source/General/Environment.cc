@@ -5,6 +5,7 @@
 
 #include "Environment.hh"
 #include "Utils/tools.hh"
+#include "Utils/AllocationLog.hh"
 #include "Domain/Domain.hh"
 #include "def_use_blas.hh"
 #include "def_use_openmp.hh"
@@ -20,8 +21,8 @@ namespace CoupledField {
 
   // Define global objects 
   Domain* domain = NULL;
-  // Initialisation of some global pointers
-  //WriteInfo *Info = NULL;
+
+  AllocationLog matrixLog;
 
   // Definition of finite element type mappings
   static EnumTuple complexPartTuples[] = {
@@ -31,12 +32,10 @@ namespace CoupledField {
       EnumTuple(Global::COMPLEX,  "Complex")
   };
 
-  Enum<Global::ComplexPart> Global::complexPart = \
+  Enum<Global::ComplexPart> ComplexPartEnum = \
   Enum<Global::ComplexPart>("Parts of a complex number",
                               sizeof(complexPartTuples) / sizeof(EnumTuple),
                               complexPartTuples);
-
-
 
 
   /** instantiate Enum<> objects, Fill the content in SetEnvironmentEnums() below */

@@ -265,8 +265,8 @@ public:
   virtual void InitFromFeFunction( shared_ptr<BaseFeFunction> feFct ) = 0;
 
   struct EqNodeGeom{
-    UInt indexNum; //index number in OLAS
-    UInt nodeNum; //one nodeNum can contain several eqNum's, e.g. 2D, 3D vector values
+    UInt indexNum = 0; //index number in OLAS
+    UInt nodeNum  = 0; //one nodeNum can contain several eqNum's, e.g. 2D, 3D vector values
     Vector<Double> coord; //coordinate of the node with nodeNum
     //node-coordinates of both nodes of one edge, must be stored in positive direction
     StdVector< Vector<Double> > eCoords;

@@ -363,7 +363,7 @@ PyObject* grid_get_nodes(PyObject *self, PyObject *args)
 
   StdVector<unsigned int> nodes;
   domain->GetGrid()->GetNodesByRegion(nodes, regid);
-  Vector<unsigned int> vec(nodes.GetSize(), nodes.GetPointer(), false); // wrap empty Vector around StdVector
+  Vector<unsigned int> vec(nodes.GetPointer(), nodes.GetSize()); // wrap empty Vector around StdVector
 
   vec.Export((PyObject*) pyarray);
   Py_RETURN_NONE;

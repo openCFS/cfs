@@ -197,8 +197,8 @@ namespace CoupledField {
     TYPE* x1 = x;
     TYPE* y1 = y;
     Vector<TYPE> vecX, vecY;
-    vecX.Replace( size_, x1, false );
-    vecY.Replace( size_, y1, false );
+    vecX.Replace(x1, size_);
+    vecY.Replace(y1, size_);
     
     // Solve system 
     solver_->GetSolveTimer()->Start();
@@ -213,8 +213,8 @@ namespace CoupledField {
     TYPE* x1 = x;
     TYPE* y1 = y;
     Vector<TYPE> vecX, vecY;
-    vecX.Replace( size_, x1, false );
-    vecY.Replace( size_, y1, false );
+    vecX.Replace(x1, size_);
+    vecY.Replace(y1, size_);
     
     // Create temporary vector
     Vector<TYPE> ax(size_);
@@ -233,8 +233,8 @@ namespace CoupledField {
     TYPE* x1 = x;
     TYPE* y1 = y;
     Vector<TYPE> vecX, vecY;
-    vecX.Replace( size_, x1, false );
-    vecY.Replace( size_, y1, false );
+    vecX.Replace(x1, size_);
+    vecY.Replace(y1, size_);
     
     // Perform matrix-vector multiplication
     if( isGeneralized_ ) {
@@ -252,8 +252,8 @@ namespace CoupledField {
     TYPE* x1 = x;
     TYPE* y1 = y;
     Vector<TYPE> vecX, vecY;
-    vecX.Replace( size_, x1, false );
-    vecY.Replace( size_, y1, false );
+    vecX.Replace(x1, size_);
+    vecY.Replace(y1, size_);
     
     // Perform matrix-vector multiplication
     matrixA_->Mult( vecX, vecY );
@@ -288,10 +288,10 @@ namespace CoupledField {
     a2 = a1 + neq;
     Vector<Complex> vecB1, vecA1, vecB2, vecA2;
 
-    vecA1.Replace( neq, a1, false );
-    vecB1.Replace( neq, b1, false );
-    vecA2.Replace( neq, a2, false );
-    vecB2.Replace( neq, b2, false );
+    vecA1.Replace(a1, neq);
+    vecB1.Replace(b1, neq);
+    vecA2.Replace(a2, neq);
+    vecB2.Replace(b2, neq);
     
     Vector<Complex> cx(neq),mx(neq),nInvB2(neq);
 
@@ -349,10 +349,10 @@ namespace CoupledField {
     y2 = y1 + size_/2;
 
     Vector<Complex> vecX1, vecY1, vecX2, vecY2;
-    vecX1.Replace( size_/2, x1, false );
-    vecY1.Replace( size_/2, y1, false );
-    vecX2.Replace( size_/2, x2, false );
-    vecY2.Replace( size_/2, y2, false );
+    vecX1.Replace(x1, size_/2);
+    vecY1.Replace(y1, size_/2);
+    vecX2.Replace(x2, size_/2);
+    vecY2.Replace(y2, size_/2);
 
     // Perform matrix-vector multiplication
     matrixB_->Mult( vecX1, vecY1 );
@@ -393,10 +393,10 @@ namespace CoupledField {
     y2 = y1 + neq;
     Vector<Complex> vecX1, vecY1, vecX2, vecY2, vecTemp(neq);
 
-    vecX1.Replace( neq, x1, false );
-    vecY1.Replace( neq, y1, false );
-    vecX2.Replace( neq, x2, false );
-    vecY2.Replace( neq, y2, false );
+    vecX1.Replace(x1, neq);
+    vecY1.Replace(y1, neq);
+    vecX2.Replace(x2, neq);
+    vecY2.Replace(y2, neq);
     
     // Perform matrix-vector multiplication - upper part
     matrixD_->Mult( vecX1, vecY1 );
@@ -418,8 +418,8 @@ namespace CoupledField {
     Integer neq = size_/2;
 
     Vector<Complex> vecX, vecY;
-    vecX.Replace( neq, x1, false );
-    vecY.Replace( neq, y1, false );
+    vecX.Replace(x1, neq);
+    vecY.Replace(y1, neq);
     
     // Perform matrix-vector multiplication
     matrixA_->Mult( vecX, vecY );
@@ -434,8 +434,8 @@ namespace CoupledField {
     Integer neq = size_/2;
 
     Vector<Complex> vecX, vecY;
-    vecX.Replace( neq, x1, false );
-    vecY.Replace( neq, y1, false );
+    vecX.Replace(x1, neq);
+    vecY.Replace(y1, neq);
     
     // Perform matrix-vector multiplication
     matrixB_->Mult( vecX, vecY );
@@ -450,8 +450,8 @@ namespace CoupledField {
     Integer neq = size_/2;
 
     Vector<Complex> vecX, vecY;
-    vecX.Replace( neq, x1, false );
-    vecY.Replace( neq, y1, false );
+    vecX.Replace(x1, neq);
+    vecY.Replace(y1, neq);
     
     // Perform matrix-vector multiplication
     matrixD_->Mult( vecX, vecY );

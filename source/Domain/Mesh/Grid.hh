@@ -733,10 +733,10 @@ namespace CoupledField
     //@{ \name Surface Access Functions
 
     //! Get total number of faces in the grid
-    virtual UInt GetNumFaces() = 0;
+    virtual UInt GetNumFaces() const = 0;
 
     //! Return face with given face
-    virtual const Face& GetFace( UInt faceNr) = 0;
+    virtual const Face& GetFace( UInt faceNr) const = 0;
 
     //@}
 
@@ -747,10 +747,10 @@ namespace CoupledField
 
 
     //! Get number of edges in the grid
-    virtual UInt GetNumEdges() = 0;
+    virtual UInt GetNumEdges() const = 0;
 
     //! Return edge with given number
-    virtual const Edge& GetEdge( UInt edgeNr ) = 0;
+    virtual const Edge& GetEdge( UInt edgeNr ) const = 0;
 
     //@}
 

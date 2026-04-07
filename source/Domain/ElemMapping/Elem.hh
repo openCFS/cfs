@@ -16,6 +16,7 @@ namespace CoupledField
   // forward definition
   struct ElemShape;
   struct ExtendedElementInfo;
+  class Grid;
 
   //! Class for description of a volume finite element
 
@@ -113,8 +114,11 @@ namespace CoupledField
     //! Array with node numbers
     StdVector<UInt> connect;
 
-    //! Extended element information
-    ExtendedElementInfo* extended;
+    /** Extended element information. All grid elements have this data set.
+     * This spoils a little the cache locality but on the other side, the data
+     * in the extension is not used that much. 
+     * Take care if also the content of the extension is initialized */
+    ExtendedElementInfo* extended = nullptr;
 
     // ======================================================
     // HELPER METHODS
@@ -164,16 +168,13 @@ namespace CoupledField
 
   std::ostream& operator<< ( std::ostream& os , const Elem& elem);
 
-  struct ExtendedElementInfo{
-
-    ExtendedElementInfo() : neighborhood(NULL){
-    }
+  struct ExtendedElementInfo
+  {
+    ExtendedElementInfo() {}
 
     ~ExtendedElementInfo(){
-      if(neighborhood){
+      if(neighborhood)
         delete neighborhood;
-        neighborhood = NULL;
-      }
     }
 
     //! Array with edge numbers
@@ -296,14 +297,13 @@ namespace CoupledField
      * of common nodes with this element. By this one can determine
      * if it is an face, edge or node neighbor.
      * The list is completely unsorted. To be generated via grid.
-     * @see Grid::FindElementNeighorhood() */
-    StdVector<std::pair<Elem*, int> >* neighborhood;
+     * @see Grid::FindElementNeighborhood() */
+    StdVector<std::pair<Elem*, int> >* neighborhood = nullptr;
 
     /** TODO: don't store here!
      * The barycenter of the element, Set via Grid::SetElementBarycenters().
      * The values are by for the uninitialized case zero, be careful! Check via Grid::RegionData */
     Point barycenter;
-
   };
 
 

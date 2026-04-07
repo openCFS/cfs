@@ -844,7 +844,7 @@ void SGP::GradientCheck() {
     }
 
     // put it into a vector object to get a nice output format
-    Vector<double> vec(n_var, grad_vec, false);
+    Vector<double> vec(grad_vec, n_var);
     Vector<double> diff;
     diff = vec - fd[e];
     int loc;

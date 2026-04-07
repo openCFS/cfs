@@ -14,40 +14,36 @@
 
 #include "Utils/boost-serialization.hh"
 #include "Utils/tools.hh"
-
+#include "Utils/AllocationLog.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "BLASLAPACKInterface.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 using boost::tokenizer;
 
+DEFINE_LOG(matrix, "matrix")
+
 namespace CoupledField
 {      
+  // global instance to write the allocations to info.xml
+  extern AllocationLog matrixLog;
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix () :
-    DenseMatrix(),
-    size_row_(0),
-    size_col_(0),
-    data_(NULL)
-  { }
+  Matrix<TYPE>::Matrix () 
+  { 
+    Resize(0,0);
+  }
 
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix (const UInt nRows, const UInt nCols) :
-    DenseMatrix(),
-    size_row_(nRows),
-    size_col_(nCols),
-    data_(new TYPE* [size_row_])
+  Matrix<TYPE>::Matrix (const UInt nRows, const UInt nCols) 
   {
 #ifdef CHECK_INDEX 
     if (nRows <= 0 || nCols <= 0)
       EXCEPTION("invalid dimension");
 #endif
-
-    data_[0]=new TYPE[size_col_*size_row_];
-
-    for (UInt k=1; k < size_row_; k++) 
-      data_[k]=data_[k-1]+size_col_;
-
+ 
+    Resize(nRows,nCols);
     Init();
   }
 
@@ -56,15 +52,14 @@ namespace CoupledField
   Matrix<TYPE>::Matrix (const UInt nRows,const Vector<TYPE> * const x) :
     DenseMatrix(),
     size_row_(nRows),
-    size_col_(x[0].size_),
-    data_(new TYPE* [size_row_])
+    size_col_(x[0].size_)
   {
 #ifdef CHECK_INDEX
     if (nRows <= 0) EXCEPTION("invalid dimension");
     if (size_col_ == 0) EXCEPTION("invalid dimension");
 #endif 
 
-    UInt k,kk;
+    UInt k;
 #ifdef CHECK_INDEX
     for (k=1; k < size_row_; k++)
     
@@ -72,25 +67,17 @@ namespace CoupledField
           EXCEPTION(" Not all vectors for initialization have the same size" );
       }
 #endif
-  
+    Resize(size_row_,size_col_);
+    
     for (k=0; k < size_row_; k++)
-      for (kk=0; kk<size_col_; kk++)
+      for (unsigned int kk=0; kk<size_col_; kk++)
         data_[k][kk]=x[k][kk];
   }
 
   template<class TYPE>
-  Matrix<TYPE>::Matrix (const Matrix<TYPE> &x) :
-    DenseMatrix(),
-    size_row_(x.size_row_),
-    size_col_(x.size_col_),
-    data_(NULL)
+  Matrix<TYPE>::Matrix (const Matrix<TYPE> &x) 
   {
-    // We are able to copy empty matrices!
-    if (size_row_ > 0 && size_col_ > 0 )
-    {
-      data_ = new TYPE * [size_row_];
-      data_[0]=new TYPE[size_row_ * size_col_];
-    }
+    Resize(x.size_row_,x.size_col_);
  
     for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
       data_[0][k]=x.data_[0][k];
@@ -100,16 +87,7 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  Matrix<TYPE>::~Matrix ()
-  {
-    if (data_ != NULL)
-    {
-      delete[] data_[0];
-      delete[] data_;
-      data_= NULL;
-    }
-  }
-
+  Matrix<TYPE>::~Matrix () { }
 
   template<class TYPE>
   std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
@@ -2115,28 +2093,41 @@ namespace CoupledField
   {
     if(nRows != size_row_ || nCols != size_col_)
     {
-      // delete old data, if existend
-      if (data_ != NULL)
-      {
-        delete [] data_[0];
-        delete [] data_;
-      }
-
       // set the size to requested values
       size_row_ = nRows; 
       size_col_ = nCols;
-      
-      if (size_row_ == 0 || size_col_ == 0)
+
+      if(size_row_ == 0 || size_col_ == 0) 
       {
+        LOG_DBG3(matrix) << "R clear with capacity " << buffer_.capacity() << " -> " << 0 << " for " << size_row_ << " x " << size_col_ ;
+        buffer_.clear();
         data_ = nullptr;
       }
-      else {
-        data_    = new TYPE*[size_row_];
-        data_[0] = new TYPE [size_row_*size_col_];
+      else
+      {
+        unsigned int buffer_size_bytes = CalcBufferSizeBytes(size_row_, size_col_);
+        LOG_DBG3(matrix) << "R test capacity " << buffer_.capacity() << " -> " << buffer_size_bytes << " for " << size_row_ << " x " << size_col_ << " =" << size_row_ * size_col_ ;
+        if(buffer_.capacity() < buffer_size_bytes && progOpts && progOpts->DoDetailedInfo()) 
+          matrixLog.AddAllocation(size_row_*size_col_); // still call the cheap resize() but don't allocate
+  
+        buffer_.resize(buffer_size_bytes);        
+  
+        // we need some (dirty) pointer casting to realize the (legacy) TYPE** data_structure
+        // classical is 
+        // data_ = new TYPE*[size_row_];
+        // data_[0] = new TYPE[size_row_*size_col_];
+        // data_[0] points to the full data block which is row by row, the first row is the first part in the data block
+        // we need to do this for every logical size_row_ and size_col_ combination.
+        std::byte* base = reinterpret_cast<std::byte*>(buffer_.data()); 
+        TYPE* data_block = reinterpret_cast<TYPE*>(base + sizeof(TYPE*) * size_row_); // start of full content nRows * nCols
 
-        for (UInt k = 1; k < size_row_; ++k) 
+        // convenience classical access via data_[i][j] and continuous memory for better cache performance 
+        data_ = reinterpret_cast<TYPE**>(base);
+
+        for(unsigned int i = 0; i < size_row_; i++)
+          data_[i] = data_block + i * size_col_; 
+        for(unsigned int k = 1; k < size_row_; k++) 
           data_[k] = data_[k-1] + size_col_;
-
       }
     }
   }

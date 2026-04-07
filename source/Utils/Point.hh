@@ -10,26 +10,22 @@
 
 namespace CoupledField
 {
-template<class TYPE> class Vector;
-
 /** Useful 3D coordinate class. Initialized by default to 0.
  * 
 * One wonders if this doesn't exist in boost ?? */
 class Point
 {
 public:
-  //! constructor
+  Point(const double val = 0.0) : data(3, val) {} 
 
-
-  Point(const double val = 0.0) {
-    data.Resize(3, val);
+  Point(double x, double y, double z = 0.0) : data(3) {
+    Set(x,y,z);
   }
 
-  Point(double x, double y, double z = 0.0) {
-    data.Resize(3);
-    data[0]=x;
-    data[1]=y;
-    data[2]=z;
+  Point(const Point& other) : data(3) {
+    data[0] = other[0];
+    data[1] = other[1];
+    data[2] = other[2];  
   }
 
   //!destructor
@@ -46,7 +42,6 @@ public:
     data[2] = z;  
   } 
 
-
   /** Assumes a Cartesian orientation and gives the direction, 0-based!*/
   int GetCartesianOrientation() const {
     return GetCartesianOrientation(&data[0]);
@@ -60,7 +55,6 @@ public:
   /** Returns data vector */
   inline const Vector<double>& GetCoordVector() { return data;}
 
-  // the default assignment operator is sufficient: inline Point& operator=(const Point& rhs)
   inline bool operator==(const Point& t) const {
     assert(data.GetSize() == t.data.GetSize());
     return data[0] == t.data[0] && data[1] == t.data[1] && data[2] == t.data[2];
@@ -83,6 +77,7 @@ public:
 
   /** scale the point */
   inline Point&  operator/=(double factor) {
+    assert(factor != 0.0);
     data[0] /= factor;
     data[1] /= factor;
     data[2] /= factor;
@@ -90,31 +85,32 @@ public:
   }
   
   inline Point operator/(double factor) const {
+    assert(factor != 0.0);
     return Point(data[0]/factor, data[1]/factor, data[2]/factor);
   }
 
   //! return coordinate number i
-  inline Double &operator[](UInt i) {
+  inline double& operator[](UInt i) {
     assert(i < data.GetSize());
     return data[i];
   }
 
   //! return coordinate number i
-  inline Double operator[](UInt i) const {
+  inline double operator[](UInt i) const {
     assert(i < data.GetSize());
     return data[i];
   }
 
   /** Interpret point as vector and calc length
    * Is not cached but always calculated! */
-  inline Double CalcLength() const
+  inline double CalcLength() const
   {
     assert(data.GetSize() == 3);
     return std::sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
   }
 
   //! calculate distance between two points. Needs to be inline to avoid linking issues
-  inline static Double Dist(const Point& a, const Point& b) {
+  inline static double Dist(const Point& a, const Point& b) {
     double preSqrt = 0.0;
     assert(a.data.GetSize() == b.data.GetSize());
     for(UInt i=0; i<a.data.GetSize(); i++)
@@ -155,11 +151,11 @@ public:
     if((std::abs(other[0] - data[0]) > eps) || (std::abs(other[1] - data[1]) > eps))
       return false;
     if(other.GetSize() == 3)
-      return std::abs(other[0] - data[0]) <= eps; // false if larger
+      return std::abs(other[2] - data[2]) <= eps; // false if larger
     else
       return data[2] == 0.0; // false if we are not zero, what is required if other is 2D only
   }
-
+  
   size_t GetHash() const {
     size_t hash = std::hash<double>()(data[0]) - std::hash<double>()(data[1]); 
     hash += std::hash<double>()(data[2]);
@@ -170,8 +166,7 @@ public:
   * @return the form "(0.3;4.3;0.0)" but no digit control */
   std::string ToString() const;
 
-  Vector<double> data;
-
+  Vector<double> data; // based on small_vector<double,3>
 private:
   /** common implementation
    * @param assume to be of size 3! */

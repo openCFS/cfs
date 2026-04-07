@@ -8,43 +8,6 @@
 namespace CoupledField {
 
   template<class TYPE>
-  StdVector<TYPE>::StdVector() :
-    size_(0),
-    capacity_(0),
-    data_(NULL)
-  { }
-
-  template<class TYPE>
-  StdVector<TYPE>::StdVector(size_type size) :
-    size_(size),
-    capacity_(size),
-    data_(new TYPE [size])
-  {
-    Init();
-  }
-
-  template<class TYPE>
-  StdVector<TYPE>::StdVector(const StdVector<TYPE> & vec) :
-  size_(vec.size_),
-  capacity_(vec.size_),
-  data_(new TYPE [vec.size_])
-  {
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] =  vec.data_[i];
-  }
-
-  template<class TYPE>
-  StdVector<TYPE>::StdVector(const std::vector<TYPE> & vec) :
-    size_(vec.size()),
-    capacity_(vec.size()),
-    data_(new TYPE [vec.size()])
-  {
-    //WARN(" This function should not be used anymore!");
-    for(unsigned int i = 0; i < size_; ++i)
-      data_[i] =  vec[i];
-  }
-
-  template<class TYPE>
   template<class InputIterator>
   StdVector<TYPE>::StdVector(InputIterator first, InputIterator last) {
     size_ = 0;
@@ -53,13 +16,6 @@ namespace CoupledField {
     for (; first != last; ++first)
       Push_back(*first);
   }
-  
-  
-  template<class TYPE>
-  StdVector<TYPE>::~StdVector()
-  {
-    delete[] data_;
-  }
 
   template<class TYPE>
   void StdVector<TYPE>::Clear(bool keepCapacity )
@@ -67,16 +23,11 @@ namespace CoupledField {
     size_ = 0;
     if( keepCapacity == false ) {
       capacity_ = 0;
-      delete[] data_;
-      data_ = NULL;
+      if(!wrapped_)
+        delete[] data_;
+      data_ = nullptr;
+      wrapped_ = false; // default case
     }
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Init(const TYPE entry)
-  {
-    for(unsigned int i = 0; i < size_; ++i) 
-      data_[i] = entry;
   }
 
   template<class TYPE>
@@ -84,7 +35,7 @@ namespace CoupledField {
   {
     unsigned int old_size = size_;
 
-    Resize(capacity);
+    ResizeNoCopy(capacity);
 
     size_ = old_size;
   }
@@ -96,62 +47,14 @@ namespace CoupledField {
     // only perform trimming, if size_ and capacity_ differ
     if( capacity_ == size_ )
       return;
-    
+
+    assert(!wrapped_);  
     TYPE* help = new TYPE[size_];
     for (unsigned int i=0; i<size_; i++)
       help[i] = data_[i];
     delete[] data_;
     data_ = help;
     capacity_ = size_;
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Resize(size_type size)
-  {
-    // the cheap case, e.g. Resize(0)
-    if(size <= capacity_)
-    {
-      size_ = size;
-    }
-    else
-    {
-      TYPE* help = new TYPE[size];
-
-      for (unsigned int i=0; i<size_; i++)
-        help[i] = data_[i];
-      
-      // interestingly std::copy(data_, data_ +  sizeof(TYPE) * size_, help)
-      // does not work. Due to copy constructor stuff for complex types??
-
-      delete[] data_;
-      data_ = help;
-      size_ = size;
-      capacity_ = size;
-    }
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::ResizeNoCopy(size_type size)
-  {
-    // the cheap case, e.g. Resize(0)
-    if(size <= capacity_)
-    {
-      size_ = size;
-    }
-    else
-    {
-      delete[] data_;
-      data_ = new TYPE[size];
-      size_ = size;
-      capacity_ = size;
-    }
-  }
-
-  template<class TYPE>
-  void StdVector<TYPE>::Resize(size_type size, TYPE entry)
-  {
-    ResizeNoCopy(size);
-    Init(entry);
   }
 
   template<class TYPE>
@@ -169,21 +72,18 @@ namespace CoupledField {
   //   operator=
   // *************
   template<class TYPE>
-  StdVector<TYPE>& StdVector<TYPE>::operator= ( const StdVector &vec ) {
-
-    // Avoid self-assignements
-    if ( this == &vec ) {
+  StdVector<TYPE>& StdVector<TYPE>::operator= ( const StdVector &vec ) 
+  {
+    if ( this == &vec ) 
       return *this;
-    }
-
-    // Vectors are different
-
+    
     // If there is not enough space to copy the entries
     // perform a re-allocation
     if(capacity_ < vec.size_)
     {
       // Delete old buffer
-      delete [] data_;
+      assert(!wrapped_);
+      delete[] data_;
 
       // Allocate new buffer
       capacity_ = vec.size_;
@@ -207,7 +107,8 @@ namespace CoupledField {
   {
     if(capacity_ < vec.size())
     {
-      delete [] data_;
+      assert(!wrapped_);
+      delete[] data_;
       capacity_ = vec.size();
       data_ = new TYPE [capacity_];
     }
@@ -220,47 +121,35 @@ namespace CoupledField {
     return *this;
   }
 
-  template<class TYPE>
-  void StdVector<TYPE>::Import(const TYPE* source, size_type size)
-  {
-    if(source == NULL)
-      EXCEPTION("cannot import NULL");
 
-    // Reserve and Resize do stuff we don't need
-    if(data_ != NULL) delete[] data_;
-    data_ = new TYPE[size];
-    size_ = size;
-    capacity_ = size;
-    
-    for(unsigned int i = 0; i < size; i++)
-      data_[i] = source[i];
-  }
-
+/*
   template<class TYPE>
-  void StdVector<TYPE>::Assign(TYPE* source, size_type size, bool delete_old_data)
+  void StdVector<TYPE>::Assign(TYPE* source, size_type size, bool delete_previous_data)
   {
     assert(!(source == NULL && size != 0));
     assert(!(source != NULL && size == 0));
 
-    if(delete_old_data && data_ != NULL)
+    // we may overwrite our possibly not owned data source.
+    if(delete_previous_data && data_ != NULL) {
+      assert(memBelongsToMe_);
       delete[] data_;
-
+    }
+    memBelongsToMe_ = true;
     data_ = source;
     size_ = size;
     capacity_ = size;
   }
-
+*/
   // *************
   //   Push_back
   // *************
   template<class TYPE>
-  void StdVector<TYPE>::_Push_back_expand( const TYPE &y )
+  void StdVector<TYPE>::Push_back_expand( const TYPE &y )
   {
-    TYPE *help;
-
+    assert(!wrapped_);
     // perform memory allocation
     capacity_ = (size_ == 0) ? 1 : 2 * size_;
-    help = new TYPE[ capacity_ ];
+    TYPE* help = new TYPE[ capacity_ ];
 
     // copy old entries into new buffer if we have data
     std::copy(data_, data_+size_, help);
@@ -293,8 +182,9 @@ namespace CoupledField {
       --size_;
       return;
     }
-    
-    TYPE * help=new TYPE[size_-1];
+
+    assert(!wrapped_);
+    TYPE* help=new TYPE[size_-1];
     
     for(unsigned int i=0; i < pos; i++)
       help[i] = data_[i];
@@ -346,18 +236,17 @@ namespace CoupledField {
     if (pos1 > pos2)
       EXCEPTION( "First index is bigger than second one in function Erase()" );
 #endif
-    unsigned int i;
- 
+    assert(!wrapped_); 
     unsigned int l=pos2-pos1+1;
-    TYPE * help=new TYPE[size_-l];
-    for (i=0; i < pos1; i++) 
+    TYPE* help=new TYPE[size_-l];
+    for (unsigned int i=0; i < pos1; i++) 
       help[i]=data_[i];
-    for (i=size_-1; i > pos2 ; i--) 
+    for (unsigned int i=size_-1; i > pos2 ; i--) 
       help[i-pos2+pos1-1]=data_[i];
 
     delete [] data_; 
     data_=help;
-   
+       
     size_ = size_ - l; 
     capacity_ = size_;
   }
@@ -592,7 +481,7 @@ namespace CoupledField {
   template<class TYPE>  
   void StdVector<TYPE>::ToString(StdVector<std::string>& out) const
   {
-    out.Resize(size_);
+    out.ResizeNoCopy(size_);
     for(unsigned int i = 0; i < size_; i++)
       out[i] = boost::lexical_cast<std::string>(data_[i]);
   }
@@ -600,7 +489,7 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Parse(const StdVector<std::string>& in)
   {
-    Resize(in.GetSize());
+    ResizeNoCopy(in.GetSize());
 
     for(unsigned int i = 0; i < in.GetSize(); i++)
       data_[i] = boost::lexical_cast<TYPE>(in[i]);

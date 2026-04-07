@@ -1,6 +1,7 @@
 #include "MaterialTensor.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Enum.hh"
+#include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 
 DEFINE_LOG(mt, "materialTensor")

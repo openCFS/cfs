@@ -194,9 +194,10 @@ void Domain::CreateGrid()
   if (!progOpts->GetPrintGrid() == true)
   {
     // Initialize resultHandler
-    if( resultHandler_ && isParentDomain_) {
-      resultHandler_->Init( gridMap_, false);
-    }
+    for(auto& grd : gridMap_) grd.second->timer->Stop();
+    if(resultHandler_ && isParentDomain_) 
+      resultHandler_->Init(gridMap_, false);
+    for(auto& grd : gridMap_) grd.second->timer->Start();
 
     // print grid information to result file if requested
     if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
@@ -383,39 +384,27 @@ void Domain::PostInit(UInt sequenceStep)
 Domain::~Domain()
 {
   // delete all grids only, if no external grid were used
-  if( !useExternalGridMap_) {
-    std::map<std::string, Grid*>::iterator gridIt;
-    for (gridIt = gridMap_.begin(); gridIt != gridMap_.end(); gridIt++)
-    {
-      delete gridIt->second;
-      gridIt->second = NULL;
-    }
-  }
+  if(!useExternalGridMap_) 
+    for(auto& entry : gridMap_)
+      delete entry.second;
 
   delete ptIterCoupledPde_;
-  ptIterCoupledPde_ = NULL;
 
   // When the StdVector ptpde_ is destroyed, only the pointers to the PDEs,
   // but not the PDEs themselves will be destroyed
   for (UInt i = 0; i < ptSinglePde_.GetSize(); i++)
-  {
     delete (ptSinglePde_[i]);
-  }
   ptSinglePde_.Clear();
 
   // Delete all coordinate systems
-  std::map<std::string, CoordSystem*>::iterator it;
-  for (it = coordSys_.begin(); it != coordSys_.end(); it++)
-  {
-    delete (*it).second;
-  }
+  for(auto& sys : coordSys_) 
+    delete sys.second;
   coordSys_.clear();
 
   // Delete all direct coupled PDEs
   for (UInt i = 0; i < ptDirectCoupledPde_.GetSize(); i++)
-  {
-    delete (ptDirectCoupledPde_[i]);
-  }
+    delete ptDirectCoupledPde_[i];
+
   ptDirectCoupledPde_.Clear();
 
   // Destructor of IterCoupledPDE deletes couplings!

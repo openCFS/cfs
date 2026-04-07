@@ -466,5 +466,14 @@ BOOST_AUTO_TEST_CASE(timers)
   std::cout << "Today: " << Timer::Today() << " TimeStamp: " << Timer::TimeStamp() << std::endl;          
 }
 
+BOOST_AUTO_TEST_CASE(wrapping)
+{
+  std::array<double, 4> a1 = {1.0, 2.0, 3.0, 4.0};
+  Vector<double> v1(a1);
 
+  auto [v2, a2] = StdVector<double>::CreateWithStackData<4>();
+  assert(v2.GetSize() == 0);
+  assert(v2.GetCapacity() == 4);
+
+}
 

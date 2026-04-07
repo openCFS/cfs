@@ -11,6 +11,7 @@
 #include "main/CFS.hh"
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/AllocationLog.hh"
 #include "DataInOut/DefineInOutFiles.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
@@ -25,15 +26,15 @@
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
 #if not defined(WIN32) 
-#  include <unistd.h>
+  #include <unistd.h>
 #endif
 #include <def_use_petsc.hh>
 #include <chrono>
 #include <ctime>
 
 #ifdef USE_PETSC
-#include "petsc.h"
-#include "OLAS/external/petsc/PETSCSolver.hh"
+  #include "petsc.h"
+  #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
@@ -46,8 +47,7 @@
 #define MKL_Get_Version MKLGetVersion
 #define MKL_Free_Buffers MKL_FreeBuffers
 #endif
-#endif
-
+#endif // end USE_MKL
 
 using namespace CoupledField;
 using namespace std;
@@ -250,9 +250,10 @@ int CFS::Run()
 
     python->CallHook(PythonKernel::POST_SOLVE_PROBLEM);
 
-
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);
+
+    matrixLog.ToInfo(infoNode->Get(ParamNode::SUMMARY)->Get("matrix"));
 
     timer->Stop();
 
