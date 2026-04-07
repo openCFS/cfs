@@ -11,7 +11,7 @@
 #include <typeinfo>
 #include <complex>
 #include <limits>
-
+#include <memory>
 #include <boost/cstdint.hpp>
 
 // Include build type options header containing the #defines
@@ -27,6 +27,13 @@ typedef boost::int16_t ShortInt;
 typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;
+
+using std::shared_ptr;
+using std::make_shared;
+using std::weak_ptr;
+using std::enable_shared_from_this;
+using std::dynamic_pointer_cast;
+using std::abs; // note that without code might be wrong! (better do explicitly std::abs)
 
 #define MACRO2STRING(a) QUOTEMACRO(a)
 //! Auxiliary macro needed by MACRO2STRING

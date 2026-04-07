@@ -123,7 +123,7 @@ class Timer
   static const std::string TimeStamp(const std::string& format);
 
   /** generic format for time_point */
-  static const std::string TimeStamp(std::chrono::system_clock::time_point, const std::string& format = "%Y-%b-%d %H:%M:%S");
+  static const std::string TimeStamp(const std::chrono::system_clock::time_point& time_point, const std::string& format = "%Y-%b-%d %H:%M:%S");
 
   private:
 

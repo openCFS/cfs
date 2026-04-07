@@ -99,8 +99,7 @@ namespace CoupledField{
     } 
     else 
     {
-      std::array<double,3> tmp_array; // avoid dynamic allocation
-      Vector<Double> temp(tmp_array.size(), tmp_array.data(), false); // don't copy data but wrap it
+      Vector<Double> temp(3);
       for(unsigned int i = 0; i < loc.GetSize(); i++) 
         temp[i] = loc[i];
       invRotationMat_.Mult(temp, glob);

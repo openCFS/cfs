@@ -37,10 +37,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     #set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
   endif() 
 
-  # this is set via ccmake (advanded) and produces very slow code which can check during runtime for memory issues   
+  # this is set via ccmake. Code might be much slower but outputs detected errors when cfs is running
   if(CFS_FSANITIZE)
-    set(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
-    set(CFS_LINKER_FLAGS " -fsanitize=address ${CFS_LINKER_FLAGS}")
+    set(CFS_CXX_FLAGS " -fsanitize=${CFS_FSANITIZE_OPTIONS} ${CFS_CXX_FLAGS}")
+    set(CFS_LINKER_FLAGS " -fsanitize=${CFS_FSANITIZE_OPTIONS} ${CFS_LINKER_FLAGS}")
+    message(STATUS "apply for compiler and linker -fsanitize ${CFS_FSANITIZE_OPTIONS}")
   endif()
   
   # see https://en.wikipedia.org/wiki/Gcov
@@ -51,7 +52,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   
   # adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
   # this is different from adding gprof support by -pg wich adds changes the code to generate an output file
-  if(CFS_PROFILING)
+  if(CFS_PROFILING) # for profiling and fsanitize we need debug information to be able to analyze the results, e.g. with vtune or valgrind
    set(CFS_CXX_FLAGS "-g -fno-omit-frame-pointer ${CFS_CXX_FLAGS}")
   endif()  
   

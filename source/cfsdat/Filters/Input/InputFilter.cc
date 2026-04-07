@@ -40,13 +40,9 @@ InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, shared_ptr<Re
   //now we can create the mesh
   //right now only full grids are supported
   std::string gridMode = params_->Get("gridType",ParamNode::EX)->As<std::string>();
-  if(gridMode == "fullGrid"){
-    ptGrid = new CF::GridCFS(maxDim,dummyXMLNode,infoNode,filterId_);
-  }else if (gridMode == "simpleGrid"){
-    ptGrid = new CF::GridCFS(maxDim,dummyXMLNode,infoNode,filterId_,false);
-  }else{
-    EXCEPTION("The chosen grid mode \'" << gridMode << "\' is not supported.")
-  }
+  if(gridMode != "fullGrid" && gridMode != "simpleGrid")
+    EXCEPTION("The chosen grid mode '" << gridMode << "' is not supported.")
+  ptGrid = new CF::GridCFS(maxDim,dummyXMLNode,infoNode,filterId_);
 
   inFile_->ReadMesh(ptGrid);
   

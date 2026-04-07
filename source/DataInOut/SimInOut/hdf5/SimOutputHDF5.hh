@@ -332,6 +332,7 @@ namespace CoupledField {
     //! Current analysis step value (time / frequency);
     Double currStepValueDb_;
 
+    shared_ptr<Timer> initTimer_;
     
   };
 }

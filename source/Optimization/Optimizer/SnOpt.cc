@@ -344,7 +344,7 @@ int SnOpt::Callback(int32_t* Status, const int32_t n,
   //if(optimization->GetCurrentIteration() > 1)
   //  throw Exception("intention");
   // reorder design
-  Vector<double> x(n, x_snopt, false);
+  Vector<double> x(x_snopt, n);
 
   LOG_DBG(snopt)  << "CB: needF=" << *needF << " needG=" << *needG << " x_avg = " << Average(x.GetPointer(), n) << " x_std_dev = " << StandardDeviation(x.GetPointer(), n);
   LOG_DBG3(snopt) << "CB: x_org=" << StdVector<double>::ToString(n, x_snopt);

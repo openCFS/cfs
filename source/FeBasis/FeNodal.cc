@@ -18,7 +18,7 @@ void FeNodal::EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord, 
     if(supportingPoints_.find(order) == supportingPoints_.end() )
      supportingPoints_[order] = CalcGaussLobattoPoints(order);
 
-    StdVector<Double> curSupPoints = supportingPoints_[order];
+    const StdVector<Double>& curSupPoints = supportingPoints_[order];
 
     shape.Resize(order+1);
     shape.Init();
@@ -42,7 +42,7 @@ void FeNodal::EvaluateLagrangePolynomial( Vector<Double> & shape, Double coord, 
     if(supportingPoints_.find(order) == supportingPoints_.end() )
      supportingPoints_[order] = CalcGaussLobattoPoints(order);
 
-    StdVector<Double> curSupPoints = supportingPoints_[order];
+    const StdVector<Double>& curSupPoints = supportingPoints_[order];
 
     deriv.Resize(order+1);
     deriv.Init();

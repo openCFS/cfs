@@ -641,7 +641,9 @@ namespace CoupledField {
       if( gridMap.find(gridId) == gridMap.end() ) {
         EXCEPTION( "No grid with id '" << gridId << "' defined" );
       }
-      it->second->Init( gridMap[gridId], printGridOnly );
+      it->second->timer->Start();
+      it->second->Init(gridMap[gridId], printGridOnly);
+      it->second->timer->Stop();
     }
   }
   

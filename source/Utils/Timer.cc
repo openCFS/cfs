@@ -237,7 +237,7 @@ const std::string Timer::TimeStamp(const string& format)
   return Timer::TimeStamp(std::chrono::system_clock::now(), format);
 }
 
-const std::string Timer::TimeStamp(std::chrono::system_clock::time_point time_point, const std::string& format)
+const std::string Timer::TimeStamp(const std::chrono::system_clock::time_point& time_point, const std::string& format)
 {
   std::time_t in_time_t = std::chrono::system_clock::to_time_t(time_point);
   std::tm tm_buf;

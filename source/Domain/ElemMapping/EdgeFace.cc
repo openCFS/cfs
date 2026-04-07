@@ -1,7 +1,9 @@
 #include "EdgeFace.hh"
 #include "MatVec/Vector.hh"
+#include "Domain/ElemMapping/Elem.hh"
 
 namespace CoupledField {
+
 
 // static variable initialization
 
@@ -123,18 +125,20 @@ void Face::GetSortedIndices( StdVector<UInt>& sorted,
   }
 }
 
-void Face::Normalize( std::bitset<5>& flags,
-                      StdVector<UInt>& nodes) {
+void Face::Normalize(std::bitset<5>& flags, StdVector<unsigned int>& nodes) const
+{
+  assert(nodes.GetSize() <= 4);
+  unsigned int numNodes = nodes.GetSize();
+  std::array<unsigned int, 4> indices_array; // we need to sort the face connectivity to get the correct flag
+  StdVector<unsigned int> indices(indices_array.data(), numNodes); // might be 3 or 4
 
-  StdVector<UInt> indices( nodes.GetSize() );
-  UInt size = nodes.GetSize();
-
-  // copy unsorted node Vector
-  StdVector<UInt> unsorted;
-  unsorted = nodes;
-  
+  // copy unsorted node Vector but as we call normalize quite often, avoid dynamic allocation
+  std::array<unsigned int, 4> unsorted_array; // we need to sort the face connectivity to get the correct flag
+  StdVector<UInt> unsorted(unsorted_array);
+  unsorted.Replace(nodes.GetPointer(), numNodes, COPY); // copy given nodes as unsorted array
+    
   // initialize indices array
-  for( UInt i = 0; i < size; i++ ) {
+  for( UInt i = 0; i < numNodes; i++ ) {
     indices[i] = i;
   }
 
@@ -143,7 +147,7 @@ void Face::Normalize( std::bitset<5>& flags,
   // ------------------------
   UInt j, comp;
 
-  for( UInt i = 1; i < size; i++ ) {
+  for( UInt i = 1; i < numNodes; i++ ) {
     comp = nodes[i];
     j = i;
     while( ( j > 0 ) && ( nodes[j - 1] > comp ) ) {
@@ -157,22 +161,23 @@ void Face::Normalize( std::bitset<5>& flags,
   // -----------------------
 
   // fetch orientation flags
-  if( size == 4 ) {
+  if( nodes.GetSize() == 4 ) {
     // security check: we must always get a positive number (= valid bitset)
     assert( quadBits[indices[0]][indices[1]][indices[2]] >= 0 ); 
     
     // obtain permutation bit from the unique two first permutation indices
     flags = std::bitset<5>( quadBits[indices[0]][indices[1]][indices[2]] );
   }
-  else if( size == 3 ) {
+  else if( nodes.GetSize() == 3 ) {
     flags = std::bitset<5>( triaBits[indices[0]][indices[1]] );
   }
   
   
   // re-sort in the end the facenodes
-  StdVector<UInt> sorted;
-  this->GetSortedIndices( sorted, unsorted, size, flags );
-  for( UInt i = 0; i < size; ++i ) {
+  std::array<unsigned int, 4> sorted_array; // we need to sort the face connectivity to get the correct flag
+  StdVector<UInt> sorted(sorted_array);
+  this->GetSortedIndices( sorted, unsorted, numNodes, flags ); // sets also flags
+  for( UInt i = 0; i < numNodes; ++i ) {
     nodes [i] = sorted[i] + 1;
   }
   

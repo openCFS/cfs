@@ -1,6 +1,7 @@
 #ifndef FILE_CFS_H1_ELEMENTS_LAGRANGE_EXPLICIT_HH
 #define FILE_CFS_H1_ELEMENTS_LAGRANGE_EXPLICIT_HH
 
+#include <array>
 #include "H1Elems.hh"
 #include "FeBasis/FeNodal.hh"
 
@@ -143,7 +144,7 @@ protected:
   void MapQuadSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
                               const StdVector<UInt>& commonIndex, 
                               const LocPoint& surfIntPoint, 
-                              StdVector<Double>& volIntPoint);
+                              std::array<double, 2>& volIntPoint);
 
   /*! mapping function that checks the orientation of triangular elements.
     The function is used in GetLocalIntPoints4Surface() for the Tet, Wedge and Pyra elements.
@@ -157,7 +158,7 @@ protected:
   void MapTriaSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
                               const StdVector<UInt>& commonIndex, 
                               const LocPoint& surfIntPoint, 
-                              StdVector<Double>& volIntPoint,
+                              std::array<double, 2>& volIntPoint,
                               bool isEquilateral = false);
 
   //! Polynomial order of the finite element
