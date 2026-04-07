@@ -111,7 +111,7 @@ namespace CoupledField {
         parse_Smoothing = 0.0;
       }
 
-      // optional parameters 
+      // optional parameters
       PtrParamNode tolNode = adaptiveNode->Get("tol", ParamNode::PASS);
       if (tolNode)
       {
@@ -119,6 +119,21 @@ namespace CoupledField {
       }else
       {
         tol_ = 1.0e-6; // default Max Error
+      }
+
+      // optional ATOL/RTOL normalization (mixed absolute/relative tolerance)
+      PtrParamNode rtolNode = adaptiveNode->Get("rtol", ParamNode::PASS);
+      if (rtolNode)
+      {
+        Double rtol = rtolNode->MathParse<Double>();
+        PtrParamNode atolNode = adaptiveNode->Get("atol", ParamNode::PASS);
+        Double atol = atolNode ? atolNode->MathParse<Double>() : 1.0e-10;
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "RTOL", rtol);
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "ATOL", atol);
+        tol_ = 1.0; // threshold is now dimensionless (baked into sc_j)
+      } else {
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "RTOL", 0.0); // 0 = disabled
+        mathParser_->SetValue( MathParser::GLOB_HANDLER, "ATOL", 0.0);
       }
 
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",            tol_);

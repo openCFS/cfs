@@ -102,6 +102,8 @@
                 <xsd:element name="deltaTMax" type="xsd:token"/>
                 <xsd:element name="tol"       type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="sigma"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rtol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="atol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
               </xsd:sequence>
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>

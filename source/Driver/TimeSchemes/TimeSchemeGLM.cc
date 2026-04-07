@@ -659,7 +659,10 @@ namespace CoupledField{
     Double c3 = h2 / (h1 * h0);
 
     Double ErrorScheme = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "ERROR_Scheme");
-    
+    Double RTOL = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "RTOL");
+    Double ATOL = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "ATOL");
+    bool useScaling = (RTOL > 0.0);
+
     double l2_norm = 0.0;
 
     Double maxLTE = 0.0;
@@ -677,6 +680,12 @@ namespace CoupledField{
             - c2 * (yNp1 - yN)
             + c3 * (yN  - yNm1)
         ));
+
+        if (useScaling) {
+            Double sc = ATOL + std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)}) * RTOL;
+            lte = lte / sc;
+        }
+
         if(ErrorScheme == 2){sum = sum + std::pow(lte,2);}
         if (lte > maxLTE){ maxLTE = lte; }
     }
