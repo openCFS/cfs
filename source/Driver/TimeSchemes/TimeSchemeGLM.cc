@@ -704,22 +704,26 @@ namespace CoupledField{
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
+    Double maxChange = 0.25;
     Double h     = curScheme_->dtCurrent_;
     bool   accepted = false;
     Double h_next = 0.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
+    if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 1)
+    {
+      maxChange = 0.2;
+    }
 
     // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
     // Detect saturation early: force-accept rather than driving h2 to dtMin.
-    {
-      const Double h1 = curScheme_->dtPrev1_;
-      if (h1 > 0.0 && h / h1 < 0.25) {
-        mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",                  h);
-        mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected",        0.0);
-        mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
-        return true;
-      }
+    const Double h1 = curScheme_->dtPrev1_;
+    if (h1 > 0.0 && h / h1 < maxChange) {
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",                  h);
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected",        0.0);
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+      return true;
     }
+  
 
     if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 0)
     {
@@ -795,7 +799,8 @@ namespace CoupledField{
     Double prev_error_ = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "prevError");
     double k = 3; // For BDF2
     Double alpha = 0.3/k ;
-    Double beta  = 0.4/k;
+    Double beta  = 0.6/k;
+
 
     if (est == 0.0) {
       h_next = F_U * h;
@@ -809,6 +814,13 @@ namespace CoupledField{
       }
       Double factor = ratio_I * ratio_P;
 
+      if (est > Rtol && factor > 0.95)
+        {
+            *accepted = true;
+            h_next = h*0.9;   // keep current dt — don't reduce to dtMin
+            mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+            return h_next;
+        }
       h_next = h * factor;
 
       *accepted = (est <= Rtol);
