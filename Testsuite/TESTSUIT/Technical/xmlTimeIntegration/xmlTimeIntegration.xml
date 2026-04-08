@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Voltage Driven Air-Core Coil (Edge Formulation)</title>
+    <authors>
+      <author>michhof, vfilkin, dperchto</author>
+    </authors>
+    <date>2026-03-23</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>coil</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>
+      Kaltenbacher M., Num. Sim. of Mech. Sens. and Act., 
+      2nd Edition, p. 211f.
+      
+      http://de.wikipedia.org/wiki/Zylinderspule
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is an eighth-symmetric model of a long, thin air-core coil.
+
+      The coil is driven by an ideal voltage source in series with
+      a 1 Ohm resistor.
+
+      This test case is derived from the Coil3DVoltEdge test case.
+      It solves the problem for only 5 time points instead of 25 in the original test.
+      This tests the XML integrationScheme functionality.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="xmlTimeIntegration.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="air" material="air"/>
+      <region name="coil" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="BnZero"/>
+      <surfRegion name="mainFlux"/>
+    </surfRegionList>
+    <coordSysList>
+      <cylindric id="coilCyl">
+        <origin x="0.0" y="0.0" z="0.0"/>
+        <zAxis x="0.0" y="0.0" z="1.0"/>
+        <rAxis x="1.0" y="0.0" z="0.0"/>
+      </cylindric>
+    </coordSysList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>0</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>5</numSteps>
+        <deltaT>2e-6</deltaT>
+        <integrationScheme>
+          <trapezoidal gamma="1"/>
+        </integrationScheme>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magneticEdge>
+        <regionList>
+          <region name="air"/>
+          <region name="coil"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="BnZero"/>
+        </bcsAndLoads>
+
+        <coilList>
+          <coil id="AirCoreCoil">
+            <source type="voltage" value="0.25"/><!-- quarter of original -->
+            <part id="1">
+              <regionList>
+                <region name="coil"/>
+              </regionList>
+              <direction>
+                <analytic coordSysId="coilCyl">
+                  <comp dof="phi" value="1.0"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="2.5e-6"/><!-- half of original -->
+              <resistance value="0.5"/><!-- half of original because quarter of contour, half of cross-section -->
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <coilResult type="coilCurrent">
+            <coilList>
+              <coil id="AirCoreCoil" outputIds="txt"/>
+            </coilList>
+          </coilResult>
+          <coilResult type="coilLinkedFlux">
+            <coilList>
+              <coil id="AirCoreCoil" outputIds="txt"/>
+            </coilList>
+          </coilResult>
+          <surfRegionResult type="magFlux">
+            <surfRegionList>
+              <surfRegion name="mainFlux" outputIds="txt"/>
+            </surfRegionList>
+          </surfRegionResult>
+          <regionResult type="magEnergy">
+            <allRegions outputIds="txt"/>
+          </regionResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+    
+  </sequenceStep>
+</cfsSimulation>

@@ -1,37 +1,35 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
+/** LightTools.hh is includes almost nothing, here we include slightly more
+ * but still try to have not too many dependencies */
+
 #include <cmath>
 #include <charconv>
 #include <string>
-#include <iostream>
+#include <array>
+#include <map>
 #include <boost/lexical_cast.hpp>
-
-#include "General/Environment.hh"
-#include "Optimization/EigenInfo.hh"
-
-// C++ is so poor that there even is no really standard for pi - > why not????
-#ifndef M_PI
-  #include <boost/math/constants/constants.hpp>
-  #define M_PI boost::math::constants::pi<double>()
-#endif
 
 #include <def_use_cuda.hh>
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
-#include <omp.h>
+  #include <omp.h>
 #endif
 
-#include <set> // a gcc7 runner has issues with std::set, try including it late
+#include "General/defs.hh"
+#include "Utils/LightTools.hh"
+#include "Utils/StdVector.hh"
 
-namespace CoupledField {
-
+namespace CoupledField 
+{
   class SingleVector;
   class BaseVector;
+  struct Elem;
+  struct EigenInfo;
 
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
-  template<class TYPE> class StdVector;
   
   // to prevent using the abs from stdlib.h which is only for int!
   using std::abs;
@@ -71,20 +69,6 @@ namespace CoupledField {
 
     //@}
 
-  // =========================================================================
-  //  ANGLE CONVERSION
-  // =========================================================================
-  
-   //! Convert grad => rad
-   inline Double Grad2Rad( Double rad ) {
-     return rad / 180.0 * M_PI;
-   }
-   
-  //! Convert rad => grad
-  inline Double Rad2Grad( Double rad ) {
-     return rad / M_PI * 180.0;
-   }
-  
   // =========================================================================
   //  COMPLEX CONVERSION
   // =========================================================================
@@ -127,45 +111,6 @@ namespace CoupledField {
 
   // generate vector with random numbers
   StdVector<double> GenerateRandomVector(size_t size, double first = 0.0, double last = 1.0);
-
-  /** Compares if two doubles are close to each other */
-  inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
-
-  /** clang complains about std::abs(c1 - c2) if i* is unsigned int but it would be used for templated Matrix::IsSymmetric()
-   * @param eps not used but there for compatibelity*/
-  inline bool close(int i1, int i2, double eps = 0.0) { return i1 == i2; }
-  inline bool close(unsigned int i1, unsigned int i2, double eps = 0.0) { return i1 == i2; }
-
-  /** separate eps version to be faster! */
-  inline bool close(Double d1, Double d2, double eps) { return std::abs(d1-d2) < eps; }
-
-  /** Compared if two complex are close (if both the real and imaginary part are close) */
-  inline bool close(Complex c1, Complex c2) { return close(c1.real(), c2.real()) && close(c1.imag(), c2.imag()); }
-
-  inline bool close(Complex c1, Complex c2, double eps) { return close(c1.real(), c2.real(), eps) && close(c1.imag(), c2.imag(), eps); }
-
-  /** identifies numerical noise */
-  inline bool IsNoise(Double val) { return std::abs(val) < 1e-13; }
-
-  inline bool IsNoise(Complex val) { return IsNoise(val.real()) && IsNoise(val.imag()); }
-
-  inline bool IsNoise(int val) { return false; }
-
-  inline bool IsNoise(UInt val) { return false; }
-
-  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
-  template <typename T> int sgn(T val) {
-      return (T(0) < val) - (val < T(0));
-  }
-
-  // shortcuts for pow with int base - strange this is not in boost?!
-  inline double Pow2(double x) { return x * x; }
-  inline int Pow2(int x) { return x * x; }
-  inline unsigned int Pow2(unsigned int x) { return x * x; }
-  inline double Pow3(double x) { return x * x * x; }
-  inline int Pow3(int x) { return x * x * x; }
-  inline unsigned int Pow3(unsigned int x) { return x * x * x; }
-
 
   //! calculate distance between two points embedded in matrix
   Double dist_Mat(const Matrix<Double> &a);
@@ -291,6 +236,8 @@ namespace CoupledField {
   /** Calculate the Standard Deviation of an array */
   double StandardDeviation(const double* data, unsigned int size);
 
+  std::string ToString(const StdVector<Elem*>& data);
+
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line = false);
 
@@ -312,6 +259,11 @@ namespace CoupledField {
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size);
 
+  template <class TYPE, size_t N>
+  std::string ToString(const std::array<TYPE, N>& data) {
+    return ToString(data.data(), data.size());
+  }
+
   /** generic ToString for STL containers (set, vector, ...).
    * A pitty, the containers doen't bring this by themselves :( */
   template <class Cont>
@@ -327,14 +279,6 @@ namespace CoupledField {
    * but this is an easy int to x,y,z conversion for loops */
   std::string Dof(int d);
   int Dof(const std::string& dim);
-
-  /** Returns the sign of a value 
-   * @return 0 if 0 or +/- 1 */ 
-  inline int Sign(int a) { return (a == 0) ? 0 : (a < 0 ? -1 : 1); } 
-  inline int Sign(Double a) { return (a == 0.0) ? 0 : (a < 0.0 ? -1 : 1); } 
-
-  /** Compares the sign for equality - note that we have three signs! -1, 0, 1 */ 
-  inline bool SameSign(Double a, Double b) { return (a < 0.0) == (b < 0.0); } 
 
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
@@ -470,25 +414,6 @@ namespace CoupledField {
    #endif
 
   }
-
-  inline bool UseOpenMP()
-  {
-    #ifdef USE_OPENMP
-      return true;
-    #else
-      return false;
-    #endif
-  }
-
-  inline bool UseCuda()
-  {
-    #ifdef USE_CUDA
-      return true;
-    #else
-      return false;
-    #endif
-  }
-
 
 } // end of CoupledField
 

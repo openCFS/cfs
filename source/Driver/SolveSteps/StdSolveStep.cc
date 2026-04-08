@@ -349,6 +349,11 @@ namespace CoupledField {
           //to incooperate the inhomog. Dirichlet BCs we need a full
           //step for the first iteration
 
+          // Clear old IDBC values from actSol so that the absolute Dirichlet
+          // values in solInc are not double-counted (initial T + Dirichlet T)
+          if ( iterationCounter == 1 && couplingIter_ == 0 )
+            algsys_->ClearIDBCFromSolutionVal(actSol);
+
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;

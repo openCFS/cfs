@@ -98,6 +98,10 @@ namespace CoupledField {
 
     std::string fName = fileName_ + "." + extString;
     currFileName_ = fs::path(dirName_ / fName).string();
+
+    initTimer_ = make_shared<Timer>(timer);
+    if(progOpts && progOpts->DoDetailedInfo()) // not for cfsdat
+      myInfo_->Get("init/timer")->SetValue(initTimer_);
   }
 
 
@@ -106,10 +110,12 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::Init( Grid* ptGrid, bool printGridOnly ) {
+    initTimer_->Start();
     LOG_DBG(h5Out) << "Init";
     ptGrid_ = ptGrid;
     printGridOnly_ = printGridOnly;
     WriteGrid();
+    initTimer_->Stop();
   }
 
   void SimOutputHDF5::WriteFileInfoHeader() {

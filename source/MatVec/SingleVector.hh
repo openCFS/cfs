@@ -12,7 +12,7 @@ namespace CoupledField {
   public:
 
     //! Default constructor
-    SingleVector() : size_(0) {};
+    SingleVector() {};
 
     //! Default destructor
     virtual ~SingleVector() {};
@@ -187,8 +187,7 @@ namespace CoupledField {
   protected:
 
     //! Length of the vector object
-    UInt size_;
-
+    UInt size_ = 0;
   };
 
 } // namespace

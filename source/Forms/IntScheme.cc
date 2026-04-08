@@ -1,9 +1,8 @@
 #include <cmath>
 #include <vector>
+#include <boost/lexical_cast.hpp>
 
 #include "IntScheme.hh"
-
-// header for logging
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
@@ -135,12 +134,12 @@ DEFINE_LOG(intscheme, "intScheme")
    std::string IntegOrder::ToString() const {
      std::string ret;
      if( isIsotropic_ ) {
-       ret += lexical_cast<std::string>(order_[0]);
+       ret += boost::lexical_cast<std::string>(order_[0]);
        ret += " (isotropic)";
      } else {
-       ret += lexical_cast<std::string>(order_[0]) + ", ";
-       ret += lexical_cast<std::string>(order_[1]) + ", ";;
-       ret += lexical_cast<std::string>(order_[2]);
+       ret += boost::lexical_cast<std::string>(order_[0]) + ", ";
+       ret += boost::lexical_cast<std::string>(order_[1]) + ", ";;
+       ret += boost::lexical_cast<std::string>(order_[2]);
        ret += " (anisotropic)";
      }
      return ret;

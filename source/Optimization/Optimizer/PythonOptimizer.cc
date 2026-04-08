@@ -227,15 +227,12 @@ void PythonOptimizer::EvalGradObjective(PyObject *args)
   assert(x.GetSize() == n && grad.GetSize() == n);
 
   // we use stdgrad just as a wrapper for grad as EvalGrad*() uses StdVector because of the Window.
-  StdVector<double> stdgrad;
-  stdgrad.Assign(grad.GetPointer(), grad.GetSize(), true); // copies data pointer from grad.
+  StdVector<double> stdgrad(grad.GetPointer(), grad.GetSize()); // wrapper
 
   BaseOptimizer::EvalGradObjective(x.GetSize(), x.GetPointer(), true, stdgrad); // grad also gets the new data
 
   //std::cout << "grad.Avg():" << grad.Avg() << " Average(stdgrad.GetPointer(), stdgrad.GetSize()):" << Average(stdgrad.GetPointer(), stdgrad.GetSize()) << std::endl;
   //assert(close(grad.Avg(),Average(stdgrad.GetPointer(), stdgrad.GetSize()), 1e-10));
-
-  stdgrad.Assign(NULL, 0, false); // make stdgrad forget about data in grad to not delete it with stdgrad destructor
 
   LOG_DBG3(pyopt) << "objective gradient:" << grad.ToString() << std::endl;
 
@@ -271,12 +268,9 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
 
   assert(x.GetSize() == n && grad.GetSize() == m*n);
 
-  StdVector<double> stdgrad;
-  stdgrad.Assign(grad.GetPointer(), grad.GetSize(), true); // copies data pointer from grad
+  StdVector<double> stdgrad(grad.GetPointer(), grad.GetSize()); // wrapper
 
   BaseOptimizer::EvalGradConstraints(x.GetSize(), x.GetPointer(), m, m*n, true, false, stdgrad); // scale=true, normalize=false
-
-  stdgrad.Assign(NULL, 0, false);
 
   grad.Export(obj[1]);
 }

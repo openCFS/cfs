@@ -12,79 +12,44 @@
 #include <cfloat>
 #include <fstream>
 
-namespace CoupledField {
-
-  // **********************************************
-  //   Constructor for vector of specified length
-  // **********************************************
+namespace CoupledField 
+{
   template<typename T>
-  Vector<T>::Vector(const unsigned int size, const T entry) :
-    SingleVector(), data_(new T[size]), capacity_(size), memBelongsToMe_(true)
+  Vector<T>::Vector(const Vector<T>& lower, const Vector<T>& upper)
   {
-    size_ = size;
-    for(unsigned int i = 0; i < size; ++i)
-      data_ [i] = entry;
+    Resize(lower.size_ + upper.size_);
+
+    std::copy_n(lower.data_, lower.size_, data_);
+    std::copy_n(upper.data_, upper.size_, data_ + lower.size_);
   }
 
-  // *******************
-  //   Deep destructor
-  // *******************
   template<typename T>
-  Vector<T>::~Vector()
+  void Vector<T>::Replace(T* entries, unsigned int length, ExternalDataMode mode)
   {
-    if(memBelongsToMe_)
-      delete[] data_;
-  }
-
-
-  // **********************
-  //   Replace data array
-  // **********************
-  template<typename T>
-  void Vector<T>::Replace( unsigned int length, T* entries, bool transferMem )
-  {
-    // De-allocate old array, if required
-    if(memBelongsToMe_)
-      delete[] data_;
-
-    // Re-set internal attributes
-    data_           = entries;
-    size_           = length;
-    capacity_       = length;
-    memBelongsToMe_ = transferMem;
-  }
-
-
-  // *********************************
-  //   Change the size of the vector
-  // *********************************
-  template<typename T>
-  void Vector<T>::Resize( unsigned int newSize ) {
-    if(!memBelongsToMe_ && newSize != size_ )
-      EXCEPTION("Refusing to re-size the data_ array, since the memory does not belong to me!");
-    
-    // If new vector is not longer
-    // than the currently allocated maximum
-    // only adapt size_
-    if(newSize <= capacity_)
+    if(mode == COPY) 
     {
-      size_ = newSize;
-      return;
-    }
-
-    // New vector is longer than the currently
-    // allocated data array, so we re-allocate
-    delete[] data_;
-    data_ = new T[newSize];
-    size_ = newSize;
-    capacity_ = newSize;
+      Resize(length);
+      std::copy_n(entries, length, data_);  
+    } 
+    else {
+      assert(mode == WRAP);
+      assert(entries != nullptr);
+      assert(length > 0);
+      buffer.clear();
+      data_ = entries;
+      size_ = length;
+    }  
   }
-  
+
   template<typename T>
-  void Vector<T>::Resize(const unsigned int newSize, const T val)
+  void Vector<T>::Clear(bool keepCapacity) 
   {
-    Vector<T>::Resize(newSize);
-    Vector<T>::Init(val);
+    assert(!DoWrap());
+    buffer.resize(0);
+    if(!keepCapacity)
+      buffer.shrink_to_fit(); // will still keep the stack capacity
+    data_ = buffer.data();
+    size_ = 0;
   }
 
   template<typename T>
@@ -317,17 +282,6 @@ namespace CoupledField {
 
     return angleRad;
   }
-
-  
-  // **********************************
-  //   Set all vector entries to zero
-  // **********************************
-  template<typename T>
-  void Vector<T>::Init( T entry)
-  {
-    std::fill(data_, data_+size_, entry);
-  }
-
 
   // **************************
   //   Compute Euclidean Norm
@@ -765,35 +719,6 @@ namespace CoupledField {
     }
     return vals;
   }
-
-  template<typename T>
-  void  Vector<T>::Push_back(const T & y)
-  {
-    // Check whether capacity is sufficiently large to perform
-    // a push-back operation. If not allocate memory according
-    // to the following simply scheme: Each time capacity is
-    // exceeded allocate twice as much memory as there was before.
-    if(size_ >= capacity_)
-    {
-      T *help;
-
-      // perform memory allocation
-      capacity_ = size_ == 0 ? 1 : 2 * size_;
-      help = new T[capacity_];
-
-      // copy old entries into new buffer
-      for(unsigned int i = 0; i < size_; ++i)
-        help[i] = data_[i];
-
-      // delete old buffer and re-set pointer
-      delete[] data_;
-      data_ = help;
-    }
-
-    // Perform push-back and increase size
-    data_[size_++] = y; 
-  }
-
 
   template<typename T>
   Vector<Double> Vector<T>::GetPart(Global::ComplexPart part) const
@@ -1489,16 +1414,12 @@ namespace CoupledField {
     return ( fabs(a.NormL2()) < 1e-12 );
   }
 
-// the USE_EMBEDDED_PYTHON implementation is VectorPython.cc
+// the USE_EMBEDDED_PYTHON implementation is in VectorPython.cc
 #ifndef USE_EMBEDDED_PYTHON
 
   template<typename T>
   Vector<T>::Vector(PyObject* obj, bool decref)
   {
-    this->capacity_ = 0;
-    this->size_ = 0;
-    this->memBelongsToMe_= true;
-    this->data_= NULL;
     EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
   }
 
@@ -1531,7 +1452,7 @@ namespace CoupledField {
     {
       if(size_ != x.size_)
       {
-        assert(memBelongsToMe_);
+        assert(!DoWrap());
         Resize(x.size_);
       }
       

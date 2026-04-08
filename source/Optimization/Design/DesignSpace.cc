@@ -1700,7 +1700,7 @@ int DesignSpace::ReadDesignFromExtern(const double* space, bool setAndWriteCurre
   // this has to be done before we write to the density file
   if (pn_->Has("filters") && is_matrix_filt) {
     Vector<double> des_vec;
-    des_vec.Replace(DesignSpace::GetNumberOfVariables(), const_cast<double*>(space), false);
+    des_vec.Replace(const_cast<double*>(space), DesignSpace::GetNumberOfVariables());
     for(DensityFilterMat& filt : density_filter)
       filt.CacheDensityFilteredValue(des_vec);
   }
@@ -1715,7 +1715,7 @@ int DesignSpace::ReadDesignFromExtern(const double* space, bool setAndWriteCurre
   }
   // allow for mutiple filters
   Vector<double> des_vec;
-  des_vec.Replace(DesignSpace::GetNumberOfVariables(),const_cast<double*>(space),false);
+  des_vec.Replace(const_cast<double*>(space), DesignSpace::GetNumberOfVariables());
   if (density_filter.GetSize() > 0 && is_matrix_filt){
      for(unsigned int i = 0; i < density_filter.GetSize(); i++)
        density_filter[i].CacheDensityFilteredValue(des_vec);

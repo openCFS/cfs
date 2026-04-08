@@ -3642,42 +3642,62 @@ namespace CoupledField{
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
+      
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
-    GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-    shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+    PtrParamNode timeStepAlphaNode = this->myParam_->Get("timeStepAlpha", ParamNode::PASS);
+    if (integrationScheme && timeStepAlphaNode)
+      throw Exception("Both 'integrationScheme' and 'timeStepAlpha' are specified for the acoustic PDE. "
+                      "Please use 'integrationScheme' only, as it provides more flexibility and "
+                      "supersedes the legacy 'timeStepAlpha' parameter.");
+
+    // Helper lambda to create the appropriate scheme
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else {
+        Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+        return new Newmark(0.5, 0.25, alpha);
+      }
+    };
+  
+    // Main formulation scheme
+    shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(makeScheme(), 0));
     feFunctions_[formulation_]->SetTimeScheme(acouScheme);
-
-    if(this->isTimeDomPML_){
-      //the choice of alpha schemes depends on the damping matrix (e.g. PML)
-      GLMScheme * scheme2 = new Newmark(0.5,0.25,alpha);
-      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
+  
+    // PML auxiliary vector scheme
+    if (this->isTimeDomPML_)
+    {
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(makeScheme(), 0));
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(vecScheme);
-
-      if(!this->isAPML_ && dim_ == 3){
-        GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
-        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
+    
+      if (!this->isAPML_ && dim_ == 3)
+      {
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(makeScheme(), 0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
     }
-
-    if (this->timeDomainEqFluidFormulation_) {
-      for (unsigned int i = 0; i < TDEFpoleNumber_.realC.Max(); i++) {
-        shared_ptr<BaseTimeScheme> schemePhiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
-        feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->SetTimeScheme(schemePhiC);
-      }
-      for (unsigned int i = 0; i < TDEFpoleNumber_.complC.Max(); i++) {
-        shared_ptr<BaseTimeScheme> schemePsiC(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
-        feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]->SetTimeScheme(schemePsiC);
-      }
-      for (unsigned int i = 0; i < TDEFpoleNumber_.realV.Max(); i++) {
-        shared_ptr<BaseTimeScheme> schemePhiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
-        feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->SetTimeScheme(schemePhiV);
-      }
-      for (unsigned int i = 0; i < TDEFpoleNumber_.complV.Max(); i++) {
-        shared_ptr<BaseTimeScheme> schemePsiV(new TimeSchemeGLM(new Newmark(0.5, 0.25, alpha), 0));
-        feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)]->SetTimeScheme(schemePsiV);
-      }
+  
+    // TDEF pole schemes
+    if (this->timeDomainEqFluidFormulation_)
+    {
+      for (unsigned int i = 0; i < TDEFpoleNumber_.realC.Max(); i++)
+        feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + i)]->SetTimeScheme(
+          shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0)));
+        
+      for (unsigned int i = 0; i < TDEFpoleNumber_.complC.Max(); i++)
+        feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + i)]->SetTimeScheme(
+          shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0)));
+        
+      for (unsigned int i = 0; i < TDEFpoleNumber_.realV.Max(); i++)
+        feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + i)]->SetTimeScheme(
+          shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0)));
+        
+      for (unsigned int i = 0; i < TDEFpoleNumber_.complV.Max(); i++)
+        feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)]->SetTimeScheme(
+          shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0)));
     }
   }
 

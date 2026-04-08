@@ -576,12 +576,24 @@ namespace CoupledField {
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-  void SmoothPDE::InitTimeStepping()  
+  void SmoothPDE::InitTimeStepping()
   {
-    // we do not require a special time stepping scheme for the non-linear strain stiffening, so we set it to NONE all the time
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::BDF2, TimeSchemeGLM::NONE) );
-    myScheme->SetDomain(domain); 
-    
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
+
+    GLMScheme* scheme = nullptr;
+    if (integrationScheme)
+    {
+      scheme = GetXmlDefinedScheme(integrationScheme);
+    }
+    else
+    {
+      // We do not require a special time stepping scheme for the non-linear strain stiffening, so we set it to NONE all the time
+      scheme = new Bdf2();
+    }
+
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, TimeSchemeGLM::NONE));
     feFunctions_[SMOOTH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
   

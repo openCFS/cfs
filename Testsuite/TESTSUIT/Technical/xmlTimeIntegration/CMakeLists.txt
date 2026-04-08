@@ -8,7 +8,7 @@ GENERATE_TEST_NAME_AND_FILE("${CMAKE_CURRENT_SOURCE_DIR}")
 #-------------------------------------------------------------------------------
 ADD_TEST(${TEST_NAME}
   ${CMAKE_COMMAND} 
-  -DEPSILON:STRING=1e-5
+  -DEPSILON:STRING=${CFS_DEFAULT_EPSILON}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )

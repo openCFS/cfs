@@ -119,28 +119,28 @@ protected:
   ElemShape elemShape_;
   
   //! Geometric type of finite element (line, quad, hex ...)
-  Elem::FEType myFeType_;
+  Elem::FEType myFeType_ = Elem::ET_UNDEF;
   
   //! Flag if re-calculation of number of unknowns is needed
 
   //! After changing the order of the element, a re-calculation of 
   //! the number of unknowns (actNumFncs_) is necessary.
-  bool updateUnknowns_;
+  bool updateUnknowns_ = false;
 
   //! Flag for isotropic polynomial order
-  bool isIsotropic_;
+  bool isIsotropic_ = false;
   
   //! Number of shape functions per entity
   std::map<BaseFE::EntityType,StdVector<UInt> > entityFncs_;
 
   //! Isotropic order. 0 if anisotropic
-  UInt isoOrder_;
+  UInt isoOrder_ = 0;
   
   //! Directional-dependent anisotropic order (w.r.t. to local directions)
   StdVector<UInt> anisoOrder_;
 
   //! Maximum polynomial degree of element
-  UInt maxOrder_;
+  UInt maxOrder_ = 0;
 
   // ========================================================================
   // DEFINITION OF (ANISOTROPIC) ORDER

@@ -1771,7 +1771,7 @@ namespace CoupledField
       PtrParamNode attr = inf->Get("attributes", ParamNode::APPEND);
 
       // entry Type (real / imag)
-      tmp = Global::complexPart.ToString(context.GetEntryType());
+      tmp = ComplexPartEnum.ToString(context.GetEntryType());
       attr->Get("entryType")->SetValue( tmp );
 
       // flag setcounterpart

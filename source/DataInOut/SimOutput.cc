@@ -1,7 +1,7 @@
 #include "SimOutput.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/Mesh/Grid.hh"
-
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -17,10 +17,9 @@ namespace CoupledField {
     isRestart_ = isRestart;
     myParam_ = outputNode;
     myInfo_ = infoNode;
-    actStep_ = 0;
-    actStepVal_ = 0.0;
-    actMSStep_ = 0;
-    ptGrid_ = NULL;
+    
+    timer = make_shared<Timer>();
+    myInfo_->Get("timer")->SetValue(timer);
   }
 
   SimOutput::~SimOutput() {

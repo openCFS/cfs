@@ -1,14 +1,13 @@
 #ifndef OLAS_VECTOR_HH
 #define OLAS_VECTOR_HH
 
-#include "TypeDefs.hh"
 #include "SingleVector.hh"
-
+#include <array>
+#include <boost/container/small_vector.hpp>
 
 #include <def_build_type_options.hh>
 #include <def_use_embedded_python.hh>
 
-#include "Utils/tools.hh"
 #include "Utils/boost-serialization.hh"
 
 #ifdef USE_EXPRESSION_TEMPLATES
@@ -32,16 +31,18 @@ template<typename T> class Vector;
 template<typename T> class NodeStoreSol;
 template<typename T> class ElemStoreSol;
 
-  //! Class for dense array-based algebraic vector
-  template <typename T>
-  
+/** Algebraic vector class based on a boost::small_vector with stack size 3 for coordinated.
+ * Can be dynamically resized to heap. 
+ * You can also wrap to external data but then resize is not allowed (would be possible to extend)
+ * @see DoWrap() @Replace()  */
+template <typename T> 
+ 
 #ifdef USE_EXPRESSION_TEMPLATES
   class Vector : public SingleVector, public Dim1<T, Vector<T> >
 #else 
   class Vector : public SingleVector 
 #endif
   {
-
   public:
   
     //! Friend declaration for Matrix
@@ -67,90 +68,59 @@ template<typename T> class ElemStoreSol;
     // We set this to true by default, to be able to do a re-size
     // afterwards. If a Replace() is done, it will adapt it accordingly.
     // size_ is set to 0 in ctor of SingleVector
-    Vector() : SingleVector(), data_(NULL), capacity_(0), memBelongsToMe_(true)
-    {  
-    }
+    Vector() { } // all fine by default, also for SingleVector
 
     //! Constructor with initial size
 
     //! Creates an vector with size \a size and gets initialized
     //! with \a entry. If no \a entry is provided, the vector
     //! is initialized with zeroes.
-    Vector(const UInt size, const T entry = 0);
-
-    //! Copy Constructor
-
-    //! This is a deep copy constructor. It will allocate its own data_
-    //! array and generate an actual copy of the entries of the original
-    //! vector. Consequently it sets the memBelongsToMe_ attribute to true.
-    //! This constructor is mainly provided to allow for certain sparse
-    //! arithmetic operations of the SBM_Vector class.
-    Vector(const Vector<T> &origVec)
-    {
-      // Obtain size info and allocate memory
-      size_     = origVec.size_;
-      capacity_ = size_;
-      memBelongsToMe_ = true;
-
-      data_ = size_ > 0 ? new T[size_] : NULL;
-
-      std::copy_n(origVec.data_, size_, data_);
+    Vector(const UInt size, const T entry = 0) {
+      Resize(size, entry);
     }
 
     /** constructs a vector out of two vectors with the size of both vectors */
-    Vector(const Vector<T>& lower, const Vector<T>& upper)
-    {
-      // Obtain size info and allocate memory
-      size_     = lower.size_ + upper.size_;
-      capacity_ = size_;
-      memBelongsToMe_ = true;
-
-      data_ = size_ > 0 ? new T[size_] : NULL;
-
-      for(unsigned int i = 0; i < lower.size_; ++i)
-        data_[i] = lower.data_[i];
-      for(unsigned int i = 0; i < upper.size_; ++i)
-        data_[lower.size_ + i] = upper.data_[i];
-    }
+    Vector(const Vector<T>& lower, const Vector<T>& upper);
 
     /** construct a data with external data. Either copy the date or be a frontend for it.
+     * For temporary stack objects, std::array<double, N> is > 1000 times 
      * @param entries when transferMem note, that the const is casted away
-     * @param copy if false point to external data and refuse resizing and deletion */
-    Vector(UInt length, const T* entries, bool copy)
-    {
-      memBelongsToMe_ = copy;
-      // if copy we start with 0 and copy afterwards via Fill()
-      size_ = !copy ? length : 0;
-      capacity_ = size_;
-      data_ = !copy ? const_cast<T*>(entries) : NULL;
-
-      if(copy)
-        Fill(entries, length);
+     * @param mode with WRAP we are an interface, with COPY we allocate own data and copy
+     * @see Replace() */
+    Vector(T* entries, unsigned int length, ExternalDataMode mode = WRAP) {
+      Replace(entries, length, mode);
     }
 
-     Vector(UInt length, T* entries, bool copy)
-     {
-       memBelongsToMe_ = copy;
-       // if copy we start with 0 and copy afterwards via Fill()
-       size_ = !copy ? length : 0;
-       capacity_ = size_;
-       data_ = !copy ? entries : NULL;
-
-       if(copy)
-         Fill(entries, length);
-     }
+    /** wrap around external data. Do not take ownership. Make sure the Vector does not outlive the data
+     *  std::array<double, 4> arr = {1.0, 2.0, 3.0, 4.0};
+     *  Vector<double> v(arr); */
+    template<std::size_t N>
+    explicit Vector(std::array<T, N>& arr) 
+        : Vector(arr.data(), (unsigned int) N, WRAP) {}
 
     /** construct a vector from a numpy array vector (dim=1).
-     * Creates own data and copies the content.
+     * Creates own data and copies the content. Possibly one can technically wrap?!
      * @param obj numpy array which is validated
      * @param decref shall the object referecence counter be decremented */
     Vector(PyObject* obj, bool decref);
 
-    //! Destructor
-    
-    //! The default destructor must be deep, i.e. it must free all dynamically
-    //! allocated memory.
-    virtual ~Vector();
+    //! This is a deep copy constructor. It will allocate its own data_
+    //! array and generate an actual copy of the entries of the original
+    //! vector. Independent of wrap or own data, we always copy.
+    //! This constructor is mainly provided to allow for certain sparse
+    //! arithmetic operations of the SBM_Vector class.
+    Vector(const Vector<T>& origVec) {
+      Resize(origVec.size_);
+      assert(size_ == origVec.size_);
+      std::copy_n(origVec.data_, size_, data_);
+    }
+
+    /** the inline destructor is much faster than non-inline -> testbed.cc heap_vs_stack */
+    virtual ~Vector() { }
+
+    /** are we wrap mode (external data) or use own storage from buffer.
+     * When we wrap external data, the internal data is cleared() */
+    bool DoWrap() const { return size_ != (unsigned int) buffer.size(); }
 
     //! Return the Entry type of the vector
 
@@ -159,89 +129,42 @@ template<typename T> class ElemStoreSol;
     //! type MatrixEntryType.
     BaseMatrix::EntryType GetEntryType() const
     {
-      return  CoupledField::EntryType<T>::M_EntryType;
+      return CoupledField::EntryType<T>::M_EntryType;
     }
 
-    //! Re-size the vector
+    /** Resized the data. If newSize is larger N, the small_vector with go for heap space.
+     * Data is copied. Not allowed for WRAP */
+    void Resize(unsigned int newSize) {
+      if(size_ == newSize)
+        return;
+      assert(!DoWrap());
+      buffer.resize(newSize);
+      data_ = buffer.data();
+      size_ = newSize;
+    }
+      
+    void Resize(unsigned int newSize, const T val) {
+      Resize(newSize);
+      Init(val);
+    }
 
-    //! This method can be used to change the length of the vector. Data might be lost!
-    //! \param newSize the new length of the vector
-    //! \note
-    //! - When we grow, all data will be lost - no copy of data as for StdVector()!
-    //! - A re-allocation of memory will only be triggered by Resize(),
-    //!   if the new length of the vector exceeds the length of the
-    //!   internal data array as given by dataSize_.
-    //! - Re-size will currently refuse to perform a re-size operation,
-    //!   if it is not responsible for the memory management of the data_
-    //!   array.
-    void Resize(const unsigned int newSize);
-    
-    //! Resize the vector to new size and initialize entries with val
-    void Resize(const unsigned int newSize, const T val);
+    void Push_back(const T& y) {
+      assert(!DoWrap());
+      buffer.push_back(y);
+      data_ = buffer.data();
+      size_ = (unsigned int) buffer.size();
+    }
 
     unsigned int GetSize() const { return size_; }
 
-    //! Add functionality of vector class to a data array
+    /** variant of the constructors to replace data either copy or wrap.
+     * When we wrap the old data is lost but no external data is touched. */
+    void Replace(T* entries, unsigned int length, ExternalDataMode mode = WRAP);
 
-    //! This method allows to add the functionality of the Vector class,
-    //! especially its arithmetic and access methods, to a plain data array.
-    //! Calling this method will replace the internal data_ array by the
-    //! entries vector and re-set the internal attributes, like e.g. size_.
-    //! Note that, since the vector is one-based, the pointer to the new
-    //! memory array must have an appropriate off-set and that length may
-    //! not be larger than the actual length of the allocated memory block.
-    //! Calling Replace is memory safe in the sense that the old data_ array
-    //! will be de-allocated, if this is the responsibility of the
-    //! corresponding vector object. Responsibility for de-allocating the
-    //! new data_ array is transferred to the vector object by setting the
-    //! transferMem parameter to true.
-    //! \param length      the length of the new vector
-    //! \param entries     pointer (one-based) to the data array containing
-    //!                    the new vector entries
-    //! \param transferMem flag signalling transfer of responsibility for
-    //!                    memory management
-    void Replace(UInt length, T* entries, bool transferMem);
-
-    //! Withdraw responsibility for memory management from vector object
-
-    //! Calling this method will relieve the vector object from the task of
-    //! managing the memory block containing the entries of the vector.
-    //! It will also return a (one-based) pointer to that memory block.
-    //! \note Responsibility for de-allocating the memory should belong to
-    //!       a unique object. Therefore, DecoupleMem will issue a warning
-    //!       when an attempt is made to obtain that responsibilty from the
-    //!       vector object and the latter does not own it.
-    T* DecoupleMem()
-    {
-      if(memBelongsToMe_ == false)
-      {
-        WARN("DecoupleMem was called on a vector object not "
-             << "responsible for managing its memory block! Memory "
-             << "problems may arise!");
-      }
-      memBelongsToMe_ = false;
-      return data_;
-    }
-
-    //! Clear the vector
-
-    //! Calling this method will clear the vector, i.e. the internal data_
-    //! array will be de-allocated, if it belongs to the vector object, and
-    //! the internal attributes will be re-set to the state we also obtain
-    //! from the default constructor.
-    void Clear(bool keepCapacity = true) {
-      size_ = 0;
-      if( keepCapacity == false ) {
-        if(memBelongsToMe_)
-          delete[] data_;
-
-        capacity_ = 0;
-        data_     = NULL;
-      }
-      // We set this to true be default, to be able to do a re-size
-      // afterwards. If a Replace() is done, it will adapt it accordingly.
-      memBelongsToMe_ = true;
-    }
+    /** Clear the vector. Size will be zero. The capacity N on the stack with remain always.
+     * Not allowed to call with WRAP mode.
+     * @param keepCapacity only relevant if we are larger than N and have heap data. */
+    void Clear(bool keepCapacity = true);
 
     /** Fills the vector with data. Does a resize
      * The data is copied */
@@ -282,8 +205,7 @@ template<typename T> class ElemStoreSol;
 
     //! This method replaces this vector object by the sum
     //! \f$\alpha x +\beta y\f$.
-    void Add(T a, const SingleVector &vec1,
-             T b, const SingleVector &vec2);
+    void Add(T a, const SingleVector &vec1, T b, const SingleVector &vec2);
 
     //! Override SingleVector functions
     //    virtual void Add(Double a, const SingleVector& vec1,
@@ -407,10 +329,7 @@ template<typename T> class ElemStoreSol;
     bool Collinear( const Vector<T>& vec);
     
 //@}
-
-
 #ifdef USE_EXPRESSION_TEMPLATES
-    
     // =======================================================================
     // INTERFACE TO EXPRESSION TEMPLATES
     // =======================================================================
@@ -456,9 +375,9 @@ template<typename T> class ElemStoreSol;
     }
     
     //@}
-
 #else
-
+   // this is the non-USE_EXPRESSION_TEMPLATES case, which is used for debugging and testing.
+ 
     // =======================================================================
     // MATHEMATICAL OPERATORS
     // =======================================================================
@@ -466,9 +385,6 @@ template<typename T> class ElemStoreSol;
     //! \name Mathematical Operators
     //! \note Due to problems in Doxygen the binary operators +,-,*,/ 
     //!       (which use type promotion) are not shown, although they exist!
-
-    //@{
-
 
     //! Assignment operator
     Vector<T> &operator=(const Vector<T> &x);
@@ -508,18 +424,13 @@ template<typename T> class ElemStoreSol;
 
     //! Multiply entries of own vector by y
     Vector<T> &operator*= (T x);
-    //@}
-
-#endif // USE_EXPRESSION_TEMPLATES
-
+ #endif // end of the else case for USE_EXPRESSION_TEMPLATES
 
     //! Equality operator - outside USE_EXPRESSION_TEMPLATES
     bool operator==(const Vector<T> &x) const;
 
     /** comparison is done via memcmp */
     bool operator!=( const Vector<T>& x) const;
-
-
 
     // =======================================================================
     // I/O OPERATIONS
@@ -543,13 +454,12 @@ template<typename T> class ElemStoreSol;
     //! \f$a_k\f$.
     virtual void Export(const std::string& fname, BaseMatrix::OutputFormat format ) const;
 
-    /** @see BaseVector::Import()*/
+    /** Read matrix-market file @see BaseVector::Import()*/
     void Import(const std::string& fname, bool checkSize=true);
 
     /** writes the content of the vector to a numpy array which needs to have proper size and type.
      * @see Fill() */
     void Export(PyObject* obj);
-
 
     // =======================================================================
     // OBTAIN / MANIPULATE MATRIX ENTRIES
@@ -559,16 +469,16 @@ template<typename T> class ElemStoreSol;
     //@{
 
     //! Initialize vector
-    void Init( ) {
-      Init( 0 );
-    }
-
+    void Init() { Init(0); }
+    
     //! Initialize vector with a given entry
 
     //! Initializes the vector with a given entry
     //! \param entry (input) Entry vector gets initialized with
     //! \note this method does not change the size of the vector!
-    void Init( const T entry  );
+    void Init(const T entry) {
+      std::fill(data_, data_+size_, entry);
+    }
 
     //! Return a reference to i-th entry
     inline T & operator[]( UInt i) {
@@ -612,9 +522,6 @@ template<typename T> class ElemStoreSol;
     //! specified value val.
     void AddToEntry( UInt i, const T &val );
     
-    //! Add element of the same type at the end of the vector
-    void Push_back( const T & y );
-
     //! Return a special part ( real, imag, amplitude, phase) of a vector
     Vector<Double> GetPart( Global::ComplexPart part ) const;
 
@@ -664,22 +571,19 @@ template<typename T> class ElemStoreSol;
     const T* begin() const { return data_; }
     const T* end()   const { return data_ + size_; }
 
-
+    /** There is no C++17 equivalent for this: 3 elements are are allocation on the stack (as std::array) 
+     * On resize above 3, dynamic data is allocated on the heap (like std::vector)
+     * When external data is wrapped buffer is not used, beside identifying wrap by buffer.size() = 0
+     * As we also have the option to wrap external data, we also use data_ (pointing usually to buffer.data()) and BaseVector::size_ */
+    boost::container::small_vector<T, 3> buffer; // could be replaced by std::vector
+    
   protected:
 
-    //! 0-based array storing the vector entries.
-    T *data_;
-    
-    //! capacity of the vector
-    UInt capacity_;
+    /** for the (rare) case that we wrap external data, we need this (and size_). Usually, data_ points to buffer.data(). 
+     * @see DoWrap() */
+    T* data_ = nullptr;
 
-    //! Flag signaling whether management of data array is done by this object
-
-    //! This attribute is used to keep track on the fact whether the object
-    //! is responsible for managing the memory of the data_ array, especially
-    //! its deallocation.
-    bool memBelongsToMe_;
-
+    // size_ is in SingleVector
   };
   
   // ***********************************************************
@@ -687,8 +591,7 @@ template<typename T> class ElemStoreSol;
   // ***********************************************************
   
   //! Overloading << for class vector
-  template<typename T>  std::ostream& operator << ( std::ostream & , 
-                                                    const Vector<T> &);
+  template<typename T> std::ostream& operator << (std::ostream & , const Vector<T>&);
 
 
   // *******************************************

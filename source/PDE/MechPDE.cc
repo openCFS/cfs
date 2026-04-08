@@ -2609,13 +2609,31 @@ namespace CoupledField {
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-  void MechPDE::InitTimeStepping()  {
-    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
-    GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-    
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0, nlType) );
-    
+  void MechPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
+
+    PtrParamNode timeStepAlphaNode = this->myParam_->Get("timeStepAlpha", ParamNode::PASS);
+    if (integrationScheme && timeStepAlphaNode)
+      throw Exception("Both 'integrationScheme' and 'timeStepAlpha' are specified for the mechanical PDE. "
+                      "Please use 'integrationScheme' only, as it provides more flexibility and "
+                      "supersedes the legacy 'timeStepAlpha' parameter.");
+
+    GLMScheme* scheme = nullptr;
+    if (integrationScheme)
+    {
+      scheme = GetXmlDefinedScheme(integrationScheme);
+    }
+    else
+    {
+      Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+      scheme = new Newmark(0.5, 0.25, alpha);
+    }
+
+    TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
   

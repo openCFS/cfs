@@ -975,33 +975,45 @@ namespace CoupledField{
   }
   
   //! Init the time stepping
-  void WaterWavePDE::InitTimeStepping(){
+  void WaterWavePDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+    PtrParamNode timeStepAlphaNode = this->myParam_->Get("timeStepAlpha", ParamNode::PASS);
+    if (integrationScheme && timeStepAlphaNode)
+      throw Exception("Both 'integrationScheme' and 'timeStepAlpha' are specified for the water wave PDE. "
+                      "Please use 'integrationScheme' only, as it provides more flexibility and "
+                      "supersedes the legacy 'timeStepAlpha' parameter.");
 
-    if(this->isTimeDomPML_){
-      //basically the choice for alpha scheme needs to be done everytime we have
-      //a damping matrix not just for PML
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else {
+        Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+        return new Newmark(0.5, 0.25, alpha);
+      }
+    };
 
-      //scheme for main unknown
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-      GLMScheme * scheme2 = new Newmark(0.5,0.25,alpha);
-      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
-      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
-
-      feFunctions_[WATER_PMLAUXVEC]->SetTimeScheme(vecScheme);
+    if (this->isTimeDomPML_)
+    {
+      // Basically the choice for alpha scheme needs to be done everytime we have
+      // a damping matrix, not just for PML
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(makeScheme(), 0));
+      shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(makeScheme(), 0));
       feFunctions_[WATER_PRESSURE]->SetTimeScheme(acouScheme);
+      feFunctions_[WATER_PMLAUXVEC]->SetTimeScheme(vecScheme);
 
-      if(!this->isAPML_ && dim_ == 3){
-        GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
-        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
+      if (!this->isAPML_ && dim_ == 3)
+      {
+        shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(makeScheme(), 0));
         feFunctions_[WATER_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
-    }else{
-      //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
-      //GLMScheme * scheme1 = new Newmark(0.6,0.3025,alpha);
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
+    }
+    else
+    {
+      shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(makeScheme(), 0));
       feFunctions_[WATER_PRESSURE]->SetTimeScheme(acouScheme);
     }
   }

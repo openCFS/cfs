@@ -297,8 +297,7 @@ class IDBC_Graph;
     //! SBMBlocks and the coupling objects in a matrix. This matrix is stored
     //! as 1D array. This auxiliary method computes for a given pair of row 
     //! and column index the 1D index of the corresponding matrix entry.
-    inline UInt ComputeIndex( UInt rowNum,
-                              UInt colNum ) const {
+    inline UInt ComputeIndex( UInt rowNum,UInt colNum ) const {
       return numBlocks_*rowNum + colNum;
     }
 

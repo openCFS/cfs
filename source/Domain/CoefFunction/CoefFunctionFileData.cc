@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "Domain/CoefFunction/CoefFunctionFileData.hh"
+#include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 using std::string;

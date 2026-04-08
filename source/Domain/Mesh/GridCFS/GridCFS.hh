@@ -34,8 +34,7 @@ namespace CoupledField
     //! Constructor 
 
     //! Standard Constructor 
-    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
-        const std::string &id = "default",bool buildExtend = true);
+    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode, const std::string &id = "default");
   
     //! Destructor
     ~GridCFS();
@@ -416,29 +415,19 @@ namespace CoupledField
 
     //@}
 
-    // =======================================================================
-    // ELEMENT FACE ACCESS FUNCTIONS
-    // =======================================================================
-    //@{ \name Surface Access Functions
+    unsigned int GetNumFaces() const override { return faces_.GetSize(); };
 
-    //! Get total number of faces in the grid
-    UInt GetNumFaces() override;
-
-    //! Return face with given face
-    const Face& GetFace( UInt faceNr) override;
-
-    //@}
-
-    // =======================================================================
-    // ELEMENT EDGE ACCESS FUNCTIONS
-    // =======================================================================
-    //@{ \name Edge Access Functions
+    const Face& GetFace( UInt faceNr) const override {
+      assert(faces_.GetSize() > 0);
+      return faces_[faceNr-1];
+    }
+        
+    unsigned int GetNumEdges() const override { return edges_.GetSize(); };
     
-    //! Get number of edges
-    UInt GetNumEdges() override;
-    
-    //! Return edge with given number
-    const Edge& GetEdge( UInt edgeNr ) override;
+    const Edge& GetEdge(unsigned int edgeNr ) const override {
+      assert(edges_.GetSize() > 0);
+      return edges_[edgeNr-1];
+   }
 
     //@}
 
@@ -745,18 +734,6 @@ namespace CoupledField
 
     //! Number of dynamically generated surfelems
     UInt numNcSurfElems_;
-
-    //! Total number of faces
-    UInt numFaces_;
-
-    //! Total number of edges
-    UInt numEdges_;
-
-    //! Flag indicating if edges are already mapped
-    bool edgesMapped_;
-
-    //! Flag indicating if faces are already mapped
-    bool facesMapped_;
     
     //! Flag indicating use of quadratic elements
     bool isQuadratic_;
@@ -780,7 +757,8 @@ namespace CoupledField
     //! Vector with nodal coordinate offsets
     StdVector<Vector<Double> > deltCoords_;
   
-    //! Vector with elements (surface and volume), ordered by element number
+    /** Main vector of elements (surface and volume), ordered by element number.
+     * All elements will have the extension set */
     StdVector<Elem*> orderedElems_;
   
     //! Map containing number elements of each type
@@ -812,9 +790,6 @@ namespace CoupledField
     //! Vector containing all edges
     StdVector<Edge> edges_;
     
-    //! Boolean controlling the creation of extended element information
-    bool buildExtendedElemInfo_;
-
     // =======================================================================
     // Named Entities
     // =======================================================================
@@ -840,7 +815,11 @@ namespace CoupledField
     // the following timers are only added to .info.xml with -d (detailed info)
     shared_ptr<Timer> initKDTreeTimer_;
     shared_ptr<Timer> searchKDTreeTimer_;
-    shared_ptr<Timer> checkRegularTimer_;
+    shared_ptr<Timer> checkRegularTimer_; // CheckForRegularRegion()
+    shared_ptr<Timer> correctElemTimer_; // CorrectElementConnectivities()
+    shared_ptr<Timer> finishInitTimer_;   // FinishInit()
+    shared_ptr<Timer> volumeTimer_;  
+    shared_ptr<Timer> mapFacesEdgesTimer_;  
   };
 
 } // end of namespace

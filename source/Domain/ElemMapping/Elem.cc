@@ -239,6 +239,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       for( UInt iNode = 0; iNode < shape.numNodes; iNode++ ) {
         shape.nodeCoords[iNode].Resize( dim);
         for( UInt iDim = 0; iDim < dim; iDim++ ) {
+          assert(nodeCoords != nullptr);
           (shape.nodeCoords[iNode])[iDim] = nodeCoords[iNode*dim+iDim];
         }
       }
@@ -351,25 +352,11 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       s.numSurfElems = 0;
       s.volume = 0.0;
 
-      Double midPoint[1] = {0.0};
-      Double nodeCoords[] =
-      {
-       0.0, // #1
-      };
-      UInt edgeVertices[] =
-      {
-       1 // #1
-      };
-      UInt numEdgeNodes[] =
-      {
-       1 // #1
-      };
-      Integer edgeLocDirs[] =
-      {
-       -1 // #1
-      };
-      SetElemInfo( s, midPoint, nodeCoords, edgeVertices, numEdgeNodes,
-                   edgeVertices, edgeLocDirs, NULL,
+      Double midPoint[1] = { 0.0 };
+      Double nodeCoords[] = { 0.0 }; // #1
+      // no dummy ada needed as the num* is 0
+      SetElemInfo( s, midPoint, nodeCoords, nullptr, nullptr,
+                   nullptr, nullptr, NULL,
                    NULL, NULL, NULL, NULL );
       Elem::shapes[Elem::ET_POINT] = s;
     }

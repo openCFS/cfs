@@ -249,8 +249,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     
     if(!progOpts->IsQuiet())
       std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
-    out[actId]  = CreateSingleOutputFileObject(simName,actNode,infoNode,restart);
-
+    out[actId] = CreateSingleOutputFileObject(simName,actNode,infoNode,restart);
   } // loop over reader nodes
 }
 
@@ -403,16 +402,14 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
                                                                      bool isRestart){
   shared_ptr<SimOutput> aOutput;
   string fFormat = configNode->GetName();
+  PtrParamNode info = infoNode->Get("output")->Get(fFormat);
   if (fFormat == "unv")
-  {
-    aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode, infoNode, isRestart));
-  }
+    aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode, info, isRestart));
 
   if (fFormat == "cgns")
   {
 #ifdef USE_CGNS
-    aOutput =   shared_ptr<SimOutput> (new SimOutputCGNS(fName, configNode,
-                                                         infoNode, isRestart));
+    aOutput =   shared_ptr<SimOutput> (new SimOutputCGNS(fName, configNode, info, isRestart));
 #else
     EXCEPTION( "No support for CGNS output file format." );
 #endif
@@ -421,28 +418,21 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
   if (fFormat == "gid")
   {
 #ifdef USE_GIDPOST
-    aOutput =   shared_ptr<SimOutput> (new SimOutputGiD(fName, configNode,
-                                                        infoNode, isRestart));
+    aOutput =   shared_ptr<SimOutput> (new SimOutputGiD(fName, configNode, info, isRestart));
 #else
     EXCEPTION( "No support for GiD output file format." );
 #endif
   }
 
   if (fFormat == "gmsh")
-  {
-    aOutput =  shared_ptr<SimOutput> (new SimOutputGmsh(fName, configNode, infoNode, isRestart));
-  }
+    aOutput =  shared_ptr<SimOutput> (new SimOutputGmsh(fName, configNode, info, isRestart));
 
   if (fFormat == "gmshParsed")
-  {
-    aOutput =  shared_ptr<SimOutput> (new SimOutputParsed(fName, configNode, infoNode, isRestart));
-  }
+    aOutput =  shared_ptr<SimOutput> (new SimOutputParsed(fName, configNode, info, isRestart));
 
   if (fFormat == "hdf5")
-  {
-    aOutput = shared_ptr<SimOutput>(new SimOutputHDF5(fName,configNode,infoNode, isRestart));
-  }
-
+    aOutput = shared_ptr<SimOutput>(new SimOutputHDF5(fName,configNode,info, isRestart));
+  
   if (fFormat == "rst")
   {
     // was SimOutputRST(), but this is no more in the code?!
@@ -450,19 +440,15 @@ shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(string fNam
   }
 
   if (fFormat == "text" || fFormat == "csv")
-  {
-    aOutput = shared_ptr<SimOutput> (new SimOutputText(fName, configNode, infoNode, isRestart));
-  }
+    aOutput = shared_ptr<SimOutput> (new SimOutputText(fName, configNode, info, isRestart));
 
   if (fFormat == "info")
-  {
-    aOutput = shared_ptr<SimOutput> (new SimOutputInfo(configNode,infoNode, isRestart));
-  }
+    aOutput = shared_ptr<SimOutput> (new SimOutputInfo(configNode,info, isRestart));
 
   if (fFormat == "streaming")
   {
 #ifdef USE_STREAMING
-    aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
+    aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, info, isRestart));
 #else
    throw Exception("not compiled with USE_STREAMING");
 #endif

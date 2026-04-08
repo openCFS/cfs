@@ -47,7 +47,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "26")
-set(CFS_VERSION_MONTH "03")
+set(CFS_VERSION_MONTH "04")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -83,7 +83,11 @@ option(DEBUG "Build debug version of the code which allows debugging, logging an
 option(CFS_NATIVE "Compile for native CPU for speed, might not be transferable" ${CFS_NATIVE_DEFAULT})
 option(CFS_PROFILING "Set profiling compiler options for Release for vtune and valgrind (-g)." OFF)
 option(CFS_COVERAGE "Turn on coverage compiler options (gcc, clang) to be analyzed by gcov." OFF)
-option(CFS_FSANITIZE "Use -fsanitize to check for memory leaks and general errors. Very costly during runtime!" OFF)
+
+option(CFS_FSANITIZE "Apply -fsanitize. See hidden  and use CFS_PROFILING" OFF)
+set(CFS_FSANITIZE_OPTIONS ${CFS_FSANITIZE_OPTIONS_DEFAULT} CACHE STRING "Options for -fsanitize, e.g. address, memory, undefined, thread, leak")
+mark_as_advanced(CFS_FSANITIZE_OPTIONS)
+
 # background for reordering is that on arm64 metis fails but sloand and no reordering works
 set(CFS_REORDERING ${CFS_REORDERING_DEFAULT} CACHE STRING "Overwrite implementation of default for reordering")
 set_property(CACHE CFS_REORDERING PROPERTY STRINGS default Metis Sloan noReordering)

@@ -21,6 +21,8 @@ set(TESTSUITE_DIR_DEFAULT "${CFS_SOURCE_DIR}/Testsuite")
 set(CFS_DEPS_CACHE_DIR_DEFAULT "${CFS_BINARY_DIR}/cfsdeps/cache")
 set(CFS_DEPS_PRECOMPILED_DEFAULT ON)
 set(CFS_NATIVE_DEFAULT OFF)
+# also the CFS_PROFILING to have the full frame pointers. Other options are thread and more
+set(CFS_FSANITIZE_OPTIONS_DEFAULT "address,undefined")
 set(CFS_REORDERING_DEFAULT "default")
 
 set(USE_GIDPOST_DEFAULT ON)

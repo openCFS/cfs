@@ -13,7 +13,7 @@
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-
+using std::abs;
 
 namespace CoupledField {
 DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")

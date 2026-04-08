@@ -95,6 +95,8 @@ namespace CoupledField {
                               const StdVector<shared_ptr<BaseResult> > & solList,
                               ResultInfo::EntityUnknownType entityType );
 
+    /** a public available timer for measuring output times */
+    shared_ptr<Timer> timer; 
   protected:
     
     //! Get from complex number the angle in degree with lower limit
@@ -121,10 +123,10 @@ namespace CoupledField {
     std::set<Capability> capabilities_;
     
     //! Flag if result file is for a restarted simulation
-    bool isRestart_;
+    bool isRestart_ = false;
 
     //! Grid class
-    Grid* ptGrid_;
+    Grid* ptGrid_ = nullptr;
     
     //! Parameter node for current output class
     PtrParamNode myParam_;
@@ -133,14 +135,13 @@ namespace CoupledField {
     PtrParamNode myInfo_;
 
     //! Current multisequence step in analysis
-    UInt actMSStep_;
+    UInt actMSStep_ = 0;
     
     //! Current step in analysis (time/frequency step)
-    UInt actStep_;
+    UInt actStep_ = 0;
 
     //! Current step value ( time / frequency )
-    Double actStepVal_;
-
+    Double actStepVal_ = 0.0;
   };
 
 }

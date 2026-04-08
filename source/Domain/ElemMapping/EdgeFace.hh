@@ -19,19 +19,17 @@ namespace CoupledField {
   //! the node with the smaller number.
   //! Elements contain edges and often store their number signed integer,
   //! where the sign implies the orientation of their edge. 
-  struct Edge {
-
-    //! Vector containing the neighbor elements
+  struct Edge 
+  {
+  //! Vector containing the neighbor elements
     
     //! This vector stores all the neighboring elements. Thus we can 
     //! easily find all connected elements for an edge.
     StdVector<Elem*> neighbors;
-
   };
 
   //! Defines a 2-dimensional grid entity, defined by 3 or 4 vertices
   struct Face {
-
     //! Normalize face orientation to match global one and return flagset
     
     //! This method re-orientates a given face to match the global orientation
@@ -39,8 +37,9 @@ namespace CoupledField {
     //! orientation flags as defined in 
     //! Solin,Segeth: Higher-Order Finite Elements, p.165
     //! See also the faceFlags bitset of the class Elem.
-    void Normalize( std::bitset<5>& flags, 
-                    StdVector<UInt>& nodes ); 
+    //! nodes is input and output variable - not it is not always sorted (BucklingPlate3D test elem 146)
+    //! flags and nodes are output variables and are modified in-place.
+    void Normalize( std::bitset<5>& flags, StdVector<UInt>& nodes) const; 
 
     
     //! Return permutation vector for face nodes according to bit-field

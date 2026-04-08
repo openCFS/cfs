@@ -644,8 +644,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   Init();
   this->elem = elem;
 
-  if(!elem->extended)
-    this->elem->extended = new ExtendedElementInfo;
+  assert(elem->extended != nullptr);
 
   this->type_ = type;
   this->index_ = index;
@@ -662,8 +661,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   Init();
   this->elem = elem;
 
-  if(!elem->extended)
-    this->elem->extended = new ExtendedElementInfo;
+  assert(elem->extended != nullptr);
 
   this->specialResult.Resize(OPT_RESULT_BOUND - OPT_RESULT_1, 0.0);
   this->index_ = index;

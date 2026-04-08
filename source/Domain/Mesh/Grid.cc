@@ -27,19 +27,8 @@
 #include "Utils/Timer.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 
-#ifdef USE_NANOFLANN
-  #include "Domain/Mesh/GridKDTree.hh"
-#endif
-
 namespace CoupledField
 {
-  #ifndef USE_NANOFLANN
-    struct GridKDTree {
-      unsigned int GetNearest(const Vector<Double>& c, unsigned int dim) const { return 0; }
-    };
-  #endif
-
-
   // declare class specific logging stream
   DEFINE_LOG(grid, "grid")
 
@@ -810,7 +799,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numCorners];
         surfEl->type = Elem::ET_LINE2;
-        surfEl->extended = new ExtendedElementInfo;
+        surfEl->extended = new ExtendedElementInfo();
 
         switch(el->type) {
         case Elem::ET_TRIA6:
@@ -962,7 +951,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numEdges];
         surfEl->type = Elem::ET_LINE2;
-        surfEl->extended = new ExtendedElementInfo;
+        surfEl->extended = new ExtendedElementInfo();
 
         switch(el->type) {
           case Elem::ET_TRIA6:

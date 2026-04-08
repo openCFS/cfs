@@ -251,6 +251,18 @@ namespace CoupledField {
       return dynamic_cast<const Vector<double>& >(*data).NormL2(dynamic_cast<const Vector<double>& >(*data2));
   }
 
+  std::string ToString(const StdVector<Elem*>& data)
+  {
+    std::stringstream ss;
+    ss << "[";
+    for(unsigned int i = 0; i < data.GetSize(); i++) {
+      ss << data[i]->elemNum;
+      ss << (i < data.GetSize()-1 ? "," : "]");
+    }
+    return ss.str();
+  }
+
+
 
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size)

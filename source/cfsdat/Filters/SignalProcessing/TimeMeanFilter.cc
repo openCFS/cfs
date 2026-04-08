@@ -78,7 +78,7 @@ bool TimeMeanFilter1::UpdateResults(std::set<uuids::uuid>& upResults) {
       }
     }
     
-    const Double factor = std::abs<Double>(1.0 / (Double)N_);
+    const Double factor = std::abs(1.0 / (Double)N_);
     #pragma omp parallel for num_threads(CFS_NUM_THREADS)
     for (UInt i = 0; i < size; i++) {
       returnVec[i] *= factor;

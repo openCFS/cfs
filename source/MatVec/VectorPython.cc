@@ -12,11 +12,6 @@ namespace CoupledField
 template<typename T>
 Vector<T>::Vector(PyObject* obj, bool decref)
 {
-  this->capacity_ = 0;
-  this->size_ = 0;
-  this->memBelongsToMe_= true;
-  this->data_= NULL;
-
   Fill(obj, decref);
 }
 

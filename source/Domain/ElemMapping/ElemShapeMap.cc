@@ -146,12 +146,10 @@ void LocPointMapped::Set(const LocPoint& lp,
 
   // Check, if geometry is axi-symmetric. In this case we adjust the "volume" of
   // the Jacobian and store the global point
-  Vector<Double> globPoint;
+  Vector<double> globPoint(3);
   if (esm->IsAxi()) {
     esm->Local2Global(globPoint, lp);
     jacDet *= 2 * M_PI * globPoint[0];
-  } else {
-    globPoint.Clear();
   }
 }
 
@@ -1702,9 +1700,12 @@ void LagrangeElemShapeMap::GetGlobMidPoint(Vector<Double>& midPoint) {
 
 Double LagrangeElemShapeMap::CalcVolume(bool useDepth) {
 
-  // Get integration points
-  StdVector<LocPoint> intPoints;
-  StdVector<Double> weights;
+  // Get precomputed integration points 
+  std::array<LocPoint, 128> intPoints_array; // use some sufficiently large stack data
+  StdVector<LocPoint> intPoints(intPoints_array);
+  
+  std::array<double, 128> weights_array;
+  StdVector<Double> weights(weights_array);
 
   // Order: use element order and add 2 to be sure for curved elements
   UInt order = shape_->order + 2;
@@ -2020,23 +2021,32 @@ bool LagrangeElemShapeMap::CoordIsInsideElem(const Vector<Double>& point,
 return ptFe_->CoordIsInsideElem(point, tolerance);
 }
 
-void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) {
-  Vector<Double> mins(shape_->dim), maxs(shape_->dim);
-  mins.Init( std::numeric_limits<double>::max());
-  maxs.Init(-std::numeric_limits<double>::max());
-  diameter.Resize(shape_->dim);
-  diameter.Init();
-  for (UInt dim = 0; dim < shape_->dim; dim++) {
-    for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++) {
-      Double test = coords_[dim][k];
-      Double& min = mins[dim];
-      Double& max = maxs[dim];
-      min = std::min(min, test);
-      max = std::max(max, test);
-    }
+void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) 
+{
+  const unsigned int dim = shape_->dim;
+  assert(dim <= 3);
+  std::array<double, 3> mins, maxs; // fast static heap allocation
+  mins.fill( std::numeric_limits<double>::max());
+  maxs.fill(-std::numeric_limits<double>::max());
 
-    diameter[dim] = maxs[dim] - mins[dim];
+  const unsigned int n_elems = coords_.GetNumCols();
+  for(unsigned int d = 0; d < dim; d++) 
+  {
+    double mn = mins[d];
+    double mx = maxs[d];
+    for(unsigned int k = 0; k < n_elems; k++) 
+    {
+      double v = coords_[d][k];
+      mn = std::min(mn, v);
+      mx = std::max(mx, v);
+    }
+    mins[d] = mn;
+    maxs[d] = mx;
   }
+
+  diameter.Resize(dim);
+  for(unsigned int d = 0; d < dim; d++)
+    diameter[d] = maxs[d] - mins[d];
 }
 
 void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
@@ -2290,8 +2300,7 @@ Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac,
       jac.Determinant(jacDet);
     } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
       // 2D elements in 3D
-      Vector<Double> normal;
-      normal.Resize(3);
+      std::array<double, 3> normal; // fast static heap allocation
       normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
       normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
       normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];

@@ -4,6 +4,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <boost/type_traits/is_complex.hpp>
 

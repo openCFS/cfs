@@ -564,12 +564,10 @@ namespace CoupledField {
 
         // If old column index is equal to k we must advance it,
         // since it will be too small for the next iteration (k+1)
-        if ( cidxU_[ firstU[i] ] == k ) {
-
-          // Not quite sure, whether this is really necessary,
-          // but might be for pathological cases. We do not want
-          // to advance beyond the first entry in the next row
-          if ( firstU[i] < static_cast<Integer>(rptrU_[i+1]) ) {
+        // Guard against out-of-bounds access: firstU[i] may equal rptrU_[i+1]
+        // (past the last entry of row i) if it was fully advanced in a prior
+        // iteration. In that case no entry with column index k can exist.
+        if ( firstU[i] < static_cast<Integer>(rptrU_[i+1]) && cidxU_[ firstU[i] ] == k ) {
 
             // advance pointer
             firstU[i]++;
@@ -584,7 +582,6 @@ namespace CoupledField {
 #endif
 
             }
-          }
         }
 
         // Update the index vectors for L (old columns)
@@ -594,19 +591,10 @@ namespace CoupledField {
 
         // If old row index is equal to k we must advance it,
         // since it will be too small for the next iteration (k+1)
-	//      NOTE
-        //      the following if claause is buggy and will lead to program failure in debug mode
-        //        i == k will exceed size of firstL
-        //        firstL[i] == ridxL_.size() will exceed size of ridxL_
-        //        both cases occur in the testsuite
-        //      adding the following additional if clause seems to lead to wrong results
-        //        if ( i < k-1 && firstL[i] < ridxL_.size() ) {
-        if ( ridxL_[ firstL[i] ] == k ) {
-
-          // Not quite sure, whether this is really necessary,
-          // but might be for pathological cases. We do not want
-          // to advance beyond the first entry in the next column
-          if ( firstL[i] < static_cast<Integer>(cptrL_[i+1]) ) {
+        // Guard against out-of-bounds access: firstL[i] may equal cptrL_[i+1]
+        // (past the last entry of column i) if it was fully advanced in a prior
+        // iteration. In that case no entry with row index k can exist.
+        if ( firstL[i] < static_cast<Integer>(cptrL_[i+1]) && ridxL_[ firstL[i] ] == k ) {
 
             // advance pointer
             firstL[i]++;
@@ -621,7 +609,6 @@ namespace CoupledField {
 #endif
 
             }
-          }
         }
       }
 

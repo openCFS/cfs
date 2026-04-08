@@ -495,7 +495,7 @@ namespace CoupledField
 						                                    const string& msg ) const
   {
     string help;
-    help = Global::complexPart.ToString( dataType );
+    help = ComplexPartEnum.ToString( dataType );
     EXCEPTION( "Datatype " << help << " is not allowed in function " << msg );
   }
 
@@ -503,7 +503,7 @@ namespace CoupledField
   void BaseMaterial::dataTypeNotAllowed(Global::ComplexPart dataType, MaterialType matType ) const {
 
     string help1, help2;
-    help1 = Global::complexPart.ToString( dataType );
+    help1 = ComplexPartEnum.ToString( dataType );
     help2 = MaterialTypeEnum.ToString( matType );
     EXCEPTION( "Datatype " << help1 << " is not allowed for material type " 
                << help2 << " in material data base "
@@ -521,7 +521,7 @@ namespace CoupledField
 
   void  BaseMaterial::setMakesNoSense(Global::ComplexPart dataType, const string& msg ) const {
     EXCEPTION( "Set of " << msg << " makes no sense with datatype "
-               << Global::complexPart.ToString( dataType ) );
+               << ComplexPartEnum.ToString( dataType ) );
   }
 
 

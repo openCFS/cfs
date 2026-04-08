@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-
+#include "Utils/tools.hh"
 #include "Utils/Timer.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -89,28 +89,6 @@ namespace CoupledField {
     info_ = pn->Get("OLAS")->Get("graph");
     timer = info_->Get("timer")->AsTimer(domain->init_analysis_timer.get());
     timer->Start(); // stopped by AlgebraicSys::StopGraphTimers()
-  }
-
-  // ***********************
-  //   AddVertexNeighbours
-  // ***********************
-  void BaseGraph::AddVertexNeighbours( std::vector<UInt>& vertexList,
-                                       std::vector<UInt>& neighbourList ) {
-
-    // For each vertex in vertexList add all vertices in the neighbourList
-    // as neighbours / edges
-    UInt i, j;
-    for ( i = 0; i < vertexList.size(); i++ ) {
-      for ( j = 0; j < neighbourList.size(); j++ ) {
-        setElements_[ vertexList[i] ].insert(neighbourList[j]);
-//        // Insert edge only if not inserted yet
-//        if( std::find(element_[ vertexList[i] ].begin(),
-//                      element_[ vertexList[i] ].end(), neighbourList[j] )
-//        == element_[ vertexList[i] ].end() ) {
-//        element_[ vertexList[i] ].push_back( neighbourList[j] );
-//      }
-    }
-  }
   }
 
   // ****************
@@ -479,20 +457,21 @@ namespace CoupledField {
 
     csNodes_[0] = 0;
 
-    std::vector<unsigned int>::iterator iter;
     for(unsigned int i = 0; i < numNodes_; i++ )
     {
+      // StdVector<std::vector<unsigned int>> element_;
+      const std::vector<unsigned int>& row = element_[i];
       // set number of edges for current node
-      csNodes_[i+1] = csNodes_[i] + element_[i].size();
+      csNodes_[i+1] = csNodes_[i] + row.size();
 
       // set adjacent nodes
       unsigned int j = csNodes_[i];
-      for ( iter = element_[i].begin(); iter != element_[i].end(); iter++ ) {
-        csEdges_[j] = (*iter);
+      for(unsigned int col : row)
+      {
+        csEdges_[j] = col;
         j++;
       }
     }
-
     // LOG_DBG3(graphLogger) << "C2CRS\n" << PrintCRS(numNodes_, csNodes_, csEdges_);
     // LOG_DBG3(graphLogger) << "C2CRS\n" << PrintCRS(numNodes_, csNodes_, csEdges_, 1);
   }
@@ -648,15 +627,6 @@ namespace CoupledField {
   //   Compute bandwidth (upper and lower) used e.g. for LAPACK Matrices
   // *********************************************************************
   void BaseGraph::GetBandwidth( UInt& bwlower, UInt& bwupper, UInt& bwAvg ) {
-
-                
-#ifdef DEBUG_BASEGRAPH
-//     if ( amAssembled_ == false ) {
-//       EXCEPTION("Attempt to obtain information from graph object, "
-//                << "before assembly was completed by calling "
-//                << "FinaliseAssembly()");
-//     }
-#endif
                 
     MapSetToVector();
 
@@ -723,13 +693,7 @@ namespace CoupledField {
     bwupper = bwupper_;
     bwavg_  = UInt( bwavg_ / Double(numNodes_) );
     bwAvg   = bwavg_;
-
-#ifdef DEBUG_BASEGRAPH
-    (*debug) << "Bandwidth of the graph: l = " << bwlower_
-             << ", u = " << bwupper_ << std::endl;
-#endif
-
-  }
+ }
   
   // ***************************
   //   Return block definitions
@@ -768,11 +732,13 @@ namespace CoupledField {
       #pragma omp parallel for schedule(static) num_threads(CFS_NUM_THREADS)
       for(int i=0;i< (int) numNodes_;i++)
       {
-        // copy from map to vector for sorting and converting to CRS
-        // the three lines are measurable faster than element_[i].assign(setElements_[i].begin(), setElements_[i].end());
-        element_[i].reserve(setElements_[i].size());
-        for(unsigned int v : setElements_[i])
-          element_[i].push_back(v);
+        // copy from map to vector for sorting and converting to CRS - faster than assign!
+        const auto& set = setElements_[i];
+        // StdVector<std::vector<unsigned int>> element_;
+        std::vector<unsigned int>& target = element_[i];
+        target.reserve(set.size());
+        for(unsigned int v : set)
+          target.push_back(v);
       }
 
       setElements_.Clear(false); // don't keep capacity

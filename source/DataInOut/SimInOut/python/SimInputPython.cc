@@ -240,11 +240,11 @@ void SimInputPython::AddNamedNodesElements(PyObject* args, bool nodes)
   PythonKernel::CheckPythonReturn((PyObject*) array);
   LOG_DBG(pymesh) << "ANNE: action=" << (nodes ? "nodes" : "elements") << " s=" << s << " rows=" << PyArray_DIM(array,0);
 
+  // copy numpy content without decrec
   Vector<unsigned int> vec((PyObject*) array, false); // shall be np.array(nodes, dtype=uintc)
   LOG_DBG3(pymesh) << "ANNE: vec=" << vec.ToString();
-  StdVector<unsigned int> stv;
-  stv.Assign(vec.GetPointer(), vec.GetSize(), true); // takes memory ownership
-  vec.DecoupleMem(); // if not we would have double delete
+  // simple wrapper
+  StdVector<unsigned int> stv(vec.GetPointer(), vec.GetSize()); 
 
   if(nodes)
     grid->AddNamedNodes(string(s), stv);

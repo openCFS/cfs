@@ -32,27 +32,18 @@
 //! definitions for openCFS.
 namespace CoupledField {
 
-  using std::shared_ptr;
-  using std::make_shared;
-  using std::weak_ptr;
-  using std::enable_shared_from_this;
-  using std::dynamic_pointer_cast;
-
+  /** not in defs to not include too much */
   using std::any_cast;
   using boost::lexical_cast;
   using boost::char_separator;
+
 
   // Type definition for shared_ptr<CoefFunction>
   class CoefFunction;
   typedef shared_ptr<CoefFunction> PtrCoefFct;
   typedef weak_ptr<CoefFunction> WeakPtrCoefFct;
 
-  //! type of data
-  struct Global {
-    typedef enum {INTEGER, REAL, IMAG, COMPLEX} ComplexPart;
-    static Enum<ComplexPart> complexPart;
-  };
-
+  extern Enum<Global::ComplexPart> ComplexPartEnum;
 
   /** it makes actually not really sense to name the Enum's with Enum.
    * Better would be to name them by the type but lowercase, e.g.

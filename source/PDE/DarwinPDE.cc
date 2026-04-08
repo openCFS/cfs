@@ -635,26 +635,26 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
   // TIME-STEPPING SECTION
   // ======================================================
 
-  void DarwinPDE::InitTimeStepping() {
-  // Use complete implicit scheme
-    Double gamma = 1.0;
-    GLMScheme * scheme = new Trapezoidal(gamma);
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
+  void DarwinPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    // Important: Create a new time scheme just for the elec potential unknowns, as otherwise the
+    // Helper lambda to create the appropriate scheme
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else
+        return new Trapezoidal(1.0);
+    };
+
+    // Important: each field gets its own time scheme instance, as otherwise the
     // size of the vectors does not match!
-    GLMScheme * scheme2 = new Trapezoidal(gamma);
-    shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(scheme2, 0, nlType) );
-    feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme2);
-
-    // Important: Create a new time scheme just for the Lagrange multiplier unknowns, as otherwise the
-	// size of the vectors does not match!
-	GLMScheme * scheme3 = new Trapezoidal(gamma);
-	shared_ptr<BaseTimeScheme> myScheme3(new TimeSchemeGLM(scheme3, 0, nlType) );
-	feFunctions_[LAGRANGE_MULT]->SetTimeScheme(myScheme3);
-
+    TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    feFunctions_[MAG_POTENTIAL] ->SetTimeScheme(shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0, nlType)));
+    feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0, nlType)));
+    feFunctions_[LAGRANGE_MULT] ->SetTimeScheme(shared_ptr<BaseTimeScheme>(new TimeSchemeGLM(makeScheme(), 0, nlType)));
   }
 
   // ******************************************************

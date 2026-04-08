@@ -89,7 +89,7 @@ namespace CoupledField {
 
     InitElemTypeMap();
     
-    numElemsOfDim_.resize(3);
+    numElemsOfDim_.resize(4); // 3 is wrong as later  ++numElemsOfDim_[Elem::shapes[feType].dim]; 
     std::fill(numElemsOfDim_.begin(), numElemsOfDim_.end(), 0);
   }
   
@@ -728,7 +728,7 @@ namespace CoupledField {
     UInt nodeOffset = mi_->GetNumNodes();
     mi_->AddNodes(nVertex);
     
-    Vector<Double> nodeCoord(nCoords);
+    Vector<double> nodeCoord(nCoords);
     for (Integer node = 0; node < nVertex; ++node) {
       nodeCoord[0] = coordMat[0][node];
       nodeCoord[1] = coordMat[1][node];
@@ -1044,6 +1044,7 @@ namespace CoupledField {
           }
 
           // Count elements per dimension
+          assert(numElemsOfDim_.size() > Elem::shapes[feType].dim);
           ++numElemsOfDim_[Elem::shapes[feType].dim];
           
           // Add nodes of this element to set of section nodes
@@ -1809,7 +1810,7 @@ namespace CoupledField {
     UInt resVecSize =  numEntities * numDofs;
     assert(numEntities == numElemsPerName_[regionName]);
     
-    Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
+    Vector<Double>& resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
     resVec.Resize(resVecSize);
     resVec.Init();
 
