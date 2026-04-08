@@ -594,6 +594,7 @@ namespace CoupledField {
     }
 
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, TimeSchemeGLM::NONE));
+    myScheme->SetDomain(domain_);
     feFunctions_[SMOOTH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
   

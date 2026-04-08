@@ -93,7 +93,37 @@
           <xsd:annotation>
             <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
           </xsd:annotation>
-        </xsd:element>
+          </xsd:element>
+          <!-- optional adaptive time stepping block -->
+          <xsd:element name="adaptiveTimeStepping" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="deltaTMin" type="xsd:token"/>
+                <xsd:element name="deltaTMax" type="xsd:token"/>
+                <xsd:element name="tol"       type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="sigma"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rtol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="atol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
+              </xsd:sequence>
+              <xsd:attribute name="scheme" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="maxlocalError"/>
+                    <xsd:enumeration value="normalizedError"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="Stepsizesmoothing" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="ON"/>
+                    <xsd:enumeration value="OFF"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- optional adaptive time stepping block end -->
         </xsd:sequence>
 
         <xsd:attribute name="initialTime" default="accumulated">
