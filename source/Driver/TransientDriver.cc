@@ -517,8 +517,8 @@ namespace CoupledField {
   {
     Double retries = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRetryCount");
     prevLTEerror_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR");
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", prevLTEerror_);
-    
+    // prevError is set below, after acceptance is known (see end of function)
+
     if(static_cast<int>(retries) > 50)
     {
       EXCEPTION("ERROR: The Simulation stopped after 50 Reruns of the same timestep.")
@@ -538,9 +538,15 @@ namespace CoupledField {
               << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
               << "  retries= " << static_cast<int>(retries) << "\n";
     if (tolNotReachable) {
-      std::cout << " WARNING: tolerance could not be reached!" 
+      std::cout << " WARNING: tolerance could not be reached!"
                 << " -- step force-accepted with error above tolerance.\n";
       prevLTEerror_ = antiWindupError_;
+    }
+    // Only update prevError for accepted steps (including force-accepts).
+    // Keeping the last accepted value during rejections prevents the PI
+    // derivative term from amplifying the retry cascade.
+    if (accepted || tolNotReachable) {
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", prevLTEerror_);
     }
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";

@@ -443,7 +443,7 @@ namespace CoupledField{
           std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
                     << " > tol, retrying with dt= "
                     << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
-          ResetGlmVector();
+          //ResetGlmVector(); // Is only initialized for non Bdf2 Systems (0,0,0) -> and TimeScheme return befor GLM is saved so ne need for it anyway
           reset_dt();
           return;
         }else
@@ -709,6 +709,18 @@ namespace CoupledField{
     Double h_next = 0.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
 
+    // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
+    // Detect saturation early: force-accept rather than driving h2 to dtMin.
+    {
+      const Double h1 = curScheme_->dtPrev1_;
+      if (h1 > 0.0 && h / h1 < 0.25) {
+        mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",                  h);
+        mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected",        0.0);
+        mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+        return true;
+      }
+    }
+
     if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 0)
     {
       h_next = standartStepsize(&accepted);
@@ -751,7 +763,7 @@ namespace CoupledField{
 
     const Double z_U      = 0.1;
     const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2 
-    const Double F_U      = 10.0;
+    const Double F_U      = 1.5;
     Double h_next;
 
     if (est == 0.0) {
@@ -776,7 +788,7 @@ namespace CoupledField{
     Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
     Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
-    const Double F_U      = 10.0;
+    const Double F_U      = 1.5;
     Double h_next;
     Double sigma = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma");
     
