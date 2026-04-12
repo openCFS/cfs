@@ -1148,19 +1148,48 @@ namespace CoupledField {
 
 
             BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
-            if (model->Has("deriv_A")) {
-              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
-            } else {
-              info.analyticExprDerivP1 = "0.0";
-            }
-            if (model->Has("deriv_Ps")) {
-              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
-            } else {
-              info.analyticExprDerivP2 = "0.0";
+            if (material->GetAnhystFormula() == "atan") {
+              if (model->Has("deriv_A")) {
+                info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
+              } else {
+                info.analyticExprDerivP1 = "0.0";
+              }
+              if (model->Has("deriv_Ps")) {
+                info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
+              } else {
+                info.analyticExprDerivP2 = "0.0";
+              }
+              info.approxType = ANALYTIC;
+              material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
             }
 
-            info.approxType = ANALYTIC;
-            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
+            if (material->GetAnhystFormula() == "pacejka") {
+              if (model->Has("deriv_PacMs")) {
+                info.analyticExprDerivP1 = model->Get("deriv_PacMs")->As<std::string>().c_str();
+              } else
+                info.analyticExprDerivP1 = "0.0";
+
+              if (model->Has("deriv_PacA")) {
+                info.analyticExprDerivP2 = model->Get("deriv_PacA")->As<std::string>().c_str();
+              } 
+              else
+                info.analyticExprDerivP2 = "0.0";
+
+              if (model->Has("deriv_PacB")) {
+                info.analyticExprDerivP3 = model->Get("deriv_PacB")->As<std::string>().c_str();
+              } 
+              else
+                info.analyticExprDerivP3 = "0.0";
+
+              if (model->Has("deriv_PacC")) {
+                info.analyticExprDerivP4 = model->Get("deriv_PacC")->As<std::string>().c_str();
+              } 
+              else
+                info.analyticExprDerivP4 = "0.0";
+
+              info.approxType = ANALYTIC;
+              material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
+            }
           } 
           else if (perm->Get("model")->Get("isotropic")->Has("invEBHysteresisModel")) 
           {
