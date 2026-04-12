@@ -1316,7 +1316,10 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
         matType != MAG_RELUCTIVITY_DERIV_P3 &&
         matType != MAG_RELUCTIVITY_DERIV_P4 &&
         matType != MAG_ANHYST_DERIV_P1 &&
-        matType != MAG_ANHYST_DERIV_P2 ) {
+        matType != MAG_ANHYST_DERIV_P2 &&
+        matType != MAG_ANHYST_DERIV_P3 &&
+        matType != MAG_ANHYST_DERIV_P4 
+      ) {
       EXCEPTION("Just derivative of Scalar reluctivity w.r.t. paremeters P1 - P4 or of anhysteresis curve w.r.t. P1 - P4 allowed!");
     }
 
@@ -1365,7 +1368,15 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
       else if ( matType == MAG_ANHYST_DERIV_P2) {
         fncStr = matNl.analyticExprDerivP2;
         symbols["H"] = fluxDensAbs;
-      }             
+      }    
+      else if ( matType == MAG_ANHYST_DERIV_P3) {
+        fncStr = matNl.analyticExprDerivP3;
+        symbols["H"] = fluxDensAbs;
+      }
+      else if ( matType == MAG_ANHYST_DERIV_P4) {
+        fncStr = matNl.analyticExprDerivP4;
+        symbols["H"] = fluxDensAbs;
+      }         
       else {
         EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4 or MAG_ANHYST_DERIV_P1 - P2");
       }

@@ -942,6 +942,10 @@
       </xsd:element>
       <xsd:element name="deriv_A" type="xsd:string" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="deriv_Ps" type="xsd:string" minOccurs="0" maxOccurs="1"/>      
+      <xsd:element name="deriv_PacMs" type="xsd:string" minOccurs="0" maxOccurs="1"/>   
+      <xsd:element name="deriv_PacA" type="xsd:string" minOccurs="0" maxOccurs="1"/> 
+      <xsd:element name="deriv_PacB" type="xsd:string" minOccurs="0" maxOccurs="1"/> 
+      <xsd:element name="deriv_PacC" type="xsd:string" minOccurs="0" maxOccurs="1"/> 
     </xsd:sequence>
   </xsd:complexType>
 
