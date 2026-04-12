@@ -137,11 +137,23 @@ namespace CoupledField
         domain->SetRegion4Hyst(NO_REGION_ID);
 
         //coeff-Function for derivations of nu w.r.t. parameters
-        PtrCoefFct derivParam1 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P1, Global::REAL, coef);
-        PtrCoefFct derivParam2 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P2, Global::REAL, coef);
-
-        magAnhystDerivA_[actRegion]  = derivParam1;
-        magAnhystDerivPs_[actRegion] = derivParam2;
+        if (actSDMat->GetAnhystFormula() == "atan") {
+          PtrCoefFct derivParam1 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P1, Global::REAL, coef);
+          PtrCoefFct derivParam2 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P2, Global::REAL, coef);
+          magAnhystDerivA_[actRegion]  = derivParam1;
+          magAnhystDerivPs_[actRegion] = derivParam2;
+        } else if (actSDMat->GetAnhystFormula() == "pacejka") {
+          PtrCoefFct derivParam1 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P1, Global::REAL, coef);
+          PtrCoefFct derivParam2 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P2, Global::REAL, coef);
+          PtrCoefFct derivParam3 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P3, Global::REAL, coef);
+          PtrCoefFct derivParam4 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P4, Global::REAL, coef);
+          magAnhystDerivMs_[actRegion] = derivParam1;
+          magAnhystDerivA_[actRegion]  = derivParam2;
+          magAnhystDerivB_[actRegion]  = derivParam3;
+          magAnhystDerivC_[actRegion]  = derivParam4;
+        }
+        else
+          EXCEPTION("MagneticScalarPotentialAdjPDE: currently just atan- and pacejka-MH are supported");
 
         if (dim_ == 2) {
           stiffInt = new BDBInt<>(new GradientOperator<FeH1, 2>(), mu, 1.0, updatedGeo_);
@@ -178,7 +190,7 @@ namespace CoupledField
     }
 
     //check if permeability depends on parameters
-    if ( magAnhystDerivA_.size() > 0 )
+    if ( (magAnhystDerivA_.size() > 0) || magAnhystDerivMs_.size() < 0 )
       muDerivParam_ = true;
   }
 
@@ -535,6 +547,54 @@ namespace CoupledField
       shared_ptr<ResultFunctor> grad2Region;
       grad2Region.reset(new ResultFunctorIntegrate<Double>(mult2, feFct, gradAdjParam2));
       resultFunctors_[MAG_GRAD_ADJ_PARAM2] = grad2Region;
+
+      //for parameter 3
+      // === Pure helper result ===
+      shared_ptr<ResultInfo> ef3(new ResultInfo);
+      ef3->resultType = OPT_RESULT_3; 
+      ef3->dofNames = "";
+      ef3->unit = "";
+      ef3->definedOn = ResultInfo::ELEMENT;
+      ef3->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> mult3(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+      DefineFieldResult(mult3, ef3);
+
+      // === Gradient via adjoint ===
+      shared_ptr<ResultInfo> gradAdjParam3;
+      gradAdjParam3.reset(new ResultInfo);
+      gradAdjParam3->resultType = MAG_GRAD_ADJ_PARAM3;
+      gradAdjParam3->dofNames = "";
+      gradAdjParam3->unit = "";
+      gradAdjParam3->entryType = ResultInfo::SCALAR;
+      gradAdjParam3->definedOn = ResultInfo::REGION;    
+      availResults_.insert(gradAdjParam3);                            
+      shared_ptr<ResultFunctor> grad3Region;
+      grad3Region.reset(new ResultFunctorIntegrate<Double>(mult3, feFct, gradAdjParam3));
+      resultFunctors_[MAG_GRAD_ADJ_PARAM3] = grad3Region;
+
+      //for parameter 4
+      // === Pure helper result ===
+      shared_ptr<ResultInfo> ef4(new ResultInfo);
+      ef4->resultType = OPT_RESULT_4; 
+      ef4->dofNames = "";
+      ef4->unit = "";
+      ef4->definedOn = ResultInfo::ELEMENT;
+      ef4->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> mult4(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+      DefineFieldResult(mult4, ef4);
+
+      // === Gradient via adjoint ===
+      shared_ptr<ResultInfo> gradAdjParam4;
+      gradAdjParam4.reset(new ResultInfo);
+      gradAdjParam4->resultType = MAG_GRAD_ADJ_PARAM4;
+      gradAdjParam4->dofNames = "";
+      gradAdjParam4->unit = "";
+      gradAdjParam4->entryType = ResultInfo::SCALAR;
+      gradAdjParam4->definedOn = ResultInfo::REGION;    
+      availResults_.insert(gradAdjParam4);                            
+      shared_ptr<ResultFunctor> grad4Region;
+      grad4Region.reset(new ResultFunctorIntegrate<Double>(mult4, feFct, gradAdjParam4));
+      resultFunctors_[MAG_GRAD_ADJ_PARAM4] = grad4Region;      
     }
 
     if ( muDerivParam_ == false ) { 
@@ -567,7 +627,9 @@ namespace CoupledField
     else {
       //nonlinear case
       shared_ptr<CoefFunctionMulti> scalMult1 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_1]);
-      shared_ptr<CoefFunctionMulti> scalMult2 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_2]);          
+      shared_ptr<CoefFunctionMulti> scalMult2 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_2]);    
+      shared_ptr<CoefFunctionMulti> scalMult3 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_3]);    
+      shared_ptr<CoefFunctionMulti> scalMult4 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_4]);          
       shared_ptr<CoefFunctionMulti> hField = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     
       StdVector<RegionIdType>::iterator regIt = regions_.Begin();
@@ -578,8 +640,12 @@ namespace CoupledField
         PtrCoefFct multForAdj = NULL;
         PtrCoefFct multP1 = NULL;
         PtrCoefFct multP2 = NULL;  
+        PtrCoefFct multP3 = NULL;  
+        PtrCoefFct multP4 = NULL;  
         PtrCoefFct permParam1;
-        PtrCoefFct permParam2;              
+        PtrCoefFct permParam2; 
+        PtrCoefFct permParam3;
+        PtrCoefFct permParam4;              
         RegionIdType actRegion = *regIt;
 
         //needed for posprocessing of "magAveragedFieldIntensity" result!
@@ -604,20 +670,54 @@ namespace CoupledField
           //=======================
           //do all for parameter 1
           //=======================
-          // get coeff function for derivation of permeability w.r.t. parameter 1 (=A)
-          permParam1 = magAnhystDerivA_[*regIt];      
+          PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+          if (materials_[*regIt]->GetAnhystFormula() == "atan") {
+            // get coeff function for derivation of permeability w.r.t. parameter atan 1 (=A)
+            permParam1 = magAnhystDerivA_[*regIt];       
+          } else if (materials_[*regIt]->GetAnhystFormula() == "pacejka") {
+            // get coeff function for derivation of permeability w.r.t. parameter Pacejka 1 (=Ms)
+            permParam1 = magAnhystDerivMs_[*regIt];             
+          }
           multP1 = CoefFunction::Generate( mp_, Global::REAL,
-                             CoefXprBinOp(mp_, permParam1, multForAdj, CoefXpr::OP_MULT) );                                 
+                                 CoefXprBinOp(mp_, permParam1, multForAdj, CoefXpr::OP_MULT) ); 
           scalMult1->AddRegion(actRegion, multP1);
 
           //=======================
           //do all for parameter 2
           //=======================
-          // get coeff function for derivation of permeability  w.r.t. parameter 2 (=Ms)
-          permParam2 = magAnhystDerivPs_[*regIt];       
+          if (materials_[*regIt]->GetAnhystFormula() == "atan") {
+            // get coeff function for derivation of permeability  w.r.t. parameter atan 2 (=Ms)
+            permParam2 = magAnhystDerivPs_[*regIt];   
+          } else if (materials_[*regIt]->GetAnhystFormula() == "pacejka") {
+            // get coeff function for derivation of permeability w.r.t. parameter Pacejka 2 (=A)
+            permParam2 = magAnhystDerivA_[*regIt];             
+          }    
           multP2 = CoefFunction::Generate( mp_, Global::REAL,
                              CoefXprBinOp(mp_, permParam2, multForAdj, CoefXpr::OP_MULT) );                                 
           scalMult2->AddRegion(actRegion, multP2);   
+
+          //=======================
+          //do all for parameter 3
+          //=======================
+          if (materials_[*regIt]->GetAnhystFormula() == "pacejka") {
+            // get coeff function for derivation of permeability w.r.t. parameter Pacejka 3 (=B)
+            permParam3 = magAnhystDerivB_[*regIt];               
+            multP3 = CoefFunction::Generate( mp_, Global::REAL,
+                             CoefXprBinOp(mp_, permParam3, multForAdj, CoefXpr::OP_MULT) );                                 
+            scalMult3->AddRegion(actRegion, multP3);  
+          }
+
+           //=======================
+          //do all for parameter 4
+          //=======================
+          if (materials_[*regIt]->GetAnhystFormula() == "pacejka") {
+            // get coeff function for derivation of permeability w.r.t. parameter Pacejka 4 (=C)
+            permParam4 = magAnhystDerivC_[*regIt];               
+            multP4 = CoefFunction::Generate( mp_, Global::REAL,
+                             CoefXprBinOp(mp_, permParam4, multForAdj, CoefXpr::OP_MULT) );                                 
+            scalMult4->AddRegion(actRegion, multP4);  
+          }
+
         }        
       } //over all regions      
     }

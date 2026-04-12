@@ -92,6 +92,9 @@ namespace CoupledField
     //! map containing the derivative of the anhysteresis curve
     std::map<RegionIdType, PtrCoefFct> magAnhystDerivA_;
     std::map<RegionIdType, PtrCoefFct> magAnhystDerivPs_;
+    std::map<RegionIdType, PtrCoefFct> magAnhystDerivMs_;
+    std::map<RegionIdType, PtrCoefFct> magAnhystDerivB_;
+    std::map<RegionIdType, PtrCoefFct> magAnhystDerivC_;
 
     //yes, when permeability depends on parameters
     bool muDerivParam_;
