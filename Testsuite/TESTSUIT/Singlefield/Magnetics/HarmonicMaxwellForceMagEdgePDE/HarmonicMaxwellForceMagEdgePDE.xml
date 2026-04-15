@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+/home/florian/Devel/CFS_SRC/cfs/share/xml/CFS-Simulation/CFS.xsd">
+
+<documentation>
+    <title>Harmonic Maxwell Force Density - MagEdgePDE</title>
+    <authors>
+        <author>michhof</author>
+    </authors>
+    <date>2026-04-28</date>
+    <keywords>
+        <keyword>harmonic</keyword>
+        <keyword>magneticEdge</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+        In this example, a 3D simulation of two parallel wires is performed.
+        The wires are driven by a harmonic current source.
+        The constant and harmonic Maxwell force densities and integrated Maxwell force are calculated.
+    </description>
+</documentation>
+    
+<!-- define which files are needed for simulation input & output-->
+    <fileFormats>
+        <input>
+            <!-- <cdb fileName="mesh.cdb"/> -->
+            <hdf5 fileName="HarmonicMaxwellForceMagEdgePDE.h5ref"/>
+        </input>
+        <output>
+            <hdf5 id="hdf5"/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V_air" material="air"></region>
+            <region name="V_wire_left" material="copper"></region>
+            <region name="V_wire_right" material="copper"></region>
+        </regionList>
+    </domain>
+
+    <!-- Step 1: Harmonic Analysis-->
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>50</startFreq>
+                <stopFreq>50</stopFreq>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <magneticEdge formulation="A">
+                
+                <regionList>
+                    <region name="V_air"/>
+                    <region name="V_wire_left"/>
+                    <region name="V_wire_right"/>
+                </regionList>
+
+                <bcsAndLoads>
+                    <fluxParallel name="S_flux_air_radial"/>
+                    <fluxParallel name="S_flux_air_front"/>
+                    <fluxParallel name="S_flux_air_back"/>
+                    <fluxParallel name="S_wire_left_front"/>
+                    <fluxParallel name="S_wire_left_back"/>
+                    <fluxParallel name="S_wire_right_front"/>
+                    <fluxParallel name="S_wire_right_back"/>
+                </bcsAndLoads>
+
+                <coilList>
+                    <coil id="1">
+                        <source type="current" value="1e8"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="V_wire_left" />
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1" />
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1e-6" />
+                            <resistance value="0" />
+                        </part>
+                    </coil>
+                    <coil id="2">
+                        <source type="current" value="1e8" />
+                        <part id="1">
+                            <regionList>
+                                <region name="V_wire_right" />
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1" />
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1e-6" />
+                            <resistance value="0" />
+                        </part>
+                    </coil>
+                </coilList>
+
+                <storeResults>
+                  <surfElemResult type="magForceMaxwellDensityStatic" >
+                    <surfElemList >
+                      <surfElems name="S_wire_right_interface" neighborRegion="V_air" outputIds="hdf5" writeAsHistResult="no"/>
+                    </surfElemList>
+                  </surfElemResult> 
+                  <surfElemResult type="magForceMaxwellDensityHarmonic" >
+                    <surfElemList >
+                      <surfElems name="S_wire_right_interface" neighborRegion="V_air" outputIds="hdf5" writeAsHistResult="no"/>
+                    </surfElemList>
+                  </surfElemResult>  
+                    <surfRegionResult type="magForceMaxwellStatic">
+                    <surfRegionList>
+                      <surfRegion name="S_wire_right_interface" neighborRegion="V_air" outputIds="hdf5" writeAsHistResult="yes"/>
+                    </surfRegionList>
+                  </surfRegionResult>  
+                    <surfRegionResult type="magForceMaxwellHarmonic">
+                    <surfRegionList>
+                      <surfRegion name="S_wire_right_interface" neighborRegion="V_air" outputIds="hdf5" writeAsHistResult="yes"/>
+                    </surfRegionList>
+                  </surfRegionResult> 
+                </storeResults>
+            </magneticEdge>
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>

@@ -986,7 +986,11 @@ namespace CoupledField {
             outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
             if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
+                 candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_STATIC ||
+                 candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_HARMONIC ||
                  candidate->resultType == MAG_FORCE_MAXWELL ||
+                 candidate->resultType == MAG_FORCE_MAXWELL_STATIC ||
+                 candidate->resultType == MAG_FORCE_MAXWELL_HARMONIC ||
                candidate->resultType == MAG_FORCE_VWP) {
               neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
             }
@@ -1039,7 +1043,11 @@ namespace CoupledField {
           }
 
           if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
+               candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_STATIC ||
+               candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_HARMONIC ||
                candidate->resultType == MAG_FORCE_MAXWELL ||
+               candidate->resultType == MAG_FORCE_MAXWELL_STATIC ||
+               candidate->resultType == MAG_FORCE_MAXWELL_HARMONIC ||
              candidate->resultType == MAG_FORCE_VWP) {
             std::string neighborReg =  neighborRegions[iRegion];
             RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
@@ -1088,11 +1096,10 @@ namespace CoupledField {
           histEntities = histNode->GetList("surfElems");
         entityTypeName = "surfElems";
 
-        // fetch entry with neighboring regions
+        // fetch entry with neighboring regions (push all entries aligned with histEntities indices)
         for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
           std::string str = histEntities[i]->Get("neighborRegion")->As<std::string>();
-          if ( str != "" )
-            neighborRegions.Push_back( str );
+          neighborRegions.Push_back( str );
         }
       } else if(candidate->definedOn == ResultInfo::COIL ) {
         histNode = actResultNode->Get("coilList", ParamNode::PASS);
@@ -1178,11 +1185,20 @@ namespace CoupledField {
           }
 
           fnc = resultFunctors_[candidate->resultType];
-//          if ( neighborRegions.GetSize() != 0 ) {
-//            std::string neighborReg =  neighborRegions[i];
-//            RegionIdType actRegionId = ptGrid_->GetRegion().Parse( neighborReg );
-//            fnc->GetCoefFct()->SetNeighborRegionId(actRegionId);
-//          }
+
+          if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
+               candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_STATIC ||
+               candidate->resultType == MAG_FORCE_MAXWELL_DENSITY_HARMONIC ||
+               candidate->resultType == MAG_FORCE_MAXWELL_STATIC ||
+               candidate->resultType == MAG_FORCE_MAXWELL_HARMONIC ||
+               candidate->resultType == MAG_FORCE_VWP ) {
+            if ( i < neighborRegions.GetSize() && neighborRegions[i] != "" ) {
+              std::string neighborReg = neighborRegions[i];
+              RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( histNames[i] );
+              RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+              fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId, volNeighborRegionId);
+            }
+          }
 
           resHandler->RegisterResult( actSol, fnc, sequenceStep_,
               saveBegin, saveInc, saveEnd,

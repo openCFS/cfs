@@ -1,0 +1,85 @@
+reset
+undo on
+Journal off
+Echo off
+
+# surfaces
+create surface circle radius 1 zplane
+create surface circle radius 0.05 zplane
+move surface 2 x -0.06
+create surface circle radius 0.05 zplane
+move surface 3 x 0.06
+subtract surface 2 3 from 1
+create surface circle radius 0.05 zplane
+move surface 5 x -0.06
+create surface circle radius 0.05 zplane
+move surface 6 x 0.06
+create surface circle radius 1 zplane
+move surface 7 z 0.1
+create surface circle radius 1 zplane
+move surface 8 z -0.3
+
+# volume
+sweep surface 4 5 6 direction 0 0 -1 distance 0.2 keep
+sweep surface 7 direction 0 0 -1 distance 0.1 keep
+sweep surface 8 direction 0 0 1 distance 0.1 keep
+
+
+imprint volume all
+merge volume all
+
+# mesh 
+curve 5 interval 30
+surface 5 scheme pave
+mesh surface 5
+
+curve 4 interval 30
+surface 6 scheme pave 
+mesh surface 6
+
+curve 1 interval 40
+surface 4 scheme pave
+mesh surface 4
+
+volume  all scheme sweep 
+mesh volume all
+
+# define the blocks
+block 1 add volume 8 11 12
+block 1 name "V_air"
+
+block 2 add volume 9
+block 2 name "V_wire_left"
+
+block 3 add volume 10
+block 3 name "V_wire_right"
+
+# define the nodesets
+
+nodeset 1 add surface 7
+nodeset 1  name "S_flux_air_front"
+nodeset 2 add surface 8
+nodeset 2  name "S_flux_air_back"
+
+nodeset 3 add surface 9 20 23
+nodeset 3  name "S_flux_air_radial"
+
+nodeset 4 add surface 5
+nodeset 4  name "S_wire_left_front"
+nodeset 5 add surface 15
+nodeset 5  name "S_wire_left_back"
+nodeset 6 add surface 10
+nodeset 6  name "S_wire_left_radial"
+
+nodeset 7 add surface 6
+nodeset 7  name "S_wire_right_front"
+nodeset 8 add surface 18
+nodeset 8  name "S_wire_right_back"
+nodeset 9 add surface 11
+nodeset 9  name "S_wire_right_radial"
+
+nodeset 10 add surface 6 18 11
+nodeset 10 name "S_wire_right_interface"
+
+
+
