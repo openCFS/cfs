@@ -2,10 +2,6 @@
 #define FILE_STDVECTOR_2004
 
 #include <array>
-<<<<<<< HEAD
-#include <boost/iterator/iterator_facade.hpp>
-=======
->>>>>>> origin/master
 #include <vector>
 #include <cassert>
 #include <algorithm>
@@ -43,168 +39,6 @@ namespace CoupledField {
     typedef const TYPE* const_iterator;
     
     // =======================================================================
-<<<<<<< HEAD
-    //  STL-COMPATIBLE ITERATOR DEFINITIONS
-    // =======================================================================
-    // The implementation of the iterator interface utilizes boost's iterator-
-    // facade concept.
-
-    //! Define iterator class
-    class iterator : public boost::iterator_facade<iterator, TYPE, boost::random_access_traversal_tag> 
-    {
-    public: 
-      
-      //! default constructor
-      iterator() : vec_(NULL), pos_(0) {}
-      
-    private:
-
-      friend class boost::iterator_core_access;
-      friend class StdVector<TYPE>;
-
-      //! iterator with pointer to vector
-      iterator( StdVector<TYPE>* p, unsigned int pos = 0 ) 
-        : vec_( p ), pos_( pos ) {}
-    
-      //! dereferencing
-      TYPE& dereference() const { 
-        return (*vec_)[pos_]; 
-      }
-      
-      //! check for equality
-      bool equal( iterator const & other ) const {
-        return ( this->vec_ == other.vec_ &&
-                 this->pos_ == other.pos_ );
-      }
-      
-      //! increment position
-      void increment() { 
-        pos_++;
-      }
-      
-      //! decrement position
-      void decrement() { pos_--; }
-      
-      //! advance position by n
-      void advance( ptrdiff_t n) { 
-        if( n > 0 )
-          pos_ += std::abs(n);
-        else
-          pos_ -= std::abs(n);
-      }
-      
-      //! measure distance
-      ptrdiff_t distance_to( iterator const & other ) const {
-        return other.pos_ - this->pos_;
-      }
-      
-      // references to StdVector
-      StdVector<TYPE> * vec_;
-      size_t pos_;
-    };
-    
-    //! Define CONST iterator class
-    class const_iterator : public boost::iterator_facade<const_iterator, TYPE const, boost::random_access_traversal_tag>
-    {
-    public: 
-
-      //! default constructor
-      const_iterator() : vec_(NULL), pos_(0) {}
-
-    private:
-
-      friend class boost::iterator_core_access;
-      friend class StdVector<TYPE>;
-
-      //! iterator with pointer to vector
-      const_iterator( const StdVector<TYPE>* p, unsigned int pos = 0 ) 
-      : vec_( p ), pos_( pos ) {}
-
-      //! dereferencing
-      const TYPE& dereference() const { 
-        return (*vec_)[pos_]; 
-      }
-
-      //! check for equality
-      bool equal( const_iterator const & other ) const {
-        return ( this->vec_ == other.vec_ &&
-            this->pos_ == other.pos_ );
-      }
-
-      //! increment position
-      void increment() { 
-        pos_++;
-      }
-
-      //! decrement position
-      void decrement() { pos_--; }
-
-      //! advance position by n
-      void advance( ptrdiff_t n) {
-        if( n > 0 )
-          pos_ += std::abs(n);
-        else
-          pos_ -= std::abs(n);
-      }
-      
-      //! measure distance
-      ptrdiff_t distance_to( const_iterator const & other ) const {
-        return other.pos_ - this->pos_;
-      }
-
-      // references to StdVector
-      const StdVector<TYPE> * vec_;
-      size_t pos_;
-    };
-  
-    //! Return iterator pointing to first element
-    iterator Begin() {
-        return iterator(this, 0);
-    }
-       
-    //! Return iterator pointing to first element
-    const_iterator Begin() const {
-      return const_iterator(this, 0);
-    }
-    
-    //! Return iterator pointing to first element
-    //! otherwise we can't use C++11 auto
-    iterator begin() {
-        return iterator(this, 0);
-    }
-
-    //! Return iterator pointing to first element
-    //! otherwise we can't use C++11 auto
-    const_iterator begin() const {
-      return const_iterator(this, 0);
-    }
-
-    //! Return iterator pointing to (undefined) element after last element
-    iterator End() {
-        return iterator(this, size_);
-    }
-    
-    //! Return iterator pointing to (undefined) element after last element
-    const_iterator End() const {
-        return const_iterator( this, size_ );
-    }
-    
-
-    //! Return iterator pointing to (undefined) element after last element
-    //! otherwise we can't use C++11 auto
-    iterator end() {
-        return iterator(this, size_);
-    }
-
-    //! Return iterator pointing to (undefined) element after last element
-    //! otherwise we can't use C++11 auto
-    const_iterator end() const {
-        return const_iterator( this, size_ );
-    }
-
-    // =======================================================================
-=======
->>>>>>> origin/master
     //  VECTOR METHODS
     // =======================================================================
 
@@ -259,8 +93,6 @@ namespace CoupledField {
     //! STL-compatible version
     template <class InputIterator>
     StdVector(InputIterator first, InputIterator last);
-<<<<<<< HEAD
-=======
 
     /** This is the C++11 like constructor as v = {1, 2, 3}.
      * It is an alternative to the legacy list StdVectorListInitializer
@@ -270,7 +102,6 @@ namespace CoupledField {
       for (const TYPE& x : list)
         Push_back(x);
     }
->>>>>>> origin/master
 
     //! Destructor
     ~StdVector() 
@@ -422,8 +253,6 @@ namespace CoupledField {
     inline TYPE& First();
     inline TYPE First() const;
 
-<<<<<<< HEAD
-=======
     // the classical iterator usage to be replaced by C++11 ranges 
     TYPE*       Begin()        { return data_; }
     const TYPE* Begin()  const { return data_; }
@@ -436,7 +265,6 @@ namespace CoupledField {
     TYPE*       end()          { return data_ + size_; }
     const TYPE* end()    const { return data_ + size_; }
 
->>>>>>> origin/master
     /** convenience when having a pointer. In debug the operator checks bounds */
     inline TYPE& At(size_type i) { return data_[i]; }
     inline const TYPE& At(size_type i) const { return data_[i]; }
@@ -697,10 +525,6 @@ namespace CoupledField {
     }
 
   private:
-<<<<<<< HEAD
-    //! pointer to vector
-=======
->>>>>>> origin/master
     StdVector<TYPE>* vec_;
   };
 

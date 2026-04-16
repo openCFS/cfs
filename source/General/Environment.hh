@@ -27,20 +27,6 @@
 //! definitions for openCFS.
 namespace CoupledField {
 
-<<<<<<< HEAD
-  /** not in defs to not include too much */
-  using std::any_cast;
-  using boost::lexical_cast;
-  using boost::char_separator;
-
-
-  // Type definition for shared_ptr<CoefFunction>
-  class CoefFunction;
-  typedef shared_ptr<CoefFunction> PtrCoefFct;
-  typedef weak_ptr<CoefFunction> WeakPtrCoefFct;
-
-=======
->>>>>>> origin/master
   extern Enum<Global::ComplexPart> ComplexPartEnum;
 
   /** it makes actually not really sense to name the Enum's with Enum.

@@ -7,11 +7,6 @@
 
 
 #include <iostream>
-<<<<<<< HEAD
-
-#include "General/Enum.hh"
-=======
->>>>>>> origin/master
 #include "General/defs.hh"
 #include "General/Exception.hh"
 

@@ -6,11 +6,7 @@
 #include "OLAS/graph/BaseGraph.hh"
 #include "OLAS/graph/IDBC_Graph.hh"
 #include "Utils/Timer.hh"
-<<<<<<< HEAD
-#include "Utils/tools.hh"
-=======
 #include "Utils/ToolsFull.hh"
->>>>>>> origin/master
 
 namespace CoupledField {
 

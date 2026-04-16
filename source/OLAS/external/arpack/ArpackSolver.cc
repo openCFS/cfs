@@ -5,12 +5,8 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Vector.hh"
-<<<<<<< HEAD
-#include "Utils/tools.hh"
-=======
 #include "Utils/ToolsFull.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
->>>>>>> origin/master
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 

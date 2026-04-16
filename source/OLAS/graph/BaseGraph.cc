@@ -4,11 +4,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-<<<<<<< HEAD
-#include "Utils/tools.hh"
-=======
 #include "Utils/ToolsFull.hh"
->>>>>>> origin/master
 #include "Utils/Timer.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"

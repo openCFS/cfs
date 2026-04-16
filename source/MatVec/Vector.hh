@@ -3,21 +3,11 @@
 
 #include "SingleVector.hh"
 #include <array>
-<<<<<<< HEAD
-#include <boost/container/small_vector.hpp>
-
-#include <def_build_type_options.hh>
-#include <def_use_embedded_python.hh>
-
-#include "Utils/boost-serialization.hh"
-
-=======
 #include <set>
 #include <algorithm>
 #include <boost/container/small_vector.hpp>
 #include <def_build_type_options.hh>
 #include <def_use_embedded_python.hh>
->>>>>>> origin/master
 #ifdef USE_EXPRESSION_TEMPLATES
 #include "exprt/xpr1.hh"
 #else

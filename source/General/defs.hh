@@ -10,11 +10,7 @@
 #include <complex>
 #include <limits>
 #include <memory>
-<<<<<<< HEAD
-#include <boost/cstdint.hpp>
-=======
 #include <cstdint>
->>>>>>> origin/master
 
 // Include build type options header containing the #defines
 #include <def_build_type_options.hh>
@@ -30,8 +26,6 @@ typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;
 
-<<<<<<< HEAD
-=======
 class ParamNode;  
 typedef std::shared_ptr<ParamNode> PtrParamNode;
 typedef std::weak_ptr<ParamNode> WeakPtrParamNode;
@@ -43,7 +37,6 @@ class CoefFunction;
 typedef std::shared_ptr<CoefFunction> PtrCoefFct;
 typedef std::weak_ptr<CoefFunction> WeakPtrCoefFct;
 
->>>>>>> origin/master
 using std::shared_ptr;
 using std::make_shared;
 using std::weak_ptr;

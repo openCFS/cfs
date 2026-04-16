@@ -1,10 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <boost/lexical_cast.hpp>
-<<<<<<< HEAD
-=======
 #include <boost/container_hash/hash.hpp>
->>>>>>> origin/master
 
 #include "IntScheme.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
