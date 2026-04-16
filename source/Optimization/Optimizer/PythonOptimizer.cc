@@ -7,6 +7,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
+#include "DataInOut/SimState.hh"
 #include "Driver/Assemble.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -18,7 +19,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/PythonKernel.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 // declare class specific logging stream
 DEFINE_LOG(pyopt, "pyopt")

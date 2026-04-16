@@ -162,7 +162,7 @@ namespace CoupledField {
     etype = stdMat.GetEntryType();
     if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
       EXCEPTION( "UMFPACK: Expected DOUBLE or COMPLEX entries, but got '"
-                 << BaseMatrix::entryType.ToString(etype) << "'" );
+                 << MatrixEntryTypeEnum.ToString(etype) << "'" );
     }
 
     isComplex_ = ( etype == BaseMatrix::COMPLEX);
@@ -171,7 +171,7 @@ namespace CoupledField {
     if ( (stype != BaseMatrix::SPARSE_SYM) &&
          (stype != BaseMatrix::SPARSE_NONSYM) ) {
       EXCEPTION( "UMFPACK: Expected a sparseSym or sparseNonSym matrix, "
-                 << "but got a '" << BaseMatrix::storageType.ToString( stype ) << "' matrix" );
+                 << "but got a '" << MatrixStorageTypeEnum.ToString( stype ) << "' matrix" );
     }
 
     // Determine problem size

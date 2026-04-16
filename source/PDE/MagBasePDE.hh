@@ -14,6 +14,7 @@
  */
 
 #include "SinglePDE.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 namespace CoupledField
 {

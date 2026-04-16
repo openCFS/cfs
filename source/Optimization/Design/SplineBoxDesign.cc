@@ -9,7 +9,7 @@
 #include "MatVec/Vector.hh"
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Excitation.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 

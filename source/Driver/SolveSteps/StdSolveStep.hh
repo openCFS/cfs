@@ -302,7 +302,7 @@ namespace CoupledField
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
 
     shared_ptr<Timer> static_non_lin_step_timer_;
-
+    shared_ptr<Timer> timerEvaluateNonlinearity_;
     std::ofstream logFile_;
     unsigned int mHandle_;
     MathParser* mParser_;

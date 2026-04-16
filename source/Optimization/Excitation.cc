@@ -5,7 +5,6 @@
 #include <limits>
 #include <map>
 #include <ostream>
-#include <boost/lexical_cast.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -101,7 +100,7 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
   if(quiet)
     return NULL;
   else
-    throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
+    throw Exception("None of the " + std::to_string(excitations.GetSize()) + " excitations has a label '" + label + "'");
 }
 
 unsigned int MultipleExcitation::GetNumberHomogenization(App::Type app) const
@@ -212,7 +211,7 @@ void MultipleExcitation::SetHarmonicExcitation(Context* ctxt, Excitation& ex, in
   ex.frequency = hd->freqs[freq_idx].freq;
   assert(!(ex.label != "" && freq_idx > 0));
   if(ex.label == "") // don't overwrite the single frequenc multiple load case
-    ex.label = lexical_cast<string>(freq_idx);
+    ex.label = std::to_string(freq_idx);
   ex.weight = hd->freqs[freq_idx].weight;
   ex.f_link = &hd->freqs[freq_idx];
 }
@@ -452,9 +451,9 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       Excitation* ex = ctxt.excitations[i];
       weight_sum += ex->weight;
       if(ex->label == "")
-        ex->label = lexical_cast<string>(i);
+        ex->label = std::to_string(i);
       if(ctxt.DoMultiSequence()) // relabel to capture sequence
-        ex->label = "s_" + lexical_cast<string>(ctxt.sequence) + "-" + ex->label;
+        ex->label = "s_" + std::to_string(ctxt.sequence) + "-" + ex->label;
     }
     // set excitation index, calculate the initial normalized_weight and print info.
     if(IsEnabled(ctxt.sequence) || ctxt.IsHarmonic())
@@ -467,6 +466,8 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       {
         Excitation* ex = ctxt.excitations[i];
         ex->index = base + i;
+        // for this case, overwrite label for clear identification by GetExcitation()
+        ex->label = std::to_string(ex->index);
         // fixes bug for pressure loads
         if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
           // multiple pressure loads not implemented

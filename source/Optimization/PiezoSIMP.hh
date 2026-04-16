@@ -8,7 +8,7 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/SIMP.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 class DenseMatrix;

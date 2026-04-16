@@ -5,7 +5,11 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 #include "Matrix.hh"
+<<<<<<< HEAD
 #include "Utils/tools.hh"
+=======
+#include "Utils/ToolsFull.hh"
+>>>>>>> origin/master
 #include "Utils/SyncAccess.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS
@@ -814,7 +818,7 @@ namespace CoupledField {
   {
     // this is ugly copy&paste from CRS_Matrix :(
     std::stringstream ss;
-    // don't use ToString() from this class but the glocal ToString() from tools.hh
+    // don't use ToString() from this class but the glocal ToString() from ToolsFull.hh
     ss << " row=" << ::ToString<unsigned int>(rowPtr_, this->nrows_+1) << std::endl;
     ss << " col=" << ::ToString<unsigned int>(colInd_, this->nnz_)  << std::endl;
     ss << " val=" << ::ToString<T>(data_, this->nnz_);

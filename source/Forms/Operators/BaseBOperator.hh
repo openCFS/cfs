@@ -2,9 +2,12 @@
 #define BaseBOperator_HH
 
 #include <string>
+#include "Utils/ThreadLocalStorage.hh"
 #include "MatVec/Matrix.hh"
 
 namespace CoupledField{
+
+class BaseFE;
 
 //! Basic Class for differential operators. These classes are passed as a 
 //! template parameter to the forms object. Thereby a PDE rather specifies

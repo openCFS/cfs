@@ -210,7 +210,7 @@ namespace CoupledField {
       GetMatrixNode(blockNum)->GetValue("storage",formatString);
     }
     
-    BaseMatrix::StorageType st = BaseMatrix::storageType.Parse(formatString);
+    BaseMatrix::StorageType st = MatrixStorageTypeEnum.Parse(formatString);
     return st;
     
   }
@@ -406,7 +406,7 @@ namespace CoupledField {
       GetMatrixNode(blockNum)->GetValue("storage",formatString);
     }
 
-    BaseMatrix::StorageType st = BaseMatrix::storageType.Parse(formatString);
+    BaseMatrix::StorageType st = MatrixStorageTypeEnum.Parse(formatString);
     return st;
 
   }

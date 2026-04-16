@@ -9,7 +9,6 @@
 #include "MatVec/Matrix.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
-#include <boost/type_traits/is_complex.hpp>
 
 using std::complex;
 using std::string;

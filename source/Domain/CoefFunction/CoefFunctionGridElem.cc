@@ -18,7 +18,6 @@
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <boost/lexical_cast.hpp>
 #include <set>
 #include <string>
 #include <limits>

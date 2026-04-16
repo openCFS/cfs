@@ -20,6 +20,7 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "DataInOut/ResultHandler.hh"
+#include "Domain/Domain.hh"
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif

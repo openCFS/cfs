@@ -23,15 +23,29 @@ import hdf5_tools as h5
 import h5py
 #%% Functions and subclasses
 
-def f2t(X,Nt,return_Nh=False):
+def f2t(X, Nt, return_Nh=False, time_vec=None, frq=1):
     '''
+    Transforms frequency domain results into time domain. 
+    If the time vector time_vec is not given a time vector starting from 0.0 with 
+    equidistant distribution of Nt elements is created
+
     Parameters
     ----------
     X : 1d array
-    the harmonics vector.
+    the harmonics vector (for positive and negative frequencies)
+    Can either contain the optimized results (only odd harmonics) 
+    Or all results
+    Linear Harmonic:
+    Must contain the value for frq=0
 
     Nt : int
-    Number of points in the time series.
+    Number of points in the time series. 
+
+    time_vec: 1d array
+    Time vector, must have the same length as Nt.
+
+    frq: int
+    Excitation frequency, only needed if a corresponding time_vec is given
 
     return_Nh : Boolean
     returns the number of harmonics computed by (len(X)-1)/2 as second output
@@ -45,28 +59,27 @@ def f2t(X,Nt,return_Nh=False):
     Number of harmonics in X
     '''
     from numpy import linspace, exp, outer, pi, arange
-    t = linspace(0,2*pi,Nt,endpoint=False)
+    if time_vec is None:
+        t = linspace(0,1,Nt,endpoint=False)
+    else:
+        t = time_vec
     if (X.shape[0]-1) % 2 > 0 :
         # print("Optimized version assumed!")
         X_new = np.zeros((2*X.shape[0]-1,), dtype=complex)
-        # print(X_new)
         i=0
         for entry in X:
-            #print(X)
-            # print(i)
-            #print("hello")
-            # print(entry)
-            # print(*entry)
-            # print(entry[0]+entry[1])
             X_new[i] = entry
             i = i + 2
-            
         X = X_new
     #     print('error harmonics: X.shape[0]-1 must be even. X.shape=',X.shape)
     #     return
     # else :
     Nh = int( (X.shape[0]-1)/2 )
-    Xt = (exp(1j*outer(t,arange(-Nh,Nh+1))) @ X).real
+    if time_vec is None:
+        Xt = (exp(1j*2*pi*outer(t,arange(-Nh,Nh+1))) @ X).real
+    else:
+        Xt = (exp(1j*2*pi*frq*outer(t,arange(-Nh,Nh+1))) @ X).real
+
     if return_Nh:
         return Xt, Nh
     else :

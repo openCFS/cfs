@@ -268,7 +268,7 @@ namespace CoupledField {
                           Double time ) {
     // assemble name for analysis step
     std::string analysisName = "transient";
-    analysisName += "_" + lexical_cast<std::string>( currMsStep_ );
+    analysisName += "_" + std::to_string( currMsStep_ );
 
     std::string resultTag;
 

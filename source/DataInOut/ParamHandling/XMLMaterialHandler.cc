@@ -1,3 +1,4 @@
+#include <boost/lexical_cast.hpp>
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
@@ -26,13 +27,15 @@
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 #include "Materials/MagStrictMaterial.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
 
 // define shorthand notation
 typedef BaseMaterial BM;
+
+using boost::lexical_cast;
 
 namespace CoupledField {
   

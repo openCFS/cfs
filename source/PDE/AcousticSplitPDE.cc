@@ -22,6 +22,7 @@
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 #include "Domain/Results/ResultFunctor.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -30,7 +31,6 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 
 

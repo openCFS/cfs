@@ -3,7 +3,7 @@
 
 #include <bitset>
 #include <map>
-#include <boost/array.hpp>
+#include <array>
 
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
@@ -406,7 +406,7 @@ namespace CoupledField
     //! This member contains for each edge (1st index) the local direction
     //! the edge points to.  If an edge can not uniquely assigned to a 
     //! direction, the entry is set to -1.
-    StdVector<boost::array<Integer,2> >faceLocDirs;
+    StdVector<std::array<Integer,2> >faceLocDirs;
     
     // ========================================================================
     //  PUBLIC METHODS

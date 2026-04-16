@@ -15,6 +15,7 @@
 #include "RotatingSubstDt.hh"
 #include "DatUtils/AnalyticalFields.hh"
 #include "DatUtils/EqnNumberingSimple.hh"
+#include "Domain/Mesh/Grid.hh"
 #include <vector>
 #include <algorithm>
 

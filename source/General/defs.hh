@@ -5,14 +5,16 @@
 #ifndef FILE_DEFS_2004
 #define FILE_DEFS_2004
 
-#include <iostream>
-#include <string>
 #include <exception>
 #include <typeinfo>
 #include <complex>
 #include <limits>
 #include <memory>
+<<<<<<< HEAD
 #include <boost/cstdint.hpp>
+=======
+#include <cstdint>
+>>>>>>> origin/master
 
 // Include build type options header containing the #defines
 #include <def_build_type_options.hh>
@@ -21,13 +23,27 @@
 namespace CoupledField{
 
 //! redeclaration of types
-typedef boost::int32_t Integer;
-typedef boost::uint32_t UInt;
-typedef boost::int16_t ShortInt;
+typedef int32_t  Integer;
+typedef uint32_t UInt;
+typedef int16_t  ShortInt;
 typedef float Float;
 typedef double Double;
 typedef std::complex<Double> Complex;
 
+<<<<<<< HEAD
+=======
+class ParamNode;  
+typedef std::shared_ptr<ParamNode> PtrParamNode;
+typedef std::weak_ptr<ParamNode> WeakPtrParamNode;
+template<typename T> class StdVector; 
+typedef StdVector<std::shared_ptr<ParamNode> > ParamNodeList;
+
+// Type definition for shared_ptr<CoefFunction>
+class CoefFunction;
+typedef std::shared_ptr<CoefFunction> PtrCoefFct;
+typedef std::weak_ptr<CoefFunction> WeakPtrCoefFct;
+
+>>>>>>> origin/master
 using std::shared_ptr;
 using std::make_shared;
 using std::weak_ptr;

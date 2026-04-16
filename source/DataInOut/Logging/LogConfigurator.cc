@@ -7,6 +7,7 @@
 #include <fstream>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/core/null_deleter.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
@@ -26,19 +27,19 @@ typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
 
 // needed to extract the correct level from xml file
 const std::map<std::string, int> logLevelMap = {
-    {"disable_all", logging::level_disable_all},
-    {"default_"   , logging::level_default_},
-    {"enable_all" , logging::level_enable_all},
-    {"all"        , logging::level_enable_all},
-    {"fatal"      , logging::level_fatal},
-    {"err"        , logging::level_err},
-    {"trace"      , logging::level_trace},
-    {"trace2"     , logging::level_trace2},
-    {"dbg"        , logging::level_dbg},
-    {"dbg2"       , logging::level_dbg2},
-    {"dbg3"       , logging::level_dbg3},
-    {"warn"       , logging::level_warn},
-    {"info"       , logging::level_info}
+    {"disable_all", level_disable_all},
+    {"default_"   , level_default_},
+    {"enable_all" , level_enable_all},
+    {"all"        , level_enable_all},
+    {"fatal"      , level_fatal},
+    {"err"        , level_err},
+    {"trace"      , level_trace},
+    {"trace2"     , level_trace2},
+    {"dbg"        , level_dbg},
+    {"dbg2"       , level_dbg2},
+    {"dbg3"       , level_dbg3},
+    {"warn"       , level_warn},
+    {"info"       , level_info}
 };
 
 void LogConfigurator::ParseLogConfFile(const std::string& confFile) {

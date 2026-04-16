@@ -5,7 +5,6 @@
 #include <DataInOut/SimInput.hh>
 #include "H5Cpp.h"
 
-
 namespace CoupledField {
 
   class CoordSystem;

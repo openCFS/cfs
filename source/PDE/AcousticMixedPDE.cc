@@ -396,7 +396,7 @@ namespace CoupledField{
           // formFactor = density * penaltyFactor
           PtrCoefFct formFactor = 
               CoefFunction::Generate(mp_, Global::REAL,
-                                     CoefXprBinOp(mp_, lexical_cast<std::string>(penaltyFactor),
+                                     CoefXprBinOp(mp_, boost::lexical_cast<std::string>(penaltyFactor),
                                                   density, CoefXpr::OP_MULT ) );
 
           shared_ptr<ResultInfo> flowvelocityNormal( new ResultInfo);

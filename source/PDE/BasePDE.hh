@@ -3,12 +3,8 @@
 
 #include <list>
 
-#include "General/Environment.hh"
-#include "Utils/StdVector.hh"
 #include "General/Exception.hh"
 #include "General/Enum.hh"
-#include "Forms/IntScheme.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
 {

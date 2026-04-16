@@ -130,7 +130,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
     RegionIdType volRegId = it->first;
     flowRegions.insert(volRegId);
 
-    oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,lexical_cast<std::string>(1.0));
+    oneFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
     shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
     actSDList->SetRegion( volRegId );
   }

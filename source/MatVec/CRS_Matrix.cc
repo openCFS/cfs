@@ -7,7 +7,7 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 #include "Utils/SyncAccess.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 #ifdef USE_MKL
 #include <mkl_spblas.h>
@@ -1072,7 +1072,7 @@ namespace CoupledField {
   std::string CRS_Matrix<T>::Dump() const
   {
     std::stringstream ss;
-    // don't use ToString() from this class but the glocal ToString() from tools.hh
+    // don't use ToString() from this class but the glocal ToString() from ToolsFull.hh
     ss << " row=" << ::ToString<unsigned int>(rowPtr_, this->nrows_+1) << std::endl;
     ss << " col=" << ::ToString<unsigned int>(colInd_, this->nnz_)  << std::endl;
     ss << " val=" << ::ToString<T>(data_, this->nnz_);

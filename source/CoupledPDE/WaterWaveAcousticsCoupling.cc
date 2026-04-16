@@ -92,8 +92,7 @@ namespace CoupledField {
       // Get bulk density for acoustics
       BaseMaterial * acouMat = acouMaterials[volRegId];
       coefFuncsAcou[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
-      oneCoefFuncsAcou[volRegId] = CoefFunction::Generate(mp, Global::REAL,
-                                                          lexical_cast<std::string>(1.0));
+      oneCoefFuncsAcou[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
     }
 
     // Create coefficient functions for all water densities
@@ -111,8 +110,7 @@ namespace CoupledField {
       // Get bulk density for water
       BaseMaterial * waterMat = waterMaterials[volRegId];
       coefFuncsWater[volRegId] = waterMat->GetScalCoefFnc(DENSITY,Global::REAL);
-      oneCoefFuncsWater[volRegId] = CoefFunction::Generate(mp, Global::REAL,
-                                                          lexical_cast<std::string>(1.0));
+      oneCoefFuncsWater[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
     }
 
     shared_ptr<FeSpace> lagrangeMultSpace = lagrangeMultFct->GetFeSpace();

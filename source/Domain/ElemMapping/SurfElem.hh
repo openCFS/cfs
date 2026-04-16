@@ -1,7 +1,7 @@
 #ifndef FILE_CFS_SURF_ELEM_HH
 #define FILE_CFS_SURF_ELEM_HH
 
-#include <boost/array.hpp>
+#include <array>
 #include "Elem.hh"
 
 namespace CoupledField
@@ -66,7 +66,7 @@ namespace CoupledField
     //@{ \name Geometry Information
     
     //! Array with pointer to neighbouring volume elements
-    boost::array<Elem*,2> ptVolElems;
+    std::array<Elem*,2> ptVolElems;
     
     //@}
   };

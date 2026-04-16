@@ -14,6 +14,7 @@
 
 #include "ResultManager.hh"
 #include "MatVec/Vector.hh"
+#include "Domain/Mesh/Grid.hh"
 #include <set>
 // #include <algorithm>
 #include <cmath>

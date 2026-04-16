@@ -3,11 +3,11 @@
 
 #include <map>
 #include <string>
+#include <cassert>
 
 #include "General/defs.hh"
 #include "General/Exception.hh"
 #include "Utils/StdVector.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField 
 {

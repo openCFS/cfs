@@ -2,6 +2,7 @@
 #define OPTIMIZATION_DESIGN_FEATUREMAPPINGDESIGN_HH_
 
 #include "Optimization/Design/FeaturedDesign.hh"
+#include "Utils/ToolsFull.hh"
 #include <forward_list>
 
 namespace CoupledField

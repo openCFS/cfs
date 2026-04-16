@@ -1,6 +1,7 @@
+#include <boost/lexical_cast.hpp>
+#include <boost/bind/bind.hpp>
+
 #include "CoefFunctionTimeFreq.hh"
-#include "boost/bind/bind.hpp"
-#include "boost/lexical_cast.hpp"
 #include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
@@ -129,7 +130,7 @@ std::string  CoefFunctionTimeFreq<Double>::ToString() const {
       return "";
       break;
     case SCALAR:
-      return lexical_cast<std::string>(this->coefScalar_);
+      return boost::lexical_cast<std::string>(this->coefScalar_);
       break;
     case VECTOR:
       return this->coefVec_.ToString();

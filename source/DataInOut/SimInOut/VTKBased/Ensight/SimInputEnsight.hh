@@ -16,6 +16,7 @@
 #define SIMINPUTENSIGHT_HH_
 
 #include "DataInOut/SimInOut/VTKBased/SimInputVTKBased.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include <unordered_map>
 
 namespace CoupledField{

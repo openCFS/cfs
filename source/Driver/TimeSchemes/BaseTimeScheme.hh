@@ -150,7 +150,7 @@ class BaseTimeScheme{
 
     virtual void forceIncremental()=0;
 
-    virtual void ExportGLM(string pdeName, int feFctId, int curStep, int coupleIter)=0;
+    virtual void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter)=0;
     
   protected:
 

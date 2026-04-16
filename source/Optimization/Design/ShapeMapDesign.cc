@@ -9,7 +9,7 @@
 #include "Optimization/Excitation.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 using std::string;
@@ -1603,7 +1603,7 @@ void ShapeMapDesign::NumInt::SetTailoredTanh(PtrParamNode info)
            << " tb=" << tailored_bounds_.ToString() << " org to=" << tailored_order_.ToString();
 
   if(tailored_order_.Max() > max_possible_order)
-    info->SetWarning("resolution and beta combination allows no sufficient numerical integration for sensitvity " + lexical_cast<string>(sensitivity_), true);
+    info->SetWarning("resolution and beta combination allows no sufficient numerical integration for sensitivity " + boost::lexical_cast<string>(sensitivity_), true);
 
   if(tailored_order_.Max() > max_order_ && max_order_ < max_possible_order)
     info->SetWarning("configuration 'integration_order=" + to_string(max_order_) + "' where " + to_string(std::min(max_possible_order, tailored_order_.Max())) + " is required", true);
@@ -2114,7 +2114,7 @@ void ShapeMapDesign::WriteGradientFile()
   int cnt = 6; // will be preincremented
   for(unsigned int g = 0; g < opt->constraints.all.GetSize(); g++)
     if(opt->constraints.all[g]->HasDenseJacobian())
-      gradplot_ << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt->constraints.all[g]->ToString()) + "\t";
+      gradplot_ << " ("  << std::to_string(++cnt) << ") " + ToValidXML(opt->constraints.all[g]->ToString()) + "\t";
   gradplot_ << std::endl;
 
   Function* c = opt->objectives.data[0];

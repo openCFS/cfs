@@ -334,14 +334,14 @@ extern "C" {
       etype = stdMat.GetEntryType();
       if ( (etype != BaseMatrix::DOUBLE) && (etype != BaseMatrix::COMPLEX) ) {
         EXCEPTION( "Pardiso: Expected DOUBLE or COMPLEX entries, but got '"
-                 << BaseMatrix::entryType.ToString(etype) << "'" );
+                 << MatrixEntryTypeEnum.ToString(etype) << "'" );
       }
 
       stype = stdMat.GetStorageType();
       if ( (stype != BaseMatrix::SPARSE_SYM) &&
           (stype != BaseMatrix::SPARSE_NONSYM) ) {
         EXCEPTION( "Pardiso: Expected a sparseSym or sparseNonSym matrix, "
-                 << "but got a '" << BaseMatrix::storageType.ToString( stype ) << "' matrix" );
+                 << "but got a '" << MatrixStorageTypeEnum.ToString( stype ) << "' matrix" );
       }
 
       // Determine problem size

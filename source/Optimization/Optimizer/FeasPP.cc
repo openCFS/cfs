@@ -1,7 +1,7 @@
 #include "Optimization/Optimizer/FeasPP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "MatVec/Matrix.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include <limits>
@@ -299,7 +299,7 @@ void FeasPP::SolveProblem()
 
     if(err != "")
     {
-      std::string msg = "subproblem failed in major iteration " + lexical_cast<string>(iter) + ": " + err;
+      std::string msg = "subproblem failed in major iteration " + std::to_string(iter) + ": " + err;
       summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
       summary->Get("break/converged")->SetValue("no");
       summary->Get("problem")->SetValue("FeasPP/IPOPT: " + msg);

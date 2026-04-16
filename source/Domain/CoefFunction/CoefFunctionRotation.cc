@@ -6,7 +6,7 @@
  */
 
 #include "CoefFunctionRotation.hh"
-
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"

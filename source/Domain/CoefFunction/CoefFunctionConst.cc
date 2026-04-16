@@ -1,7 +1,9 @@
 #include "CoefFunctionConst.hh"
 
 #include <limits>
+#include <boost/lexical_cast.hpp>
 
+using boost::lexical_cast;
 
 namespace CoupledField {
 

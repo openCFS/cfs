@@ -1,5 +1,6 @@
 
 #include "Optimization/AcouSIMP.hh"
+#include "Materials/BaseMaterial.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Optimization/Design/DesignElement.hh"

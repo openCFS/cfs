@@ -31,6 +31,7 @@
 #endif
 
 #include "DataInOut/SimInput.hh"
+#include "Domain/Results/ResultInfo.hh"
 
 namespace CoupledField{
 

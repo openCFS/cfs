@@ -182,7 +182,7 @@ public:
         return "";
         break;
       case SCALAR:
-        return lexical_cast<std::string>(coefScalar_);
+        return boost::lexical_cast<std::string>(coefScalar_);
         break;
       case VECTOR:
         return coefVec_.ToString();

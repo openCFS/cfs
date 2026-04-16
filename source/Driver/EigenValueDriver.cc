@@ -317,7 +317,7 @@ void EigenValueDriver::SolveProblem() {
   PtrParamNode els = sstep->GetAlgSys()->GetExportLinSysParam();
   if (els) {
     if(els->Get("solution")->As<bool>()) {
-      BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+      BaseMatrix::OutputFormat vec_format = MatrixOutputFormatEnum.Parse(els->Get("vecFormat")->As<std::string>());
       std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
       if(domain->GetDriver()->GetAnalysisId().ToString(true) != ""){
         base += "_" + domain->GetDriver()->GetAnalysisId().ToString(true);
@@ -326,9 +326,9 @@ void EigenValueDriver::SolveProblem() {
         Vector<Complex> mode;
         // TU Wien Variant with normalized eigenmodes
         sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode);
-        mode.Export( base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+        mode.Export( base + "_mode_" + std::to_string(i+1), vec_format);
         sstep->GetAlgSys()->GetEigenSolver()->GetNormalizedEigenMode(modeOrder_[i],mode,false);
-        mode.Export( base + "_mode-left_" + lexical_cast<std::string>(i+1), vec_format);
+        mode.Export( base + "_mode-left_" + std::to_string(i+1), vec_format);
       }
     }
   }

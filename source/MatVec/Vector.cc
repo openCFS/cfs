@@ -1,9 +1,5 @@
 #include <def_use_embedded_python.hh>
 
-#include "Vector.hh"
-#include "opdefs.hh"
-#include "Matrix.hh"
-
 #include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
@@ -11,6 +7,12 @@
 #include <cmath>
 #include <cfloat>
 #include <fstream>
+#include <iomanip>
+
+#include "Vector.hh"
+#include "opdefs.hh"
+#include "Matrix.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField 
 {

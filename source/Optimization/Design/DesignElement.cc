@@ -28,7 +28,7 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/Point.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "boost/math/special_functions/sign.hpp"
 #include "boost/lexical_cast.hpp"
@@ -1280,6 +1280,7 @@ void DesignElement::SetEnums()
   detail.Add(MECH_ELEC, "mech_elec");
   // this is a selection of constraints for constraintGradient
   detail.Add(DYNAMIC_OUTPUT, "dynamicOutput");
+  detail.Add(DYNAMIC_OUTPUT_TRACKING, "dynamicOutputTracking");
   detail.Add(REFLECTED_WAVE, "reflectedWave");
   detail.Add(COMPLIANCE, "compliance");
   detail.Add(VOLUME, "volume");

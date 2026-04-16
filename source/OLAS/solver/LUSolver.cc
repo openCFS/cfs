@@ -57,7 +57,7 @@ namespace CoupledField {
     if ( sType != BaseMatrix::SPARSE_NONSYM ) {
       EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
           << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
-          << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " you supplied is a matrix in " << MatrixStorageTypeEnum.ToString( sType )
           << " format." );
     }
 

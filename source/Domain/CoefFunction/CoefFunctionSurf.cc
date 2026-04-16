@@ -2,6 +2,8 @@
 
 
 #include "Domain/Results/ResultInfo.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
+
 namespace CoupledField {
 
 

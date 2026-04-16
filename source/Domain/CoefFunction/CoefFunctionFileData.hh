@@ -2,7 +2,9 @@
 #define COEFFUNCTIONFILEDATA_HH_
 
 #include <memory>
-
+#include "Utils/ThreadLocalStorage.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
+#include "Domain/Domain.hh"
 #include "CoefFunction.hh"
 
 namespace CoupledField

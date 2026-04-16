@@ -1291,8 +1291,8 @@ namespace CoupledField
       double b;
       GetScalar(a, RAYLEIGH_ALPHA, Global::REAL);
       GetScalar(b, RAYLEIGH_BETA, Global::REAL);
-      alpha = lexical_cast<std::string>(a);
-      beta = lexical_cast<std::string>(b);
+      alpha = boost::lexical_cast<std::string>(a);
+      beta = boost::lexical_cast<std::string>(b);
       return;
     }
     else {
@@ -1308,7 +1308,7 @@ namespace CoupledField
       GetString(tanDeltaStr, LOSS_TANGENS_DELTA);
       double deltaF = 0.01;
       // make sure to enclose the expression by brackets!
-      std::string deltaFStr = lexical_cast<std::string>(deltaF);
+      std::string deltaFStr = boost::lexical_cast<std::string>(deltaF);
       // simplified formula to keep mathParser string short
       alpha = tanDeltaStr + "* pi * f * (1 - (" + deltaFStr + ")^2)";
       beta = tanDeltaStr + "* 1 / (4 * pi * f)";

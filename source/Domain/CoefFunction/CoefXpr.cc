@@ -1,5 +1,9 @@
 #include "CoefXpr.hh"
+<<<<<<< HEAD
 #include "Utils/tools.hh"
+=======
+#include "Utils/ToolsFull.hh"
+>>>>>>> origin/master
 #include "boost/algorithm/string/erase.hpp"
 
 namespace CoupledField {

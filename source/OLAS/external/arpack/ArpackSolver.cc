@@ -1,12 +1,18 @@
 #include <limits>
+#include <boost/type_traits/is_complex.hpp>
 
 #include "ArpackSolver.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Vector.hh"
+<<<<<<< HEAD
 #include "Utils/tools.hh"
+=======
+#include "Utils/ToolsFull.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+>>>>>>> origin/master
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include <boost/type_traits/is_complex.hpp>
+
 
 DEFINE_LOG(as, "arpackSolver")
 

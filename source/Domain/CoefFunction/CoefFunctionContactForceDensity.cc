@@ -4,7 +4,7 @@
  *  Created on: 18 Nov 2022
  *      Author: Dominik Mayrhofer
  */
-
+#include "Domain/Domain.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "CoefFunctionContactForceDensity.hh"
 #include "CoefFunctionDistance.hh"

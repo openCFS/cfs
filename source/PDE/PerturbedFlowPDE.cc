@@ -229,8 +229,7 @@ namespace CoupledField {
       // Create set of flow regions and map of density functions for surface integrators.
       flowRegions.insert(actRegion);
       oneFuncs[actRegion] = 
-        CoefFunction::Generate( mp_, Global::REAL,
-                                lexical_cast<std::string>(1.0) );
+        CoefFunction::Generate( mp_, Global::REAL, "1.0" );
 
       // ====================================================================
       // stiffness integrators

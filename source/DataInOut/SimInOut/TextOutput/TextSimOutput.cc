@@ -1,12 +1,13 @@
 #include "TextSimOutput.hh"
 #include <fstream>
-
+#include <boost/lexical_cast.hpp>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "FeBasis/BaseFE.hh"
 
+using boost::lexical_cast;
 
 namespace CoupledField {
 

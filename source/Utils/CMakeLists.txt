@@ -14,7 +14,7 @@ SET(UTILS_SRCS
   Polynomial.cc
   SmoothSpline.cc
   Timer.cc
-  tools.cc)
+  ToolsFull.cc)
 
 if(USE_EMBEDDED_PYTHON)
   list(APPEND TARGET_LL ${Python_LIBRARIES})

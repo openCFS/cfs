@@ -40,7 +40,6 @@
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
-#include <boost/lexical_cast.hpp>
 #include <cmath>
 
 
@@ -1913,9 +1912,6 @@ namespace CoupledField{
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
       for( UInt i = 0; i < impedNodes.GetSize(); ++i ) {
-    	if ( complexFluidFormulation_ )
-    		EXCEPTION("Complex fluid and impedance currently not working");
-
         BiLinearForm * impedInt = NULL;
         std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
@@ -1963,10 +1959,19 @@ namespace CoupledField{
           EXCEPTION("No such impedance id found: " << impId);
         }
 
+        // for complexFluid (inhomogeneous) PDE, we need to multiply the impedance with rho for alignment with the different PDE structure
+        // Z_impMode normal = rho**2 / Z
+        // Z_impMode complex = rho / Z
+        PtrCoefFct Z_impScaled = Z_impMod;
+        if ( complexFluidFormulation_ ){
+          PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+          Z_impScaled = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, Z_impScaled, dens, CoefXpr::OP_DIV ));
+        }
+
         if( dim_ == 2 ) {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impScaled, 1.0, updatedGeo_ );
         } else {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impScaled, 1.0, updatedGeo_ );
         }
 
         FEMatrixType targetMatrix = DAMPING;

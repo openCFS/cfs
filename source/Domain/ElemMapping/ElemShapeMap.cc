@@ -1,6 +1,6 @@
 #include <boost/assign/list_of.hpp>
 
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "ElemShapeMap.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -293,13 +293,13 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const 
   this->shapeMap->Local2Global(globSurfIntPoint, lp);
   esmVol->Local2Global(globVolIntPoint, lpVol);
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordSurf: " << globSurfIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordVol: " << globVolIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordSurf: " << lp.coord << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordVol: " << lpVol.coord << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "surfElemNum---:" << surfElem.elemNum << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
-  LOG_DBG2(locPointMapped) "normal glob-------------------:" << normal << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "globCoordSurf: " << globSurfIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) << "globCoordVol: " << globVolIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) << "locCoordSurf: " << lp.coord << std::endl;
+  LOG_DBG2(locPointMapped) << "locCoordVol: " << lpVol.coord << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "surfElemNum---:" << surfElem.elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "normal loc-----------:" << locNormal << std::endl;
+  LOG_DBG2(locPointMapped) << "normal glob-------------------:" << normal << std::endl << std::endl;
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globSurfIntPoint.GetSize(); ++iDim)
     assert(abs(globSurfIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
@@ -378,15 +378,15 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   Vector<Double> globVolIntPoint;
   esmVol->Local2Global(globVolIntPoint, lpVol);
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordVol: " << globVolIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordVol: " << lpVol.coord << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordMortarElem: " << globIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordMortarElem: " << this->lp.coord << std::endl;
-  LOG_DBG2(locPointMapped) "usePrimary:" << usePrimary << std::endl;
-  LOG_DBG2(locPointMapped) "surfElemNums---:" << mortarElem->ptPrimary->elemNum << ", " << mortarElem->ptSecondary->elemNum << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "volElemNums---:" << mortarElem->ptPrimary->ptVolElems[0]->elemNum << ", " << mortarElem->ptSecondary->ptVolElems[0]->elemNum << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
-  LOG_DBG2(locPointMapped) "normal glob-------------------:" << this->normal << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "globCoordVol: " << globVolIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) << "locCoordVol: " << lpVol.coord << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "globCoordMortarElem: " << globIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) << "locCoordMortarElem: " << this->lp.coord << std::endl;
+  LOG_DBG2(locPointMapped) << "usePrimary:" << usePrimary << std::endl;
+  LOG_DBG2(locPointMapped) << "surfElemNums---:" << mortarElem->ptPrimary->elemNum << ", " << mortarElem->ptSecondary->elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "volElemNums---:" << mortarElem->ptPrimary->ptVolElems[0]->elemNum << ", " << mortarElem->ptSecondary->ptVolElems[0]->elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "normal loc-----------:" << locNormal << std::endl;
+  LOG_DBG2(locPointMapped) << "normal glob-------------------:" << this->normal << std::endl << std::endl;
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
     assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);

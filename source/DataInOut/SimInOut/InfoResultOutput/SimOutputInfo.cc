@@ -1,7 +1,11 @@
 #include "SimOutputInfo.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+<<<<<<< HEAD
 #include "Utils/tools.hh"
+=======
+#include "Utils/ToolsFull.hh"
+>>>>>>> origin/master
 #include "Domain/Domain.hh"
 
 using namespace CoupledField;

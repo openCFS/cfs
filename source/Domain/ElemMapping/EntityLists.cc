@@ -1,4 +1,3 @@
-#include <boost/lexical_cast.hpp>
 
 #include "EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -752,10 +751,10 @@ namespace CoupledField {
     case EntityList::ELEM_LIST:
     case EntityList::SURF_ELEM_LIST:
     case EntityList::NC_ELEM_LIST:
-      id = lexical_cast<std::string>(GetElem()->elemNum);
+      id = std::to_string(GetElem()->elemNum);
       break;
     case EntityList::NODE_LIST:
-      id = lexical_cast<std::string>(GetNode());
+      id = std::to_string(GetNode());
       break;
     case EntityList::NAME_LIST:
       id = nameList_->GetName();

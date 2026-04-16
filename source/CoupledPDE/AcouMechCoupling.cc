@@ -95,12 +95,12 @@ namespace CoupledField {
       // which cancels out the coefficient of the coupling term (as this coefficient  is the density in
       // non-complex formulation
       if (acouPDE->IsMaterialComplex())
-        coefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, lexical_cast<std::string>(1.0));
+        coefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
       else
         coefFuncs[volRegId] = acouMat->GetScalCoefFnc(DENSITY,Global::REAL);
 
-      oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
+      oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
+                                                   
     }
 
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();

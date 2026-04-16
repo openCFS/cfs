@@ -13,25 +13,21 @@
 #include <cmath>
 
 #include <typeinfo>
-#include <iostream>
 #include <vector>
 
-// includes for the C99 standard datatypes (e.g. uint32_t, long double)
-#include <boost/cstdint.hpp>
-#include <memory>
-#include <boost/scoped_ptr.hpp>
-#include <cfloat>
 #include <any>
 
 #include "General/defs.hh"
 #include "Enum.hh"
 #include "EnvironmentTypes.hh"
+#include "MatVec/BaseMatrix.hh"
 
 //! \file Environment.hh
 //! This file contains some global macro, class and enumeration data type
 //! definitions for openCFS.
 namespace CoupledField {
 
+<<<<<<< HEAD
   /** not in defs to not include too much */
   using std::any_cast;
   using boost::lexical_cast;
@@ -43,6 +39,8 @@ namespace CoupledField {
   typedef shared_ptr<CoefFunction> PtrCoefFct;
   typedef weak_ptr<CoefFunction> WeakPtrCoefFct;
 
+=======
+>>>>>>> origin/master
   extern Enum<Global::ComplexPart> ComplexPartEnum;
 
   /** it makes actually not really sense to name the Enum's with Enum.
@@ -55,9 +53,12 @@ namespace CoupledField {
   extern Enum<MaterialTensorNotation> tensorNotation;
   extern Enum<ApproxCurveType> ApproxCurveTypeEnum;
   extern Enum<NonLinMethodType> NonLinMethodTypeEnum;
-
+  extern Enum<BaseMatrix::StructureType> MatrixStructureTypeEnum;
+  extern Enum<BaseMatrix::EntryType> MatrixEntryTypeEnum;
+  extern Enum<BaseMatrix::StorageType> MatrixStorageTypeEnum;
+  extern Enum<BaseMatrix::OutputFormat> MatrixOutputFormatEnum;
   extern Enum<FEMatrixType> feMatrixType;
-
+  
   /** String2Enum/Enum2String is depreciated, better use Enum<> */
   
   //! conversion from strings to enum types

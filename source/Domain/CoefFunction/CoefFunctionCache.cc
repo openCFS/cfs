@@ -7,7 +7,6 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 #include <boost/bind/bind.hpp>
-#include <boost/lexical_cast.hpp>
 
 namespace CoupledField
 {

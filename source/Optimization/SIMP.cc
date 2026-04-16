@@ -39,7 +39,7 @@
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 class DenseMatrix ;
@@ -302,6 +302,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::OUTPUT:
   case Function::SQUARED_OUTPUT:
   case Function::DYNAMIC_OUTPUT:
+  case Function::DYNAMIC_OUTPUT_TRACKING:
   case Function::CONJUGATE_COMPLIANCE:
   case Function::ABS_OUTPUT:
   {
@@ -317,6 +318,13 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       weight *= 2. * SIMP::CalcFunction(excite, f, false);
       f->SetType(Function::SQUARED_OUTPUT);
     }
+    // tracking gradient is 2 * [J - T] J'
+    if (f->GetType() == Function::DYNAMIC_OUTPUT_TRACKING)
+    {
+      f->SetType(Function::DYNAMIC_OUTPUT);
+      weight *= 2. * (SIMP::CalcFunction(excite, f, false) - f->GetParameter());
+      f->SetType(Function::DYNAMIC_OUTPUT_TRACKING);
+    }
     LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
     break;
@@ -325,7 +333,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::REFLECTED_WAVE:
   {
     // J = (u - z)^T L (u - z)*
-    // J' = 2*Re(lambda K' (u-z))
+    // J' = 2*Re(lambda K' (u-z))  but here, we only want to substract z for the DOFs selected by L...
     // K^T lambda = - L (u-z)
     // Similar to dynamicOutput, but the solution gets shifted by a constant value z. 
     // In acoustics, z is the pressure caused by the excitation, so we only see the reflected wave.
@@ -339,8 +347,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     RegionIdType reg = GetExcitationRegion(f);
     Complex z = GetExcitationPressure(f);
     StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[app];
-    StdVector<Vector<complex<double>>> umz(u2.GetSize());
-
+    StdVector<Vector<complex<double>>> umz(u2.GetSize()); // stores u - z
     // This code is only for excitation inside the optimization region and not verified
     // get all nodeIds for the ecitation
     StdVector<unsigned int> regNodes;

@@ -13,6 +13,7 @@
 //================================================================================================
 
 #include "VolumeMultiplication.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CFSDat{
   

@@ -36,7 +36,7 @@
 #include "Utils/Timer.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
-
+#include "Domain/Results/ResultInfo.hh"
 
 #ifdef WIN32
 #include <direct.h>
@@ -4416,7 +4416,7 @@ void GridCFS::MapFaces()
         const StdVector<unsigned int>& ni = node_names[n];
         node->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
         for(unsigned int c = 0; c < ni.GetSize(); c++)
-          node->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedNodeNames_[ni[c]]);
+          node->Get("name_" + std::to_string(c), ParamNode::APPEND)->SetValue(namedNodeNames_[ni[c]]);
       }
       node_names.Clear();
       // same game for the element names as for the nodes
@@ -4450,12 +4450,12 @@ void GridCFS::MapFaces()
           const StdVector<unsigned int>& con = elem->connect;
           el->Get("nodes", ParamNode::APPEND)->SetValue(con.GetSize());
           for(unsigned int c = 0; c < con.GetSize(); c++)
-            el->Get("node_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(con[c]);
+            el->Get("node_" + std::to_string(c), ParamNode::APPEND)->SetValue(con[c]);
 
           const StdVector<unsigned int>& ni = elem_names[n];
           el->Get("names", ParamNode::APPEND)->SetValue(ni.GetSize());
           for(unsigned int c = 0; c < ni.GetSize(); c++)
-            el->Get("name_" + lexical_cast<std::string>(c), ParamNode::APPEND)->SetValue(namedElemNames_[ni[c]]);
+            el->Get("name_" + std::to_string(c), ParamNode::APPEND)->SetValue(namedElemNames_[ni[c]]);
 
         }
 

@@ -139,9 +139,9 @@ namespace CoupledField {
     }
     else if ( eType != myEntryType_ ) {
       EXCEPTION( "SBM_Matrix::SetSubMatrix: Entry type '"
-               << BaseMatrix::entryType.ToString( eType )
+               << MatrixEntryTypeEnum.ToString( eType )
                << "' does not match entry type '"
-               << BaseMatrix::entryType.ToString( myEntryType_ )
+               << MatrixEntryTypeEnum.ToString( myEntryType_ )
                << "' of other sub-matrices" );
     }
 

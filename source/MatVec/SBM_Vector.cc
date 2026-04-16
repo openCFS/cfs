@@ -1,7 +1,7 @@
 #include <cmath>
 #include "SBM_Vector.hh"
 #include "generatematvec.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField {
 
@@ -160,9 +160,9 @@ namespace CoupledField {
     if( myEntryType_ != BaseMatrix::NOENTRYTYPE &&
         subvec->GetEntryType() != myEntryType_ ) {
       EXCEPTION( "Can not set sub-vector of type '"
-          << BaseMatrix::entryType.ToString( subvec->GetEntryType() )
+          << MatrixEntryTypeEnum.ToString( subvec->GetEntryType() )
           << "', as the SBM-vector is of type '"
-          << BaseMatrix::entryType.ToString( myEntryType_ ) << "'." )
+          << MatrixEntryTypeEnum.ToString( myEntryType_ ) << "'." )
     }
     
     delete subVec_[i];
@@ -591,7 +591,7 @@ namespace CoupledField {
     double norm = 0.0;
     for(unsigned int i = 0; i < size_; i++)
       if(subVec_[i] != nullptr)
-        norm += CoupledField::NormL2(subVec_[i], other.subVec_[i]); // need to give namespace to find from tools.hh?!
+        norm += CoupledField::NormL2(subVec_[i], other.subVec_[i]); // need to give namespace to find from ToolsFull.hh?!
 
     return norm;
   }

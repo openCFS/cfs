@@ -2,12 +2,19 @@
 #define FILE_STDVECTOR_2004
 
 #include <array>
+<<<<<<< HEAD
 #include <boost/iterator/iterator_facade.hpp>
+=======
+>>>>>>> origin/master
 #include <vector>
+#include <cassert>
+#include <algorithm>
+#include <limits>
+#include <def_build_type_options.hh>
 #include "General/Exception.hh"
 #include "General/EnvironmentTypes.hh"
-#include <def_build_type_options.hh>
-#include <limits>
+
+
 
 namespace CoupledField {
 
@@ -27,14 +34,16 @@ namespace CoupledField {
   class StdVector{
   public:
 
-    //! public typedef for STL compatibility
+    // the following typedefs are from pre C++11 times when a boost facade was used
+    // then the corresponding use is modernized to ranges and auto, they can be removed
+    // then then begin()/end() below is sufficient
     typedef TYPE value_type;
-    typedef TYPE& reference;
-    typedef const TYPE& const_reference;
-    typedef ptrdiff_t difference_type;
     typedef unsigned int size_type;
+    typedef TYPE* iterator;
+    typedef const TYPE* const_iterator;
     
     // =======================================================================
+<<<<<<< HEAD
     //  STL-COMPATIBLE ITERATOR DEFINITIONS
     // =======================================================================
     // The implementation of the iterator interface utilizes boost's iterator-
@@ -194,6 +203,8 @@ namespace CoupledField {
     }
 
     // =======================================================================
+=======
+>>>>>>> origin/master
     //  VECTOR METHODS
     // =======================================================================
 
@@ -248,6 +259,18 @@ namespace CoupledField {
     //! STL-compatible version
     template <class InputIterator>
     StdVector(InputIterator first, InputIterator last);
+<<<<<<< HEAD
+=======
+
+    /** This is the C++11 like constructor as v = {1, 2, 3}.
+     * It is an alternative to the legacy list StdVectorListInitializer
+     * @see SetSingleValue() and initializer operator */
+    StdVector(std::initializer_list<TYPE> list) {
+      Reserve(list.size());
+      for (const TYPE& x : list)
+        Push_back(x);
+    }
+>>>>>>> origin/master
 
     //! Destructor
     ~StdVector() 
@@ -373,12 +396,20 @@ namespace CoupledField {
     //! Overloading of operation =
     StdVector& operator= (const StdVector &);
 
-    //! Overloading for operator=
-
-    //! This method is needed to initialize a StdVector like this
-    //! StdVector<Integer> A;<br>
+    //! Legacy list initializer. Better switch to std::initializer_list variant.
+    //! StdVector<Integer> A;
     //! A = 1,2,5,10
     inline StdVectorListInitializer<TYPE> operator=(const TYPE x);
+
+    /** modern list initializer v = {1, 2, 3}
+     * @see SetSingleValue() */
+    StdVector& operator= (std::initializer_list<TYPE> list) {
+      Clear(false);
+      Reserve(list.size());
+      for (const TYPE& x : list)
+        Push_back(x);
+      return *this;
+    }
 
     //! Build vector from std::vector
     StdVector& operator= (const std::vector<TYPE> & vec);
@@ -391,6 +422,21 @@ namespace CoupledField {
     inline TYPE& First();
     inline TYPE First() const;
 
+<<<<<<< HEAD
+=======
+    // the classical iterator usage to be replaced by C++11 ranges 
+    TYPE*       Begin()        { return data_; }
+    const TYPE* Begin()  const { return data_; }
+    TYPE*       End()          { return data_ + size_; }
+    const TYPE* End()    const { return data_ + size_; }
+
+    // STL compatible access operators for range
+    TYPE*       begin()        { return data_; }
+    const TYPE* begin()  const { return data_; }
+    TYPE*       end()          { return data_ + size_; }
+    const TYPE* end()    const { return data_ + size_; }
+
+>>>>>>> origin/master
     /** convenience when having a pointer. In debug the operator checks bounds */
     inline TYPE& At(size_type i) { return data_[i]; }
     inline const TYPE& At(size_type i) const { return data_[i]; }
@@ -483,6 +529,12 @@ namespace CoupledField {
     inline void Push_back(const TYPE& a, const TYPE& b) {
       Push_back(a);
       Push_back(b);
+    }
+
+    //! Replace all content with a single element (explicit alternative to operator=)
+    void SetSingleValue(const TYPE& x) {
+      Clear();
+      Push_back(x);
     }
 
     //! Delete element from vector on position pos
@@ -629,19 +681,13 @@ namespace CoupledField {
     bool wrapped_ = false;
   };
 
-  // ******************************************************
-  // HELPER CLASS FOR INITALIZING StdVector
-  // (ref. 'Techniques for Scientific C++' 
-  // by Todd Veldhuizen, page. 43ff
-  // ******************************************************
+  /** This is the legacy list initializer. Better use the C++11 variant v = {1, 2, 3} 
+   * this code is (ref. 'Techniques for Scientific C++' by Todd Veldhuizen, page. 43ff */
   template <class TYPE>
   class StdVectorListInitializer
   {
   public:
-
-    //! Constructor
-    StdVectorListInitializer(StdVector<TYPE> * vec)
-      :vec_(vec) {};
+    StdVectorListInitializer(StdVector<TYPE>* vec) : vec_(vec) {};
     
     //! Overloading of comma operator
     StdVectorListInitializer<TYPE> operator, (const TYPE x)
@@ -651,7 +697,10 @@ namespace CoupledField {
     }
 
   private:
+<<<<<<< HEAD
     //! pointer to vector
+=======
+>>>>>>> origin/master
     StdVector<TYPE>* vec_;
   };
 

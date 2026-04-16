@@ -1,9 +1,14 @@
 #ifndef ALLOCATION_LOG_HH
 #define ALLOCATION_LOG_HH
 
+<<<<<<< HEAD
 #include <boost/atomic/atomic.hpp>
 #include <unordered_map>
 #include <mutex>
+=======
+#include <mutex>
+#include <boost/unordered/unordered_flat_map.hpp>
+>>>>>>> origin/master
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField
@@ -13,6 +18,7 @@ namespace CoupledField
  * All is thread-save! */     
 struct AllocationLog
 {
+<<<<<<< HEAD
   public:
   /** this comes not for free and shall be guarded by progOpts->DoDetailedInfo() */
   inline void AddAllocation(unsigned int size)
@@ -28,15 +34,32 @@ struct AllocationLog
     {
       it->second.fetch_add(1);        
     }  
+=======
+  AllocationLog() { map_.reserve(100); } 
+
+  /** this comes not for free and shall be guarded by progOpts->DoDetailedInfo() */
+  inline void AddAllocation(unsigned int size)
+  {
+    std::scoped_lock lock(mutex_);
+    map_[size]++; // the first access to map creates 0
+>>>>>>> origin/master
   }
 
   void ToInfo(const PtrParamNode& in)
   {
+<<<<<<< HEAD
+=======
+    std::scoped_lock lock(mutex_);
+>>>>>>> origin/master
     if(!map_.empty())
     {
       // practically it is sufficient to call this only for double
       PtrParamNode pn = in->Get("variants");
+<<<<<<< HEAD
       // for performance we have an unordered map but we output ordered
+=======
+      // for performance reasons we have an unordered map but we output ordered
+>>>>>>> origin/master
       std::map<unsigned int, unsigned int> sorted(map_.begin(), map_.end());
       unsigned total = 0;
       for(auto it : sorted) {
@@ -54,7 +77,11 @@ struct AllocationLog
   private:
   /** we write in .info.xml how often we resize which size to have a base for optimization
    * Note that the static stuff is for each template type but usually we want only double and complex */
+<<<<<<< HEAD
   std::unordered_map<unsigned int, boost::atomic<unsigned int>> map_;
+=======
+  boost::unordered_flat_map<unsigned int, unsigned int> map_;
+>>>>>>> origin/master
   /** guard for allocation_map */
   std::mutex mutex_;
 }; // end of AllocationLog

@@ -56,11 +56,11 @@ DEFINE_LOG(feHi, "feHi")
      orderEdge_.Init(order);
      
      // set order for faces
-     boost::array<UInt,2> faceOrder = {{order, order}};
+     std::array<UInt,2> faceOrder = {{order, order}};
      orderFace_.Init(faceOrder);
 
      // set order for inner
-     boost::array<UInt, 3> innerOrder = {{order, order, order}}; 
+     std::array<UInt, 3> innerOrder = {{order, order, order}}; 
      orderInner_ = innerOrder;
      
      maxOrder_ = std::max( maxOrder_, order);
@@ -109,7 +109,7 @@ DEFINE_LOG(feHi, "feHi")
        
        // variables for face-local directions
        UInt locDir1 = 0, locDir2 = 0;
-       boost::array<UInt,2> faceOrder;
+       std::array<UInt,2> faceOrder;
        for( UInt iFace = 0; iFace < elemShape_.numFaces; ++iFace ) {
          LOG_DBG3(feHi) << "\tTreating face #" << ptElem->extended->faces[iFace] << std::endl;
          
@@ -155,7 +155,7 @@ DEFINE_LOG(feHi, "feHi")
        LOG_DBG3(feHi) << "\tTreating interior" << std::endl;
        LOG_DBG3(feHi) << "\t\tSetting Order to "  << order.Serialize() 
                << std::endl;
-       boost::array<UInt,3> orderInner;
+       std::array<UInt,3> orderInner;
        orderInner[0] = order[0];
        orderInner[1] = order[1];
        orderInner[2] = order[2];
@@ -205,7 +205,7 @@ DEFINE_LOG(feHi, "feHi")
    }
    
    void FeHi::SetFaceOrder( UInt faceNum,
-                              const boost::array<UInt,2>& order ) {
+                              const std::array<UInt,2>& order ) {
      assert( faceNum <= elemShape_.numFaces);
 
      if( orderFace_[faceNum] == order ) return;
@@ -217,7 +217,7 @@ DEFINE_LOG(feHi, "feHi")
      updateUnknowns_ = true;
    }
 
-   void FeHi::SetInteriorOrder( const boost::array<UInt,3>& order ) {
+   void FeHi::SetInteriorOrder( const std::array<UInt,3>& order ) {
 
      if( orderInner_ == order ) return;
      orderInner_ = order;

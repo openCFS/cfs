@@ -5,7 +5,6 @@
 
 #include  "OLAS/multigrid/ppflags.hh"
 
-#include <boost/config.hpp>
 #include <unordered_map>
 #include <iostream>
 #include <fstream>

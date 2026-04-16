@@ -3,7 +3,7 @@
 
 #include <map>
 #include <algorithm>
-#include <boost/array.hpp>
+#include <array>
 
 #include "General/Environment.hh"
 #include "MatVec/Vector.hh"
@@ -21,7 +21,7 @@ namespace CoupledField {
  The type of the coefficients \f$ C_{ijk} \f$ can be determined with the
  template parameter T.
  In this class the non-zero coefficients  \f$ C_{ijk} \neq 0 \f$ are stored
- in a stl-map, with the exponents \f$(i,j,k\f$ stored in a boost::array 
+ in a stl-map, with the exponents \f$(i,j,k\f$ stored in a std::array 
  used as key to the map.
  The internal coefficients can be queried using the method 
  Polynomial::Coefs. A string representation can be accessed using 
@@ -48,8 +48,8 @@ public:
   //! This typedef encapsulates the data type used to represent the 
   //! tuple of variable coefficients, e.g. for the expression
   //! \f$ x^i y^j z^k \f$ the entries \f$ i,j,k \f$ are stored in 
-  //! a fixed-size boost::array instance.
-  typedef typename boost::array<UInt, DIM> ORD;
+  //! a fixed-size std::array instance.
+  typedef typename std::array<UInt, DIM> ORD;
   
   //! Typedef for coefficient map
   typedef typename std::map<ORD, T> COEFMAP;

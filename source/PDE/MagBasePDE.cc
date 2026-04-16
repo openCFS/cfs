@@ -24,6 +24,7 @@
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Driver/MultiHarmonicDriver.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 namespace CoupledField
 {

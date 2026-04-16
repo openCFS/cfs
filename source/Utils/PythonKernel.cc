@@ -21,7 +21,7 @@ using std::to_string;
 using std::pair;
 namespace fs = std::filesystem;
 
-// the external definition of PythonKernel* python is in tools.cc as we don't compile and link this file w/o USE_EMBEDDED_PYTHON
+// the external definition of PythonKernel* python is in ToolsFull.cc as we don't compile and link this file w/o USE_EMBEDDED_PYTHON
 
 // set static attributes
 SimInputPython*  PythonKernel::mesher_ = NULL;

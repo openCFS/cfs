@@ -3,7 +3,6 @@
 #include <cmath>
 
 #include <boost/bind/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 //Include the new Models here

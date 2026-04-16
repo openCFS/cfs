@@ -87,8 +87,7 @@ namespace CoupledField {
       // Get bulk density for water waves
       BaseMaterial * waterMat = waterMaterials[volRegId];
       coefFuncs[volRegId] = waterMat->GetScalCoefFnc(DENSITY,Global::REAL);
-      oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL,
-                                                   lexical_cast<std::string>(1.0));
+      oneCoefFuncs[volRegId] = CoefFunction::Generate(mp, Global::REAL, "1.0");
     }
 
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();

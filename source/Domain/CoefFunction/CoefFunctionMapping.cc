@@ -16,7 +16,6 @@
 
 #include "CoefFunctionMapping.hh"
 
-#include "boost/lexical_cast.hpp"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 

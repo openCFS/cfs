@@ -62,7 +62,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-  boost::array<Double,6> bbox;
+  std::array<Double,6> bbox;
   std::vector<HandleBox> boxes1(entList1.GetSize());
   std::vector<HandleBox> boxes2(entList2.GetSize());
 
@@ -98,7 +98,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Grid* elGrid, Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-  boost::array<Double,6> bbox;
+  std::array<Double,6> bbox;
   std::vector<HandleBox> elBoxes(elemList.GetSize());
   std::vector<HandleBox> pointBoxes(points.GetSize());
 

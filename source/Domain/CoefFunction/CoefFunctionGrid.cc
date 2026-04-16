@@ -80,7 +80,6 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/ResultHandler.hh"
-#include <boost/lexical_cast.hpp>
 
 //include headers of subclasses for factory method
 #include "CoefFunctionGridNodalInterp.hh"

@@ -74,7 +74,7 @@
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/Timer.hh"
 
 namespace CoupledField {
@@ -269,6 +269,7 @@ void ErsatzMaterial::PostInit()
       break;
 
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       if(!f->ctxt->IsComplex())
@@ -290,6 +291,7 @@ void ErsatzMaterial::PostInit()
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::ABS_OUTPUT:
     {
@@ -521,7 +523,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         {
           info->Get(g->ToString())->SetValue(g->GetValue());
           if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch()) {
-            string label = "ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv";
+            string label = "ef_" + std::to_string(g->GetEigenValueID()) + "_wv";
             info->Get(label)->SetValue(g->bloch.col);
           }
         }
@@ -604,7 +606,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       // replace the key, we have only "bandgap" in log
       //iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
-      std::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
+      std::get<0>(log.bloch_info.First()) ="bandgap_" + std::to_string(g->GetEigenValueID()) + "_" + std::to_string(n->GetEigenValueID());
       std::get<1>(log.bloch_info.First()) = upper - lower;
 
       LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
@@ -1457,6 +1459,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::CONJUGATE_COMPLIANCE:
     case Function::ABS_OUTPUT:
@@ -1536,7 +1539,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       break;
     // no default, gcc warns
   }
-  LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
+  LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : boost::lexical_cast<std::string>(result));
   return result;
 }
 
@@ -2038,6 +2041,7 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
       // intentionally no break
 
     case Objective::DYNAMIC_OUTPUT:
+    case Objective::DYNAMIC_OUTPUT_TRACKING:
     case Objective::CONJUGATE_COMPLIANCE:
     {
       // this is <u,L conj(u)> and only defined for the harmonic case!
@@ -2064,7 +2068,14 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
         result += sp;
       }
       LOG_DBG2(em) << "CO: <u,L u*>: " << result << " * " << excite.GetFactor(f) << " -> " << result * excite.GetFactor(f);
-      result *= excite.GetFactor(f);
+      // in tracking we subtract a constant parameter from the cost function and square
+      if (f->GetType() == Function::DYNAMIC_OUTPUT_TRACKING)
+      {
+        result -= f->GetParameter();
+        result *= result;
+      }
+      // this factor is either 1.0 or omega*omega, but second case is rarely used
+      result *= excite.GetFactor(f); 
       break;
     }
     default: EXCEPTION("Not handled");
@@ -4287,6 +4298,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::ABS_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
+    case Function::DYNAMIC_OUTPUT_TRACKING:
     case Function::REFLECTED_WAVE:
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
@@ -4383,7 +4395,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
       StdVector<unsigned int> order = f->ctxt->GetBucklingDriver()->GetModeOrder();
       if(els)
       {
-        BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
+        BaseMatrix::OutputFormat vec_format = MatrixOutputFormatEnum.Parse(els->Get("vecFormat")->As<std::string>());
 
         std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
         AnalysisID& id = context->GetDriver()->GetAnalysisId();
@@ -4617,6 +4629,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       // intentionally no break
 
     case Function::DYNAMIC_OUTPUT: // rhs is from "output loads" and set in adjoint...rhs
+    case Function::DYNAMIC_OUTPUT_TRACKING: // tracking uses the same adjoint
       // substract z (this is just nonzero for REFLECTED WAVE)
       // the correct conjugate_output case is -L * (u - z)*, always complex,
       // where z is just nonzero for REFLECTED WAVE!

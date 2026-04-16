@@ -54,7 +54,7 @@ namespace CoupledField {
     BaseMatrix::StorageType mtype = stdMat.GetStorageType();
     if ( mtype != BaseMatrix::SPARSE_SYM ) {
       EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+          << MatrixStorageTypeEnum.ToString( mtype ) << " matrix");
     }
 
     // Get the entry type to figure out which Factorisation method to call
@@ -404,7 +404,7 @@ namespace CoupledField {
     BaseMatrix::StorageType mtype = stdMat.GetStorageType();
     if ( mtype != BaseMatrix::SPARSE_SYM ) {
       EXCEPTION("Lapack_LL: Expected a sparseSym matrix, but got a "
-          << BaseMatrix::storageType.ToString( mtype ) << " matrix");
+          << MatrixStorageTypeEnum.ToString( mtype ) << " matrix");
     }
 
     // Get the entry type to figure out which Factorization method to call

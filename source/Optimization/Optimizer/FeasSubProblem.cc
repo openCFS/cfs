@@ -5,6 +5,7 @@
 #include "MatVec/Matrix.hh"
 #include "General/Exception.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/ToolsFull.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "coin-or/IpSolveStatistics.hpp"
@@ -114,7 +115,7 @@ std::string FeasSubProblem::SolveProblem(PtrParamNode in, double refine)
     break;
 
   default:
-    msg = (status < 0 ? "error: " : "warning: ") + lexical_cast<std::string>(status);
+    msg = (status < 0 ? "error: " : "warning: ") + std::to_string(status);
     break;
   }
 

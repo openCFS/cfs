@@ -1,4 +1,4 @@
-
+#include <boost/lexical_cast.hpp>
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
@@ -6,6 +6,8 @@
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Utils/mathParser/mathParser.hh"
+
+using boost::lexical_cast;
 
 namespace CoupledField{
 

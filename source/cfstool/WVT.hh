@@ -12,6 +12,11 @@
 #include "General/Environment.hh"
 #include "DataInOut/SimInput.hh"
 
+namespace CoupledField 
+{
+  class BaseBOperator;
+}
+
 namespace CFSTool
 {
 

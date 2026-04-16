@@ -1,5 +1,6 @@
 #include "FeSpace.hh"
 
+#include <queue>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -128,7 +129,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   
   std::string ApproxOrder::ToString() const {
     if( isIsotropic_) {
-      return lexical_cast<std::string>(isoOrder_);
+      return std::to_string(isoOrder_);
     } else {
       return anisoOrder_.ToString();
     }
@@ -992,7 +993,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       }
 
       const SurfElem * ptSurfEl = dynamic_cast<const SurfElem*>(ptElem);
-      boost::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
+      std::array<Elem*,2>::const_iterator it = ptSurfEl->ptVolElems.begin();
       for( ; it != ptSurfEl->ptVolElems.end(); ++it ) {
         // check, if element is set at all
         if( *it) {
@@ -1111,13 +1112,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       if( dofs[1] == "" ) {
         orderMat.Resize(dim,1);
       }
-      char_separator<char> sep(" ");
+      boost::char_separator<char> sep(" ");
 
       for(UInt i = 0;i < orderMat.GetNumCols();i++){
-        boost::tokenizer<char_separator<char> > tokens(dofs[i],sep);
-        boost::tokenizer<char_separator<char> >::iterator tokIt=tokens.begin();
+        boost::tokenizer<boost::char_separator<char> > tokens(dofs[i],sep);
+        boost::tokenizer<boost::char_separator<char> >::iterator tokIt=tokens.begin();
         for(UInt j = 0;j < orderMat.GetNumRows();j++){
-          orderMat[j][i] = lexical_cast<UInt>(*tokIt);
+          orderMat[j][i] = (unsigned int) std::stoul(*tokIt);
           tokIt++;
         }
       }
@@ -1426,7 +1427,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     UInt dofsPerUnknown = 0;
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
-    StdVector< shared_ptr<EntityList> >::iterator entIt;
     std::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = 0;
     NodeTypeMap::const_iterator it;

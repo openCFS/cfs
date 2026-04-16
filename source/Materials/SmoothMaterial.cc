@@ -8,7 +8,7 @@
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Utils/tools.hh"
+#include "Utils/ToolsFull.hh"
 
 DEFINE_LOG(mat_smooth, "mat_smooth")
 

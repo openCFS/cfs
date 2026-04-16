@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "vectorSerialization.hh"
 #include "Vector.cc"
 #include "Utils/boost-serialization.hh"

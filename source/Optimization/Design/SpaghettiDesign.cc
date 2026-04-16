@@ -4,6 +4,7 @@
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "Utils/ToolsFull.hh"
 #include "Utils/PythonKernel.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Optimization/Function.hh"

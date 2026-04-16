@@ -112,7 +112,7 @@ namespace CoupledField{
     {
       PtrParamNode bboxNode = quantityNode_->Get("bbox");
 
-      boost::array<Double,6> bbox;
+      std::array<Double,6> bbox;
       bbox[0] = bboxNode->Get("xmin")->As<Double>();
       bbox[1] = bboxNode->Get("ymin")->As<Double>();
       bbox[2] = bboxNode->Get("zmin")->As<Double>();

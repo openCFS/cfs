@@ -9,11 +9,8 @@
 #include <vector>
 #include <map>
 
-#include "General/Environment.hh"
-#include "Utils/tools.hh"
 #include "General/Exception.hh"
 
-#include "Domain/Results/BaseResults.hh"
 #include "Domain/Mesh/Grid.hh"
 
 #include "PDE/BasePDE.hh"
@@ -22,8 +19,9 @@ namespace CoupledField
 {
 
   //! Forward class declaration
-  
   class BaseResult;
+  struct ResultInfo;
+  template<class TYPE> class FeFunction;
 
   //! Abstract class for reading in mesh data
 

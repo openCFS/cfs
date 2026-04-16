@@ -44,6 +44,8 @@
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
+using boost::lexical_cast;
+
 // declare class specific logging stream
 DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
@@ -946,6 +948,11 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     reluc->definedOn = ResultInfo::ELEMENT;
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
+
+    PtrCoefFct magFluxDensityFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
+    GenerateMaxwellForce(vecComponents, magFluxDensityFunc, magVecPotFeFct);
+
+    GenerateVWPForce(vecComponents, magFluxDensityFunc, magVecPotFeFct);
 
   }
 

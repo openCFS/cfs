@@ -4,15 +4,14 @@
 #include <string>
 
 #include "Utils/StdVector.hh"
-#include "General/Environment.hh"
-#include "FeBasis/FeFunctions.hh"
+#include "General/Enum.hh"
 
 namespace CoupledField {
 
   //! Forward class declaration
-  //class AnsatzFct;
   class EntityList;
   class BaseFeFunction;
+  template<class T> class FeFunction;
 
   //! This class describes the resultType
   struct ResultInfo {

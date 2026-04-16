@@ -1082,7 +1082,7 @@ namespace CoupledField {
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (Integer iBox = 0; iBox < (Integer)primarySurfElems_.GetSize(); ++iBox) {
           // create the box
-          boost::array<Double, 6> bbox;
+          std::array<Double, 6> bbox;
           ptGrid_->CreateBBoxFromElement(primarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0], isMoving_);
           // assign the box index
           primaryBoxIndexes_[iBox] = iBox;
@@ -1110,7 +1110,7 @@ namespace CoupledField {
 #pragma omp parallel for num_threads(CFS_NUM_THREADS)
         for (Integer iBox = 0; iBox < (Integer)secondarySurfElems_.GetSize(); ++iBox) {
           // create the box
-          boost::array<Double, 6> bbox;
+          std::array<Double, 6> bbox;
           ptGrid_->CreateBBoxFromElement(secondarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0], isMoving_);
           // assign the box index
           secondaryBoxIndexes_[iBox] = iBox;

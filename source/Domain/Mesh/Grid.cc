@@ -1181,7 +1181,7 @@ namespace CoupledField
                                        Double tol,
                                        bool updatedGeo ) {
     mapToBBTimer_->Start();
-    boost::array<Double,6> bbox;
+    std::array<Double,6> bbox;
 
     // If we haven't initialized the grid bounding boxes yet, do so now!
     if(elemBoxes_.empty() || updatedGeo == 1)
@@ -1357,7 +1357,7 @@ namespace CoupledField {
     // create bounding box array, with the following indices:
     // [xmin, ymin,  zmin, xmax, ymax, zmax]
     //   0     1      2     3     4     5
-    boost::array<Double,6> bbox;
+    std::array<Double,6> bbox;
     
     ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false); // set the updatedGeometry flag to false (similar to the previous implementation)
 
@@ -1371,7 +1371,7 @@ namespace CoupledField {
     // create bounding box array, with the following indices:
     // [xmin, ymin,  zmin, xmax, ymax, zmax]
     //   0     1      2     3     4     5
-    boost::array<Double,6> bbox;
+    std::array<Double,6> bbox;
     
     ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false); // set the updatedGeometry flag to false (similar to the previous implementation)
 
@@ -1385,7 +1385,7 @@ namespace CoupledField {
     // create bounding box array, with the following indices:
     // [xmin, ymin,  zmin, xmax, ymax, zmax]
     //   0     1      2     3     4     5
-    boost::array<Double,6> bbox;
+    std::array<Double,6> bbox;
     
     ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0], false);
 
@@ -1540,7 +1540,7 @@ namespace CoupledField {
           // create bounding box array, with the following indices:
           // [xmin, ymin,  zmin, xmax, ymax, zmax]
           //   0     1      2     3     4     5
-          boost::array<Double,6> bbox;
+          std::array<Double,6> bbox;
 
           CreateBBoxFromElement(elems[i], tol, &bbox[0], updatedGeo);
           
@@ -1589,7 +1589,7 @@ namespace CoupledField {
       for( UInt iEl = 0; iEl < numElems; ++iEl ) {
         const BoxType& actBox = boxes[iEl];
         
-        const boost::array<Double,6> & eb = actBox.first;
+        const std::array<Double,6> & eb = actBox.first;
         UInt elemNum = actBox.second;
 //        const Elem* ptEl = GetElem(elemNum);
 //        std::cerr << "checking elem #" << ptEl->elemNum

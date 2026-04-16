@@ -550,7 +550,7 @@ namespace CoupledField {
     // assemble name for analysis step
     std::string analysisName = "transient";
     if( !mergeSequenceSteps_)
-      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+      analysisName += "_" + std::to_string( actMSStep_ );
 
 
     // get number of entities
@@ -579,7 +579,7 @@ namespace CoupledField {
     if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
         groupEigenFreqs_ == true )  {
       std::string temp;
-      temp = "ef" + lexical_cast<std::string>(lastStepRepeated_+1);
+      temp = "ef" + std::to_string(lastStepRepeated_+1);
       temp += "//";
       temp += name;
       outName = temp;
@@ -676,7 +676,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     // assemble name for analysis step
     std::string analysisName = "harmonic";
     if( !mergeSequenceSteps_)
-      analysisName += "_" + lexical_cast<std::string>( actMSStep_ );
+      analysisName += "_" + std::to_string( actMSStep_ );
 
    // get number of entities
     UInt numEnt = 0;
@@ -701,7 +701,7 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     if (actAnalysis_ == BasePDE::EIGENFREQUENCY  &&
         groupEigenFreqs_ == true )  {
       std::string temp;
-      temp = "ef" + lexical_cast<std::string>(lastStepRepeated_+1);
+      temp = "ef" + std::to_string(lastStepRepeated_+1);
       temp += "//";
       temp += name;
       outBase = temp;

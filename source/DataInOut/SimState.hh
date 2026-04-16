@@ -6,12 +6,14 @@
 #define FILE_CFS_SIM_STATE_HH
 
 #include <map>
+#include <set>
 #include <filesystem>
 #include <memory>
-#include <boost/signals2.hpp>
-
-#include "General/Environment.hh"
+#include "General/Enum.hh"
 #include "PDE/BasePDE.hh"
+// including boost/signals2.hpp is expensive as we include SimState almost everywhere
+// therefore we do a forward declaration and use as smart pointer
+namespace boost { namespace signals2 { class connection; } }
 
 namespace fs = std::filesystem;
 
@@ -23,6 +25,7 @@ namespace CoupledField {
   class SimOutputHDF5;
   class SimInputHDF5;
   class MathParser;
+  class Grid;
 
   //! Class for data handling of internal simulation state
   
@@ -187,7 +190,7 @@ namespace CoupledField {
     //  Interpolation Related Data
     // ===========================================
     //! Connection to math parser instance 
-    boost::signals2::connection conn_;
+    std::unique_ptr<boost::signals2::connection> conn_;
     
     //! Math parser for parent domain
     

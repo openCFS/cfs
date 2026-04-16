@@ -10,6 +10,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
 
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "DataInOut/SimState.hh"

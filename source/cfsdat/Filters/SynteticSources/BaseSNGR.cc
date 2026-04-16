@@ -14,6 +14,7 @@
 
 
 #include <Filters/SynteticSources/BaseSNGR.hh>
+#include "Domain/Mesh/Grid.hh"
 #include <random>
 #include <chrono>
 

@@ -101,6 +101,11 @@ public:
     return ret;
   }
 
+  Complex GetFreqResultScalar(int row,int tStep){
+    return freqResult_( row, tStep );
+  }
+
+
   UInt GetNumTimeSteps(){ return timeResult_.GetNumCols(); }
 
   UInt GetNumFreqSteps(){ return freqResult_.GetNumCols(); }

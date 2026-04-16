@@ -17,6 +17,7 @@
 
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#include <boost/tokenizer.hpp>
 
 // for coordinate handling
 #include "Domain/Domain.hh"
@@ -1431,9 +1432,7 @@ namespace CoupledField {
       }
 
 
-      std::ofstream  out((fap.fileName+"-"+lexical_cast<std::string>(kstep)).c_str(),
-                          std::ios::out );
-
+      std::ofstream out((fap.fileName+"-" + std::to_string(kstep)).c_str(), std::ios::out);
       // Ensure that no precision is lost
       out.precision(15);
 

@@ -73,7 +73,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
    
   if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # no need for AppleClang
     # we are in the strict Linux case
-    # clang 15 on openSUSE would otherwise not compile sniot
+    # clang 15 on openSUSE would otherwise not compile snopt
     set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS$} -no-pie")
   endif()
 
@@ -138,8 +138,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins") # at least AppleClang
     endif()
 
-    # clang >= 18 is missing some standard c++ functions without that flag
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
+    # clang >= 18 is missing some standard c++ functions without that flag but added them on MacOS with clang 21
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18 AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 21)
       set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -static-libstdc++")
     endif()
   endif() # end Clang   

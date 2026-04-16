@@ -13,6 +13,7 @@
 //================================================================================================
 
 #include "EqnNumberingSimple.hh"
+#include "Domain/Mesh/Grid.hh"
 
 namespace CFSDat{
 

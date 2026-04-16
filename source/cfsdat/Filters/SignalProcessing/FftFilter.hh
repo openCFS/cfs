@@ -10,6 +10,7 @@
 
 #include <cfsdat/Filters/BaseFilter.hh>
 #include <General/Enum.hh>
+#include "MatVec/Matrix.hh"
 
 namespace CFSDat {
 

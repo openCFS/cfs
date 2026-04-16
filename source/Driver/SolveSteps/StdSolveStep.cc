@@ -42,7 +42,13 @@ namespace CoupledField {
     results_      = PDE_.GetResultInfos();
     couplingIter_ = 0;
     solutionLimit_ = NO_SOLUTION_TYPE;
-    
+
+    // define ParamNode
+    PtrParamNode info_ = PDE_.GetInfoNode();
+    // set up new timer for stdSolveStep class to measure the EvaluateNonlinearity method for MH calculations
+    timerEvaluateNonlinearity_ = shared_ptr<Timer>(new Timer());
+    info_->Get("nonlinearConvergence")->Get("evaluateNonlinearity/timer")->SetValue(timerEvaluateNonlinearity_);
+
     // copy FE functions of PDE
     feFunctions_ = PDE_.GetFeFunctions();
     rhsFeFunctions_ = PDE_.GetRhsFeFunctions();
@@ -1652,13 +1658,6 @@ namespace CoupledField {
     //  2) Solve the full multiharmonic nonlinear system
     // =================================================================================
 
-    // Create new timer object and put it to related info element
-    shared_ptr<Timer> timer(new Timer());
-    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
-    // We don't have a TwoLevel Strategy!!!
-    iter->GetByVal("solStep","value",1,ParamNode::INSERT)->Get("timer")->SetValue(timer);
-    timer->Start();
-
     // As long as we don't have a TwoLevel solution strategy this method
     // does not do anything...
     solStrat_->SetActSolStep(1);
@@ -1848,6 +1847,7 @@ namespace CoupledField {
   void StdSolveStep::EvaluateNonlinearity(MHTimeFreqResult& ftRes,
                                           const SBM_Vector& actSol){
 
+    timerEvaluateNonlinearity_->Start();
     // Register the multiharmonic solution at MHTimeFreqResult
     ftRes.SetFrequencyResult(actSol);
 
@@ -1888,6 +1888,8 @@ namespace CoupledField {
     // Now that the nu(t) results are cached, we can perform the FFT
     UInt f = 1;
     mParser_->SetValue(MathParser::GLOB_HANDLER, "finishCash", f);
+  
+    timerEvaluateNonlinearity_->Stop();
   }
 
   void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
@@ -1964,6 +1966,8 @@ namespace CoupledField {
 
     // Flag the the matrices were assembled at least once
     mParser_->SetValue(MathParser::GLOB_HANDLER, "harmonicHandle", 0);
+    // stop assemble timer started in assemble_->InitMuliHarm()
+    assemble_->TimerStop();
   }
 
   void StdSolveStep::GetSolutionValMultHarm(const UInt& h){

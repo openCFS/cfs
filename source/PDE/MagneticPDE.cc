@@ -702,7 +702,7 @@ namespace CoupledField {
         if (formulation == "Nitsche") {          
           // obtain a proper scaling for the penalty terms
           std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
-          Double nitscheFactor = lexical_cast<Double>(nitFac);
+          Double nitscheFactor = boost::lexical_cast<Double>(nitFac);
 
           RegionIdType volPrimaryId = mortarIf->GetPrimaryVolRegion();
           RegionIdType volSecondaryId = mortarIf->GetSecondaryVolRegion();

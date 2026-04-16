@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "SimInputUnv.hh"
+#include "Domain/Results/BaseResults.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "unv_if.hh"
 
 extern const char *nodeDataTypesStr[30];
