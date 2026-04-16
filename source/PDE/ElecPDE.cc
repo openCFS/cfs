@@ -1874,6 +1874,7 @@ namespace CoupledField {
               FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
       
+      // Maybe we can use SingelPDE::CreateNcFeSpaces instead?
       CoupledField::ParamNodeList blochListMortar = myParam_->Get("bcsAndLoads")->GetListByVal("blochPeriodic", "formulation", "Mortar");
       if (blochListMortar.GetSize())
       {

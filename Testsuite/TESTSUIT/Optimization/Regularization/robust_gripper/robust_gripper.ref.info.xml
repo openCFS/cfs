@@ -1,19 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="159" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="93" infoRejectCounter="0">
   <summary>
-    <timer wall="2" cpu="2.47411" calls="1"/>
-    <memory final="235768" peak="293668"/>
+    <timer id="0" wall-clock="0.4842s" wall="0.484209" cpu="0.475806" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="199" peak="204"/>
   </summary>
   <header id="">
-    <environment started="2016-Apr-22 14:02:31" host="eamc071"/>
-    <progOpts problem="robust_gripper" parameterFile="/home/jgreif/code/shared-test/TESTSUIT/Optimization/Regularization/robust_gripper/robust_gripper.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="/home/jgreif/code/shared-test/TESTSUIT/Optimization/Regularization/robust_gripper/gripper40half.mesh" logConfFile="" detailed="no" MKL_NUM_THREADS="2">
-      <cfs version="15.11" name="Back To The Future" build="Release" svn_revision="14750"/>
+    <environment started="21-Apr-26 15:10:00" host="TPX1"/>
+    <progOpts problem="robust_gripper" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Regularization/robust_gripper/robust_gripper.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.04" name="Just Jacobians" build="RELEASE" git_commit="1134b5a2039d90092bf9a53ab3f0f094bff7217c-modified" git_branch="felhub_wedge" compiled="Apr 21 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
-    <domain dimensions="2" elements="800" nodes="861">
+    <domain nx="40" ny="20" nz="1">
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="800" nodes="861">
+          <timer id="5" wall-clock="0.001622s" wall="0.00162192" cpu="0.001622" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0003462s" wall="0.000346182" cpu="0.000346" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0005083s" wall="0.000508288" cpu="0.000508" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="0.0001587s" wall="0.000158695" cpu="0.000159" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0.0004179s" wall="0.000417879" cpu="0.000418" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="reinforce" id="0" type="volume" regular="yes" hom="yes" nodes="42" elems="18" isQuadratic="no"/>
         <region name="mech" id="1" type="volume" regular="yes" hom="yes" nodes="765" elems="704" isQuadratic="no"/>
@@ -32,13 +52,29 @@
         <nodes name="out1" count="1" coord="(1,0.35)"/>
       </namedNodes>
       <namedElements/>
+      <globalMathParser dt="0" f="0" nx="40" ny="20" nz="1" step="0" t="0" t0="0"/>
     </domain>
+    <results>
+      <timer id="37" wall-clock="0.0571s" wall="0.0570951" cpu="0.057089" calls="924"/>
+    </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.002898s" wall="0.00289846" cpu="0.002899" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="4.71e-07s" wall="4.71e-07" cpu="1e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
-    <static/>
+    <static>
+      <init_static>
+        <timer id="16" wall-clock="0.02426s" wall="0.0242604" cpu="0.016881" calls="1"/>
+      </init_static>
+    </static>
     <PDE>
       <mechanic>
         <header>
@@ -46,34 +82,35 @@
           <region name="mech" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="reinforce">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="reinforce">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="SingleEntryBiLinInt" region="">
+              <bilinearForm integrator="SingleEntryBiLinInt" type="no bilinear form type" complex="no" region="">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="SingleEntryBiLinInt" region="">
+              <bilinearForm integrator="SingleEntryBiLinInt" type="no bilinear form type" complex="no" region="">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
             </matrixBiLinearForms>
             <rhsLinearForms>
-              <linearForm integrator="NodalForceInt" region="">
+              <linearForm integrator="NodalForceInt">
                 <entities name="load" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[1, 0]"/>
                 <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
               </linearForm>
             </rhsLinearForms>
@@ -84,7 +121,7 @@
             <region name="mech"/>
             <region name="reinforce"/>
           </regionList>
-          <property name="MechanicStiffnessTensor">
+          <property name="Mechanic_Stiffness_Tensor">
             <tensor dim1="6" dim2="6">
               <real>
                  2.552817e+00  1.848592e+00  1.848592e+00  0.000000e+00  0.000000e+00  0.000000e+00
@@ -96,14 +133,12 @@
               </real>
             </tensor>
           </property>
-          <property name="Mechanic_Emodulus" value="1"/>
-          <property name="Mechanic_PoissonRation" value="0.42"/>
-          <property name="Mechanic_Kmodulus" value="(2.0833,0)"/>
-          <property name="Mechanic_LameMu" value="(0.35211,0)"/>
-          <property name="Mechanic_LameLambda" value="(1.8486,0)"/>
-          <property name="Rayleigh_Alpha" value="0.05"/>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.42,0)"/>
+          <property name="Density" value="(7872,0)"/>
+          <property name="Rayleigh_Alpha" value="0.050000000000000003"/>
           <property name="Rayleigh_Beta" value="0.002"/>
-          <property name="MechanicStiffnessTensor">
+          <property name="Mechanic_Stiffness_Tensor">
             <tensor dim1="6" dim2="6">
               <real>
                  2.552817e+00  1.848592e+00  1.848592e+00  0.000000e+00  0.000000e+00  0.000000e+00
@@ -115,22 +150,28 @@
               </real>
             </tensor>
           </property>
-          <property name="Mechanic_Emodulus" value="1"/>
-          <property name="Mechanic_PoissonRation" value="0.42"/>
-          <property name="Mechanic_Kmodulus" value="(2.0833,0)"/>
-          <property name="Mechanic_LameMu" value="(0.35211,0)"/>
-          <property name="Mechanic_LameLambda" value="(1.8486,0)"/>
-          <property name="Rayleigh_Alpha" value="0.05"/>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.42,0)"/>
+          <property name="Density" value="(7872,0)"/>
+          <property name="Rayleigh_Alpha" value="0.050000000000000003"/>
           <property name="Rayleigh_Beta" value="0.002"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 2.552817e+00  1.848592e+00  0.000000e+00
+                 1.848592e+00  2.552817e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.521127e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
-        <!-- List of defined Spaces-->
         <feSpaces>
           <mechDisplacement>
             <h1Nodal>
               <regionList>
-                <reinforce/>
-                <default order="1"/>
                 <mech/>
+                <default order="1"/>
+                <reinforce/>
               </regionList>
             </h1Nodal>
           </mechDisplacement>
@@ -148,7 +189,6 @@
     <OLAS>
       <mechanic>
         <setup idbcHandling="elimination" staticCondensation="no">
-          <!-- List of registered FeFunctions-->
           <feFunctions totalNumEqns="1532" totalNumFreeEqns="1532" totalNumDirichlet="0">
             <function id="0" name="mechDisplacement" numEqns="1532" lastFreeEqn="1532" numDirichlet="0">
               <usedInBlocks>
@@ -156,470 +196,263 @@
               </usedInBlocks>
             </function>
           </feFunctions>
-          <!-- List of SBM-blocks-->
           <sbmBlocks>
             <block id="0" size="1532" lastFreeIndex="1532"/>
           </sbmBlocks>
-          <setupTime wall="0" cpu="0.006501" calls="1"/>
-          <!-- List of defined matrices-->
-          <matrices>
-            <!-- Memory is in MByte-->
-            <system totalNumRows="1532" totalNumCols="1532" totalNumNonZeros="26042" totalFillLevelPerCent="1.1096" totalMemory="0.19868">
-              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="1532" numCols="1532" numNonZeros="26042" fillLevelPerCent="1.1096" memory="0.19868" upperBandWidth="1512" lowerBandWidth="1512" avgBandWidth="338" symCounterPart="no" orderingType="Metis"/>
-            </system>
-          </matrices>
         </setup>
         <solver>
-          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer wall="0" cpu="0.280682" calls="63"/>
+                <timer id="27" label="setup_pardiso" wall-clock="0.07022s" wall="0.0702199" cpu="0.070205" calls="63"/>
               </setup>
               <solve>
-                <timer wall="0" cpu="0.201512" calls="126"/>
+                <timer id="28" label="solve_pardiso" wall-clock="0.05034s" wall="0.0503401" cpu="0.050306" calls="126"/>
               </solve>
             </summary>
             <process>
-              <call number="0">
-                <symbfact cpu="0.028851" wall="0" peakMem="1764" permanentMem="1252"/>
-                <numfact cpu="0.008359" wall="0" peakMem="973"/>
-              </call>
-              <solver numIter="-1" finalNorm="-1"/>
               <call number="1">
-                <numfact cpu="0.006193" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.005787" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.004509" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.004135" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00417" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.005224" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003828" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003439" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00457" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003558" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003467" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.004596" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003654" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003432" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.004329" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003474" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003401" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003732" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00357" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.004668" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003835" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003646" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003449" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003541" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003696" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003372" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00353" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00354" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003432" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003599" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003522" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003386" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003699" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003435" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003345" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00361" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003348" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003912" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003629" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003437" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003547" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00363" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00344" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00339" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003635" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003442" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003299" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003679" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003476" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003416" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003777" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00345" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003415" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003804" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00352" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003417" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003767" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003557" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003561" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.00375" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003435" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
-              </call>
-              <call number="1">
-                <numfact cpu="0.003454" wall="0" peakMem="997"/>
-                <symbfact peakMem="1764" permanentMem="1252"/>
+                <symbfact cpu="0.002972" wall="0.0029734" peakMem="966" permanentMem="910"/>
+                <numfact cpu="0.000989" wall="0.00098926" peakMem="701"/>
               </call>
             </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
           </pardiso>
         </solver>
         <precond>
-          <idPrecond/>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="29" wall-clock="3.997e-05s" wall="3.9971e-05" cpu="4.2e-05" calls="63"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="30" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
         </precond>
         <process>
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
+      <graph nnz="26042">
+        <timer id="22" wall-clock="0.009215s" wall="0.00921526" cpu="0.001886" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="23" wall-clock="0.0002418s" wall="0.000241842" cpu="0.000242" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="0.0002052s" wall="0.000205227" cpu="0.000205" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="1532" min="6" max="18" mean="16.999" estimated_row_size="100"/>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall="1" cpu="0.690324" calls="378"/>
+          <timer id="18" wall-clock="0.05479s" wall="0.0547937" cpu="0.054816" calls="378"/>
+          <matrices>
+            <timer id="19" wall-clock="0.05377s" wall="0.0537704" cpu="0.053744" calls="63" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="0.0008161s" wall="0.000816103" cpu="0.000811" calls="315" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/jgreif/code/shared-test/TESTSUIT/Optimization/Regularization/robust_gripper/HALTOPT">
+  <optimization haltopt_file="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Regularization/robust_gripper/HALTOPT">
     <header>
-      <objective type="slack" linear="no" filtered="no" task="minimize"/>
+      <objective type="slack" name="slack" linear="no" access="plain" term="linear" scale="1" task="minimize"/>
       <multipleExcitations type="no_type"/>
       <constraints>
-        <constraint type="output" linear="no" filtered="yes" name="output_out1_f_0" design="default" bound="upperBound" bound_value="slack" excitation="0_f_0"/>
-        <constraint type="output" linear="no" filtered="yes" name="output_out1_f_1" design="default" bound="upperBound" bound_value="slack" excitation="1_f_1"/>
-        <constraint type="output" linear="no" filtered="yes" name="output_out1_f_2" design="default" bound="upperBound" bound_value="slack" excitation="2_f_2"/>
-        <constraint type="volume" linear="no" filtered="yes" name="volume_f_2" design="default" bound="upperBound" bound_value="0.35" excitation="2_f_2"/>
+        <constraint type="output" name="output_out1_f_0" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="0_f_0"/>
+        <constraint type="output" name="output_out1_f_1" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="1_f_1"/>
+        <constraint type="output" name="output_out1_f_2" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="2_f_2"/>
+        <constraint type="volume" name="volume_f_2" linear="no" access="filtered" bound_value="0.35" bound="upperBound" design="default" excitation="2_f_2"/>
       </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer id="17" wall-clock="0.001388s" wall="0.00138829" cpu="0.000917" calls="4"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="radius" value="0.028" contribution="linear" design="density" robust_excitation="0" elems="704" avg_radius="0.028" avg_neighbors="3.8295">
+            <tanh eta="0.3" beta="2.000000" scaling="1.4061" offset="-0.32547"/>
+          </filter>
+          <filter type="radius" value="0.028" contribution="linear" design="density" robust_excitation="1" elems="704" avg_radius="0.028" avg_neighbors="3.8295">
+            <tanh eta="0.7" beta="2.000000" scaling="1.4051" offset="-0.07985"/>
+          </filter>
+          <filter type="radius" value="0.028" contribution="linear" design="density" robust_excitation="2" elems="704" avg_radius="0.028" avg_neighbors="3.8295">
+            <tanh eta="0.5" beta="2.000000" scaling="1.3124" offset="-0.156"/>
+          </filter>
+          <timer id="31" wall-clock="0.0008685s" wall="0.000868505" cpu="0.000868" calls="3"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="705" field_elems="704" field_fe_elemes="704">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <design type="slack" upperBound="0" lowerBound="-1e+06"/>
+        </designVariables>
+        <localElementCache org="2" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="704" bimaterial="-" groundmaterial="-"/>
+        </regions>
+      </designSpace>
       <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
-      <filters periodic="no">
-        <filter type="radius" value="0.028" contribution="linear" design="allDesigns" robust_excitation="0" avg_radius="0.028" avg_neighbors="3.8295">
-          <timer wall="0" cpu="0.001075" calls="1"/>
-          <tanh beta="2" eta="0.3" scaling="1.4061" offset="-0.32547"/>
-        </filter>
-        <filter type="radius" value="0.028" contribution="linear" design="allDesigns" robust_excitation="1" avg_radius="0.028" avg_neighbors="3.8295">
-          <timer wall="0" cpu="0.000554" calls="1"/>
-          <tanh beta="2" eta="0.7" scaling="1.4051" offset="-0.07985"/>
-        </filter>
-        <filter type="radius" value="0.028" contribution="linear" design="allDesigns" robust_excitation="2" avg_radius="0.028" avg_neighbors="3.8295">
-          <timer wall="0" cpu="0.000675" calls="1"/>
-          <tanh beta="2" eta="0.5" scaling="1.3124" offset="-0.156"/>
-        </filter>
-      </filters>
       <excitations>
         <excitation index="0" meta_idx="0" robust_idx="0" label="0" full_label="0_f_0" weight="1" normalized_weight="0.33333" load="load" reassemble="yes"/>
         <excitation index="1" meta_idx="1" robust_idx="1" label="1" full_label="1_f_1" weight="1" normalized_weight="0.33333" load="load" reassemble="yes"/>
         <excitation index="2" meta_idx="2" robust_idx="2" label="2" full_label="2_f_2" weight="1" normalized_weight="0.33333" load="load" reassemble="yes"/>
       </excitations>
-      <designSpace pamping="0">
-        <transferFunctions>
-          <transferFunction type="simp" application="mech" design="density" param="1"/>
-        </transferFunctions>
-        <designVariables optimizationVariables="705" modelVariables="704" modelElements="704">
-          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
-          <design type="slack" upperBound="0" lowerBound="-1e+06"/>
-        </designVariables>
-        <regions>
-          <region name="mech" elements="704" bimaterial="-"/>
-        </regions>
-      </designSpace>
+    </header>
+    <commit mode="each_forward" stride="999"/>
+    <optimizer>
       <scpip>
+        <summary>
+          <scpip>
+            <timer id="32" wall-clock="0.03126s" wall="0.0312612" cpu="0.031276" calls="108"/>
+          </scpip>
+        </summary>
+        <scaling active="no"/>
         <icntl i1="1" i2="1" i3="20" i4="1" i5="10" i6="0" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
         <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="0.01" r5="0.01" r6="0.01" r7="0"/>
       </scpip>
-    </header>
-    <commit mode="each_forward" stride="999"/>
-    <designSpace/>
-    <optimizer>
-      <summary>
-        <timer wall="0" cpu="0.237055" calls="253"/>
-      </summary>
     </optimizer>
-    <eval>
-      <timer wall="0" cpu="0.004788" calls="147"/>
-    </eval>
+    <summary problem="maximum number of iterations reached (20)">
+      <eval_objective>
+        <timer id="33" wall-clock="0.01772s" wall="0.0177241" cpu="0.017726" calls="105"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="34" wall-clock="0.001862s" wall="0.00186173" cpu="0.001861" calls="21"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="35" wall-clock="0.001213s" wall="0.00121255" cpu="0.001213" calls="21"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="36" wall-clock="0.01782s" wall="0.0178192" cpu="0.017807" calls="21"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="SCPIP: maximum number of iterations reached (20)"/>
+      </break>
+      <functions>
+        <slack min="-0.86874" max="0" oscillations="0"/>
+        <output_out1_f_0 min="-0.8686" max="0.14038" oscillations="0"/>
+        <output_out1_f_1 min="-0.86874" max="0.14536" oscillations="0"/>
+        <output_out1_f_2 min="-0.87832" max="0.14364" oscillations="0"/>
+        <volume_f_2 min="0.24262" max="0.50022" oscillations="1"/>
+      </functions>
+    </summary>
     <process>
-      <iteration number="0" slack="0" volume_f_2="0.50022">
+      <iteration number="0" duration="0.12618" slack="0" volume_f_2="0.500223982890604">
         <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="0.14038"/>
         <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="0.14536"/>
         <excitation index="2" objective="0" objective_weight="0.33333" output_out1_f_2="0.14364"/>
       </iteration>
-      <iteration number="1" slack="0" volume_f_2="0.26284">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.063815"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.053806"/>
-        <excitation index="2" objective="0" objective_weight="0.33333" output_out1_f_2="-0.062142"/>
+      <iteration number="1" duration="0.023772" slack="0" volume_f_2="0.264328231612025">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.065917"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.056604"/>
+        <excitation index="2" objective="0" objective_weight="0.33333" output_out1_f_2="-0.064731"/>
       </iteration>
-      <iteration number="2" slack="-0.15734" volume_f_2="0.24061">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.27807"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.21367"/>
-        <excitation index="2" objective="-0.15734" objective_weight="0.33333" output_out1_f_2="-0.25126"/>
+      <iteration number="2" duration="0.018593" slack="-0.184267515731794" volume_f_2="0.242621110687677">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.29379"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.22755"/>
+        <excitation index="2" objective="-0.18427" objective_weight="0.33333" output_out1_f_2="-0.26676"/>
       </iteration>
-      <iteration number="3" slack="-0.40851" volume_f_2="0.25473">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.45518"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.37429"/>
-        <excitation index="2" objective="-0.40851" objective_weight="0.33333" output_out1_f_2="-0.42453"/>
+      <iteration number="3" duration="0.017767" slack="-0.463757114052458" volume_f_2="0.254858045556521">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.48375"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.39247"/>
+        <excitation index="2" objective="-0.46376" objective_weight="0.33333" output_out1_f_2="-0.44954"/>
       </iteration>
-      <iteration number="4" slack="-0.51715" volume_f_2="0.28728">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.56427"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.4916"/>
-        <excitation index="2" objective="-0.51715" objective_weight="0.33333" output_out1_f_2="-0.53925"/>
+      <iteration number="4" duration="0.017204" slack="-0.561033835551844" volume_f_2="0.28834674145098">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.59754"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.53328"/>
+        <excitation index="2" objective="-0.56103" objective_weight="0.33333" output_out1_f_2="-0.57716"/>
       </iteration>
-      <iteration number="5" slack="-0.55504" volume_f_2="0.3146">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.64052"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.58869"/>
-        <excitation index="2" objective="-0.55504" objective_weight="0.33333" output_out1_f_2="-0.62698"/>
+      <iteration number="5" duration="0.017135" slack="-0.601723958814663" volume_f_2="0.317437072379659">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.68065"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.62934"/>
+        <excitation index="2" objective="-0.60172" objective_weight="0.33333" output_out1_f_2="-0.66762"/>
       </iteration>
-      <iteration number="6" slack="-0.62444" volume_f_2="0.33236">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.71085"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.6586"/>
-        <excitation index="2" objective="-0.62444" objective_weight="0.33333" output_out1_f_2="-0.69779"/>
+      <iteration number="6" duration="0.016418" slack="-0.675421894274989" volume_f_2="0.333742250857043">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.73471"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.69333"/>
+        <excitation index="2" objective="-0.67542" objective_weight="0.33333" output_out1_f_2="-0.72643"/>
       </iteration>
-      <iteration number="7" slack="-0.68217" volume_f_2="0.33968">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.74492"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.70546"/>
-        <excitation index="2" objective="-0.68217" objective_weight="0.33333" output_out1_f_2="-0.7376"/>
+      <iteration number="7" duration="0.016272" slack="-0.720710076926248" volume_f_2="0.339917977534411">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.76651"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.73464"/>
+        <excitation index="2" objective="-0.72071" objective_weight="0.33333" output_out1_f_2="-0.7621"/>
       </iteration>
-      <iteration number="8" slack="-0.71962" volume_f_2="0.3441">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.76919"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.7341"/>
-        <excitation index="2" objective="-0.71962" objective_weight="0.33333" output_out1_f_2="-0.76374"/>
+      <iteration number="8" duration="0.016586" slack="-0.754585066785524" volume_f_2="0.342702961927371">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.79309"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.76581"/>
+        <excitation index="2" objective="-0.75459" objective_weight="0.33333" output_out1_f_2="-0.79083"/>
       </iteration>
-      <iteration number="9" slack="-0.74506" volume_f_2="0.34507">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.78986"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.75864"/>
-        <excitation index="2" objective="-0.74506" objective_weight="0.33333" output_out1_f_2="-0.78636"/>
+      <iteration number="9" duration="0.016033" slack="-0.779177115336352" volume_f_2="0.345800536909386">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.80144"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.78407"/>
+        <excitation index="2" objective="-0.77918" objective_weight="0.33333" output_out1_f_2="-0.80352"/>
       </iteration>
-      <iteration number="10" slack="-0.77018" volume_f_2="0.34515">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.81035"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.7844"/>
-        <excitation index="2" objective="-0.77018" objective_weight="0.33333" output_out1_f_2="-0.80958"/>
+      <iteration number="10" duration="0.01744" slack="-0.792672432115878" volume_f_2="0.346312058175525">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.80994"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.7969"/>
+        <excitation index="2" objective="-0.79267" objective_weight="0.33333" output_out1_f_2="-0.81411"/>
       </iteration>
-      <iteration number="11" slack="-0.79569" volume_f_2="0.34549">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.82886"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.80934"/>
-        <excitation index="2" objective="-0.79569" objective_weight="0.33333" output_out1_f_2="-0.83092"/>
+      <iteration number="11" duration="0.016533" slack="-0.805373640415433" volume_f_2="0.346902770552761">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.81906"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.81054"/>
+        <excitation index="2" objective="-0.80537" objective_weight="0.33333" output_out1_f_2="-0.82519"/>
       </iteration>
-      <iteration number="12" slack="-0.81894" volume_f_2="0.34647">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.84102"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.82805"/>
-        <excitation index="2" objective="-0.81894" objective_weight="0.33333" output_out1_f_2="-0.84551"/>
+      <iteration number="12" duration="0.016564" slack="-0.819311027114686" volume_f_2="0.347137031390466">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.82949"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.82531"/>
+        <excitation index="2" objective="-0.81931" objective_weight="0.33333" output_out1_f_2="-0.83755"/>
       </iteration>
-      <iteration number="13" slack="-0.8345" volume_f_2="0.34769">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.8484"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.83992"/>
-        <excitation index="2" objective="-0.8345" objective_weight="0.33333" output_out1_f_2="-0.85435"/>
+      <iteration number="13" duration="0.016741" slack="-0.834730250495904" volume_f_2="0.347548239133126">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.84225"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.84061"/>
+        <excitation index="2" objective="-0.83473" objective_weight="0.33333" output_out1_f_2="-0.85145"/>
       </iteration>
-      <iteration number="14" slack="-0.84331" volume_f_2="0.34866">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85145"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.84615"/>
-        <excitation index="2" objective="-0.84331" objective_weight="0.33333" output_out1_f_2="-0.85872"/>
+      <iteration number="14" duration="0.016485" slack="-0.846693250432306" volume_f_2="0.347901709203547">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85021"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.85007"/>
+        <excitation index="2" objective="-0.84669" objective_weight="0.33333" output_out1_f_2="-0.86017"/>
       </iteration>
-      <iteration number="15" slack="-0.84867" volume_f_2="0.34877">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85377"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.851"/>
-        <excitation index="2" objective="-0.84867" objective_weight="0.33333" output_out1_f_2="-0.86216"/>
+      <iteration number="15" duration="0.017127" slack="-0.855206396365269" volume_f_2="0.34873682007608">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86124"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.85982"/>
+        <excitation index="2" objective="-0.85521" objective_weight="0.33333" output_out1_f_2="-0.87075"/>
       </iteration>
-      <iteration number="16" slack="-0.85309" volume_f_2="0.34895">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85371"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.85476"/>
-        <excitation index="2" objective="-0.85309" objective_weight="0.33333" output_out1_f_2="-0.86369"/>
+      <iteration number="16" duration="0.016607" slack="-0.86317619697696" volume_f_2="0.348952739716415">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86521"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86412"/>
+        <excitation index="2" objective="-0.86318" objective_weight="0.33333" output_out1_f_2="-0.87454"/>
       </iteration>
-      <iteration number="17" slack="-0.85632" volume_f_2="0.34912">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85671"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.85691"/>
-        <excitation index="2" objective="-0.85632" objective_weight="0.33333" output_out1_f_2="-0.86636"/>
+      <iteration number="17" duration="0.016954" slack="-0.865953587018945" volume_f_2="0.349223667059749">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86666"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86625"/>
+        <excitation index="2" objective="-0.86595" objective_weight="0.33333" output_out1_f_2="-0.87621"/>
       </iteration>
-      <iteration number="18" slack="-0.85806" volume_f_2="0.34939">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85809"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.85877"/>
-        <excitation index="2" objective="-0.85806" objective_weight="0.33333" output_out1_f_2="-0.86793"/>
+      <iteration number="18" duration="0.016666" slack="-0.867393547964206" volume_f_2="0.349510834685805">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86799"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86765"/>
+        <excitation index="2" objective="-0.86739" objective_weight="0.33333" output_out1_f_2="-0.87751"/>
       </iteration>
-      <iteration number="19" slack="-0.85964" volume_f_2="0.34945">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.85964"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86017"/>
-        <excitation index="2" objective="-0.85964" objective_weight="0.33333" output_out1_f_2="-0.86943"/>
+      <iteration number="19" duration="0.016316" slack="-0.868270243054609" volume_f_2="0.349728846417653">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86829"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86835"/>
+        <excitation index="2" objective="-0.86827" objective_weight="0.33333" output_out1_f_2="-0.87798"/>
       </iteration>
-      <iteration number="20" slack="-0.86081" volume_f_2="0.3496">
-        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.86084"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86107"/>
-        <excitation index="2" objective="-0.86081" objective_weight="0.33333" output_out1_f_2="-0.87054"/>
+      <iteration number="20" duration="0.01523" slack="-0.868739108269149" volume_f_2="0.349840506164544">
+        <excitation index="0" objective="0" objective_weight="0.33333" output_out1_f_0="-0.8686"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" output_out1_f_1="-0.86874"/>
+        <excitation index="2" objective="-0.86874" objective_weight="0.33333" output_out1_f_2="-0.87832"/>
       </iteration>
     </process>
-    <summary problem="maximum number of iterations reached (20)">
-      <break converged="no">
-        <reason msg="SCPIP: maximum number of iterations reached (20)"/>
-      </break>
-    </summary>
   </optimization>
 </cfsInfo>

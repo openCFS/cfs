@@ -88,8 +88,8 @@ namespace CoupledField{
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces( const std::string&  formulation,
-                  PtrParamNode infoNode ){
-
+                  PtrParamNode infoNode )
+  {
     if(this->analysistype_ == STATIC)
       EXCEPTION("No STATIC analysis in AcousticPDE");
 
@@ -100,6 +100,19 @@ namespace CoupledField{
       crSpaces[formulation_] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[formulation_]->Init(solStrat_);
+      
+      // ===================================
+      // blochPeriodic Mortar
+      // ===================================
+      CoupledField::PtrParamNode bcsList = myParam_->Get("bcsAndLoads", ParamNode::ActionType::PASS);
+      if (bcsList != nullptr && bcsList->GetListByVal("blochPeriodic", "formulation", "Mortar").GetSize())
+      {
+        // Create FE-Space for Lagrange multiplier
+        PtrParamNode lagSpaceNode = infoNode->Get("lagrangeMultiplier");
+        crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, lagSpaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[LAGRANGE_MULT]->SetLagrSurfSpace();
+        crSpaces[LAGRANGE_MULT]->Init(solStrat_);
+      }
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
@@ -1725,6 +1738,9 @@ namespace CoupledField{
     LOG_DBG(acousticpde) << "Define Surface Integrator BEGIN"<< "\n";
 
     if( bcNode ) {
+      //========================================================================================
+      // Absorbing boundary condition (ABC)
+      //========================================================================================
       ParamNodeList abcNodes = bcNode->GetList( "absorbingBCs" );
       LOG_DBG(acousticpde) << "ABCs count :  " << abcNodes.GetSize() <<  "\n" ;
 
@@ -1903,7 +1919,7 @@ namespace CoupledField{
         if (timeDomainEqFluidFormulation_ && isTDEFReg_[iRegion]) {
           DefineTDEFABCSurfaceIntegrators(coeffStiffTDEF, aRegion, adjVolRegion, actSDList, TDEFcoeffs_);
         }
-      }
+      } // end abc
 
       //========================================================================================
       // Impedance boundaries
@@ -1986,7 +2002,7 @@ namespace CoupledField{
         impedContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
         feFunctions_[formulation_]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( impedContext );
-      }
+      } // end impedance bc
 
       //========================================================================================
       // boundary Layers
@@ -2072,7 +2088,137 @@ namespace CoupledField{
         assemble_->AddBiLinearForm(blkContext);
 
         LOG_DBG(acousticpde) << "Define Surface Integrator boundary layer: coefK =" << coefK->ToString() << "\n";
-      } // boundary Layers
+      } // end boundary Layers
+
+      //========================================================================================
+      // blochPeriodic
+      //========================================================================================
+      ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
+      for (PtrParamNode& node : blochNodesList)
+      {
+        if(formulation_ != ACOU_PRESSURE)
+          throw Exception("blochPeriodic only tested for acouPressure!");
+
+        // probably also works for normal acoustics
+        if(!complexFluidFormulation_)
+          throw Exception("blochPeriodic only tested for complexFluid!");
+
+        std::string str_value = node->Get("factor_value")->As<std::string>();
+        std::string str_phase = node->Get("factor_phase")->As<std::string>();
+        std::string formulation = node->Get("formulation")->As<std::string>();
+        
+        // propagation factor \gamma from xml-file
+        std::string str_real, str_imag;
+        str_real = AmplPhaseToReal(str_value, str_phase, true);
+        str_imag = AmplPhaseToImag(str_value, str_phase, true);
+        
+        PtrCoefFct factor = CoefFunction::Generate(mp_, Global::COMPLEX, str_real, str_imag);
+        PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0", "0.0");
+        
+        ParamNodeList regionsList = node->GetList("region");
+        for (PtrParamNode& regnode : regionsList)
+        {
+          std::string ncRegionName = regnode->Get("name")->As<std::string>();
+          shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncRegionName));
+          if (!ncIf)
+          {
+            EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
+          }
+          shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
+          assert(mortarIf);
+          
+          if (formulation == "Mortar")
+          {
+            shared_ptr<SurfElemList> surfPrmGrid(new SurfElemList(ptGrid_)), surfSndGrid(new SurfElemList(ptGrid_));
+            surfPrmGrid->SetRegion(mortarIf->GetPrimarySurfRegion());
+            surfSndGrid->SetRegion(mortarIf->GetSecondarySurfRegion());
+            
+            // --- Set the approximation for Lagrange Multipliers for the current region ---
+            RegionIdType regId = surfSndGrid->GetRegion();
+            std::string polyId = regnode->Get("polyId")->As<std::string>();
+            std::string integId = regnode->Get("integId")->As<std::string>();
+            feFunctions_[LAGRANGE_MULT]->GetFeSpace()->SetRegionApproximation(regId, polyId, integId);
+            
+            BiLinearForm* intOne1 = nullptr;
+            BiLinearForm* intFactor1 = nullptr;
+            BiLinearForm* intOne2 = nullptr;
+            BiLinearForm* intFactor2 = nullptr;
+
+            if (dim_ == 2)
+            {
+              intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+                    new IdentityOperator<FeH1, 2, 1, Complex>(),
+                    one, 1.0,
+                    mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
+                    mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
+              intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), factor, -1.0, updatedGeo_);
+              intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), one, 1.0, updatedGeo_);
+              intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+                      new IdentityOperator<FeH1, 2, 1, Complex>(),
+                      factor, -1.0,
+                      mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
+                      mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::PRIM_SEC);
+            }
+            else
+            {
+              intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+                      new IdentityOperator<FeH1, 3, 1, Complex>(),
+                      one, 1.0,
+                      mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
+                      mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
+              intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), factor, -1.0, updatedGeo_);
+              intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), one, 1.0, updatedGeo_);
+              intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+                      new IdentityOperator<FeH1, 3, 1, Complex>(),
+                      factor, -1.0,
+                      mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
+                      mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::PRIM_SEC);
+            }
+            
+            intOne1->SetName("primary1Acou");
+            intFactor1->SetName("secondary1Acou");
+            intOne2->SetName("primary2Acou");
+            intFactor2->SetName("secondary2Acou");
+            
+            // (1) weak form of the periodic boundary conditions
+            BiLinFormContext* lagPotContPrm = new BiLinFormContext(intFactor1, STIFFNESS);
+            NcBiLinFormContext* lagPotContSnd = new NcBiLinFormContext(intOne1, STIFFNESS);
+            
+            // I dont understand why this is different to the ElecPDE, but it works...
+            lagPotContPrm->SetEntities(surfSndGrid, surfSndGrid);
+            lagPotContSnd->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
+            lagPotContPrm->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ACOU_PRESSURE]);
+            lagPotContSnd->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ACOU_PRESSURE]);
+            
+            assemble_->AddBiLinearForm(lagPotContPrm);
+            assemble_->AddBiLinearForm(lagPotContSnd);
+            
+            // (2) weak form of the boundary integrals of the PDE
+            BiLinFormContext* potLagContPrm = new BiLinFormContext(intOne2, STIFFNESS);
+            NcBiLinFormContext* potLagContSnd = new NcBiLinFormContext(intFactor2, STIFFNESS);
+            
+            potLagContPrm->SetEntities(surfSndGrid, surfSndGrid);
+            potLagContSnd->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
+            potLagContPrm->SetFeFunctions(feFunctions_[ACOU_PRESSURE], feFunctions_[LAGRANGE_MULT]);
+            potLagContSnd->SetFeFunctions(feFunctions_[ACOU_PRESSURE], feFunctions_[LAGRANGE_MULT]);
+            
+            assemble_->AddBiLinearForm(potLagContPrm);
+            assemble_->AddBiLinearForm(potLagContSnd);
+            
+            feFunctions_[LAGRANGE_MULT]->AddEntityList(surfSndGrid);
+            feFunctions_[ACOU_PRESSURE]->AddEntityList(surfPrmGrid);
+            feFunctions_[ACOU_PRESSURE]->AddEntityList(surfSndGrid);
+          } // end mortar
+          else if (formulation == "Nitsche")
+          {
+            EXCEPTION("Nitsche not implemented, use Mortar instead!");
+          }
+          else 
+          {
+            EXCEPTION("Unknown formulation: '" << formulation << "'!");
+          }
+        }
+      } // end blochPeriodic
     } // end if ( bcNode )
     LOG_DBG(acousticpde) << "Define Surface Integrator END"<< "\n";
   } // DefineSurfaceIntegrators
@@ -2243,27 +2389,27 @@ namespace CoupledField{
         // in this case the pressure can be related to the 
         // normal velocity as 
         // p_n = - j*Omega*v_n*rho
-    	PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
-    	                                                "-2*pi*f");
-    	if ( complexFluidFormulation_ ) {
-    		//do not need multiplication with density
-    		exValue = CoefFunction::Generate( mp_, part,
-                                          CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-    	}
-    	else {
-    		PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
-                                                  CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-        exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2, surfDens,
-                                          CoefXpr::OP_MULT) );
-    	}
-
-        if( dim_ == 2) {
-          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
-                                                1.0, exValue, volRegions, coefUpdateGeo);
-        } else  {
-          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
-                                                1.0, exValue, volRegions, coefUpdateGeo);
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, part,"0.0",
+                                                        "-2*pi*f");
+        if ( complexFluidFormulation_ ) {
+          //do not need multiplication with density
+          exValue = CoefFunction::Generate( mp_, part,
+                                            CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
         }
+        else {
+          PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
+                                                    CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+          exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2, surfDens,
+                                            CoefXpr::OP_MULT) );
+        }
+
+          if( dim_ == 2) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                                                  1.0, exValue, volRegions, coefUpdateGeo);
+          } else  {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                                                  1.0, exValue, volRegions, coefUpdateGeo);
+          }
 
       } else {
         EXCEPTION( "Normal velocity can only be prescribed for potential "
@@ -2939,6 +3085,28 @@ namespace CoupledField{
     		                             complexFluidFormulation_));
     matCoefs_[ACOU_ELEM_SPEED_OF_SOUND] = sosFct;
     DefineFieldResult(sosFct, sos);
+
+    // Check if an FE space for Lagrange multiplier has been created.
+    // If any, define results for Lagrange multiplier in case of p.b.c.
+    PtrParamNode lagSpaceNode = infoNode_->Get("feSpaces", ParamNode::PASS)->Get("lagrangeMultiplier", ParamNode::PASS);
+    if (lagSpaceNode)
+    {
+      // <!> This is a hack, because there is no cross points handling
+      hdbcSolNameMap_[LAGRANGE_MULT] = "ground";
+      idbcSolNameMap_[LAGRANGE_MULT] = "potential";
+      //
+      shared_ptr<ResultInfo> lagMultAcou(new ResultInfo);
+      lagMultAcou->resultType = LAGRANGE_MULT;
+      lagMultAcou->dofNames = "";
+      lagMultAcou->unit = "m/s";
+      lagMultAcou->entryType = ResultInfo::SCALAR;
+      lagMultAcou->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+      lagMultAcou->definedOn = ResultInfo::NODE;
+      feFunctions_[LAGRANGE_MULT]->SetResultInfo(lagMultAcou);
+      
+      results_.Push_back(lagMultAcou);
+      DefineFieldResult(feFunctions_[LAGRANGE_MULT], lagMultAcou);
+    }
   }
   
   void AcousticPDE::FinalizePostProcResults(){

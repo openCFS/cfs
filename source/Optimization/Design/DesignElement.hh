@@ -626,6 +626,7 @@ double SIMPElement::CalcTanh(double input_value, const GlobalFilter* f)
   double result = f->non_lin_scale * (func) + f->non_lin_offset;
 
   //std::cout << "CT: b=" << b << " e=" << e << " s=" << f->non_lin_scale << " o=" << f->non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
+  assert(!std::isnan(result));
   return result;
 }
 

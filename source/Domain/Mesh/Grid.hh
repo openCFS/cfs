@@ -545,7 +545,7 @@ namespace CoupledField
 
     /** Determines the neighborhood of elements and store in within the elements.
      * It checks if already called and does nothing if called multiple times. */
-    virtual void FindElementNeighorhood()
+    virtual void FindElementNeighorhood(bool only_volume = true)
       { EXCEPTION( "Not implemented" ); }
 
     //! Get list of elements (surface / volumes)

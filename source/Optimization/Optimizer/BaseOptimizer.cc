@@ -471,6 +471,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   {
     // the design did not change
     // in the debug case we evaluate the objective to be sure!
+    // this is an expensive assert...
     assert(close(design_.value, optimization->CalcObjective()));
     need_eval = false;
   }

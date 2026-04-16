@@ -46,6 +46,9 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
 
         # out pml
         if y >= L_out + L_abh + L_in + t_pml:
+            if x >= max(ws):
+                e.region = "S_pml"
+                continue
             if x >= W_abh and x >= W_out:
                 e.region = "S_pml_tout"
                 continue
@@ -92,13 +95,20 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
             continue
 
         # in pml
+        if x >= max(ws):
+            e.region = "S_pml"
+            continue
         e.region = "S_pml_in"
 
     # define node sets, because we use normalVelocity, we also need to create line elements and corresponding surface regions.
     Ls_in = []
     Ls_out = []
+    Ls_axi = []
+    Ls_top = []
     last_in_i = None
     last_out_i = None
+    last_axi_i = None
+    last_top_i = None
     for i, n in enumerate(mesh.nodes):
         x, y = n
 
@@ -112,7 +122,6 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
                     e.nodes = (last_in_i, i)
                     mesh.elements.append(e)
                 last_in_i = i
-            continue
 
         # outlet
         if abs(Y - t_pml - y) < eps:
@@ -125,8 +134,54 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
                     mesh.elements.append(e)
                 last_out_i = i
 
+        # axi
+        if x < eps:
+            if y - t_pml < -eps:
+                continue
+            if y - (L_in + t_pml) < eps:
+                Ls_axi.append(i)
+                # create surface region
+                if last_axi_i is not None:
+                    e = mesh_tool.Element(region="L_axi_in_surf", type=mesh_tool.Ansys.LINE)
+                    e.nodes = (last_axi_i, i)
+                    mesh.elements.append(e)
+                last_axi_i = i
+                continue
+            if y - Y + t_pml < eps:
+                Ls_axi.append(i)
+                # create surface region
+                if last_axi_i is not None:
+                    e = mesh_tool.Element(region="L_axi_abh_surf", type=mesh_tool.Ansys.LINE)
+                    e.nodes = (last_axi_i, i)
+                    mesh.elements.append(e)
+                last_axi_i = i
+
+        # top
+        if abs(x - max(ws)) < eps and t_pml - y < eps and y - Y + t_pml < eps:
+            if y - t_pml < -eps:
+                continue
+            if y - (L_in + t_pml) < eps:
+                Ls_top.append(i)
+                # create surface region
+                if last_top_i is not None:
+                    e = mesh_tool.Element(region="L_top_in_surf", type=mesh_tool.Ansys.LINE)
+                    e.nodes = (last_top_i, i)
+                    mesh.elements.append(e)
+                last_top_i = i
+                continue
+            if y - Y + t_pml < eps:
+                Ls_top.append(i)
+                # create surface region
+                if last_top_i is not None:
+                    e = mesh_tool.Element(region="L_top_abh_surf", type=mesh_tool.Ansys.LINE)
+                    e.nodes = (last_top_i, i)
+                    mesh.elements.append(e)
+                last_top_i = i
+
     mesh.bc.append(('L_in', Ls_in))
     mesh.bc.append(("L_out", Ls_out))
+    mesh.bc.append(('L_axi', Ls_axi))
+    mesh.bc.append(("L_top", Ls_top))
 
     mesh_tool.write_ansys_mesh(mesh, name)
 

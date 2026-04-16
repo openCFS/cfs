@@ -909,6 +909,11 @@ bool Optimization::DoSolveAdjointWithState() const
   // don't do it within forward when we can do it later
   if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
     return true;
+
+  // we want to reuse the assembled system
+  if(me->DoRobust(context))
+    return true;  // the excitation needs to be checked externally
+
   else
     return false;
 }

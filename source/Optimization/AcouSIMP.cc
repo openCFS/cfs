@@ -2,17 +2,9 @@
 #include "Optimization/AcouSIMP.hh"
 #include "Materials/BaseMaterial.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-#include "Domain/CoefFunction/CoefFunctionConst.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/DesignSpace.hh"
-
-namespace CoupledField {
-  class DenseMatrix;
-  class AcousticMaterial;
-} // namespace CoupledField
-
-using namespace CoupledField;
-using std::complex;
+#include "Forms/LinForms/BUInt.hh"
+#include "Optimization/Excitation.hh"
+#include "PDE/AcousticPDE.hh"
 
 DEFINE_LOG(acs, "acouSimp");
 
@@ -23,56 +15,98 @@ void AcouSIMP::InitSecondMaterialCache()
   AddSecondMaterialCache(MaterialClass::ACOUSTIC, MaterialType::ACOU_BULK_MODULUS);
 }
 
-const Complex AcouSIMP::GetExcitationPressure(Function* f) { 
-  PtrParamNode info = optInfoNode->Get(ParamNode::HEADER)->Get("getExcitationPressure");
-  // get surfRegion
-  const RegionIdType reg = AcouSIMP::GetExcitationRegion(f);
-  info->Get("surfRegionId")->SetValue(reg);
+StdVector<Complex> AcouSIMP::GetExcitationPressureVector(Excitation& excite, Function* f)
+{
+  assert(context->sequence == excite.sequence);
+  assert(f->ctxt == context);
+  assert(f->GetType() == Function::REFLECTED_WAVE);
 
-  // get normalVelocity (ofc this only works if it is a number)
-  // todo: expand this for coefFunction
-  double vel = 0.0;
-  PtrParamNode bcs = f->ctxt->pde->GetParamNode()->Get("bcsAndLoads");
-  PtrParamNode velNode = bcs->GetByVal("normalVelocity", "name", grid->GetRegionName(reg));
-  // If value is not a double, the As() method throws an Exception.
-  vel = velNode->Get("value")->As<double>();
-  LOG_DBG2(acs) << "AS: vel=" << vel;
-  info->Get("vel")->SetValue(vel);
-
-  // get volumeRegion
+  // parse regions
+  const RegionIdType surfReg = AcouSIMP::GetExcitationRegion(f);
   const RegionIdType volreg = AcouSIMP::GetExcitationRegion(f, "volumeNeighbour");
-  info->Get("volumeRegionId")->SetValue(volreg);
+  // get pde
+  AcousticPDE* acoupde = dynamic_cast<AcousticPDE*>(context->pde);
+  
+ // extract the CoefFunction of the normalVelocity boundary condition
+  BUIntegrator<Complex, true>* integ = nullptr;
+  assert(excite.forms.GetSize() > 0);
+  for(LinearFormContext* lfctx : excite.forms) {
+    if(lfctx->GetIntegrator()->GetName() == "NormalVelocityIntegrator") {
+      if(integ == nullptr)
+        integ = dynamic_cast<BUIntegrator<Complex, true>*>(lfctx->GetIntegrator());
+      else {
+        // maybe also multiple regions?
+        throw Exception("Multiple normalVelocities for one excitation not handled");
+      }
+    }
+  }
+  assert(integ != nullptr);
+  PtrCoefFct coef = integ->GetCoef();
+  
 
   // get c0 and K coef functions
-  std::map<RegionIdType, BaseMaterial*> mat = context->pde->GetMaterialData();
+  std::map<RegionIdType, BaseMaterial*> mat = acoupde->GetMaterialData();
   auto it = mat.find(volreg);
   if (it == mat.end())
-    throw Exception("Given surfRegion not assigned to a material.");
+    throw Exception("Given region not assigned to a material.");
   PtrCoefFct dens = it->second->GetScalCoefFnc(DENSITY, Global::REAL);
   PtrCoefFct blk = it->second->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::REAL);
-  const CoefFunctionConst<Double>* cfcdens = dynamic_cast<const CoefFunctionConst<Double>*>(dens.get());
-  const CoefFunctionConst<Double>* cfcblk = dynamic_cast<const CoefFunctionConst<Double>*>(blk.get());
-  if(cfcdens == nullptr || cfcblk == nullptr)
-    throw Exception("reflectedWave only works for constant real valued material paramters.");
 
-  // get c0 and K
-  double rho = cfcdens->GetScalar();
-  double K = cfcblk->GetScalar();
-  LOG_DBG2(acs) << "AS: rho=" << rho << " K=" << K;
-  info->Get("rho")->SetValue(rho);
-  info->Get("K")->SetValue(K);
+  // check if ABC xor PML exist
+  PtrParamNode bcs = acoupde->GetParamNode()->Get("bcsAndLoads");
+  PtrParamNode dmp = acoupde->GetParamNode()->Get("dampingList", ParamNode::ActionType::PASS);
+  if (bcs->HasByVal("absorbingBCs", "name", grid->GetRegionName(surfReg)) ==
+      (dmp != nullptr && dmp->Has("pml")))
+    throw Exception("For accurate reflectedWave results, please place an ABC or PML behind the exciation surfRegion (not both)!");
 
-  // compute ep
-  Complex ep = - rho * std::sqrt(K/rho) * vel;
-  info->Get("excitationPressure_ideal")->SetValue(ep);
+  // get the mapping function
+  const shared_ptr<FeSpace>& feSpace = acoupde->GetFeFunction(acoupde->GetFormulation())->GetFeSpace();
+  FeSpace::SingleEqnMap& map = feSpace->GetNodeMap();
 
-  // if ABC exists divide by 2
-  if (bcs->HasByVal("absorbingBCs", "name", grid->GetRegionName(reg))) {
-    ep /= 2.0;
-    LOG_DBG2(acs) << "AS: Found absorbingBC";
+  // init our output vector with the same size as u
+  Vector<Complex>& l = dynamic_cast<Vector<Complex>&>(*(adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)));
+  StdVector<Complex> zvec(l.GetSize());  // does this init to {0, 0}?
+
+  // init scaling factor to convert coef to vn
+  Complex coef2vn{0, 1/excite.GetOmega()};
+
+  StdVector<unsigned> nodeList;
+  LocPointMapped lpm;
+  for(RegionIdType regId : acoupde->GetRegions()){
+    grid->GetNodesByRegion(nodeList, regId);
+    for (unsigned nnr : nodeList) {
+      // we use the node number to set the location
+      lpm.lp.number = nnr;  
+
+      // map node number to euqation number to align it with RHS storage type
+      StdVector<int>& eqnrs = map.eqns[(int)nnr];
+      assert(eqnrs.GetSize() == 1);
+      int eqnr = eqnrs[0] - 1;  // switch to zero based
+
+      if(eqnr < 1 ||  // clamp eqnr, e.g. for nodes outside of the opt region
+        eqnr >= (int)(l.GetSize()) ||
+        l[eqnr] == 0.0)  // if this DOF is anyways not selected, just skip it
+        continue;
+      
+      // get result
+      Complex val;
+      coef->GetScalar(val, lpm);
+      val *= coef2vn;  // scale val to vn
+      
+      LOG_DBG2(acs) << "GEPV: nnr=" << nnr << "; eqnr=" << eqnr << "; w=" << excite.GetOmega() << "; vn=" << val
+        << "; exidx=" << excite.index << "; form=" << coef->GetName();
+
+      // scale val to pI
+      double rho, K;
+      dens->GetScalar(rho, lpm);
+      blk->GetScalar(K, lpm);
+      val *= -rho * std::sqrt(K/rho) / 2;
+
+      zvec[eqnr] = val;
+    }
   }
-  info->Get("excitationPressure_abc")->SetValue(ep);
-  return ep;
+
+  return zvec;
 }
 
 const RegionIdType AcouSIMP::GetExcitationRegion(Function* f, const std::string& attr) {

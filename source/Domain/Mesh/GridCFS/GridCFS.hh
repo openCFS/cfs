@@ -248,7 +248,7 @@ namespace CoupledField
     void SetElemRegion(UInt ielem, RegionIdType region) override;
 
     /** @see Grid::FindElementNeighorhood() */
-    void FindElementNeighorhood() override;
+    void FindElementNeighorhood(bool only_volume = true) override;
 
     void GetElemRegion(UInt ielem, RegionIdType & region) override;
 

@@ -33,7 +33,7 @@ public:
   ~Excitation();
 
   /** This method makes the current load active.
-   * For multiple frequencies it does nothing. The actual frequency is chosen by default.
+   * For multiple frequencies it updates the mathparser, e.g. when we use freq dependent coefFunctions
    * @param switch_context perform a context switch if another sequence is active.
    *    This triggers the deletion of the current pdes and single driver and the creation of new ones. So know what you are doing!
    *    A good reason not to switch the context is when we apply the current robust filter for function evaluation
@@ -99,6 +99,9 @@ public:
   /** This is a link to the Frequency description from the harmonic driver.
    * It is used for calling the HarmonicDriver to solve the problems */
   HarmonicDriver::Frequency* f_link;
+
+  /** the frequency index, should correspond to the freq_step of the harmonic driver */
+  unsigned int freq_idx;
 
   /** For multiharmonic excitation. -1.0 by default */
   double frequency;
@@ -255,7 +258,9 @@ private:
   /** call this only for the last context */
   void WriteInInfo(PtrParamNode in);
 
-  void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
+  /** Sets the "loads" for multifrequency harmonic problems
+   * Single frequency is handled in SetLoadCases */
+  void SetHarmonic(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_freq);
 
   /** sweet little helper for SetHarmonic() */
   void SetHarmonicExcitation(Context* ctxt, Excitation& ex, int freq_idx);

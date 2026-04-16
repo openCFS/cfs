@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
 
   <documentation>
     <title>static output (Force Inverter)</title>
     <authors>
-      <author>Fabian Wein</author>
+      <author>Felix Huber</author>
     </authors>
-    <date>2015-01-28</date>
+    <date>2026-04-21</date>
     <keywords>
       <keyword>SIMP</keyword>
     </keywords>
     <references>standard</references>
     <isVerified>yes</isVerified>
-    <description>Standard force inverter problem. This tests the handling of the adjoint pde. Difficult problem, snopt is locked in a local Mimimum.</description>
+    <description>We revived this test to test the robust gradient in the adjoined case.</description>
   </documentation>
 
   <fileFormats>
@@ -75,16 +77,7 @@
           </elemResult>          
           <elemResult type="physicalPseudoDensity">
             <allRegions/>
-          </elemResult>  
-          <elemResult type="optResult_1">
-            <allRegions/>
-          </elemResult>  
-          <elemResult type="optResult_2">
-            <allRegions/>
-          </elemResult>
-          <elemResult type="optResult_3">
-            <allRegions/>
-          </elemResult>             
+          </elemResult>         
        </storeResults>
       </mechanic>
     </pdeList>
@@ -131,7 +124,7 @@
 
     <optimizer type="scpip" maxIterations="20 ">
       <snopt>
-        <option name="verify_level" type="integer" value="0"/>
+        <option name="verify_level" type="integer" value="-1"/>
       </snopt>
     </optimizer>
 
@@ -152,10 +145,6 @@
       <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
       <transferFunction type="simp" application="mech"  param="1" />
 
-      <result value="design" id="optResult_1" excitation="0" access="smart"/>
-      <result value="design" id="optResult_2" excitation="1" access="smart"/> 
-      <result value="design" id="optResult_3" excitation="2" access="smart"/>
-
       <export write="iteration" save="last" />
 
     </ersatzMaterial>
@@ -164,5 +153,3 @@
  
   
 </cfsSimulation>
-
-

@@ -851,7 +851,11 @@
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
         </xsd:choice>
         <xsd:attribute name="value" type="xsd:token" use="optional"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
         <xsd:attribute name="isComplex" type="xsd:boolean" use="optional" default="false"/>
         <xsd:attribute name="harmonic" type="xsd:token" use="optional" default="1"/>
@@ -898,7 +902,11 @@
               <xsd:complexType>
                 <xsd:attribute name="dof" type="xsd:token" use="required"/>
                 <xsd:attribute name="value" type="xsd:token" use="required"/>
-                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
@@ -977,7 +985,11 @@
               <xsd:complexType>
                 <xsd:attribute name="dof" type="xsd:token" use="required"/>
                 <xsd:attribute name="value" type="xsd:token" use="required"/>
-                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+                <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
@@ -1026,7 +1038,11 @@
           </xsd:element>
         </xsd:sequence>
         <xsd:attribute default="1.0" name="factor_value" type="xsd:token"/>
-        <xsd:attribute default="0.0" name="factor_phase" type="xsd:token"/>
+        <xsd:attribute default="0.0" name="factor_phase" type="xsd:token">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en"> Phase shift in rad </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
         <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
       </xsd:extension>
@@ -1918,7 +1934,11 @@ The result is divided by the total volume of the region, yielding the volume ave
               </xsd:simpleType>
             </xsd:attribute>
             <xsd:attribute name="value" type="xsd:token" default="0.0"/>
-            <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
+            <xsd:attribute name="phase" type="xsd:token" default="0.0">
+              <xsd:annotation>
+                <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+              </xsd:annotation>
+            </xsd:attribute>
           </xsd:complexType>
         </xsd:element>
 
@@ -1935,7 +1955,11 @@ The result is divided by the total volume of the region, yielding the volume ave
                 <xsd:complexType>
                   <xsd:attribute name="harmonic" type="xsd:integer" default="1"/>
                   <xsd:attribute name="value" type="xsd:token" default="0.0"/>
-                  <xsd:attribute name="phase" type="xsd:token" default="0.0"/>
+                  <xsd:attribute name="phase" type="xsd:token" default="0.0">
+                    <xsd:annotation>
+                      <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:attribute>
                 </xsd:complexType>
               </xsd:element>
             </xsd:sequence>
@@ -1992,7 +2016,11 @@ The result is divided by the total volume of the region, yielding the volume ave
                             <xsd:attribute name="dof" type="xsd:token" use="required"/>
                             <xsd:attribute name="value" type="xsd:token" use="required"/>
                             <xsd:attribute name="phase" type="xsd:token" use="optional"
-                              default="0.0"/>
+                              default="0.0">
+                              <xsd:annotation>
+                                <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+                              </xsd:annotation>
+                            </xsd:attribute>
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>

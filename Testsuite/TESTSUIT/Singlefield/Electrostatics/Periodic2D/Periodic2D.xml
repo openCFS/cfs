@@ -72,19 +72,5 @@
                 </storeResults>
             </electrostatic>            
         </pdeList>        
-
-	<linearSystems>
-		<system>
-            <solutionStrategy>
-          		<standard/>          		
-        	</solutionStrategy>
-		    <solverList>
-		        <pardiso id="default">
-		            <IterRefineSteps>50</IterRefineSteps>
-		        </pardiso>
-		    </solverList>
-	      </system>
-    	</linearSystems>
-        
     </sequenceStep>
 </cfsSimulation>    

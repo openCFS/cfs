@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  <documentation>
+    <title>static multiload with mathparser</title>
+    <authors>
+      <author>Felix Huber</author>
+    </authors>
+    <date>2026-04-20</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>standard</references>
+    <isVerified>yes</isVerified>
+    <description>Adapted from multiload.
+      For multiload the RHSides are managed by the optimization loop.
+      When they use mathparser expressions, the order of deconstruction caused a segfault.
+      This testcase ensures proper order of deconstruction for multiload and mathparser RHS.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center_upper">
+        <coord x="0.5" y="0.5"/>
+      </nodes>
+      <nodes name="center_lower">
+        <coord x="0.5" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left_upper"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="left_lower"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="right_lower"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="right_upper"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+
+           <force name="center_upper">
+            <comp dof="y" value="x"/>
+          </force>
+          <force name="center_lower">
+            <comp dof="y" value="-x"/>
+          </force>
+          
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" multiple_excitation="true">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <optimizer type="evaluate" maxIterations="1" />
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <transferFunction type="simp" application="mech" param="3" />
+      <export write="iteration" save="all" />
+
+    </ersatzMaterial>  
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+  
+</cfsSimulation>
