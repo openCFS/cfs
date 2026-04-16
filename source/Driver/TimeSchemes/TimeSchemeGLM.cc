@@ -102,7 +102,7 @@ namespace CoupledField{
     
   }
 
-  void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){   //RD: Where does the GLM get the dt from, changing it to Mathlib constand should be possible and easiest solution 
+  void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){
     curScheme_->adaptiveBDF2 = false;
     curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
     prevPrevSol_ = nullptr;
@@ -225,28 +225,28 @@ namespace CoupledField{
   void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
 
     //-------------------------------------------------------------
-    // Adaptive Timestepping Initialation:
-    // Sets adaptivetimestepping Flag in GLMSCchemeLib, and checks
-    // if only PDE`s for which adaptive Timestepping is Implemented
-    // are used.
+    // Adaptive timestepping initialization: read flag and configure
+    // BDF2 for variable steps. Runs once per scheme instance.
     //-------------------------------------------------------------
      if(domain_ != nullptr && mathparser_ == nullptr)
      {
         mathparser_ = domain_->GetMathParser();
      }
 
-    if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)  // 
+    if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)
     {
       Double adaptive = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveEnabeled");
+      // adaptive == 1: adaptive timestepping enabled via XML <adaptiveTimeStepping>
       if(adaptive == 1)
       {
+        // GetType() == 3: BDF2; adaptive step control is only supported for BDF2
         if(curScheme_->GetType() == 3)
         {
           curScheme_->adaptiveBDF2 = true;
           adaptiveStepCount_ = 0;
         }else
         {
-          EXCEPTION("Adaptive Time Stepping only implmented for, Smooth PDE and AcousticMixedPDE.");
+          EXCEPTION("Adaptive timestepping is only implemented for BDF2.");
         }
       }
     }
@@ -647,7 +647,7 @@ namespace CoupledField{
 
   void TimeSchemeGLM::LTELocalErrorEstimation()
   {
-    // Error BDF2
+    // BDF2 local truncation error estimate via three-point finite-difference formula.
     
     Double h2 = curScheme_->dtCurrent_;  // h_{n+2}
     Double h1 = curScheme_->dtPrev1_;    // h_{n+1}
@@ -691,7 +691,7 @@ namespace CoupledField{
     }
 
     if(ErrorScheme == 2)
-    { // Normalized (Eucleadian) Error 
+    { // Euclidean (normalised) error norm
       l2_norm = std::sqrt(sum/n);
       curScheme_->local_error_ = l2_norm;
       mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", l2_norm);
@@ -721,6 +721,7 @@ namespace CoupledField{
     }
   
 
+    // Smoothing == 0: PI controller disabled; use classic single-step size formula.
     if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 0)
     {
       h_next = standartStepsize(&accepted);
@@ -827,9 +828,10 @@ namespace CoupledField{
 
   void TimeSchemeGLM::reset_dt()
   {
-    curScheme_->dtCurrent_ = curScheme_->prev_dtCurrent_;  
-    curScheme_->dtPrev1_ =curScheme_->prev_dtPrev1_;    
-    curScheme_->dtPrev2_ = curScheme_->prev_dtPrev2_;    
+    // Restore dt history to last-accepted state so BDF2 coefficients are consistent on retry.
+    curScheme_->dtCurrent_ = curScheme_->prev_dtCurrent_;
+    curScheme_->dtPrev1_   = curScheme_->prev_dtPrev1_;
+    curScheme_->dtPrev2_   = curScheme_->prev_dtPrev2_;
   }
 
 }

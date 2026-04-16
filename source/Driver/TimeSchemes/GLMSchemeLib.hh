@@ -194,7 +194,7 @@ class Trapezoidal : public GLMScheme{
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return TRAPEZOIDAL;
     }
@@ -260,7 +260,7 @@ class Newmark : public GLMScheme{
 
     Newmark(Double gamma,Double beta,Double alpha=0.0);
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return NEWMARK;
     }
@@ -298,13 +298,13 @@ class Bdf2 : public GLMScheme{
 
   Bdf2();
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return BDF2;
     }
 
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT); //RD: Question alreade in TIMESchemeLIB //RD: same dt from Math_handler ?
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
@@ -322,7 +322,7 @@ class RungeKutta4 : public GLMScheme{
 
     RungeKutta4();
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return RK4;
     }

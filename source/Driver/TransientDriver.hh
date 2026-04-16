@@ -66,8 +66,10 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
+    //! Reads dt, stepRejected, toleranceNotReachable from MathParser after each solve; returns true if the step is accepted. Implements retry cap and PI anti-windup.
     bool adaptTimestep();
 
+    //! Maps the XML scheme attribute ("maxlocalError" -> 1, "normalizedError" -> 2) to MathParser variable ERROR_Scheme.
     void SetAdaptiveType();
     
 
@@ -107,7 +109,7 @@ namespace CoupledField {
     //  Adaptive timestepping related data
     // =======================================================================
 
-    //! adaptiveEnabeled_ : default false, if time stepping enabeled true
+    //! True when the <adaptiveTimeStepping> XML block is present.
     bool adaptiveEnabeled_;
 
     //! AdaptiveTimestepping: determins Timestepping Scheme
@@ -126,14 +128,14 @@ namespace CoupledField {
     //! restartCount_ : tracks howmany restarts were done
     UInt restartCount_;
 
-    //!  Smoothing_ : if adaptiv Var sets if stepsizesmoothing is on 
+    //! True when Stepsizesmoothing="ON"; activates PI3.4 step-size controller.
     bool Smoothing_;
 
-    //!  alpha_: Param for stepsizesmoothing 
+    //! Proportional gain parameter for the PI step-size controller (default 0.7; effective value computed in smoothStepsize as 0.3/k).
     Double alpha_;
 
-    //!  beta_: Param for stepsizesmoothing 
-    Double beta_ ;
+    //! Integral gain parameter for the PI step-size controller (default 0.5; effective value computed in smoothStepsize as 0.6/k).
+    Double beta_;
 
     // =======================================================================
     //  Restart related data
@@ -158,16 +160,16 @@ namespace CoupledField {
     //! Timer for estimating remaining runtime 
     shared_ptr<Timer> timer_;
 
-    //! Holds Simulation End Time, 
+    //! Target simulation end time, computed as firstdt_ * numstep_; loop exits once actTime_ >= this value.
     double simulationENDTime_;
 
     //! Flag, Is set when simulationENDTime_ is reached
     bool simulationEndTimeReached_;
 
-    //! Saves Previus LTE Error for PI Controll 
+    //! LTE error from the last accepted step; fed to MathParser as prevError for the PI controller's integral term.
     double prevLTEerror_;
 
-    //! Saves Previus Error to stop controller windup
+    //! LTE error saved at the first rejection of a retry sequence; fed back to the PI controller when toleranceNotReachable is set to prevent integrator windup.
     double antiWindupError_;
 
 

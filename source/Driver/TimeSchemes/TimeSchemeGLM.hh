@@ -120,6 +120,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
       return curScheme_->sizeGLMVec_;
     }
 
+    //! Restores dtCurrent_, dtPrev1_, dtPrev2_ from last-accepted snapshots; call on step rejection to keep BDF2 coefficient history consistent for the retry.
     void reset_dt();
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
@@ -156,7 +157,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     double smoothStepsize(bool * accepted);
 
   protected:
-    // Pointer to Mathpaerser Instance
+    //! Pointer to the MathParser instance; lazily resolved in BeginStep().
     MathParser * mathparser_ = nullptr;
 
     void InitGLMs();
@@ -206,7 +207,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     ///Store the type of nonlinearity to be considered in the scheme
     NonLinType nLinType_;
 
-    // Stores previus y_[-1], used when adaptive Timestepping
+    //! Stores y_{n-1} (solution two accepted steps back); required for the three-point LTE formula.
     SingleVector* prevPrevSol_;
 
     int adaptiveStepCount_;

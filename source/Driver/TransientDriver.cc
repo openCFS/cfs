@@ -72,15 +72,13 @@ namespace CoupledField {
     // get parameter node
     param_ = param_->Get("transient");
 
-    //RD: all Info about the BDF2 setup is gotten here, so ja check if BDF2:Adaptive should be done here.
-
     info_ = info_->Get("transient");
     info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
-    
+
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
-    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();  //RD: Edit mathparser to set dt correctly(gets set with xml)
-    numstep_ = param_->Get( "numSteps")->MathParse<UInt>(); // RD: Edit Math Parser to set numsteps correct
+    firstdt_ = param_->Get( "deltaT")->MathParse<Double>();
+    numstep_ = param_->Get( "numSteps")->MathParse<UInt>();
 
     simulationENDTime_ = firstdt_ * numstep_;
     simulationEndTimeReached_ = false;
@@ -446,7 +444,7 @@ namespace CoupledField {
     actTime_ = stepVal;
     actTimeStep_ = stepNum;
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    //RD: Already used Previusly 
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
   }
   
   void TransientDriver::ReadRestart() {
@@ -525,16 +523,18 @@ namespace CoupledField {
     prevLTEerror_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR");
     // prevError is set below, after acceptance is known (see end of function)
 
-    if(static_cast<int>(retries) > 50)
+    // Hard cap: more than 50 rejections in a row indicates the tolerance is unachievable; abort rather than loop forever.
+    if(static_cast<int>(retries) > 20)
     {
-      EXCEPTION("ERROR: The Simulation stopped after 50 Reruns of the same timestep.")
+      EXCEPTION("ERROR: The Simulation stopped after 20 Reruns of the same timestep.")
     }
 
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
     bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);
 
-    if(!accepted & (retries == 0)) // Saves Error befor rerunning (Solves Integrator Windup when min step size is limited)
+    // On the first rejection: save the current error as the anti-windup reference before the retry.
+    if(!accepted && (retries == 0))
     {
       antiWindupError_ = prevLTEerror_;
     }
