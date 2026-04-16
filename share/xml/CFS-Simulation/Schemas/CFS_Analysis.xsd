@@ -104,6 +104,18 @@
                 <xsd:element name="sigma"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rtol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="atol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="minStepFactor" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <!--
+                  deltaTMin      : Minimum time step size. If hit, the step is force-accepted and a warning is issued.
+                  deltaTMax      : Maximum time step size. The controller never exceeds this value.
+                  tol            : LTE acceptance tolerance (step accepted when LTE < tol). Typical: 1e-4..1e-8. Mutually exclusive with rtol/atol.(The use of atol/rtol is recomended)
+                  sigma          : Safety factor for the step-size controller (0 < sigma < 1). Recommended: 0.75-0.9.
+                  rtol           : Relative tolerance for dimensionless LTE scaling (sc_j = atol + max|y|*rtol). Overrides tol. Use with atol (typical 0.1-0.0001).
+                  atol           : Absolute tolerance floor for rtol scaling. Prevents sc_j going to zero near zero-crossings. Default: 1e-10.
+                  minStepFactor  : Floor on h_next/h_prev. Prevents extreme single-step reductions. Default: 0.25 (smoothing OFF) / 0.2 (ON).
+                  scheme         : Error norm. 'maxlocalError': max over all DOFs (strict). 'normalizedError': RMS norm, recommended for large systems.
+                  Stepsizesmoothing : 'ON': PI.3.4 controller (Soederlind 2002). 'OFF': simpel I-controller.
+                -->
               </xsd:sequence>
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>

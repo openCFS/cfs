@@ -136,6 +136,12 @@ namespace CoupledField {
         mathParser_->SetValue( MathParser::GLOB_HANDLER, "ATOL", 0.0);
       }
 
+      // optional minStepFactor (minimum ratio h_next/h_prev)
+      PtrParamNode minStepFactorNode = adaptiveNode->Get("minStepFactor", ParamNode::PASS);
+      Double minStepFactor = minStepFactorNode ? minStepFactorNode->MathParse<Double>()
+                                               : (Smoothing_ ? 0.2 : 0.25);
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveMinStepFactor", minStepFactor);
+
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",            tol_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin",         deltaTMin_);
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax",         deltaTMax_);

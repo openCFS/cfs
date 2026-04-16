@@ -704,15 +704,11 @@ namespace CoupledField{
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
-    Double maxChange = 0.25;
+    Double maxChange = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveMinStepFactor");
     Double h     = curScheme_->dtCurrent_;
     bool   accepted = false;
     Double h_next = 0.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
-    if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 1)
-    {
-      maxChange = 0.2;
-    }
 
     // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
     // Detect saturation early: force-accept rather than driving h2 to dtMin.
