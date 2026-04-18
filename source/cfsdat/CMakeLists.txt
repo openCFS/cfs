@@ -55,6 +55,7 @@ ADD_EXECUTABLE(cfsdat ${CFSDAT_SRCS})
 SET(TARGET_LL 
   datainout
   matvec
+  cfsgeneral
 )
 
 IF(MKL_BLAS_LIB)
