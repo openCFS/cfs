@@ -62,8 +62,18 @@ namespace CoupledField{
     nonLin_            = false;
     isMechCoupled_     = false;
 
-    //! Always use total Lagrangian formulation 
-    updatedGeo_        = false;
+    //! check for ALE formulation
+    updatedGeo_ = false;
+    PtrParamNode bcsNode = myParam_->Get("movingMeshList", ParamNode::PASS );
+    if( bcsNode ) {
+      if( bcsNode->Has("movingMesh") ) {
+        updatedGeo_ = true;
+        // grid velocity coefFunction
+        gridVelCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, ptGrid_->GetDim(), 1, isComplex_, true));
+        std::cout << "Do computation on updated geometry: " << updatedGeo_ << std::endl;
+      }
+    }
+
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
@@ -1387,40 +1397,71 @@ namespace CoupledField{
   void AcousticPDE::DefineConvectiveIntegrators(RegionIdType actRegion, PtrParamNode curRegNode,
                                                 shared_ptr<ElemList> actSDList, PtrCoefFct coeffM) {
     std::string flowId = curRegNode->Get("flowId")->As<std::string>();
-    if (flowId != "") {
+    std::string movingMeshId = curRegNode->Get("movingMeshId")->As<std::string>();
+    if (flowId != "" || movingMeshId != "") {
       std::cout << "Assigning convective integrators for AcousticPDE" << std::endl;
       if (complexFluidFormulation_) {
         EXCEPTION("Complex fluid and flow currently not allowed");
       }
 
-      // Get result info object for flow
-      shared_ptr<ResultInfo> flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
-
-      // Add the region information
-      PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow", "name", flowId.c_str());
-
+      //check, if the divergence of the flow is differrent of zero; if yes, we
+      //need the full formulation! 
       bool fullForm = false;
-
       if (myParam_->Get("flowFormulation")->As<std::string>() == "withDivergence") {
         fullForm = true;
       }
 
-      // Read coefficient flow coefficient function for this region and add it to flow functor
-      PtrCoefFct regionFlow;
-      std::set<UInt> definedDofs;
-      bool coefUpdateGeo;
-      ReadUserFieldValues(actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType,
-                          IS_COMPLEX, regionFlow, definedDofs, coefUpdateGeo);
-      meanFlowCoef_->AddRegion(actRegion, regionFlow);
+      if ( flowId != "" && movingMeshId != "")
+        EXCEPTION("CIn acousticPDE currently flowID and movingMeshId ist not supported!");       
 
       PtrCoefFct divRegionFlow;
       PtrCoefFct divUFactors;
+      bool coefUpdateGeo = false;
 
-      if (fullForm) {
+      if ( flowId != "" ) {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+
+        // Add the region information
+        PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow", "name", flowId.c_str());
+
+        // Read coefficient flow coefficient function for this region and add it to flow functor
+        PtrCoefFct regionFlow;
+        std::set<UInt> definedDofs;
         ReadUserFieldValues(actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType,
-                            IS_COMPLEX, divRegionFlow, definedDofs, coefUpdateGeo);
-        divRegionFlow->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
-        divMeanFlowCoef_->AddRegion(actRegion, divRegionFlow);
+                            IS_COMPLEX, regionFlow, definedDofs, coefUpdateGeo);
+        meanFlowCoef_->AddRegion(actRegion, regionFlow);
+
+        if (fullForm) {
+          ReadUserFieldValues(actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType,
+                              IS_COMPLEX, divRegionFlow, definedDofs, coefUpdateGeo);
+          divRegionFlow->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
+          divMeanFlowCoef_->AddRegion(actRegion, divRegionFlow);
+        }
+      }
+      else if ( movingMeshId != "" ) {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> movingMeshInfo;
+        movingMeshInfo = GetResultInfo(FLUIDMECH_MESH_VELOCITY); //SMOOTH_VELOCITY);
+        // Read ALE coefficient function for this region
+        PtrCoefFct regionMovingMesh;
+        std::set<UInt> definedDofs;
+
+        //Add the region information
+        PtrParamNode movingMeshNode =
+          myParam_->Get("movingMeshList")->GetByVal("movingMesh",
+                                              "name",
+                                              movingMeshId.c_str());
+
+        //TODO Test ReadRHSExcitation and let entList be defined by it (instead of actSDList which are elements)
+        StdVector<shared_ptr<EntityList> > ent;
+        ReadUserFieldValues( actSDList, movingMeshNode, movingMeshInfo->dofNames,
+                              movingMeshInfo->entryType, isComplex_, regionMovingMesh,
+                              definedDofs, coefUpdateGeo );
+        std::cout << "AcousticPDE::DefineConvectiveIntegrators: Coef read for movingMesh, update geometry is: " 
+                  << coefUpdateGeo << std::endl;
+        meanFlowCoef_->AddRegion( actRegion, regionMovingMesh );
+        gridVelCoef_->AddRegion( actRegion, regionMovingMesh );
       }
 
       // Create integrators
@@ -3608,6 +3649,51 @@ namespace CoupledField{
         resTDEFPsiV->SetFeFunction(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)]);
         DefineFieldResult(feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + i)], resTDEFPsiV);
       }
+    }
+
+    // check for grid velocity
+    bool hasGridVel = false;
+    PtrParamNode bcsNode = myParam_->Get("movingMeshList", ParamNode::PASS );
+    if( bcsNode ) {
+      if( bcsNode->Has("movingMesh") ) {
+        hasGridVel = true;
+      }
+    }
+
+    // check if we have a grid velocity and define it
+    // note: at the moment we use element results since nodal results are extremely slow
+    // TODO: fix the nodal results and change the results to nodal ones
+    if ( hasGridVel )  {
+      //creates the mean flow
+      StdVector<std::string> vecDofNames;
+      if( ptGrid_->GetDim() == 3 ) {
+        vecDofNames = "x", "y", "z";
+      } else {
+        if( ptGrid_->IsAxi() ) {
+          vecDofNames = "r", "z";
+        } else {
+          vecDofNames = "x", "y";
+        }
+      }
+      // === FLUID-MECHANIC MESH VELOCITY ELEM ===
+      shared_ptr<ResultInfo> meshVelocityElem(new ResultInfo);
+      meshVelocityElem->resultType = FLUIDMECH_MESH_VELOCITY_ELEM;
+      meshVelocityElem->dofNames = vecDofNames;
+      meshVelocityElem->unit =  MapSolTypeToUnit(FLUIDMECH_MESH_VELOCITY_ELEM);;
+      meshVelocityElem->entryType = ResultInfo::VECTOR;
+      meshVelocityElem->definedOn = ResultInfo::ELEMENT;
+      availResults_.insert( meshVelocityElem );
+      DefineFieldResult( gridVelCoef_, meshVelocityElem );
+
+      // === FLUID-MECHANIC MESH VELOCITY===
+      shared_ptr<ResultInfo> meshVelocity(new ResultInfo);
+      meshVelocity->resultType = FLUIDMECH_MESH_VELOCITY;
+      meshVelocity->dofNames = vecDofNames;
+      meshVelocity->unit =  MapSolTypeToUnit(FLUIDMECH_MESH_VELOCITY);;
+      meshVelocity->entryType = ResultInfo::VECTOR;
+      meshVelocity->definedOn = ResultInfo::NODE;
+      availResults_.insert( meshVelocity );
+      DefineFieldResult( gridVelCoef_, meshVelocity );
     }
   }
 

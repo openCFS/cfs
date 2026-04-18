@@ -574,6 +574,11 @@ if(USE_FEAST AND ( (TESTSUITE_CFSTOOL_MODE STREQUAL "relL2diff") OR (TESTSUITE_C
 endif()
 
 #-------------------------------------------------------------------------------
+# Subdirectories for Magneto-Strictive test cases.
+#-------------------------------------------------------------------------------
+ADD_SUBDIRECTORY(Coupledfield/AcouSmooth/Constriction)
+
+#-------------------------------------------------------------------------------
 # Subdirectories for FSI test cases.
 #-------------------------------------------------------------------------------
 if(USE_SUITESPARSE)

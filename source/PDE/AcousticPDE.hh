@@ -154,6 +154,11 @@ namespace CoupledField{
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> divMeanFlowCoef_;
 
+    //! This coefficient function describes the moving mesh for the ALE formulation. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> gridVelCoef_;
+
     //! This coefficient function describes the temperatur field. As this
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.

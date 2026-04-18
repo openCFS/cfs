@@ -52,6 +52,7 @@
                     <xsd:attribute name="complexFluid" type="DT_CFSBool" use="optional" default="no"/>
                     <xsd:attribute name="timeDomainEqFluid" type="DT_CFSBool" use="optional" default="no"/>
                     <xsd:attribute name="useRationalMatApproximation" type="DT_CFSBool" use="optional" default="no"/>
+                    <xsd:attribute name="movingMeshId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -103,6 +104,18 @@
             </xsd:complexType>
           </xsd:element>
 
+
+          <!-- List defining moving grids -->
+          <xsd:element name="movingMeshList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the grid velocity for the ALE-formulation</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="movingMesh" type="DT_BcInhomVector"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
 
           <!-- Type of FlowData (optional) -->
           <!-- List defining flows -->
