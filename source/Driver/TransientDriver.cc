@@ -523,12 +523,11 @@ namespace CoupledField {
     prevLTEerror_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR");
     // prevError is set below, after acceptance is known (see end of function)
 
-    // Hard cap: more than 50 rejections in a row indicates the tolerance is unachievable; abort rather than loop forever.
+    // Hard cap: more than 20 rejections in a row indicates the tolerance is unachievable; abort rather than loop forever.
     if(static_cast<int>(retries) > 20)
     {
       EXCEPTION("ERROR: The Simulation stopped after 20 Reruns of the same timestep.")
     }
-
     dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
     bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
     bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);

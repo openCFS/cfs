@@ -136,6 +136,38 @@
             </xsd:complexType>
           </xsd:element>
           <!-- optional adaptive time stepping block end -->
+          <!-- optional user-defined time integration scheme -->
+          <xsd:element name="integrationScheme" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Overrides the default time integration scheme used for this PDE.
+                                  Exactly one child element must be specified: trapezoidal, newmark, bdf2, or rk4.
+                                  If omitted, the solver's built-in default scheme is used.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice minOccurs="1" maxOccurs="1">
+                <xsd:element name="trapezoidal">
+                  <xsd:complexType>
+                    <xsd:attribute name="gamma" type="xsd:double" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="newmark">
+                  <xsd:complexType>
+                    <xsd:attribute name="gamma" type="xsd:double" use="required"/>
+                    <xsd:attribute name="beta"  type="xsd:double" use="required"/>
+                    <xsd:attribute name="alpha" type="xsd:double" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="bdf2">
+                  <xsd:complexType/>
+                </xsd:element>
+                <xsd:element name="rk4">
+                  <xsd:complexType/>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- optional user-defined time integration scheme end -->
         </xsd:sequence>
 
         <xsd:attribute name="initialTime" default="accumulated">
