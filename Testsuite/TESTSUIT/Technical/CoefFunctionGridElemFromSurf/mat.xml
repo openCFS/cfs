@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="FluidMat">
+    <mechanical>  <!-- Arbitrary material for testing -->
+      <density>
+        <linear>
+          <real>10</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1000 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.35 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <density>
+        <linear>
+          <real> 10 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>1000</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

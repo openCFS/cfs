@@ -2248,7 +2248,7 @@ void GridCFS::MapFaces()
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
       if ( index != -1 ) {
-        UInt numElems = volElems_[index].GetSize();
+        UInt numElems = surfElems_[index].GetSize();
         // allocate memory for the vector
         elementList.Reserve(numElems);
         // loop over all elements and insert them in the list

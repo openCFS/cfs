@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <input>
+      <cdb fileName="Cube.cdb"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="vol" material="FluidMat"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="fix"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>15</numSteps>
+        <deltaT>2e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="vol"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <normalAcceleration name="src" value="sin(2*pi*1000*t)*(x - 2*y)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <allRegions/>
+          </nodeResult>
+          <surfElemResult type="acouSurfPressure">
+            <surfRegionList>
+              <surfRegion name="src"/>
+            </surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

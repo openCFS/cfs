@@ -1034,6 +1034,7 @@ if(USE_CGNS)
   add_subdirectory(Technical/VolumeElementConversion_CGNS)
 endif()
 add_subdirectory(Technical/CoefFunctionGridElem)
+add_subdirectory(Technical/CoefFunctionGridElemFromSurf)
 add_subdirectory(Technical/Pyra2ndOrder)
 add_subdirectory(Technical/xmlTimeIntegration)
 #-------------------------------------------------------------------------------
