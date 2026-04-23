@@ -72,7 +72,7 @@
 	</domain>
 
 	<sequenceStep>
-				<analysis>
+		<analysis>
 			<transient>
 				<numSteps>2</numSteps>
 				<deltaT>0.5e-2</deltaT>
@@ -146,6 +146,24 @@
 				<!-- Boundary Conditions and Volume Loads -->
 				<bcsAndLoads>
 					 <potential name="excite" value="1.0 * sin(2*pi*10*t)"/>
+
+					<velocity name="VFupper">
+						<coupling pdeName="smooth">
+							<quantity name="smoothVelocity" />
+						</coupling>
+					</velocity>
+
+					<velocity name="VFlower">
+						<coupling pdeName="smooth">
+							<quantity name="smoothVelocity" />
+						</coupling>
+					</velocity>
+
+					<velocity name="walls">
+						<coupling pdeName="smooth">
+							<quantity name="smoothVelocity" />
+						</coupling>
+					</velocity>
 				</bcsAndLoads>
 
 				<!-- Results Definition -->
@@ -171,7 +189,7 @@
 		<couplingList>
 			<iterative PDEorder="smooth;acoustic">
 				<convergence logging="yes" maxNumIters="1" stopOnDivergence="no">
-    			 	<quantity name="smoothDisplacement" value="1e-3" normType="rel"/>
+    			 	<quantity name="smoothDisplacement" value="1e+3" normType="rel"/>
      				<!--quantity name="smoothVelocity" value="1e-3" normType="rel"/>
       				<quantity name="acouPotential" value="1e-3" normType="rel"/-->
     			</convergence>
