@@ -238,9 +238,7 @@ IF(USE_PARDISO)
 #  ADD_SUBDIRECTORY(Singlefield/Electrostatics/VecPreisachVoltage)
 #  ADD_SUBDIRECTORY(Singlefield/Electrostatics/VecPreisachMovingVoltage)
   ADD_SUBDIRECTORY(Singlefield/Electrostatics/Periodic2D)
-  IF(USE_CGAL)
-    ADD_SUBDIRECTORY(Singlefield/Electrostatics/Periodic3D)
-  ENDIF(USE_CGAL)
+  ADD_SUBDIRECTORY(Singlefield/Electrostatics/Periodic3D)
 ENDIF(USE_PARDISO)
 
 #-------------------------------------------------------------------------------

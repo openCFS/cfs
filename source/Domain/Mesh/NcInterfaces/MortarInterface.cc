@@ -667,7 +667,7 @@ namespace CoupledField {
         isCoplanar_ = true;
     }
     // if only one interface is planar we have a problem
-    if (!isCoplanar_ && (isPrimaryPlanar && isSecondaryPlanar))
+    if (!isCoplanar_ && (isPrimaryPlanar && isSecondaryPlanar) && !mutualProjection_)
       WARN("Non-conforming interface '" << name_ << "' is assumed to be curved even as the two planar surfaces that are not coplanar!" << std::endl <<
            "This might lead to errors!");
     if ((!isPrimaryPlanar && isSecondaryPlanar) || (isPrimaryPlanar && !isSecondaryPlanar))
@@ -2574,6 +2574,12 @@ namespace CoupledField {
     GetInterfaceElemCoordinates(primaryElement, primaryNodeCoords);
     GetInterfaceElemCoordinates(secondaryElement, secondaryNodeCoords);
     UInt numPrimaryNodes = primaryNodeCoords.GetSize();
+    // project the primary element onto the secondary-element plane if there is a mutual projection
+    if (mutualProjection_) {
+      for (UInt iNodes = 0; iNodes < primaryNodeCoords.GetSize(); ++iNodes) {
+        primaryNodeCoords[iNodes] -= translationVector_;
+      }
+    }
     // boolean to check if an intersection element has been computed
     bool intersectionComputed;
     // compute the intersection element using the method depending on the software build
