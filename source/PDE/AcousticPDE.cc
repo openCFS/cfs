@@ -429,8 +429,8 @@ namespace CoupledField{
         shared_ptr<ResultInfo> tempInfo = GetResultInfo(HEAT_MEAN_TEMPERATURE);
         // Add the region information
         PtrParamNode tempNode = myParam_->Get("temperatureList")->GetByVal("temperature", "name", tempId.c_str());
-
-        ReadUserFieldValues(actSDList, tempNode, tempInfo->dofNames, tempInfo->entryType, false, regionTemp, definedDofs, updatedGeo_);
+        bool updatedGeo;
+        ReadUserFieldValues(actSDList, tempNode, tempInfo->dofNames, tempInfo->entryType, false, regionTemp, definedDofs, updatedGeo);
         meanTemperatureCoef_->AddRegion(actRegion, regionTemp);
       }
 
@@ -1412,7 +1412,7 @@ namespace CoupledField{
       }
 
       if ( flowId != "" && movingMeshId != "")
-        EXCEPTION("CIn acousticPDE currently flowID and movingMeshId ist not supported!");       
+        EXCEPTION("In acousticPDE currently flowID and movingMeshId ist not supported!");       
 
       PtrCoefFct divRegionFlow;
       PtrCoefFct divUFactors;
@@ -1458,8 +1458,8 @@ namespace CoupledField{
         ReadUserFieldValues( actSDList, movingMeshNode, movingMeshInfo->dofNames,
                               movingMeshInfo->entryType, isComplex_, regionMovingMesh,
                               definedDofs, coefUpdateGeo );
-        std::cout << "AcousticPDE::DefineConvectiveIntegrators: Coef read for movingMesh, update geometry is: " 
-                  << coefUpdateGeo << std::endl;
+       // std::cout << "AcousticPDE::DefineConvectiveIntegrators: Coef read for movingMesh, update geometry is: " 
+       //           << coefUpdateGeo << std::endl;
         meanFlowCoef_->AddRegion( actRegion, regionMovingMesh );
         gridVelCoef_->AddRegion( actRegion, regionMovingMesh );
       }
@@ -1492,10 +1492,13 @@ namespace CoupledField{
 
       convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
       convectiveStiff->SetName("convectiveStiffPierce");
+      convectiveStiff->SetSolDependent(true);
       convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
       convectiveDamp->SetName("convectiveDampPierce");
+      convectiveDamp->SetSolDependent(true);
       convectiveDampT->SetBCoefFunctionOpA(meanFlowCoef_);
       convectiveDampT->SetName("convectiveDampPierceTransposed");
+      convectiveDampT->SetSolDependent(true);
 
       convectiveInts_[actRegion] = convectiveStiff;
 
@@ -1848,8 +1851,9 @@ namespace CoupledField{
           PtrCoefFct regionTemp;
           std::set<UInt> definedDofs;
           //we assume that the temperature values are real (not complex!)
+           bool updatedGeo;
           ReadUserFieldValues( actSDList, tempNode, tempInfo->dofNames, tempInfo->entryType,
-                             false, regionTemp, definedDofs, updatedGeo_ );
+                             false, regionTemp, definedDofs, updatedGeo);
           // gasR=287.058 J/kg K   ... universal gas constant
           // kappa=1.402, adabatic exponent for air
           PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
@@ -2581,8 +2585,9 @@ namespace CoupledField{
        //      Diss Freidhager 2022
        // ================
        LOG_DBG(acousticpde) << "Reading rhsDensityVector";
+       bool updatedGeo;
        ReadRhsExcitation( "rhsDensityVector", vecDofNames, ResultInfo::VECTOR,
-    		   isComplex_, ent, coef, updatedGeo_ );
+    		   isComplex_, ent, coef, updatedGeo );
 
        //perform checks
 
@@ -2705,7 +2710,7 @@ namespace CoupledField{
     //  RHS DENSITY
     // ================
     ReadRhsExcitation( "rhsDensity", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -2763,7 +2768,7 @@ namespace CoupledField{
     //  RHS Mass time derivative
     // ================
     ReadRhsExcitation( "rhsMassTimeDeriv", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -2821,7 +2826,7 @@ namespace CoupledField{
     //  RHS Mass convective term
     // ================
     ReadRhsExcitation( "rhsMassConvective", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
