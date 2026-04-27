@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="aborted" infoWriteCounter="3" infoRejectCounter="0" error="
+xml file /home/dorninger/cfs/Testsuite/TESTSUIT/Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorRelTol/plungertrans2dAdaptiveNormalizedErrorRelTol.xml.xml doesn't exist">
+  <summary>
+    <timer id="0" wall-clock="0.01567s" wall="0.0156852" cpu="0.004426" calls="1"/>
+  </summary>
+  <header>
+    <environment started="27-Apr-26 19:32:17" host="rk1"/>
+  </header>
+</cfsInfo>

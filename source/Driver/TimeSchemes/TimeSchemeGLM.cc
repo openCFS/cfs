@@ -9,6 +9,7 @@
 
 #include "TimeSchemeGLM.hh"
 #include "GLMSchemeLib.hh"
+#include "AdaptiveTimesteppingData.hh"
 #include "MatVec/Vector.hh"
 
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -235,9 +236,8 @@ namespace CoupledField{
 
     if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)
     {
-      Double adaptive = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveEnabeled");
-      // adaptive == 1: adaptive timestepping enabled via XML <adaptiveTimeStepping>
-      if(adaptive == 1)
+      auto atd = domain_->GetAdaptiveData();
+      if(atd && atd->enabled)
       {
         // GetType() == 3: BDF2; adaptive step control is only supported for BDF2
         if(curScheme_->GetType() == 3)
@@ -658,9 +658,10 @@ namespace CoupledField{
     Double c2 = (1.0 + h2 / h1) / h1;
     Double c3 = h2 / (h1 * h0);
 
-    Double ErrorScheme = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "ERROR_Scheme");
-    Double RTOL = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "RTOL");
-    Double ATOL = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "ATOL");
+    auto* atd = domain_->GetAdaptiveData().get();
+    int    ErrorScheme = atd->errorScheme;
+    double RTOL        = atd->rtol;
+    double ATOL        = atd->atol;
     bool useScaling = (RTOL > 0.0);
 
     double l2_norm = 0.0;
@@ -694,17 +695,18 @@ namespace CoupledField{
     { // Euclidean (normalised) error norm
       l2_norm = std::sqrt(sum/n);
       curScheme_->local_error_ = l2_norm;
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", l2_norm);
+      atd->localError = l2_norm;
     }else
     {
       curScheme_->local_error_ = maxLTE;
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", maxLTE);
+      atd->localError = maxLTE;
     }
   }
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
-    Double maxChange = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveMinStepFactor");
+    auto* atd = domain_->GetAdaptiveData().get();
+    double maxChange = atd->minStepFactor;
     Double h     = curScheme_->dtCurrent_;
     bool   accepted = false;
     Double h_next = 0.0;
@@ -714,56 +716,50 @@ namespace CoupledField{
     // Detect saturation early: force-accept rather than driving h2 to dtMin.
     const Double h1 = curScheme_->dtPrev1_;
     if (h1 > 0.0 && h / h1 < maxChange) {
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",                  h);
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected",        0.0);
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h);
+      atd->stepRejected          = false;
+      atd->toleranceNotReachable = true;
       return true;
     }
-  
 
-    // Smoothing == 0: PI controller disabled; use classic single-step size formula.
-    if(mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "Smoothing") == 0)
-    {
-      h_next = standartStepsize(&accepted);
-    }else
-    {
+    // Smoothing == false: PI controller disabled; use classic single-step size formula.
+    if(!atd->smoothing)
+      h_next = standardStepsize(&accepted);
+    else
       h_next = smoothStepsize(&accepted);
-    }
-    
+
     // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
-    // Shrinking is always stable for BDF2, so only the growth direction is capped.
     if (h_next / h > maxRatio)
       h_next = h * maxRatio;
 
     // Apply user-defined bounds after the stability cap
-    Double dtMin = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMin");
-    Double dtMax = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveDtMax");
-    Double h_next_unclamped = h_next;  // save before bounds to detect genuine dtMin floor hit
+    double dtMin = atd->dtMin;
+    double dtMax = atd->dtMax;
+    Double h_next_unclamped = h_next;
     h_next = std::max(h_next, dtMin);
     h_next = std::min(h_next, dtMax);
 
-    // Force-accept only when the formula truly wanted to go below dtMin —
-    // i.e. the bounds prevented further shrinking, not just any rejected step.
-    if (!accepted && h_next_unclamped < dtMin)
-    {
+    // Force-accept only when the formula truly wanted to go below dtMin.
+    if (!accepted && h_next_unclamped < dtMin) {
       accepted = true;
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+      atd->toleranceNotReachable = true;
     }
-    
-    mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt",           h_next);
-    mathparser_->SetValue(MathParser::GLOB_HANDLER, "stepRejected", accepted ? 0.0 : 1.0);
+
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
+    atd->stepRejected = !accepted;
 
     return accepted;
   }
 
-  Double TimeSchemeGLM::standartStepsize(bool* accepted)
+  Double TimeSchemeGLM::standardStepsize(bool* accepted)
   {
-    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
+    auto* atd    = domain_->GetAdaptiveData().get();
+    Double Rtol  = atd->tol;
     Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
 
-    const Double z_U      = 0.1;
-    const Double z_S      = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma") +1; // zs has to be between 1 and 2 
+    const Double z_U = 0.1;
+    const Double z_S = atd->sigma + 1;  // zs has to be between 1 and 2
     const Double F_U      = 1.5;
     Double h_next;
 
@@ -786,14 +782,14 @@ namespace CoupledField{
 
   Double TimeSchemeGLM::smoothStepsize(bool* accepted)
   {
-    Double Rtol  = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveTol");
+    auto*  atd   = domain_->GetAdaptiveData().get();
+    Double Rtol  = atd->tol;
     Double est   = curScheme_->local_error_;
     Double h     = curScheme_->dtCurrent_;
-    const Double F_U      = 1.5;
+    const Double F_U = 1.5;
     Double h_next;
-    Double sigma = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "adaptiveSigma");
-    
-    Double prev_error_ = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "prevError");
+    Double sigma       = atd->sigma;
+    Double prev_error_ = atd->prevError;
     double k = 3; // For BDF2
     Double alpha = 0.3/k ;
     Double beta  = 0.6/k;
@@ -815,7 +811,7 @@ namespace CoupledField{
         {
             *accepted = true;
             h_next = h*0.9;   // keep current dt — don't reduce to dtMin
-            mathparser_->SetValue(MathParser::GLOB_HANDLER, "toleranceNotReachable", 1.0);
+            atd->toleranceNotReachable = true;
             return h_next;
         }
       h_next = h * factor;

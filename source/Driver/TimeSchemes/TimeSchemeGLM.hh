@@ -153,8 +153,6 @@ class TimeSchemeGLM : public BaseTimeScheme{
       nLinType_ = INCREMENTAL;
     }
 
-    double standartStepsize(bool * accepted);
-    double smoothStepsize(bool * accepted);
 
   protected:
     //! Pointer to the MathParser instance; lazily resolved in BeginStep().
@@ -216,7 +214,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     void LTELocalErrorEstimation();
     bool ComputeAdaptiveStepSize();
-
+    double standardStepsize(bool * accepted);
+    double smoothStepsize(bool * accepted);
 
 
     ///just export the scheme to a file

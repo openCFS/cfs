@@ -47,10 +47,10 @@
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
         <adaptiveTimeStepping scheme="normalizedError" Stepsizesmoothing="ON">
-          <deltaTMin>1e-7</deltaTMin>
-          <deltaTMax>1e-4</deltaTMax>
-          <tol>5e-8</tol>
-          <sigma>0.75</sigma>
+          <deltaTmin>1e-7</deltaTmin>
+          <deltaTmax>1e-4</deltaTmax>
+          <directTol>5e-8</directTol>
+          <cutbackfactor>0.75</cutbackfactor>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

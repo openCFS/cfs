@@ -2,6 +2,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "Domain.hh"
+#include "Driver/TimeSchemes/AdaptiveTimesteppingData.hh"
 
 #include <set>
 #include <map>
@@ -83,6 +84,9 @@
 
 namespace CoupledField
 {
+
+shared_ptr<AdaptiveTimesteppingData> Domain::GetAdaptiveData() const { return adaptiveData_; }
+void Domain::SetAdaptiveData(shared_ptr<AdaptiveTimesteppingData> d) { adaptiveData_ = d; }
 
 // **************
 //   Construtor

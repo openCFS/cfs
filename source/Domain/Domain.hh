@@ -31,6 +31,7 @@ namespace CoupledField
   class MathParser;
   class Optimization;
   class DesignSpace;
+  class AdaptiveTimesteppingData;
   struct Elem;
   
 
@@ -191,6 +192,10 @@ namespace CoupledField
 
     //! Return Math Parser object for evaluating math expressions
     MathParser* GetMathParser() { return mathParser_; }
+
+    //! Get/set the adaptive timestepping data object (null if not active)
+    shared_ptr<AdaptiveTimesteppingData> GetAdaptiveData() const;
+    void SetAdaptiveData(shared_ptr<AdaptiveTimesteppingData> d);
 
     /** Returns the optimization
      *  @return null if there is none */
@@ -354,6 +359,9 @@ namespace CoupledField
     
     //! Pointer to simulation state object
     shared_ptr<SimState> simState_;
+
+    //! Adaptive timestepping data shared between TransientDriver and TimeSchemeGLM
+    shared_ptr<AdaptiveTimesteppingData> adaptiveData_;
 
     //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;

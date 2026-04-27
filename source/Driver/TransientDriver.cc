@@ -67,8 +67,6 @@ namespace CoupledField {
     prevLTEerror_ = 0.0;
     antiWindupError_ = 1;
 
-    Double parse_Smoothing = 0.0;
-
     // get parameter node
     param_ = param_->Get("transient");
 
@@ -82,81 +80,26 @@ namespace CoupledField {
 
     simulationENDTime_ = firstdt_ * numstep_;
     simulationEndTimeReached_ = false;
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "ERROR_Scheme", 0.0);
 
     // Get time stepping information from parameter object
     PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
-    double flag = 0;
     if (adaptiveNode)
     {
       adaptiveEnabeled_ = true;
-      flag = 1;
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveEnabeled", flag);
+      atData_ = std::make_shared<AdaptiveTimesteppingData>();
+      atData_->InitFromXml(adaptiveNode);
+      domain_->SetAdaptiveData(atData_);
+
+      // keep TransientDriver members in sync for local use
       adaptiveTimestepping_ = adaptiveNode->Get("scheme")->As<std::string>();
-      deltaTMin_   = adaptiveNode->Get("deltaTMin")->MathParse<Double>();
-      deltaTMax_  = adaptiveNode->Get("deltaTMax")->MathParse<Double>();
-      sigma_ = adaptiveNode->Get("sigma")->MathParse<Double>();
-      SetAdaptiveType();
-
-      // optional Stepsize Smoothing (PI Controller) 
-      std::string String_Smoothing = adaptiveNode->Get("Stepsizesmoothing")->As<std::string>();
-      if(String_Smoothing == "ON")
-      {
-        Smoothing_ = true;
-        parse_Smoothing = 1.0;
-      }else
-      {
-        parse_Smoothing = 0.0;
-      }
-
-      // optional parameters
-      PtrParamNode tolNode = adaptiveNode->Get("tol", ParamNode::PASS);
-      if (tolNode)
-      {
-         tol_ = tolNode->MathParse<Double>();
-      }else
-      {
-        tol_ = 1.0e-6; // default Max Error
-      }
-
-      // optional ATOL/RTOL normalization (mixed absolute/relative tolerance)
-      PtrParamNode rtolNode = adaptiveNode->Get("rtol", ParamNode::PASS);
-      if (rtolNode)
-      {
-        Double rtol = rtolNode->MathParse<Double>();
-        PtrParamNode atolNode = adaptiveNode->Get("atol", ParamNode::PASS);
-        Double atol = atolNode ? atolNode->MathParse<Double>() : 1.0e-10;
-        mathParser_->SetValue( MathParser::GLOB_HANDLER, "RTOL", rtol);
-        mathParser_->SetValue( MathParser::GLOB_HANDLER, "ATOL", atol);
-        tol_ = 1.0; // threshold is now dimensionless (baked into sc_j)
-      } else {
-        mathParser_->SetValue( MathParser::GLOB_HANDLER, "RTOL", 0.0); // 0 = disabled
-        mathParser_->SetValue( MathParser::GLOB_HANDLER, "ATOL", 0.0);
-      }
-
-      // optional minStepFactor (minimum ratio h_next/h_prev)
-      PtrParamNode minStepFactorNode = adaptiveNode->Get("minStepFactor", ParamNode::PASS);
-      Double minStepFactor = minStepFactorNode ? minStepFactorNode->MathParse<Double>()
-                                               : (Smoothing_ ? 0.2 : 0.25);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveMinStepFactor", minStepFactor);
-
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveTol",            tol_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMin",         deltaTMin_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveDtMax",         deltaTMax_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRetryCount",        0.0);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveSigma", sigma_);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "Smoothing", parse_Smoothing);
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", 0.0);
+      deltaTMin_  = atData_->dtMin;
+      deltaTMax_  = atData_->dtMax;
+      sigma_      = atData_->sigma;
+      Smoothing_  = atData_->smoothing;
+      tol_        = atData_->tol;
 
       if(deltaTMin_ > deltaTMax_)
-      {
         EXCEPTION("Exception: .xml config is Wrong. DeltaTMin has to be smaller then deltaTmax.")
-      }
-      
-    }else
-    {
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "adaptiveEnabeled", flag);
     }
 
 
@@ -241,8 +184,10 @@ namespace CoupledField {
     
   void TransientDriver::SolveProblem()
   {
-     mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR", 0.0);
-     mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected",    0.0);
+     if (atData_) {
+       atData_->localError = 0.0;
+       atData_->stepRejected = false;
+     }
      
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
@@ -302,12 +247,14 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "t",    actTime_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt",   dt_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
-      // Reset rejection flag each attempt so steps not checked by LTE are
-      // not falsely treated as rejected (stepRejected could linger at 1.0
-      // from a previous genuine rejection when adaptiveStepCount_ < 2).
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "stepRejected",          0.0 );
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "toleranceNotReachable", 0.0 );
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR",       0.0 );
+      // Reset rejection flags each attempt so steps not checked by LTE are
+      // not falsely treated as rejected (stepRejected could linger from a
+      // previous genuine rejection when adaptiveStepCount_ < 2).
+      if (atData_) {
+        atData_->stepRejected          = false;
+        atData_->toleranceNotReachable = false;
+        atData_->localError            = 0.0;
+      }
 
       // Determine when to write logging information on terminal
       bool log = false;
@@ -361,8 +308,7 @@ namespace CoupledField {
         Double dt_used = dt_;
         actTime_ += dt_used;
 
-        mathParser_->SetValue(MathParser::GLOB_HANDLER, "stepRetryCount", static_cast<Double>(retryCount));
-        bool accepted = adaptTimestep();  // updates dt_ to h_next
+        bool accepted = adaptTimestep(retryCount);  // updates dt_ to h_next
         if (!accepted) {
           retryCount++;
           actTime_ -= dt_used;  // undo with the same dt that was added
@@ -517,60 +463,38 @@ namespace CoupledField {
     }
   }
 
-  bool TransientDriver::adaptTimestep()
+  bool TransientDriver::adaptTimestep(int retryCount)
   {
-    Double retries = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRetryCount");
-    prevLTEerror_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR");
-    // prevError is set below, after acceptance is known (see end of function)
+    prevLTEerror_ = atData_->localError;
 
-    // Hard cap: more than 20 rejections in a row indicates the tolerance is unachievable; abort rather than loop forever.
-    if(static_cast<int>(retries) > 20)
-    {
+    // Hard cap: more than 20 rejections indicates the tolerance is unachievable.
+    if(retryCount > 20)
       EXCEPTION("ERROR: The Simulation stopped after 20 Reruns of the same timestep.")
-    }
-    dt_ = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
-    bool accepted        = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "stepRejected")          == 0.0);
-    bool tolNotReachable = (mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "toleranceNotReachable") == 1.0);
 
-    // On the first rejection: save the current error as the anti-windup reference before the retry.
-    if(!accepted && (retries == 0))
-    {
+    dt_               = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
+    bool accepted        = !atData_->stepRejected;
+    bool tolNotReachable =  atData_->toleranceNotReachable;
+
+    // On the first rejection: save the error as anti-windup reference.
+    if(!accepted && retryCount == 0)
       antiWindupError_ = prevLTEerror_;
-    }
 
     std::cout << "*******************************************************\n";
     std::cout << " Adaptive Timestepping -> dt= " << dt_
-              << "  LocalError= " << mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "MAX_LOCAL_ERROR")
-              << "  retries= " << static_cast<int>(retries) << "\n";
+              << "  LocalError= " << atData_->localError
+              << "  retries= " << retryCount << "\n";
     if (tolNotReachable) {
       std::cout << " WARNING: tolerance could not be reached!"
                 << " -- step force-accepted with error above tolerance.\n";
       prevLTEerror_ = antiWindupError_;
     }
     // Only update prevError for accepted steps (including force-accepts).
-    // Keeping the last accepted value during rejections prevents the PI
-    // derivative term from amplifying the retry cascade.
-    if (accepted || tolNotReachable) {
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "prevError", prevLTEerror_);
-    }
+    if (accepted || tolNotReachable)
+      atData_->prevError = prevLTEerror_;
+
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
     return accepted;
-  }
-
-  void TransientDriver::SetAdaptiveType()
-  {
-    int type = 0;
-    if(adaptiveTimestepping_ == "maxlocalError")
-    {
-      type = 1;
-    }else if (adaptiveTimestepping_ == "normalizedError")
-    {
-      type =2;
-    }else{
-      EXCEPTION("Errorscheme not yet implemented");
-    }
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "ERROR_Scheme", type);
   }
 
 } // end of namespace

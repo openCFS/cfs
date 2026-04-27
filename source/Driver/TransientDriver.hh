@@ -2,6 +2,7 @@
 #define FILE_TRANSIENTDRIVER_2001
 
 #include "SingleDriver.hh"
+#include "Driver/TimeSchemes/AdaptiveTimesteppingData.hh"
 
 #include <memory>
 
@@ -66,11 +67,8 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
-    //! Reads dt, stepRejected, toleranceNotReachable from MathParser after each solve; returns true if the step is accepted. Implements retry cap and PI anti-windup.
-    bool adaptTimestep();
-
-    //! Maps the XML scheme attribute ("maxlocalError" -> 1, "normalizedError" -> 2) to MathParser variable ERROR_Scheme.
-    void SetAdaptiveType();
+    //! Reads stepRejected, toleranceNotReachable, localError from atData_ after each solve; returns true if the step is accepted. Implements retry cap and PI anti-windup.
+    bool adaptTimestep(int retryCount);
     
 
   protected:
@@ -171,6 +169,9 @@ namespace CoupledField {
 
     //! LTE error saved at the first rejection of a retry sequence; fed back to the PI controller when toleranceNotReachable is set to prevent integrator windup.
     double antiWindupError_;
+
+    //! Shared adaptive timestepping state; null when adaptive is disabled.
+    shared_ptr<AdaptiveTimesteppingData> atData_;
 
 
   };

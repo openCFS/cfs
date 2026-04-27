@@ -2,11 +2,11 @@
 <cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
 
   <documentation>
-    <title>transient 2D plunger without damping - adaptive timestepping normalizedError smoothing OFF</title>
+    <title>transient 2D plunger without damping - adaptive timestepping normalizedError relativeTol/absoluteTol</title>
     <authors>
       <author>dorninger</author>
     </authors>
-    <date>2026-04-04</date>
+    <date>2026-04-27</date>
     <keywords>
       <keyword>smooth</keyword>
       <keyword>transient</keyword>
@@ -14,14 +14,14 @@
     <isVerified>no</isVerified>
     <description>
       Transient simulation of a plunger excited via an inhomogeneous Dirichlet BC with
-      adaptive timestepping using the normalizedError scheme with PI step-size smoothing OFF.
-      Based on plungertrans2d.
+      adaptive timestepping using the normalizedError scheme with PI step-size smoothing ON
+      and dimensionless rtol/atol error scaling. Based on plungertrans2d.
     </description>
   </documentation>
 
   <fileFormats>
     <input>
-      <hdf5 fileName="plungertrans2dAdaptiveNormalizedErrorSmoothingOff.h5ref"/>
+      <hdf5 fileName="plungertrans2dAdaptiveNormalizedErrorRelTol.h5ref"/>
     </input>
     <output>
       <hdf5/>
@@ -46,11 +46,12 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="normalizedError" Stepsizesmoothing="OFF">
-          <deltaTmin>1e-7</deltaTmin>
+        <adaptiveTimeStepping scheme="normalizedError" Stepsizesmoothing="ON">
+          <deltaTmin>1e-8</deltaTmin>
           <deltaTmax>1e-4</deltaTmax>
-          <directTol>5e-8</directTol>
-          <cutbackfactor>0.75</cutbackfactor>
+          <cutbackfactor>0.8</cutbackfactor>
+          <relativeTol>1e-3</relativeTol>
+          <absoluteTol>1e-8</absoluteTol>
         </adaptiveTimeStepping>
       </transient>
     </analysis>
