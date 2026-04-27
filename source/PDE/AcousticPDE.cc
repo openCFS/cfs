@@ -3468,7 +3468,7 @@ namespace CoupledField{
     loadDensity->resultType = ACOU_RHS_LOAD_DENSITY;
     loadDensity->dofNames = "";
     loadDensity->unit = "";
-    loadDensity->definedOn = ResultInfo::NODE;
+    loadDensity->definedOn = ResultInfo::ELEMENT;
     loadDensity->entryType = ResultInfo::SCALAR;
     acousticRhsDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
     DefineFieldResult( acousticRhsDensityCoef_,loadDensity );
