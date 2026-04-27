@@ -13,3 +13,6 @@ ADD_TEST(${TEST_NAME}
   -DCFSTOOL_MODE=absL2diff
   -P ${CFS_STANDARD_TEST}
 )
+
+# unstable for multi-threading
+set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

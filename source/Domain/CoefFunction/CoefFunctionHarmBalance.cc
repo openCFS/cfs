@@ -388,47 +388,49 @@ template<class T>
 
     // Loop over all regions and over every integration point in this region
     // and cache the magnetic reluctivity result
-
-
-    // These integration parameters can vary between regions
-    LocPoint lp;
-    EntityIterator it;
-    LocPointMapped lpm;
-    Double nuOfB = 0.0;
-    shared_ptr<ElemShapeMap> esm;
-
-
-    UInt elemIterator = 0;
-
+    
+    UInt regionSize = 0;
     // This is the first call of this method, therefore we
     // store some stuff, we need frequently in the following iterations
     if( this->mp_->Eval(solHandle_) >= 0 ){
           // Loop over every region
           for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
             HBRegionHelper& regStruc = hbRegion_[i];
-
-            // obtain the iterator to loop over the elements of the region
-            it = regStruc.elemListPerRegion->GetIterator();
-
-            // Loop over every element in that region
-            for(it.Begin(); !it.IsEnd(); it++){
-              const Elem * el = it.GetElem();
-              esm = it.GetGrid()->GetElemShapeMap(el, true);
-              // Where do we evaluate the magnetic flux density?
-              // Element or integration point -> see UPDATE from above
-              lp = Elem::shapes[el->type].midPointCoord;
-              lpm.Set(lp, esm, 0.0);
-
-              // Evaluate the nu(B)
-              regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
-
-              // now cache it for the element
-              nuFreqTmp_[ elemIterator ] = nuOfB;
-//              std::cout << "----CashResult----" << std::endl;
-//              std::cout << "ElemIter = " << elemIterator << std::endl;
-//              std::cout << "Epsilon = " << nuOfB << std::endl;
-              ++elemIterator;
+            regionSize = regStruc.elemListPerRegion->GetSize();
+            // for material model 'JilesAthertonModel' only single threading is possible
+            if( CFS_NUM_THREADS > 1 && modelName_ == "JilesAthertonModel" ) {
+              EXCEPTION ( "Multi-threading of EvaluateNonlinearity in CoefFunctionHarmBalance is not implemented for the material model 'JilesAthertonModel'!" );
             }
+#pragma omp parallel num_threads(CFS_NUM_THREADS) // parallel evaluation of the nonlinear material parameter
+            {
+              UInt numT    = CFS_NUM_THREADS;
+              UInt aThread = GetThreadNum();
+              UInt chunksize = std::floor(regionSize / numT);
+              UInt start = chunksize * aThread;
+              UInt end   = (aThread == numT - 1) ? regionSize : (chunksize * (aThread + 1));
+              // obtain the iterator to loop over the elements of the region
+              EntityIterator it = regStruc.elemListPerRegion->GetIterator();
+
+              it.Begin();
+              it += start;
+
+              LocPoint lp;
+              LocPointMapped lpm;
+              shared_ptr<ElemShapeMap> esm;
+              Double nuOfB = 0.0;
+
+              for (UInt j = start; j < end; ++j, it++) {
+                const Elem* el = it.GetElem();
+                esm = it.GetGrid()->GetElemShapeMap(el, true);
+                lp  = Elem::shapes[el->type].midPointCoord;
+                lpm.Set(lp, esm, 0.0);
+                // Evaluate the nu(B)
+                regStruc.nonLinNuCoefMap->GetScalar(nuOfB, lpm);
+                // now cache it for the element
+                nuFreqTmp_[positionOfElem_[el->elemNum]] = nuOfB;
+              }
+            } // end omp parallel
+
             LOG_DBG(coeffctharmbalance) << "nu of virtual timestep "
                 <<this->mp_->Eval(solHandle_)<<" : "<<nuFreqTmp_.ToString();
           } // loop over every region
