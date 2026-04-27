@@ -434,7 +434,8 @@ public:
   weak_ptr<BaseFeFunction> GetFeFunction(){
     return feFunction_;
   }
-    
+  
+  SingleEqnMap& GetNodeMap() { return nodeMap_; }
   const SingleEqnMap& GetNodeMap() const { return nodeMap_; }
 
   //! Map equations i.e. intialize object

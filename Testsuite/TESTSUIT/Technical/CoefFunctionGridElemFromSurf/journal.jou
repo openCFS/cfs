@@ -1,0 +1,32 @@
+## coreform_cubit
+## Coreform Cubit Version 2023.11
+## Coreform Cubit Build b14f6c8f
+## Revised Thu Nov 2 20:37:30 2023 +0000
+## Running 12/03/2024 10:06:35 
+reset
+## Command Options:
+brick x 1 y 1 z 1
+
+volume all size 0.5
+mesh volume all
+block 1 add volume 1
+block 1 name "vol"
+
+nodeset 1 add surface 1
+nodeset 1 name "src"
+nodeset 2 add surface 2
+nodeset 2 name "fix"
+
+export ansys cdb "./Cube.cdb" overwrite
+
+
+
+
+
+
+
+
+
+
+
+

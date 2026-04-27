@@ -184,7 +184,7 @@ void MultipleExcitation::WriteInInfo(PtrParamNode in)
   domain->GetInfoRoot()->ToFile();
 }
 
-void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_freq)
+void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_freq)
 {
   // this sets the first and only excitation even when we have multiple harmonic forward case
   // but not multiple excitations. Then only the first frequency is called.
@@ -193,11 +193,37 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
   assert(excitations.GetCapacity() >= base + num_freq);
   excitations.Resize(base + num_freq);
 
-  for (int i = 0; i < num_freq; i++)
+  // maybe in the future, we would use pn_ex here to parse the loads given in
+  // the optimization section
+  if(pn_ex.GetSize() != 0)
+    WARN("multipleExciatations (given in the optimization) is not implemented for multi frequency and ignored.");
+
+  // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
+  // Apply() can be used to change frequencies for freq dependent loads
+  Assemble* ass = ctxt->pde->GetAssemble();
+  if(pn_ex.GetSize() == 0 && !DoHomogenization() && !ctxt->DoBloch())
   {
-    Excitation& ex = excitations[base + i];
-    SetHarmonicExcitation(ctxt, ex, i);
-    ex.reassemble = true;
+    // a force is a linarForm with integrator NodalForceInt
+    StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
+    // we expect only one form, cause we dont handle multi frequency multi load (yet?)
+    assert((int) forms.GetSize() == 1);
+
+    for(int i = 0; i < num_freq; i++) // via num_loads or num_freq
+    {
+      // static load case
+      Excitation& ex = excitations[base + i];
+      SetHarmonicExcitation(ctxt, ex, i);
+      ex.reassemble = true;
+      ex.forms.Push_back(forms[0]); // the same form for each frequency (but it can still be frequency dependent)
+      LOG_DBG(exlog)<< "PME: form " << i << " = " << forms[i]->GetIntegrator()->GetName() << " entities=" << forms[i]->GetEntities()->GetName();
+
+      // we do not support to give a weight in the force section of the simulation
+      ex.weight = 1.0;
+    }
+
+    // "remove" the loads from the simulation.
+    // From now on we Apply() it, and change the used frequency
+    forms.Resize(0); // won't delete content but set the internal size_ counter
   }
 }
 
@@ -208,6 +234,7 @@ void MultipleExcitation::SetHarmonicExcitation(Context* ctxt, Excitation& ex, in
 
   // note that we might have the case, that the excitation comes from a harmonic single freq multiple load case
 
+  ex.freq_idx = freq_idx;
   ex.frequency = hd->freqs[freq_idx].freq;
   assert(!(ex.label != "" && freq_idx > 0));
   if(ex.label == "") // don't overwrite the single frequenc multiple load case
@@ -397,15 +424,15 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   if(num_wave > 0)
     SetBlochWaves(ctxt, context_base, num_wave);
 
-  // when we do magnetic coupling with 1 frequency but two loads
+  // when we do acoustics or magnetic coupling with 1 frequency but two loads
   if(ctxt->IsHarmonic() && (num_freq > 1 || num_loads <= 1))
-    SetHarmonic(ctxt, context_base, num_freq);
+    SetHarmonic(ctxt, context_base, pn_ex, num_freq);
 
-  // SetLoadCases() recognizes a harmonic load
-  if( IsEnabled(ctxt->sequence) &&
-      ( ( (!ctxt->IsComplex() || num_freq == 1) && !ctxt->DoBloch() ) // multiple loads case
-      || ( DoHomogenization() && ctxt->DoBuckling() ) ) ) // homogenization with buckling -> SetLoadCases only resizes 'exitations'
-    SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
+  // SetLoadCases()
+  if( IsEnabled(ctxt->sequence) &&                          // check if we are in the correct sequence step
+      ( ( !ctxt->IsHarmonic() && !ctxt->DoBloch() )         // for harmonic we use SetHarmonic and for bloch SetBlochWaves!
+      || ( DoHomogenization() && ctxt->DoBuckling() ) ) )   // homogenization with buckling -> SetLoadCases only resizes 'exitations'
+    SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt);// when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
   assert((int) excitations.GetSize() >= ctxt->sequence); // at least one excitation per sequence
@@ -947,6 +974,7 @@ Excitation::Excitation()
   this->index = -1; // must be updated
   this->sequence = -1; // set correctly in prepare
   this->meta_index = 0;
+  this->freq_idx = 0;
   this->frequency = -1.0;
   this->f_link = NULL;
   this->cost = -1.0;
@@ -963,9 +991,11 @@ Excitation::~Excitation()
   // we have the ownerhip of the loads (form) with multiple excitation. We took if from Assemble::linForms_
   // Coils are a special case, they are owned by the PDE
   for(unsigned int i = 0; i < forms.GetSize(); i++)
-    if(meta_index == 0)
-      if(forms[i]->GetIntegrator()->GetName() != "CoilIntegrator")
+    if(meta_index == 0) {
+      LinearForm* integ = forms[i]->GetIntegrator();
+      if(integ != nullptr && integ->GetName() != "CoilIntegrator")
          delete forms[i];
+    }
 }
 
 bool Excitation::Apply(bool switch_context)
@@ -980,9 +1010,14 @@ bool Excitation::Apply(bool switch_context)
     LOG_DBG(exlog) << "A: switched context to sequence " << sequence;
   }
   Optimization::context->SetExcitation(this);
-
   assert(!switch_context || Optimization::context->sequence == sequence);
 
+  // Update mathParser freq and step, currently just implemented for harmonic simulation
+  if(Optimization::context->IsHarmonic() && !Optimization::context->DoBloch()) {
+    assert(Optimization::context->GetHarmonicDriver() != nullptr);
+    Optimization::context->GetHarmonicDriver()->SetMathParserFreq(frequency, freq_idx);
+  }
+    
   if(forms.GetSize() > 0)
   {
     Context& ctxt = Optimization::manager.GetContext(this);

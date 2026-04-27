@@ -94,6 +94,11 @@ public:
    * @param freq sets the actFreq_ and actFreqStep attributes, to start with 1 and not to exceed numFreq_ */
    Double ComputeFrequencyStep(Frequency const& freqStp);
 
+  /** Set current frequency value and step in the mathParser
+   * This trigers an update for e.g. CoefFunctionTimeFreq*/
+  void SetMathParserFreq(Double freq, UInt freq_step);
+  void SetMathParserFreq();
+
   /** Helper method which determines if an AnalyisType is complex. */
   virtual bool IsComplex() { return true; };
 

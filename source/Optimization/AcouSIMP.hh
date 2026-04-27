@@ -1,6 +1,4 @@
-#ifndef ACOUSIMP_HH_
-#define ACOUSIMP_HH_
-
+#pragma once
 #include "Optimization/SIMP.hh"
 
 namespace CoupledField
@@ -16,12 +14,10 @@ private:
 
   void InitSecondMaterialCache() override;
 
-  const Complex GetExcitationPressure(Function* f) override;
+  StdVector<Complex> GetExcitationPressureVector(Excitation& excite, Function* f) override;
 
   const RegionIdType GetExcitationRegion(Function* f, const std::string& attr = "surfRegion") override;
 
 };
 
 } // namespace
-
-#endif /*ACOUSIMP_HH_*/

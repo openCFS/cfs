@@ -417,9 +417,7 @@ namespace CoupledField
     // analysis_id_->Get("step")->SetValue(actFreqStep_);
     // analysis_id_->Get("value")->SetValue(actFreq_);
 
-    // Set current frequency value in the mathParser
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actFreqStep_ );
+    SetMathParserFreq();
 
     // Perform steps for the solution
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
@@ -431,6 +429,13 @@ namespace CoupledField
     return actFreq_;
   }
 
+  void HarmonicDriver::SetMathParserFreq(Double freq, UInt freq_step) {
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", freq);
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", freq_step);
+  }
+  void HarmonicDriver::SetMathParserFreq() {
+    SetMathParserFreq(actFreq_, actFreqStep_);
+  }
 
   unsigned int HarmonicDriver::StoreResults(UInt stepNum, double step_val)
   {

@@ -425,10 +425,11 @@ protected:
    * @return true if function is handled */
   virtual bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) { return false; }
 
-  /** Obtain the complex pressure amplitude of the excitation, e.g. caused by the normalVelocity b.c.
+  /** Obtain the complex pressure amplitude of the excitation caused by the normalVelocity b.c.
+   * @param excite Current excitation.
    * @param f Current function.
-   * @return Nodal (constant) pressure of the incident wave. */
-  virtual const Complex GetExcitationPressure(Function* f) { throw Exception("not implemented"); }
+   * @return Vector of complex excitation pressures indexed by zero based equation numbers. */
+  virtual StdVector<Complex> GetExcitationPressureVector(Excitation& excite, Function* f) { throw Exception("not implemented"); }
 
   /** Obtain the excitation surfRegion region
    * @param f Current function.

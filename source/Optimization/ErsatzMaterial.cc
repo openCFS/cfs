@@ -1998,7 +1998,7 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
   LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(TS_INFO);
   LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString();
   double result = 0.0;
-  Complex z(0,0);
+  StdVector<Complex> zvec;
   switch(f->GetType())
   {
     case Function::OUTPUT:
@@ -2037,7 +2037,7 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
     case Objective::REFLECTED_WAVE:
       if (f->ctxt->mat->GetSystem() != OptimizationMaterial::ACOUSTIC)
         throw Exception("reflectedWave only works for acoustic optimization.");
-      z = GetExcitationPressure(f);
+      zvec = GetExcitationPressureVector(excite, f);
       // intentionally no break
 
     case Objective::DYNAMIC_OUTPUT:
@@ -2058,7 +2058,10 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
 
         // substract z (this is just nonzero for REFLECTED WAVE)
         if (f->GetType() == Function::REFLECTED_WAVE)
-          u_val -= z;
+        {
+          u_val -= zvec[i];
+          LOG_DBG2(em) << "CO: u=" << u[i] << ", zvec[i]=" << zvec[i];
+        }
 
         // make sure we have no penalization stuff!
         assert(std::abs(u_val) < 1e15);
@@ -4049,7 +4052,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
       // in the harmonic case the system matrix depends on the frequency. Hence we have to
       // use the current assembly and factorization to solve the adjoint problem.
-      if(f->ctxt == context && f->IsAdjointBased() && DoSolveAdjointWithState() && !f->IsLocal()) // the context is set properly
+      if(f->ctxt == context && f->IsAdjointBased() && DoSolveAdjointWithState() && !f->IsLocal() && f->DoEvaluate(&excite)) // the context is set properly
         SolveAdjointProblem(&excite, f); // not called in a standard case
 
       // when we do multiple excitations with adjusted weights we calculate the objective here
@@ -4255,7 +4258,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 template<class T>
 void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
-  LOG_DBG(em) << "SAP f=" << f->ToString();
+  LOG_DBG(em) << "SAP exc=" << excite->index <<"; f=" << f->ToString() <<"; context=" << context->context_idx;
 
   shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : shared_ptr<Timer>();
   if(eval_timer)
@@ -4453,7 +4456,6 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
   // save and restore them in any case.
   state.forms = assemble->GetLinForms(); // org forms
 
-  StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
   // set pseudo loads (if there are output nodes)
   if (f->NeedsSelectionVector()) // TODO: rhs? no, since selection vector is assembled automatically
     ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
@@ -4620,12 +4622,12 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);
   rhs.Resize(u.GetSize());
   rhs.Init();
-  Complex z(0,0);
+  StdVector<Complex> zvec;
   switch(f->GetType())
   {
     // Statement without break to set a nonzero z value for later computation
     case Objective::REFLECTED_WAVE:
-      z = GetExcitationPressure(f);
+      zvec = GetExcitationPressureVector(excite, f);
       // intentionally no break
 
     case Function::DYNAMIC_OUTPUT: // rhs is from "output loads" and set in adjoint...rhs
@@ -4636,7 +4638,7 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
       for(unsigned int i = 0; i < rhs.GetSize(); i++)
         if (f->GetType() == Function::REFLECTED_WAVE)
           // substract z here
-          rhs[i] = -1.0 * l[i] * std::conj(u[i] - z);
+          rhs[i] = -1.0 * l[i] * std::conj(u[i] - zvec[i]);
         else
           rhs[i] = -1.0 * l[i] * std::conj(u[i]);
       break;

@@ -120,7 +120,7 @@ def exp_steps(start: float, stop: float, num: int) -> List[float]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog="cont",
+        prog="continuation_acou.py",
         description="Similar to continuation.py, "
         "but a folder for the subproblems can be specified. "
         "Furthermore, robust (beta + eta) and shape-/feature mapping are supported."

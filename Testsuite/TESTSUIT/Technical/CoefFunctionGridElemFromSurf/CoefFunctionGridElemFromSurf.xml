@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>CoefFunctionGridElemFromSurf</title>
+    <authors>
+      <author>pheidegger</author>
+    </authors>
+    <date>2026-04-20</date>
+    <keywords>
+      <keyword>input</keyword>
+    </keywords>
+    <references> Non Just functionality test </references>
+    <isVerified>no</isVerified>
+    <description> Arbitrary example to test element based input when read read from surfaces to specify, e.g., boundary conditions. We create an arbitrary input file where the surface pressure is written out, which is (arbitrarily) used as a "normalVelocity" input for another acoustic simulation. This test is not physical and just tests if some arbitrary result based on elements can be succesfully read in and used in another simulation with the "grid" tag.</description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="GenInput.cfs"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="vol" material="FluidMat"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="fix"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>15</numSteps>
+        <deltaT>2e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="vol"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <normalVelocity name="src">
+            <grid>
+              <defaultGrid quantity="acouSurfPressure" dependtype="GENERAL" definedOn="element" sequenceStep="1">
+                <globalFactor> 1.0 </globalFactor>
+              </defaultGrid>
+            </grid>
+          </normalVelocity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPotentialD1">
+            <allRegions/>
+          </nodeResult>
+          <surfElemResult type="acouNormalVelocity">
+            <surfRegionList>
+              <surfRegion name="src"/>
+            </surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

@@ -175,6 +175,11 @@
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
                 <xsd:element name="boundaryLayer" type="DT_AcouBoundaryLayer"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for acoustic pressure</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -439,7 +444,11 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en"> Phase offset in degree </xsd:documentation>
+           </xsd:annotation>
+        </xsd:attribute>
         <xsd:attribute name="fileName" type="xsd:token" use="optional" default="none"/>
         <xsd:attribute name="interpolType" type="xsd:token" use="optional" default="NNB"/>
         <xsd:attribute name="noNodes" type="xsd:token" use="optional" default="-1"/>

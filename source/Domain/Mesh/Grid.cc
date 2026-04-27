@@ -231,8 +231,8 @@ namespace CoupledField
 
   bool Grid::IsGridRegular() const
   {
-    for(unsigned int i = 0; i < regionData.GetSize(); i++)
-      if(!regionData[i].regular)
+    for(RegionData regdat : regionData)
+      if(regdat.type == VOLUME_REGION && !regdat.regular)
         return false;
 
     return true;

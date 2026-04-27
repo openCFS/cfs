@@ -7,5 +7,7 @@ The tools are documented in their usage/help messages.
 
 Additionally to the usage message, refer to the sketch below:
 
-
 ![Geometry Sketch](create_mesh_acou.png)
+
+This sketch is not complete in defined regions and surfaceRegions,
+please run `cfs -g` and examine all defined regions in ParaView.

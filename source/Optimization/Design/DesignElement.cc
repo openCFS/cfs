@@ -869,6 +869,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   LOG_DBG3(desel) << "GV: " << elem->elemNum << " (" << valueSpecifier.ToString(vs) << ", "
                 << (access == PLAIN ? "plain" : "smart") << ", " << (f == NULL ? "null" : f->ToString())
                 << ") sf=" << sens_filter << " df=" << design_filter << " dfg=" << design_filter_grad << " -> " << val;
+  assert(!std::isnan(val));
   return val;
 }
 
@@ -884,6 +885,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   switch(sp)
   {
   case DESIGN:
+    assert(!std::isnan(design));
     return design;
 
   case COST_GRADIENT:

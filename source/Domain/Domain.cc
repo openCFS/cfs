@@ -422,16 +422,17 @@ Domain::~Domain()
     delete ptSingleDriver_;
     ptSingleDriver_ = NULL;
   }
-  
-  if(mathParser_) {
-    delete mathParser_;
-    mathParser_ = NULL;
-  }
 
   // the optimization is optional. Important, before ersatzMaterial!
   if (optimization_ != NULL) {
     delete optimization_;
     optimization_ = NULL;
+  }
+
+  // Delete after optimization, because it can still hold coefFunctions for the RHS which want to release the mp handle!
+  if(mathParser_) {
+    delete mathParser_;
+    mathParser_ = NULL;
   }
 
   // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
