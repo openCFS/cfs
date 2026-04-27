@@ -597,9 +597,10 @@ void GridCFS::MapFaces()
 
     
   assert(isInitialized_ == true);
-  if(faces_.GetSize() > 0)
+  if(faces_.GetSize() > 0) {
+    mapFacesEdgesTimer_->Stop();
     return;
-
+  }
   faces_.Reserve(numNodes_ * 4); // conservative; trimmed at end
 
   // key: up to 4 sorted corner-node IDs (tri faces padded with 0)
@@ -685,9 +686,10 @@ void GridCFS::MapFaces()
     LOG_DBG(gridcfs) << "ME: Starting to map edges. size=" << edges_.GetSize();
 
     assert( isInitialized_ == true );
-    if(edges_.GetSize() > 0) 
+    if(edges_.GetSize() > 0) {
+      mapFacesEdgesTimer_->Stop();
       return;
-
+    }
     // this and elem->extended->edges get the data  
     edges_.Reserve(numNodes_ * 6); // too much but easy and we trim anyway in the end
 
