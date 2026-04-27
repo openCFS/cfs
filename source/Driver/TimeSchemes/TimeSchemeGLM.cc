@@ -246,7 +246,7 @@ namespace CoupledField{
           adaptiveStepCount_ = 0;
         }else
         {
-          EXCEPTION("Adaptive timestepping is only implemented for BDF2.");
+          EXCEPTION("Adaptive timestepping is only implemented for BDF2. Hint: select desired time scheme via <integrationScheme>");
         }
       }
     }
