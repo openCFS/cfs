@@ -123,7 +123,7 @@ Example input JSON file:
     parser.add_argument("-s", "--skip", default=0,
                         type=int, help="skip first n stages")
     parser.add_argument("--clean", action="store_true",
-                        help="clean log files produced by pool.py")
+                        help="clean log files and results folder produced by pool.py")
 
     args = parser.parse_args()
 
@@ -142,8 +142,8 @@ Example input JSON file:
     if args.clean:
         for name in names:
             # delete log file
-            pathlib.Path(f"{input_path.parent}/{name}.log").unlink()
+            pathlib.Path(f"{input_path.parent}/{name}.log").unlink(True)
             # delete results folder
-            shutil.rmtree(f"{input_path.parent}/{name}")
+            shutil.rmtree(f"{input_path.parent}/{name}", ignore_errors=True)
     else:
         run_pool(data, names, args.maxprocesses[0], args.skip, args.error_cont)

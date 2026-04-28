@@ -38,6 +38,8 @@ namespace CoupledField {
       EXCEPTION( "Not implemented" );
     }
 
+    bool IsPartOfSequence() {return isPartOfSequence_;}
+
   protected:
   
     //! Initialize PDEs

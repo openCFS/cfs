@@ -256,6 +256,11 @@ namespace CoupledField
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
     virtual void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
 
+    /** Define all surface integrators for load / excitation
+      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
+    virtual void DefineSurfaceIntegrators(PtrParamNode bcNode) { }
+    virtual void DefineSurfaceIntegrators() { DefineSurfaceIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
+
     /** identify this pde for logging debug purpose */
     std::string ToString() const;
 
@@ -330,10 +335,7 @@ namespace CoupledField
     void UpdateCoefFuncsForPostProcResults();
 
     //! define all (bilinearform) integrators needed for this pde
-    virtual void DefineIntegrators( )=0;
-
-    //! define surface integrators needed for this pde
-    virtual void DefineSurfaceIntegrators( )=0;
+    virtual void DefineIntegrators( )=0;   
 
     //! Read material depenecy information
 

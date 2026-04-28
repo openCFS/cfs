@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - Multiload for SurfaceIntegrators</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2026-05-07</date>
+        <isVerified>yes</isVerified>
+        <description>The problem here uses a waveguide with invisible excitation (normalVelocity + PML) on both ends and blochPeriodic BCs on the sides.
+            See also "reflected_angle" testcase.
+            Here we want to optimize for multiple incident angles simultaneously, which is achieved by the multipleExciataion tag.
+            The internal load switching was extended to include SurfaceIntegrators, enabling the switching for the periodic boundary conditions.
+            (A realistic application would use comlex bimaterial)
+            NCI requires PARDISO!
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <!-- create_mesh_acou.py -lin 0.4 -labh 0.6 -win 0.5 -wabh 0.5 -wout 0.5 -tpml 0.2 -o multiload_surface.mesh 10 -->
+        <output>
+            <hdf5 />
+            <info id="info"/>
+        </output>
+        <materialData file="mat.xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <variableList>
+            <var name="ang1" value="10" />
+            <var name="ang2" value="30" />
+            <var name="ang3" value="50" />
+            <!-- taken from info xml -->
+            <var name="win" value="0.5" />
+            <var name="c0" value="343.42422648314749" />
+            <var name="kperf" value="2 * pi / c0" />
+        </variableList>
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+            <region material="air" name="S_pml_in" />
+        </regionList>
+        <ncInterfaceList>
+            <ncInterface name="NC_pbc_pml_in"  primarySide="L_top_pml_in_surf"  secondarySide="L_axi_pml_in_surf"  mutualProjection="yes" />
+            <ncInterface name="NC_pbc_in"      primarySide="L_top_in_surf"      secondarySide="L_axi_in_surf"      mutualProjection="yes" />
+            <ncInterface name="NC_pbc_abh"     primarySide="L_top_abh_surf"     secondarySide="L_axi_abh_surf"     mutualProjection="yes" />
+        </ncInterfaceList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>200</startFreq>
+                <stopFreq>200</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
+                    <region name="S_pml_in" dampingId="pml"/>
+                </regionList>
+                <dampingList>
+                    <pml  id="pml">
+                        <type> inverseDist </type>
+                        <dampFactor> 1 </dampFactor>
+                    </pml>
+                </dampingList>
+                <bcsAndLoads>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                     <elemResult type="pseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalPseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </acoustic>
+        </pdeList> 
+        <linearSystems getRidOfZeros="no">
+            <system />
+        </linearSystems>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="slack" task="minimize" multiple_excitation="true">
+            <multipleExcitation>
+                <excitations>
+                    <excitation>
+                        <normalVelocity name="L_in_surf" value="1" phase="360 * f / c0 * x * sin(pi / 180 * ang1)" />
+                        <blochPeriodic factor_value="1.0" factor_phase="kperf * f * win * sin(pi / 180 * ang1)" formulation="Mortar" >
+                            <region name="NC_pbc_pml_in" />
+                            <region name="NC_pbc_in" />
+                            <region name="NC_pbc_abh" />
+                        </blochPeriodic>
+                    </excitation>
+                    <excitation>
+                        <normalVelocity name="L_in_surf" value="1" phase="360 * f / c0 * x * sin(pi / 180 * ang2)" />
+                        <blochPeriodic factor_value="1.0" factor_phase="kperf * f * win * sin(pi / 180 * ang2)" formulation="Mortar" >
+                            <region name="NC_pbc_pml_in" />
+                            <region name="NC_pbc_in" />
+                            <region name="NC_pbc_abh" />
+                        </blochPeriodic>
+                    </excitation>
+                    <excitation>
+                        <normalVelocity name="L_in_surf" value="1" phase="360 * f / c0 * x * sin(pi / 180 * ang3)" />
+                        <blochPeriodic factor_value="1.0" factor_phase="kperf * f * win * sin(pi / 180 * ang3)" formulation="Mortar" >
+                            <region name="NC_pbc_pml_in" />
+                            <region name="NC_pbc_in" />
+                            <region name="NC_pbc_abh" />
+                        </blochPeriodic>
+                    </excitation>
+                </excitations>
+            </multipleExcitation>
+        </costFunction>
+
+        <!-- we need to use slack to specify the correct angle parameter -->
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" parameter="1 / cos(pi / 180 * ang1)" excitation="0">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" parameter="1 / cos(pi / 180 * ang2)" excitation="1">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" parameter="1 / cos(pi / 180 * ang3)" excitation="2">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+
+        <optimizer type="evaluate" maxIterations="1">
+            <snopt>
+                <option type="integer" name="verify_level" value="3" />
+            </snopt>
+        </optimizer>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="simp">
+            <designSpace local_element_cache="false"/>
+            <filters>
+                <filter neighborhood="maxEdge" value="3.1" type="density">
+                    <density type="tanh" beta="1" eta="0.2" />
+                </filter>
+            </filters>
+
+            <!-- for testing we set initial to 1-->
+            <design name="density" initial="0.5" lower="0" upper="1"/>
+            <design name="slack" initial="1e5" lower="0" upper="1e6" />
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+
+        <!-- visualize both load cases -->    
+        <commit mode="each_forward" stride="1" />
+    </optimization>
+</cfsSimulation>

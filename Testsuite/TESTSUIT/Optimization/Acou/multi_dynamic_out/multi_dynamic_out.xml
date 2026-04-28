@@ -5,13 +5,13 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
 https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
 
     <documentation>
-        <title>Acoustic Optimization - Multiload Output</title>
+        <title>Acoustic Optimization - Multifrequency Output</title>
         <authors>
             <author>Felix Huber</author>
         </authors>
         <date>2025-02-27</date>
         <description>This file is used to maximize the dynamic output of an acoustic structure.
-        It is a multiload optimization for two frequencies used for testing small problems.
+        It is a multifrequency optimization for two frequencies used for testing small problems.
         This is a complex problem - This test is unstable for larger frequency steps.
         This test uses the same mesh as single_dynamic_out.</description>
     </documentation>

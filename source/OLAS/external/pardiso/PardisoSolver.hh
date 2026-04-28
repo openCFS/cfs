@@ -7,9 +7,9 @@
 #include "Utils/StdVector.hh"
 #include "OLAS/solver/BaseSolver.hh"
 #include "Utils/Timer.hh"
+#include "General/Enum.hh"
 
 namespace CoupledField {
-
   //! This class implements the interface to PARDISO's LU decomposition
   //! and solving of a sparse system of linear equations.
   //! There is no need to initialise it, the Setup-Method does in fact
@@ -105,30 +105,47 @@ namespace CoupledField {
     ~PardisoSolver();
 
     //! Set the flag that a new matrix pattern shall be used in the setup phase
-    void SetNewMatrixPattern();
+    void SetNewMatrixPattern() override;
     
     //! Reordering and factorization of the linear system
 
     //! After Setup is called the BaseMatrix (expected to be either a CRS
     //! or SCRS-matrix) will be reordered using the Nested Dissection or
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
-    void Setup( BaseMatrix &sysmat);
+    void Setup( BaseMatrix &sysmat) override;
 
     //! Direct solution of the linear system
 
     //! After Solve is called the matrix (which has already to be factorised
     //! by a call of Setup) is finally solved by backward-forward substitution.
     void Solve( const BaseMatrix &sysmat,
-                const BaseVector &rhs, BaseVector &sol );
+                const BaseVector &rhs, BaseVector &sol ) override;
 
     //! Query type of this solver.
 
     //! This method can be used to query the type of this solver. The answer
     //! is encoded as a value of the enumeration data type SolverType.
     //! \return PARDISO
-    SolverType GetSolverType() {
+    SolverType GetSolverType() override {
       return PARDISO_SOLVER;
     }
+
+    /**Solve the transposed system, we parse iparam by reference so no need to call Setup().
+     * Overwrites the settings parsed from xml!*/
+    void SetTranspose(TransposeType ttype) override { 
+      switch (ttype) {
+      case CONJUGATE_TRANSPOSE:
+        iparm_[11] = 1;
+        break;
+      case TRANSPOSE:
+        iparm_[11] = 2;
+        break;
+      default:
+        //default is no transpose
+        iparm_[11] = 0;
+        break;
+      }
+    };
 
   private:
 
@@ -267,6 +284,8 @@ namespace CoupledField {
     //! Check if we have a new matrix pattern
     bool newMatrixPattern_ = false;
 
+    /** Transpose types for XML parsing */
+    Enum<TransposeType> transposeTypeEnum_;
   };
 
 }

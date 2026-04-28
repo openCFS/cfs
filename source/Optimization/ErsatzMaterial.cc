@@ -46,6 +46,7 @@
 #include "MatVec/Vector.hh"
 #include "MatVec/SBM_Matrix.hh"
 #include "Materials/MechanicMaterial.hh"
+#include "OLAS/external/pardiso/PardisoSolver.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Context.hh"
 #include "Optimization/Design/DensityFile.hh"
@@ -222,7 +223,10 @@ void ErsatzMaterial::PostInit()
     me->PrepareMultipleExcitations(this, &(manager.context[i]));
   me->FinalizeMultipleExcitations(this, &manager, optimizer_ == EVALUATE_INITIAL_DESIGN);
   me->excitations.First().Apply(false); // this sets the first excitation but does not switch context. This is done below
+}
 
+
+void ErsatzMaterial::PostInitSecond() {
   // add optimization results to the pde
   for(unsigned int c = 0; c < manager.context.GetSize(); c++) {
     assert(manager.context[c].pdes.size() == 1); // extend!
@@ -339,7 +343,7 @@ void ErsatzMaterial::PostInit()
             coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprBinOp(domain->GetMathParser(), coef[i], std::to_string(ent[i]->GetSize()), CoefXpr::OP_DIV));
           } 
         }
-
+        // TODO: Memory leak, where is this deleted?
         LinearForm* lin = new SingleEntryInt(coef[i]);
         lin->SetName("NodalForceInt");
         LinearFormContext* ctx = new LinearFormContext(lin);
@@ -429,6 +433,9 @@ void ErsatzMaterial::PostInit()
 
   if(calc_u1ku2_timer_)
     optInfoNode->Get(ParamNode::SUMMARY)->Get("calcUKU/timer")->SetValue(calc_u1ku2_timer_);
+
+  // call this at the end of the function to keep the order
+  Optimization::PostInitSecond();
 }
 
 
@@ -4052,6 +4059,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
       // in the harmonic case the system matrix depends on the frequency. Hence we have to
       // use the current assembly and factorization to solve the adjoint problem.
+      LOG_DBG(em) << "SSP: ab: " << f->IsAdjointBased() << ", dsaws: " << DoSolveAdjointWithState() << ", !il: " << !f->IsLocal() << ", eval: " << f->DoEvaluate(&excite);
       if(f->ctxt == context && f->IsAdjointBased() && DoSolveAdjointWithState() && !f->IsLocal() && f->DoEvaluate(&excite)) // the context is set properly
         SolveAdjointProblem(&excite, f); // not called in a standard case
 
@@ -4484,6 +4492,10 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
   assert(context->GetDriver()->GetAnalysisId().adjoint == false);
   context->GetDriver()->GetAnalysisId().adjoint = true;
 
+  // transpose the system matrix
+  if(!assemble->GetAlgSys()->IsSymmetric())
+    assemble->GetAlgSys()->GetSolver()->SetTranspose(BaseSolver::TRANSPOSE);
+
   return state;
 
   // next is
@@ -4513,6 +4525,10 @@ void ErsatzMaterial::RestoreStateSystem(ErsatzMaterial::SystemState& state)
 
   // reset the original loads, they have been changed in the output case
   assemble->GetLinForms() = state.forms;
+
+  // undo transpose
+  if(!assemble->GetAlgSys()->IsSymmetric())
+    assemble->GetAlgSys()->GetSolver()->SetTranspose(BaseSolver::NO_TRANSPOSE);
 }
 
 

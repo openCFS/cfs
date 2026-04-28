@@ -40,7 +40,9 @@ namespace CoupledField{
 
       ptPDE_->SetSourceApproxType( approxSourceWithDeltaFnc_);
 
-      domain_->InitPDEs( 1 );
+      // for optimization we init the PDEs in Domain::PostInit(), because we need finer control over the steps.
+      if(domain_->GetOptimization() == nullptr)
+        domain_->InitPDEs( 1 );
     }
   }
 

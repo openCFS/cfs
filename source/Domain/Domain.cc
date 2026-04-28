@@ -358,17 +358,34 @@ void Domain::PostInit(UInt sequenceStep)
   // For optimization the design needs to be already set to initialize the proper material coefficients
   // in the multisequence case init does something else and was already called above
   // note that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
+  bool preinit = false;
   if(domain->GetMultiSequenceDriver() == NULL) {
+    SingleDriver* sdriver = dynamic_cast<SingleDriver*>(driver);
     init_analysis_timer->Start();
     driver->Init(restart);
+    if(!sdriver->IsPartOfSequence()) {
+      // The non-optimization case is handled in SingleDriver::InitializePDEs()
+      if(optimization_ != nullptr) {
+        // for optimization we need to call the algsys after postint,
+        // so biforms created by the optimization are correctly registered!
+        InitPDEs(1, STAGE1);
+        InitPDEs(1, STAGE2);
+        preinit = true;
+      }
+    }
+      
     init_analysis_timer->Stop();
   }
 
-  // we need driver->Init() first
+  // we need driver->Init()
   if(optimization_ != NULL)
   {
     // second initialization phase, constructs material
     optimization_->PostInit();
+    if(preinit) {
+      InitPDEs(1, STAGE3);
+      InitPDEs(1, ALGSYS);
+    }
     // third initialization phase, constructs optimizer
     optimization_->PostInitSecond();
   }
@@ -608,94 +625,53 @@ void Domain::RestorePDEs(StdVector<SinglePDE*>& single)
 }
 
 
-void Domain::InitPDEs(UInt sequenceStep)
+void Domain::InitPDEs(unsigned int sequenceStep, InitStage stage)
 {
-  // in case we have an iterative coupled PDE,
-  // we take its info pointer and use it
-  // as base for the coupled ones
-  PtrParamNode base;
-  if (ptIterCoupledPde_) {
-    base = ptIterCoupledPde_->GetInfoNode();
-  }
-
-  // Initialize those PDEs which are not directly coupled
   std::map<SinglePDE*, bool>::iterator it;
-
-  for( UInt iStage = 0; iStage < 1; ++iStage ) {
-    for (UInt i = 0; i < numSinglePde_; i++) {
-      it = isDirectCoupled_.find(ptSinglePde_[i]);
-      if ((*it).second == false) {
-        switch(iStage) {
-          case 0:
-            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
-            break;
-          case 1:
-            ptSinglePde_[i]->Init_Stage2();
-            break;
-          case 2:
-            ptSinglePde_[i]->Init_Stage3();
-            break;
-          default:
-            EXCEPTION( "Only 3 stages of initialization known");
-            break;
-        }
-      }
-    }
-  }
-
-  // initialize direct coupled pde(s)
-  // -> this triggers also the initialization of
-  // those single PDEs which are directly coupled
-  for (UInt i = 0; i < numDirectCoupledPde_; i++)
+  if(stage == ALL || stage == STAGE1)
   {
-    if( isParentDomain_) {
-	std::cout << "++ Initializing direct coupling" << std::endl;
-	}
-	//std::cout << "Domain.cc - preInit: pde->Name()? " << ptDirectCoupledPde_[i]->GetName() << std::endl;
-	//std::cout << "Domain.cc - preInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
-	
-    ptDirectCoupledPde_[i]->Init(sequenceStep);
-    ptDirectCoupledPde_[i]->DefineAlgSys();
-    
-    //std::cout << "Domain.cc - postInit: pde->IsNonLin()? " << ptDirectCoupledPde_[i]->IsNonLin() << std::endl;
-  }
+    // In case we have an iterative coupled PDE, we take its info pointer and use it as base for the coupled ones
+    PtrParamNode base;
+    if(ptIterCoupledPde_)
+      base = ptIterCoupledPde_->GetInfoNode();
 
-  
-  // Initialize those PDEs which are not directly coupled
-  for( UInt iStage = 1; iStage < 3; ++iStage ) {
-    for (UInt i = 0; i < numSinglePde_; i++) {
-      it = isDirectCoupled_.find(ptSinglePde_[i]);
-      if ((*it).second == false) {
-        switch(iStage) {
-          case 0:
-            ptSinglePde_[i]->Init_Stage1(sequenceStep,base);
-            break;
-          case 1:
-            ptSinglePde_[i]->Init_Stage2();
-            break;
-          case 2:
-            ptSinglePde_[i]->Init_Stage3();
-            break;
-          default:
-            EXCEPTION( "Only 3 stages of initialization known");
-            break;
-        }
-      }
-    }
-  }
+    // Initialize those PDEs which are not directly coupled
+    for(SinglePDE* pde : ptSinglePde_) 
+      if(isDirectCoupled_.count(pde) > 0 && !isDirectCoupled_.at(pde)) 
+        pde->Init_Stage1(sequenceStep, base);
 
-
-  // Initialize algebraic system of each SinglePDE
-  // Note: DefineAlgSys() triggers only the initialization
-  // of those SinglePDEs, which are not directly coupled
-  for (UInt i = 0; i < numSinglePde_; i++)
-  {
-    it = isDirectCoupled_.find(ptSinglePde_[i]);
-    if ((*it).second == false)
+    // Initialize direct coupled pde(s) -> this triggers also the initialization of those single PDEs which are directly coupled
+    for(DirectCoupledPDE* pde : ptDirectCoupledPde_)
     {
-      ptSinglePde_[i]->DefineAlgSys();
+      if(isParentDomain_)
+        std::cout << "++ Initializing direct coupling" << std::endl;
+
+      pde->Init(sequenceStep);
+      pde->DefineAlgSys();
     }
   }
+  
+  if(stage == ALL || stage == STAGE2)
+  {
+    for(SinglePDE* pde : ptSinglePde_) 
+      if(isDirectCoupled_.count(pde) > 0 && !isDirectCoupled_.at(pde)) 
+        pde->Init_Stage2();
+  }
+  
+  if(stage == ALL || stage == STAGE3)
+  {
+    for(SinglePDE* pde : ptSinglePde_) 
+      if(isDirectCoupled_.count(pde) > 0 && !isDirectCoupled_.at(pde)) 
+        pde->Init_Stage3();
+  }
+
+  if(stage == ALL || stage == ALGSYS) {
+    // Initialize algebraic system of each SinglePDE
+    // Note: DefineAlgSys() triggers only the initialization of those SinglePDEs, which are not directly coupled
+    for(SinglePDE* pde : ptSinglePde_) 
+      if(isDirectCoupled_.count(pde) > 0 && !isDirectCoupled_.at(pde)) 
+        pde->DefineAlgSys();
+  }  
 }
 
 // **************************

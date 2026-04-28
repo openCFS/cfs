@@ -166,6 +166,9 @@ class Context
   /** number of frequencies in harmonic driver case */
   unsigned int num_harm_freq;
 
+  /** The number of loads, either by bcsAndLoads or multipleExciatation*/
+  unsigned int num_loads;
+
   /** number of bloch wave vectors in bloch eigenfrequency case */
   unsigned int num_bloch_wave_vectors;
 

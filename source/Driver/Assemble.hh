@@ -48,10 +48,12 @@ namespace CoupledField {
     //  REGISTRATION METHODS
     // ======================================================
 
-    //! Add a bilinearform, wrapped in a BilinFormContext
+    /** Add a bilinearform, wrapped in a BilinFormContext
+      * We get the responsibility to delete the content */
     void AddBiLinearForm( BiLinFormContext* biLinContext );
 
-    //! Add a linearform, wrapped in a LinearFormContext
+    /** Add a linearform, wrapped in a LinearFormContext
+      * We get the responsibility to delete the content */
     void AddLinearForm( LinearFormContext* linContext );
 
     //! Re-Set status of matrix re-assembly
@@ -143,20 +145,18 @@ namespace CoupledField {
       return GetBiLinForm(integrator, regionId, pde1, pde2, true) != NULL;
     }
 
-    /** Returns the algebraic system
-     * TODO check if really used */
+    /** Returns the algebraic system */
     AlgebraicSys* GetAlgSys() { return algsys_; }
 
-    /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */
-    std::set<BiLinFormContext*>& GetBiLinForms() { return allBiLinForms_; }
+    /** This is the interface we use for load switching in optimization */
+    using BiLinContextListType = std::map<
+      std::pair<shared_ptr<EntityList>, shared_ptr<EntityList>>,
+      StdVector<BiLinFormContext*>>;
+    BiLinContextListType GetBiLinForms() {return biLinForms_;}
+    void SetBiLinForms(BiLinContextListType biLinForms) {biLinForms_ = biLinForms;}
 
     /** Returns the linear forms list for external modification */
-    StdVector<LinearFormContext*>& GetLinForms(bool take_ownership = false)
-    {
-      if(take_ownership)
-        lin_forms_given_ = true; // we won't delete it
-      return linForms_;
-    }
+    StdVector<LinearFormContext*>& GetLinForms() {return linForms_;}
 
     /** Do we use the region? */
     bool UseRegion(RegionIdType reg);
@@ -247,25 +247,21 @@ namespace CoupledField {
 
     //! List of bilinear integrator contexts
     
-    //! Associate pair of entity lists with bilinearform
-    typedef std::map<
-        std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> >, 
-        StdVector<BiLinFormContext*> > BiLinContextListType;  
-     BiLinContextListType biLinForms_;
+    /** Associate pair of entity lists with bilinearform, they are generated in the PDEs deletet here.
+     * In case of multipleExcitation Optimization with SurfaceIntegrators,
+     * this gets switched out to only contain the active subset of allBiLinForms. */
+    BiLinContextListType biLinForms_;
 
-    //! Set containing all bilinear integrator contexts
+    /** Usually flat form of biLinForms
+     * In case of multipleExcitation Optimization this collects all
+     * added biLinForms and is used for safe deletion*/
     std::set<BiLinFormContext*> allBiLinForms_;
     
-    /** List of linear integrator contexts. They are generated in the PDEs deletet here.
-     * When we do muliload optimization Excitations gains ownership and linForms_ is manipulated.
-     * @see Excitytion::form */
+    /** @see biLinForms */
     StdVector<LinearFormContext*> linForms_;
 
-    //! Set containing all linear integrator contexts
+    //! @see allBiLinForms_
     std::set<LinearFormContext*> allLinForms_;
-
-    /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
-    bool lin_forms_given_;
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;

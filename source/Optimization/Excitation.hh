@@ -6,6 +6,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/BCs.hh"
 #include "Driver/HarmonicDriver.hh"
+#include "Driver/Assemble.hh"
 #include "General/Enum.hh"
 #include "MatVec/Vector.hh"
 #include "PDE/MechPDE.hh"
@@ -30,7 +31,7 @@ public:
   /** default constructor for StdVector() */
   Excitation();
 
-  ~Excitation();
+  virtual ~Excitation() = default;
 
   /** This method makes the current load active.
    * For multiple frequencies it updates the mathparser, e.g. when we use freq dependent coefFunctions
@@ -95,6 +96,9 @@ public:
    * When excitations are used the original Assemble::linForms_ are deleted and multiple forms are allowed per
    * excitation. see Excitation::ReadLoads() */
   StdVector<LinearFormContext*> forms;
+
+  /** Additional to the RHS loads, in some cases, we also want to switch bilinear forms. */
+  Assemble::BiLinContextListType biforms;
 
   /** This is a link to the Frequency description from the harmonic driver.
    * It is used for calling the HarmonicDriver to solve the problems */
@@ -202,6 +206,9 @@ public:
    * @param minimum_one if false take care as num_robust can be 0 or 1 w/o robust */
   unsigned int GetNumberMeta(const Context* ctxt, bool minimum_one = false) const;
 
+  /** Get the number of loads, either given in bcsAndLoads or multipleExcitation */
+  unsigned int GetNumberLoads(Optimization* opt, Context* ctxt);
+
   /** The number of transformations. Important when we do homogenization */
   unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
 
@@ -237,7 +244,7 @@ private:
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains
    * @param context_base the size of excitations intially for the current context (0 in single or first sequence case) */
-  int SetHomogenizationTestStrains(unsigned int context_base, Context* ctxt);
+  void SetHomogenizationTestStrains(unsigned int context_base, Context* ctxt);
 
   /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
   void ApplyRobust(const Context* ctxt);
@@ -260,7 +267,7 @@ private:
 
   /** Sets the "loads" for multifrequency harmonic problems
    * Single frequency is handled in SetLoadCases */
-  void SetHarmonic(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_freq);
+  void SetHarmonic(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_freq, int num_loads);
 
   /** sweet little helper for SetHarmonic() */
   void SetHarmonicExcitation(Context* ctxt, Excitation& ex, int freq_idx);

@@ -51,9 +51,9 @@ ShapeOpt::ShapeOpt() : ParamMat()
   Assemble* assemble = context->pde->GetAssemble();
 
   // all (bi)linear forms need to use updated coordinates
-  std::set<BiLinFormContext*>& forms = assemble->GetBiLinForms();
-  for(std::set<BiLinFormContext*>::iterator it = forms.begin(); it != forms.end(); ++it)
-   (*it)->GetIntegrator()->SetCoordUpdate(true);
+  for (const auto& [_, ctxts] : assemble->GetBiLinForms())
+    for(BiLinFormContext* ctxt : ctxts)
+      ctxt->GetIntegrator()->SetCoordUpdate(true);
 
   // set the linearForms used in multiple excitations, note that this does contain all linear forms (some even several times)
   for(unsigned int i = 0; i < me->excitations.GetSize(); i++)

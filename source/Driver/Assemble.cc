@@ -57,7 +57,6 @@ namespace CoupledField
     matrixUpdated_ = false;
     printProgressBar_ = false;
     info_ = infoNode;
-    lin_forms_given_ = false;
     skipElemAssembly_=false;
     timer_ = shared_ptr<Timer>(new Timer());
 
@@ -78,17 +77,11 @@ namespace CoupledField
   }
 
   Assemble::~Assemble() {
+    for(BiLinFormContext* blfctxt : allBiLinForms_)
+      delete blfctxt;
 
-    // Delete bilinear contexts
-    std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin();
-    for( ; it != allBiLinForms_.end(); ++it){
-      delete (*it);
-    }
-
-    // Delete linear contexts only it this is not done by optimization excitation in the multiload case
-    if(!lin_forms_given_)
-      for(unsigned int i = 0; i < linForms_.GetSize(); ++i)
-        delete linForms_[i];
+    for(LinearFormContext* lfctxt: allLinForms_)
+      delete lfctxt;
 
     mp_->ReleaseHandle(mHandle_);
   }
@@ -235,24 +228,24 @@ namespace CoupledField
 
       // Loop over all existing bilinearforms and check,
       // if pair (EntityList1, EntityList2) was already defined
-      std::string ent1Name = biLinContext->GetFirstEntities()->GetName();
-      std::string ent2Name = biLinContext->GetSecondEntities()->GetName();
-      std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> > pair;
-      BiLinContextListType::iterator it = biLinForms_.begin();
+      const std::string ent1Name = biLinContext->GetFirstEntities()->GetName();
+      const std::string ent2Name = biLinContext->GetSecondEntities()->GetName();
+
+      std::pair<shared_ptr<EntityList>, shared_ptr<EntityList>> pair;
+
       bool found = false;
-      for( ; it != biLinForms_.end(); ++it ) {
-        if( it->first.first->GetName() == ent1Name &&
-            it->first.second->GetName() == ent2Name ) {
-          pair = it->first;
+      for (const auto& [key, _] : biLinForms_) {
+        const auto& [entity1, entity2] = key;
+        if (entity1->GetName() == ent1Name && entity2->GetName() == ent2Name) {
+          pair = key;
           found = true;
           break;
         }
       }
-      if(!found) {
-        pair = std::pair<shared_ptr<EntityList>,shared_ptr<EntityList> >
-        (biLinContext->GetFirstEntities(), biLinContext->GetSecondEntities());
-      }
+      if(!found)
+        pair = std::make_pair(biLinContext->GetFirstEntities(), biLinContext->GetSecondEntities());
       biLinForms_[pair].Push_back(biLinContext);
+      LOG_DBG(assemble) << "ABF: new map size: " << biLinForms_.size() << " in this entities: " << biLinForms_[pair].GetSize() << ", ptr: " << biLinContext;
 
       // Pass needed matrix type to algebraic system
       assert(biLinContext->GetFirstFeFunction().lock());
@@ -494,7 +487,7 @@ namespace CoupledField
     // iterate over all entitylist-pairs and
     BiLinContextListType::iterator listIt = biLinForms_.begin();
     for ( ; listIt != biLinForms_.end(); ++listIt) {
-      StdVector<BiLinFormContext*> & forms = listIt->second;
+      StdVector<BiLinFormContext*>& forms = listIt->second;
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = std::max(firstEntities.GetSize(), secondEntities.GetSize());
@@ -544,6 +537,7 @@ namespace CoupledField
 
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
           //copy bilinear forms
+          // TODO: According to fsanatize, this is a huge memory leak...
           biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
         }
 
@@ -1852,16 +1846,14 @@ namespace CoupledField
     // iterate over all bilinearforms
     std::set<BiLinFormContext*>::iterator it;
 
-    for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
-      BiLinFormContext & actContext = **it;
-
+    for(BiLinFormContext* actContext : allBiLinForms_) {
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
+      if(actContext->IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
-        matReassemble_[actContext.GetDestMat()] = true;
-        if ( actContext.GetSecDestMat() != NOTYPE )
-          matReassemble_[actContext.GetSecDestMat()] = true;
+        matReassemble_[actContext->GetDestMat()] = true;
+        if ( actContext->GetSecDestMat() != NOTYPE )
+          matReassemble_[actContext->GetSecDestMat()] = true;
       }
     }
     // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffnes integrator)
@@ -1875,20 +1867,19 @@ namespace CoupledField
     // the check three times.
 
     for( UInt i = 0; i < 3; ++i ) {
-      for( it = allBiLinForms_.begin(); it != allBiLinForms_.end(); it++ ) {
-        BiLinFormContext & actContext = **it;
+      for(BiLinFormContext* actContext : allBiLinForms_) {
         bool oneIsNonLin = false;
 
         // check primary or secondary matrix is nonlinear
-        if( matReassemble_[actContext.GetDestMat()] == true ||
-            ( actContext.GetSecDestMat() != NOTYPE &&
-                matReassemble_[actContext.GetSecDestMat()] == true) ) {
+        if( matReassemble_[actContext->GetDestMat()] == true ||
+            ( actContext->GetSecDestMat() != NOTYPE &&
+                matReassemble_[actContext->GetSecDestMat()] == true) ) {
           oneIsNonLin = true;
         }
         if( oneIsNonLin ) {
-          matReassemble_[actContext.GetDestMat()] = true;
-          if( actContext.GetSecDestMat() != NOTYPE )
-            matReassemble_[actContext.GetSecDestMat()] = true;
+          matReassemble_[actContext->GetDestMat()] = true;
+          if( actContext->GetSecDestMat() != NOTYPE )
+            matReassemble_[actContext->GetSecDestMat()] = true;
         }
       } // loops over integrators
     } // 3 loops

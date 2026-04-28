@@ -345,39 +345,34 @@ void PETScCommon::AssembleMatrixMG(Mat &sysMat,DM &daNodes,Vec &solVec,Vec &rhsV
    // Loop over all bilinear forms and calculate the element stiffness matrix for all regions, in this case since its a structured grid one
    // element stiffness matrix should be sufficient.
   int elem=0;
+  for (const auto& [_, contexts] : assemble_->GetBiLinForms()) {
+    for(BiLinFormContext* context : contexts) {
+      BiLinearForm* form = context->GetIntegrator();
 
-   // Using the same implemetation as in LocalElementCache and Assemble.cc
-  for(std::set<BiLinFormContext*>::iterator it = assemble_->GetBiLinForms().begin();
-     it != assemble_->GetBiLinForms().end(); it++ )
-  {
-    BiLinFormContext& context = **it;
-    BiLinearForm*     form    = context.GetIntegrator();
+      EntityIterator firstEntIt = context->GetFirstEntities()->GetIterator();
+      EntityIterator secondEntIt = context->GetSecondEntities()->GetIterator();
 
-    EntityIterator  firstEntIt = context.GetFirstEntities()->GetIterator();
-    EntityIterator secondEntIt=context.GetSecondEntities()->GetIterator();
+      UInt numElems=std::max(firstEntIt.GetSize(), secondEntIt.GetSize());
+      firstEntIt.Begin();
+      secondEntIt.Begin();
+      UInt chunksize;
 
-    UInt numElems=std::max(firstEntIt.GetSize(), secondEntIt.GetSize());
-    firstEntIt.Begin();
-    secondEntIt.Begin();
-    UInt chunksize;
+      disableParalleAssemby ? chunksize= numElems:chunksize= std::floor(numElems/size_);
 
-    disableParalleAssemby ? chunksize= numElems:chunksize= std::floor(numElems/size_);
-
-
-    UInt start=chunksize*rank_;
-    UInt end=(rank_==size_-1)? numElems:(chunksize*(rank_+1));
-    firstEntIt+=start;
-    secondEntIt+=start;
-    for (UInt i=start;i<end;++i)
-    {
-      CacluateElementStiffnessMatrix(firstEntIt,secondEntIt,globalNodeNum,nen,form,elem,KE);
-      CalculateDirNodesAndEdof(dirVec,edof,nen,dirArray,globalNodeNum,elem);
-      ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES); CHKERRXX(ierr);
-      firstEntIt++;
-      secondEntIt++;
-    }//loop over all element
-   }//loop over all bilinear forms
-
+      UInt start=chunksize*rank_;
+      UInt end=(rank_==size_-1)? numElems:(chunksize*(rank_+1));
+      firstEntIt+=start;
+      secondEntIt+=start;
+      for (UInt i=start;i<end;++i)
+      {
+        CacluateElementStiffnessMatrix(firstEntIt,secondEntIt,globalNodeNum,nen,form,elem,KE);
+        CalculateDirNodesAndEdof(dirVec,edof,nen,dirArray,globalNodeNum,elem);
+        ierr = MatSetValues(sysMat,24,edof,24,edof,KE,ADD_VALUES); CHKERRXX(ierr);
+        firstEntIt++;
+        secondEntIt++;
+      }
+    }
+  }
 }
 
 void PETScCommon::CalculateDirNodesAndEdof(Vec &dirVec,PetscInt edof[],const int &nen,const PetscScalar * dirArray,

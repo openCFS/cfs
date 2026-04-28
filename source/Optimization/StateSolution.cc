@@ -383,7 +383,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app,
       {
         elem_vec.Resize(n + pn); // save resize as the size was checked for zero
         for(int ve = 0; ve < (n + pn); ve++)
-          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete
+          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete (memory leak)
       }
 
       // store the results of the standard design elements in our own structure

@@ -899,6 +899,8 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
+  LOG_DBG(opt) << "DSAWS: buckling=" << context->DoBuckling() << " ms=" << context->DoMultiSequence() << " lbm=" << context->DoLBM()
+    << " cplx=" << context->IsComplex() << " #ex=" << me->excitations.GetSize() << " #freq=" << me->GetUniqueFrequencies() << " rob=" << me->DoRobust(context);
   if(context->DoBuckling())
     return false;
 
@@ -907,7 +909,7 @@ bool Optimization::DoSolveAdjointWithState() const
     return true;
 
   // don't do it within forward when we can do it later
-  if(context->IsComplex() && me->excitations.GetSize() > 1 && me->GetUniqueFrequencies() > 1)
+  if(context->IsComplex() && me->excitations.GetSize() > 1)
     return true;
 
   // we want to reuse the assembled system
@@ -1033,6 +1035,14 @@ Function* Optimization::GetFunction(const std::string& name, bool throw_exceptio
   if(f == nullptr && throw_exception)
     throw Exception("unknown function name '" + name + "'");
   return f;
+}
+
+ParamNodeList Optimization::GetMultipleExcitionsNodes(){
+  ParamNodeList nodes;
+  PtrParamNode pn = optParamNode->Get("costFunction");
+  if(pn->Has("multipleExcitation/excitations"))
+    nodes = pn->Get("multipleExcitation/excitations")->GetChildren();
+  return nodes;
 }
 
 Tune* Optimization::SearchTune(Tune::Usage usage, bool silent)

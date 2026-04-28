@@ -179,6 +179,8 @@
                               <xsd:element name="force" type="DT_BcInhomVector" />
                               <xsd:element name="forceDensity" type="DT_BcInhomVector" />
                               <xsd:element name="rhsValues" type="DT_BcInhomVector" />
+                              <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
+                              <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull" />
                               <xsd:element name="transform">
                                 <xsd:complexType>
                                   <xsd:attribute name="excitation" type="DT_Excitation" use="required" />
@@ -284,7 +286,7 @@
           <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
 
           <!-- typically for globalized functions, e.g. parameter -->
-          <xsd:attribute name="parameter" use="optional" type="xsd:float" />
+          <xsd:attribute name="parameter" use="optional" type="xsd:token" />
 
           <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
           <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
@@ -352,7 +354,7 @@
           </xsd:attribute>
 
           <!-- some constraints (slope constraint, penalized volume) have a parameter -->
-          <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
+          <xsd:attribute name="parameter" use="optional" type="xsd:token"/>
 
           <!-- one can scale value and gradient by a constant or link to the objective scaling with "objective".
               The bound value shall not be scaled, also the outout ist not scaled, only the optimizer gets scaled values -->
@@ -3367,6 +3369,15 @@
       <xsd:enumeration value="39" />
       <xsd:enumeration value="40" />
       <xsd:enumeration value="41" />
+      <xsd:enumeration value="42" />
+      <xsd:enumeration value="43" />
+      <xsd:enumeration value="44" />
+      <xsd:enumeration value="45" />
+      <xsd:enumeration value="46" />
+      <xsd:enumeration value="47" />
+      <xsd:enumeration value="48" />
+      <xsd:enumeration value="49" />
+      <xsd:enumeration value="50" />
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -3699,7 +3710,7 @@
   
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           <!-- only the globalSlope has a value and only within multiObjective -->
-          <xsd:attribute name="parameter" use="optional" type="xsd:float" />
+          <xsd:attribute name="parameter" use="optional" type="xsd:token" />
           <xsd:attribute name="excitation" use="optional" type="xsd:integer" />
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean" />
