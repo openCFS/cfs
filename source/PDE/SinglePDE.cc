@@ -361,6 +361,11 @@ namespace CoupledField {
     // =====================================================================
     if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
+      // Wire domain pointer into every registered time scheme so that
+      // adaptive BDF2 can access AdaptiveTimesteppingData at runtime.
+      for (auto& kv : feFunctions_)
+        if (auto ts = kv.second->GetTimeScheme())
+          ts->SetDomain(domain_);
     }
 
     // =====================================================================

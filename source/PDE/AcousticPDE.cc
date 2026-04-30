@@ -3821,7 +3821,9 @@ namespace CoupledField{
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
     PtrParamNode timeStepAlphaNode = this->myParam_->Get("timeStepAlpha", ParamNode::PASS);
-    if (integrationScheme && timeStepAlphaNode)
+    // timeStepAlpha has a schema default of 0.0 and is always injected by the parser;
+    // only treat it as a conflict when it was explicitly set to a non-zero value.
+    if (integrationScheme && timeStepAlphaNode && timeStepAlphaNode->As<Double>() != 0.0)
       throw Exception("Both 'integrationScheme' and 'timeStepAlpha' are specified for the acoustic PDE. "
                       "Please use 'integrationScheme' only, as it provides more flexibility and "
                       "supersedes the legacy 'timeStepAlpha' parameter.");
