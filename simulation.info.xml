@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="aborted" infoWriteCounter="3" infoRejectCounter="0" error="
+xml file /home/dorninger/cfs/simulation.xml doesn't exist">
+  <summary>
+    <timer id="0" wall-clock="0.06806s" wall="0.0680678" cpu="0.00424" calls="1"/>
+  </summary>
+  <header>
+    <environment started="30-Apr-26 21:17:53" host="rk1"/>
+  </header>
+</cfsInfo>

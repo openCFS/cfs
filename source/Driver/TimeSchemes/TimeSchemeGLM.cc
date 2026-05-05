@@ -237,7 +237,7 @@ namespace CoupledField{
     if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)
     {
       auto atd = domain_->GetAdaptiveData();
-      if(atd && atd->enabled)
+      if(atd && atd->enabled_)
       {
         // GetType() == 3: BDF2; adaptive step control is only supported for BDF2
         if(curScheme_->GetType() == 3)
@@ -254,7 +254,7 @@ namespace CoupledField{
 
     //-------------------------------------------------------------
     // Adaptive Timestepping
-    // Updates timestep, according to MathParser value and recalculates
+    // Updates timestep, according to AdaptiveTimsteppingData value and recalculates
     // the BDF2 Coefficients.
     if(curScheme_->adaptiveBDF2)
     {
@@ -443,18 +443,18 @@ namespace CoupledField{
           std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
                     << " > tol, retrying with dt= "
                     << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
-          //ResetGlmVector(); // Is only initialized for non Bdf2 Systems (0,0,0) -> and TimeScheme return befor GLM is saved so ne need for it anyway
           reset_dt();
           return;
-        }else
-        {
-          //Saves ResetValues for when a step is rerun
-          curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;  
-          curScheme_->prev_dtPrev1_= curScheme_->dtPrev1_;    
-          curScheme_->prev_dtPrev2_ = curScheme_->dtPrev2_;    
         }
       }
-      // First 2 steps: run with user-defined dt from XML, no adaptation
+
+      // Save dt history for reset_dt() on every accepted step (including the
+      // first two warm-up steps). Without this, the first rejection at
+      // adaptiveStepCount_==2 would call reset_dt() on uninitialized prev_dt*,
+      // putting garbage (possibly 0) into dtPrev2_ -> NaN in c3 = h2/(h1*h0).
+      curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;
+      curScheme_->prev_dtPrev1_   = curScheme_->dtPrev1_;
+      curScheme_->prev_dtPrev2_   = curScheme_->dtPrev2_;
 
       // step accepted: save y_n as y_{n-1} for next LTE computation
       if (prevPrevSol_ == nullptr) {
@@ -659,9 +659,9 @@ namespace CoupledField{
     Double c3 = h2 / (h1 * h0);
 
     auto* atd = domain_->GetAdaptiveData().get();
-    int    ErrorScheme = atd->errorScheme;
-    double RTOL        = atd->rtol;
-    double ATOL        = atd->atol;
+    int    ErrorScheme = atd->errorScheme_;
+    double RTOL        = atd->rtol_;
+    double ATOL        = atd->atol_;
     bool useScaling = (RTOL > 0.0);
 
     double l2_norm = 0.0;
@@ -695,46 +695,60 @@ namespace CoupledField{
     { // Euclidean (normalised) error norm
       l2_norm = std::sqrt(sum/n);
       curScheme_->local_error_ = l2_norm;
-      atd->localError = l2_norm;
+      atd->localError_ = l2_norm;
     }else
     {
       curScheme_->local_error_ = maxLTE;
-      atd->localError = maxLTE;
+      atd->localError_ = maxLTE;
     }
   }
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
     auto* atd = domain_->GetAdaptiveData().get();
-    double maxChange = atd->minStepFactor;
+    double maxChange = atd->minStepFactor_;
     Double h     = curScheme_->dtCurrent_;
     bool   accepted = false;
     Double h_next = 0.0;
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
+
+    // NaN/Inf localError means the solve diverged — jump to dtMin immediately.
+    // Must be checked before the saturation guard, which would otherwise
+    // force-accept a NaN step on the first retry (h << h1 triggers it).
+    if (!atd->is_error_finite(atd->localError_)) {
+      atd->stepRejected_         = true;
+      atd->toleranceNotReachable_ = true;
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", atd->dtMin_);
+      return false;
+    }
 
     // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
     // Detect saturation early: force-accept rather than driving h2 to dtMin.
     const Double h1 = curScheme_->dtPrev1_;
     if (h1 > 0.0 && h / h1 < maxChange) {
       mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h);
-      atd->stepRejected          = false;
-      atd->toleranceNotReachable = true;
+      atd->stepRejected_         = false;
+      atd->toleranceNotReachable_ = true;
+      atd->mark_saturated();
       return true;
     }
 
     // Smoothing == false: PI controller disabled; use classic single-step size formula.
-    if(!atd->smoothing)
-      h_next = standardStepsize(&accepted);
+    if(!atd->smoothing_)
+      h_next = atd->standardStepsize(&accepted,curScheme_->local_error_,curScheme_->dtCurrent_);
     else
-      h_next = smoothStepsize(&accepted);
-
+      h_next = atd->smoothStepsize(&accepted,curScheme_->local_error_,curScheme_->dtCurrent_);
     // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
     if (h_next / h > maxRatio)
       h_next = h * maxRatio;
 
+    // Post-saturation growth limiter: prevents aggressive dt recovery after
+    // source-onset force-accepts, which can drive L2-norm runs into solver divergence.
+    h_next = atd->apply_post_saturation_cap(h_next, h, curScheme_->local_error_, accepted);
+
     // Apply user-defined bounds after the stability cap
-    double dtMin = atd->dtMin;
-    double dtMax = atd->dtMax;
+    double dtMin = atd->dtMin_;
+    double dtMax = atd->dtMax_;
     Double h_next_unclamped = h_next;
     h_next = std::max(h_next, dtMin);
     h_next = std::min(h_next, dtMax);
@@ -742,84 +756,14 @@ namespace CoupledField{
     // Force-accept only when the formula truly wanted to go below dtMin.
     if (!accepted && h_next_unclamped < dtMin) {
       accepted = true;
-      atd->toleranceNotReachable = true;
+      atd->toleranceNotReachable_ = true;
+      atd->mark_saturated();
     }
 
     mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
-    atd->stepRejected = !accepted;
+    atd->stepRejected_ = !accepted;
 
     return accepted;
-  }
-
-  Double TimeSchemeGLM::standardStepsize(bool* accepted)
-  {
-    auto* atd    = domain_->GetAdaptiveData().get();
-    Double Rtol  = atd->tol;
-    Double est   = curScheme_->local_error_;
-    Double h     = curScheme_->dtCurrent_;
-
-    const Double z_U = 0.1;
-    const Double z_S = atd->sigma + 1;  // zs has to be between 1 and 2
-    const Double F_U      = 1.5;
-    Double h_next;
-
-    if (est == 0.0) {
-      h_next   = F_U * h;
-      *accepted = true;
-    } else {
-      Double z = z_S * std::pow((est / Rtol), (1.0 / 3.0));
-      if (z <= z_U) {
-        h_next = F_U * h;  *accepted = true;
-      } else if (z <= z_S) {
-        h_next = h / z;    *accepted = true;
-      } else {
-        h_next = h / z;    *accepted = false;
-      }
-    }
-
-    return h_next;
-  }
-
-  Double TimeSchemeGLM::smoothStepsize(bool* accepted)
-  {
-    auto*  atd   = domain_->GetAdaptiveData().get();
-    Double Rtol  = atd->tol;
-    Double est   = curScheme_->local_error_;
-    Double h     = curScheme_->dtCurrent_;
-    const Double F_U = 1.5;
-    Double h_next;
-    Double sigma       = atd->sigma;
-    Double prev_error_ = atd->prevError;
-    double k = 3; // For BDF2
-    Double alpha = 0.3/k ;
-    Double beta  = 0.6/k;
-
-
-    if (est == 0.0) {
-      h_next = F_U * h;
-      *accepted = true;
-    } else {
-      Double ratio_I = std::pow(sigma * Rtol / est, alpha);
-      Double ratio_P = 1.0;
-
-      if (prev_error_ > 0.0) {
-        ratio_P = std::pow(prev_error_ / est, beta);
-      }
-      Double factor = ratio_I * ratio_P;
-
-      if (est > Rtol && factor > 0.95)
-        {
-            *accepted = true;
-            h_next = h*0.9;   // keep current dt — don't reduce to dtMin
-            atd->toleranceNotReachable = true;
-            return h_next;
-        }
-      h_next = h * factor;
-
-      *accepted = (est <= Rtol);
-    }
-  
-    return h_next;
   }
 
   void TimeSchemeGLM::reset_dt()

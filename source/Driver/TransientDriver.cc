@@ -92,11 +92,11 @@ namespace CoupledField {
 
       // keep TransientDriver members in sync for local use
       adaptiveTimestepping_ = adaptiveNode->Get("scheme")->As<std::string>();
-      deltaTMin_  = atData_->dtMin;
-      deltaTMax_  = atData_->dtMax;
-      sigma_      = atData_->sigma;
-      Smoothing_  = atData_->smoothing;
-      tol_        = atData_->tol;
+      deltaTMin_  = atData_->dtMin_;
+      deltaTMax_  = atData_->dtMax_;
+      sigma_      = atData_->sigma_;
+      Smoothing_  = atData_->smoothing_;
+      tol_        = atData_->tol_;
 
       if(deltaTMin_ > deltaTMax_)
         EXCEPTION("Exception: .xml config is Wrong. DeltaTMin has to be smaller then deltaTmax.")
@@ -185,8 +185,8 @@ namespace CoupledField {
   void TransientDriver::SolveProblem()
   {
      if (atData_) {
-       atData_->localError = 0.0;
-       atData_->stepRejected = false;
+       atData_->localError_ = 0.0;
+       atData_->stepRejected_ = false;
      }
      
     // notify resultHandler about beginning of new sequence step 
@@ -251,9 +251,9 @@ namespace CoupledField {
       // not falsely treated as rejected (stepRejected could linger from a
       // previous genuine rejection when adaptiveStepCount_ < 2).
       if (atData_) {
-        atData_->stepRejected          = false;
-        atData_->toleranceNotReachable = false;
-        atData_->localError            = 0.0;
+        atData_->stepRejected_          = false;
+        atData_->toleranceNotReachable_ = false;
+        atData_->localError_            = 0.0;
       }
 
       // Determine when to write logging information on terminal
@@ -465,15 +465,15 @@ namespace CoupledField {
 
   bool TransientDriver::adaptTimestep(int retryCount)
   {
-    prevLTEerror_ = atData_->localError;
+    prevLTEerror_ = atData_->localError_;
 
     // Hard cap: more than 20 rejections indicates the tolerance is unachievable.
     if(retryCount > 20)
       EXCEPTION("ERROR: The Simulation stopped after 20 Reruns of the same timestep.")
 
     dt_               = mathParser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
-    bool accepted        = !atData_->stepRejected;
-    bool tolNotReachable =  atData_->toleranceNotReachable;
+    bool accepted        = !atData_->stepRejected_;
+    bool tolNotReachable =  atData_->toleranceNotReachable_;
 
     // On the first rejection: save the error as anti-windup reference.
     if(!accepted && retryCount == 0)
@@ -481,7 +481,7 @@ namespace CoupledField {
 
     std::cout << "*******************************************************\n";
     std::cout << " Adaptive Timestepping -> dt= " << dt_
-              << "  LocalError= " << atData_->localError
+              << "  LocalError= " << atData_->localError_
               << "  retries= " << retryCount << "\n";
     if (tolNotReachable) {
       std::cout << " WARNING: tolerance could not be reached!"
@@ -490,7 +490,7 @@ namespace CoupledField {
     }
     // Only update prevError for accepted steps (including force-accepts).
     if (accepted || tolNotReachable)
-      atData_->prevError = prevLTEerror_;
+      atData_->prevError_ = prevLTEerror_;
 
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
