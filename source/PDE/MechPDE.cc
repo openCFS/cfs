@@ -2612,6 +2612,9 @@ namespace CoupledField {
   // ======================================================
   void MechPDE::InitTimeStepping()
   {
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("Adaptive timestepping is not supported for MechPDE: variable-step BDF2 is incompatible with structural wave simulation. Use fixed deltaT.");
+
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);

@@ -427,36 +427,145 @@ namespace CoupledField{
     }
   }
 
+  void TimeSchemeGLM::FinishStepLTE() {
+    if (!curScheme_->adaptiveBDF2 || adaptiveStepCount_ < 2) return;
+    LTELocalErrorEstimation();
+    domain_->GetAdaptiveData()->registerFieldLTE(curScheme_->local_error_);
+  }
+
   void TimeSchemeGLM::FinishStep(){
     //--------------------------------------------------------------------
     // Adaptive Timestepping:
     //---------------------------------------------------------------------
-    
+
     if (curScheme_->adaptiveBDF2) {
       if (adaptiveStepCount_ >= 2) {
-        // LTE and step-size control only once enough history exists
-        LTELocalErrorEstimation();
+        auto* atd = domain_->GetAdaptiveData().get();
 
-        bool accepted = ComputeAdaptiveStepSize();
+        if (atd->lteCollected_) {
+          // ── Multi-field path ──────────────────────────────────────────
+          // LTE was already collected from all fields by FinishStepLTE();
+          // use the domain-wide controlling error so every field agrees.
+          curScheme_->local_error_ = atd->getControllingError();
 
-        if (!accepted) {
-          std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
-                    << " > tol, retrying with dt= "
-                    << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
-          reset_dt();
-          return;
+          if (atd->stepRejected_) {
+            // A prior field already rejected this step; follow along.
+            reset_dt();
+            return;
+          }
+
+          if (!atd->stepDecisionMade_) {
+            // First field to reach here makes the single step-size decision.
+            bool skipAdaptiveControl = false;
+            if (atd->warmUpEnabled_ && atd->inWarmUpPhase_) {
+              if (!atd->is_error_finite(atd->localError_)) {
+                std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
+                atd->localError_ = 0.0;
+                curScheme_->local_error_ = 0.0;
+                skipAdaptiveControl = true;
+              } else {
+                double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
+                if (ratio <= atd->warmUpLTETarget_) {
+                  atd->inWarmUpPhase_ = false;
+                  atd->prevError_ = atd->localError_;
+                  std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
+                  skipAdaptiveControl = true;  // one extra hold so the PI controller doesn't cold-start with a large jump
+                } else {
+                  std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
+                            << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
+                  skipAdaptiveControl = true;
+                }
+              }
+            }
+            atd->stepDecisionMade_ = true;
+            if (!skipAdaptiveControl) {
+              bool accepted = ComputeAdaptiveStepSize();
+              if (!accepted) {
+                std::cout << " [Adaptive] Step REJECTED: LocalError= "
+                          << atd->getControllingError()
+                          << " > tol, retrying with dt= "
+                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+                reset_dt();
+                return;
+              }
+              if (atd->warmUpEnabled_ && atd->warmUpRampSteps_ < 3) {
+                atd->warmUpRampSteps_++;
+                double h        = curScheme_->dtCurrent_;
+                double h_next   = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
+                double fraction = std::pow(10.0, -3.0 + (atd->warmUpRampSteps_ - 1));
+                h_next = h + fraction * (h_next - h);
+                mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
+                std::cout << " [Adaptive] Ramp-up " << atd->warmUpRampSteps_ << "/3"
+                          << ", fraction=" << fraction
+                          << ", dt=" << h_next << "\n";
+                if (atd->toleranceNotReachable_) {
+                  atd->warmUpRampSteps_ = 0;
+                  std::cout << " [Adaptive] Ramp-up reset after saturation/force-accept.\n";
+                }
+              }
+            }
+          }
+          // stepDecisionMade_ && !stepRejected_: accepted — fall through to
+          // save state + GLM update for this field.
+
+        } else {
+          // ── Single-field path (FinishStepLTE not called) ─────────────
+          LTELocalErrorEstimation();
+          bool skipAdaptiveControl = false;
+          if (atd->warmUpEnabled_ && atd->inWarmUpPhase_) {
+            if (!atd->is_error_finite(atd->localError_)) {
+              std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
+              atd->localError_         = 0.0;
+              curScheme_->local_error_ = 0.0;
+              skipAdaptiveControl = true;
+            } else {
+              double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
+              if (ratio <= atd->warmUpLTETarget_) {
+                atd->inWarmUpPhase_ = false;
+                atd->prevError_ = atd->localError_;
+                std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
+                skipAdaptiveControl = true;  // one extra hold so the PI controller doesn't cold-start with a large jump
+              } else {
+                std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
+                          << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
+                skipAdaptiveControl = true;
+              }
+            }
+          }
+          if (!skipAdaptiveControl) {
+            bool accepted = ComputeAdaptiveStepSize();
+            if (!accepted) {
+              std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
+                        << " > tol, retrying with dt= "
+                        << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+              reset_dt();
+              return;
+            }
+            if (atd->warmUpEnabled_ && atd->warmUpRampSteps_ < 10) {
+              atd->warmUpRampSteps_++;
+              double h        = curScheme_->dtCurrent_;
+              double h_next   = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
+              double fraction = std::pow(10.0, -3.0 + 3.0 * (atd->warmUpRampSteps_ - 1) / 9.0);
+              h_next = h + fraction * (h_next - h);
+              mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
+              std::cout << " [Adaptive] Ramp-up " << atd->warmUpRampSteps_ << "/10"
+                        << ", fraction=" << fraction
+                        << ", dt=" << h_next << "\n";
+              if (atd->toleranceNotReachable_) {
+                atd->warmUpRampSteps_ = 0;
+                std::cout << " [Adaptive] Ramp-up reset after saturation/force-accept.\n";
+              }
+            }
+          }
         }
       }
 
-      // Save dt history for reset_dt() on every accepted step (including the
-      // first two warm-up steps). Without this, the first rejection at
-      // adaptiveStepCount_==2 would call reset_dt() on uninitialized prev_dt*,
-      // putting garbage (possibly 0) into dtPrev2_ -> NaN in c3 = h2/(h1*h0).
+      // Step accepted (or warm-up): save dt history for reset_dt() and y_{n-1}
+      // for the next LTE computation.
       curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;
       curScheme_->prev_dtPrev1_   = curScheme_->dtPrev1_;
       curScheme_->prev_dtPrev2_   = curScheme_->dtPrev2_;
 
-      // step accepted: save y_n as y_{n-1} for next LTE computation
       if (prevPrevSol_ == nullptr) {
         prevPrevSol_ = new Vector<Double>();
         prevPrevSol_->Resize(glmVector_[1]->GetSize());
@@ -713,8 +822,6 @@ namespace CoupledField{
     const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
 
     // NaN/Inf localError means the solve diverged — jump to dtMin immediately.
-    // Must be checked before the saturation guard, which would otherwise
-    // force-accept a NaN step on the first retry (h << h1 triggers it).
     if (!atd->is_error_finite(atd->localError_)) {
       atd->stepRejected_         = true;
       atd->toleranceNotReachable_ = true;
@@ -722,11 +829,26 @@ namespace CoupledField{
       return false;
     }
 
+    // Growing-error detection: when the LTE estimate increases as dt shrinks,
+    // further retries only make things worse (BDF2 ill-conditioning at high
+    double est = atd->localError_;
+    if (atd->prevRetryError_ > 0.0 && est > atd->prevRetryError_) {
+      std::cout << " [Adaptive] Growing LTE on retry (" << atd->prevRetryError_
+                << " → " << est << ") — saturation detected, force-accepting.\n";
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", std::max(h, atd->dtMin_));
+      atd->prevRetryError_        = est;
+      atd->stepRejected_          = false;
+      atd->toleranceNotReachable_ = true;
+      atd->mark_saturated();
+      return true;
+    }
+    atd->prevRetryError_ = est;
+
     // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
     // Detect saturation early: force-accept rather than driving h2 to dtMin.
     const Double h1 = curScheme_->dtPrev1_;
     if (h1 > 0.0 && h / h1 < maxChange) {
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h);
+      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", std::max(h, atd->dtMin_));
       atd->stepRejected_         = false;
       atd->toleranceNotReachable_ = true;
       atd->mark_saturated();
@@ -742,6 +864,17 @@ namespace CoupledField{
     if (h_next / h > maxRatio)
       h_next = h * maxRatio;
 
+    // BDF2 ill-conditioning guard: variable-step BDF2 uses w_ = h_prev/h_retry.
+    // For w_ >> 1 the coefficient w²/(1+2w) ≈ w/2 causes catastrophic cancellation
+    Double h_next_unclamped = h_next;
+    if (h_next < h * maxChange) {
+      h_next = h * maxChange;
+    }
+    // Activate the post-saturation growth limiter on any rejection so the
+    // retry's recovery is gradual 
+    if (!accepted)
+      atd->mark_saturated();
+
     // Post-saturation growth limiter: prevents aggressive dt recovery after
     // source-onset force-accepts, which can drive L2-norm runs into solver divergence.
     h_next = atd->apply_post_saturation_cap(h_next, h, curScheme_->local_error_, accepted);
@@ -749,7 +882,6 @@ namespace CoupledField{
     // Apply user-defined bounds after the stability cap
     double dtMin = atd->dtMin_;
     double dtMax = atd->dtMax_;
-    Double h_next_unclamped = h_next;
     h_next = std::max(h_next, dtMin);
     h_next = std::min(h_next, dtMax);
 

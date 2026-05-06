@@ -945,6 +945,9 @@ namespace CoupledField{
       shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(makeScheme(), 0) );
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
     }
+
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("Adaptive timestepping is not supported for AcousticMixed: variable-step BDF2 phase-modulates non-dissipative acoustic modes. Use fixed deltaT.");
    }
 
    void AcousticMixedPDE::ReadDampingInformation() {

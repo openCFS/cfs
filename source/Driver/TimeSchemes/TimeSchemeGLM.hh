@@ -77,6 +77,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
                                             SingleVector* UpdateVector, Double factor, bool forceReset = false);
 
     /// Update the GLM Vectors according to new solution
+    virtual void FinishStepLTE() override;
     virtual void FinishStep( );
 
     // In the case that we did not converge, we have to reset the glmVec (and the last solution stored to the feFunction in order to start with the correct values in the next sub-iteration
@@ -206,16 +207,14 @@ class TimeSchemeGLM : public BaseTimeScheme{
     NonLinType nLinType_;
 
     //! Stores y_{n-1} (solution two accepted steps back); required for the three-point LTE formula.
-    SingleVector* prevPrevSol_;
+    SingleVector* prevPrevSol_ = nullptr;
 
-    int adaptiveStepCount_;
+    int adaptiveStepCount_ = 0;
 
   private:
 
     void LTELocalErrorEstimation();
     bool ComputeAdaptiveStepSize();
-    double standardStepsize(bool * accepted);
-    double smoothStepsize(bool * accepted);
 
 
     ///just export the scheme to a file

@@ -17,11 +17,7 @@
 
 #include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
-#include "Utils/mathParser/mathParser.hh"
-
 namespace CoupledField {
-
-class MathParser;
 
 /*! \class GLMScheme
  *    \brief The base class defining all variable necessary to define a GLM
@@ -38,15 +34,16 @@ class MathParser;
 class GLMScheme{
   public:
 
-  Double dtCurrent_;
-  Double dtPrev1_;
-  Double dtPrev2_;
-  Double prev_dtCurrent_;
-  Double prev_dtPrev1_;
-  Double prev_dtPrev2_;
+  Double dtCurrent_      = -1.0;
+  Double dtPrev1_        = -1.0;
+  Double dtPrev2_        = -1.0;
+  Double prev_dtCurrent_ = -1.0;
+  Double prev_dtPrev1_   = -1.0;
+  Double prev_dtPrev2_   = -1.0;
 
-  bool adaptiveBDF2;
-  Double local_error_;
+  bool   adaptiveBDF2  = false;
+  Double local_error_  = 0.0;
+  bool   initialized_  = false;
 
   /// Enumeration for each GLM scheme available
   typedef enum{

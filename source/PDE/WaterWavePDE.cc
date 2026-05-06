@@ -976,6 +976,9 @@ namespace CoupledField{
   //! Init the time stepping
   void WaterWavePDE::InitTimeStepping()
   {
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("Adaptive timestepping is not supported for WaterWavePDE: variable-step BDF2 is incompatible with wave simulation. Use fixed deltaT.");
+
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);

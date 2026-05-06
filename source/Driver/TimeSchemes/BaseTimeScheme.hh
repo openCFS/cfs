@@ -74,6 +74,11 @@ class BaseTimeScheme{
     virtual void UpdateStageRHSWithVector(UInt actStage, Integer derivId, SingleVector* rhsVec,
                                  SingleVector* UpdateVector, Double factor, bool forceReset = false)=0;
     
+    /// LTE collection pass: compute and register this field's LTE in atd->fieldLocalErrors_.
+    /// Called for every field before FinishStep() so all errors are known before any
+    /// step-size decision is made.  Default is a no-op (non-adaptive schemes).
+    virtual void FinishStepLTE() {}
+
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
 

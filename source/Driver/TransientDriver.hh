@@ -129,12 +129,6 @@ namespace CoupledField {
     //! True when Stepsizesmoothing="ON"; activates PI3.4 step-size controller.
     bool Smoothing_;
 
-    //! Proportional gain parameter for the PI step-size controller (default 0.7; effective value computed in smoothStepsize as 0.3/k).
-    Double alpha_;
-
-    //! Integral gain parameter for the PI step-size controller (default 0.5; effective value computed in smoothStepsize as 0.6/k).
-    Double beta_;
-
     // =======================================================================
     //  Restart related data
     // =======================================================================

@@ -62,8 +62,6 @@ namespace CoupledField {
     dt_ = 0.0;
     sigma_ = 1.2;
     isRestarted_ = false;
-    alpha_ = 0.7;
-    beta_ = 0.5;
     prevLTEerror_ = 0.0;
     antiWindupError_ = 1;
 
@@ -150,7 +148,7 @@ namespace CoupledField {
 
     initialTime_ = accTime;
     actTime_ = accTime;
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTimeStep_ );  //RD: Change Mathparser so act_timestep
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ ); //RD. and inital time are set correctly (when using adaptive)
     
   }
@@ -203,8 +201,6 @@ namespace CoupledField {
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
-    actTime_  = firstdt_ * startStep + initialTime_; 
-    //Double  dt = firstdt_;
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;     
   
@@ -229,7 +225,12 @@ namespace CoupledField {
 
     // Outer loop over all timesteps
     UInt count = 0;
-    dt_ = firstdt_;
+    // For adaptive runs, deltaT defines total sim time. The first step size
+    // is dtMin when startAtDtMin="ON", otherwise deltaT.
+    Double startDt = (adaptiveEnabeled_ && atData_->startFromDtMin_ && atData_->dtMin_ > 0.0)
+                     ? atData_->dtMin_ : firstdt_;
+    dt_      = startDt;
+    actTime_ = startDt * startStep + initialTime_;
     actTimeStep_ = startStep;
     int retryCount = 0;
 
@@ -247,13 +248,14 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "t",    actTime_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt",   dt_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
-      // Reset rejection flags each attempt so steps not checked by LTE are
-      // not falsely treated as rejected (stepRejected could linger from a
-      // previous genuine rejection when adaptiveStepCount_ < 2).
+      // Reset per-step adaptive state each attempt.
       if (atData_) {
         atData_->stepRejected_          = false;
         atData_->toleranceNotReachable_ = false;
         atData_->localError_            = 0.0;
+        atData_->fieldLocalErrors_.clear();
+        atData_->lteCollected_          = false;
+        atData_->stepDecisionMade_      = false;
       }
 
       // Determine when to write logging information on terminal
@@ -315,6 +317,7 @@ namespace CoupledField {
           continue;             // redo this step with reduced dt_
         }
         retryCount = 0;
+        atData_->prevRetryError_ = 0.0;
 
         // Write results only for accepted steps
         resHandler->BeginStep( actTimeStep_, actTime_ - dt_used );
@@ -478,6 +481,16 @@ namespace CoupledField {
     // On the first rejection: save the error as anti-windup reference.
     if(!accepted && retryCount == 0)
       antiWindupError_ = prevLTEerror_;
+
+    // Detect: first LTE step (step 3 = after 2 warm-up steps) rejecting repeatedly.
+    // This means the initial deltaT is too large for the tolerance — BDF2 step ratios
+    // blow up on retries, inflating the LTE estimate artificially.
+    if (!accepted && retryCount == 1 && actTimeStep_ == restartStep_ + 3) {
+      std::cout << " [Adaptive] HINT: The first LTE-capable step is rejecting.\n"
+                << "            Initial deltaT=" << firstdt_ << " is likely too large for the given tolerance.\n"
+                << "            Add StartAtmin=\"ON\" to your <adaptiveTimeStepping> to start from deltaTmin instead.\n"
+                << "            If StartAtmin isn`t viabel, try warmUpLTE to move the adaptive start to less transient part of the Simulation.\n";
+    }
 
     std::cout << "*******************************************************\n";
     std::cout << " Adaptive Timestepping -> dt= " << dt_

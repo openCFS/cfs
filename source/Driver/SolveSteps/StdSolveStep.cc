@@ -789,13 +789,14 @@ namespace CoupledField {
      // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);
     }
-    //update stage
-    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
+    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
-  
-  
+
+
   void StdSolveStep::StepTransNonLin() {
     /*!
      * Comments added to better understand what's going on. If you find any errors, please correct.
@@ -1143,17 +1144,14 @@ namespace CoupledField {
       }
     }
     
-    //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
-      /*
-       * here we finally compute the new solution vector
-       *  solution_new = solution_old + stage_solutions
-       */
+    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
-  
-  
+
+
   void StdSolveStep::StepTransNonLinTotal() {
     
     bool performOneMoreStep;
@@ -1315,10 +1313,11 @@ namespace CoupledField {
       
     } //stages
     
-    //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
   /** direct quasi-Newton formlation
    * Solves for one transient time step by using the direct quasi-Newton formulation.

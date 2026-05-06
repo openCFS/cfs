@@ -108,6 +108,8 @@
                   minStepFactor     : Floor on h_next/h_prev. Prevents extreme single-step reductions. Default: 0.25 (smoothing OFF) / 0.2 (ON).
                   scheme            : Error norm. 'maxlocalError': max over all DOFs (strict). 'normalizedError': RMS norm, recommended for large systems.
                   Stepsizesmoothing : 'ON': PI.3.4 controller (Soederlind 2002). 'OFF': simple I-controller.
+                  StartAtmin        : 'ON': first step uses deltaTmin (useful when deltaT >> wave period). 'OFF' (default): first step uses deltaT.
+                  warmUpLTE         : If set, run at fixed deltaT until LTE/tol &lt;= value, then activate adaptive control. Mutually exclusive with StartAtmin="ON". Typical value: 1.5-3.0.
                 </xsd:documentation>
               </xsd:annotation>
               <xsd:sequence>
@@ -118,6 +120,7 @@
                 <xsd:element name="relativeTol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="absoluteTol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="minStepFactor" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="warmUpLTE"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
               </xsd:sequence>
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>
@@ -128,6 +131,14 @@
                 </xsd:simpleType>
               </xsd:attribute>
               <xsd:attribute name="Stepsizesmoothing" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="ON"/>
+                    <xsd:enumeration value="OFF"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="StartAtmin" use="optional" default="OFF">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
                     <xsd:enumeration value="ON"/>

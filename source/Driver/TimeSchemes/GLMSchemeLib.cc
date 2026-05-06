@@ -298,10 +298,6 @@ Bdf2::Bdf2()
   numSol1stDerivs_ = 1;
   numSol2ndDerivs_ = 0;
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
-  dtCurrent_ = 5;
-  dtPrev1_= 5;
-  dtPrev2_ = 5;
-
   lastStageIsSolution_ = false;
   usePredictors_ = false;
 
@@ -319,11 +315,12 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   // The Scheme has been updated so, constant aswell as adaptive timesteps can be used.
   // w_ -> 1 for constant timstep, the coefficiats then revert back to previus values.
   // --------------------------------------------------------------------------------
-  if(dtCurrent_ == 5)
+  if(!initialized_)
   {
     dtCurrent_ = deltaT;
     dtPrev1_ = deltaT;
     dtPrev2_ = deltaT;
+    initialized_ = true;
   }else
   {
     dtPrev2_ = dtPrev1_;
@@ -367,8 +364,8 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[0][2] = 0;
     schemeCoefs_[0][3] = 0;
     schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent_); // 3/(2*curTStepSize_);
-    schemeCoefs_[1][1] = -(1.0 +w_) / dtCurrent_;                // 2/(curTStepSize_);
-    schemeCoefs_[1][2] =  w_*w_ /((1.0+w_) * dtCurrent_);      // (-0.5/curTStepSize_);
+    schemeCoefs_[1][1] =  (1.0 +w_) / dtCurrent_;                 //  2/(curTStepSize_);
+    schemeCoefs_[1][2] = -w_*w_ /((1.0+w_) * dtCurrent_);         // -0.5/curTStepSize_;
     schemeCoefs_[1][3] = 0;
     schemeCoefs_[2][0] = 1;
     schemeCoefs_[2][1] = 0;

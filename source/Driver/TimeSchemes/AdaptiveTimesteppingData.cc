@@ -6,11 +6,24 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     enabled_ = true;
     dtMin_   = node->Get("deltaTmin")->MathParse<Double>();
     dtMax_  = node->Get("deltaTmax")->MathParse<Double>();
-    sigma_   = node->Get("cutbackfactor")->MathParse<Double>();
+    PtrParamNode sigmaNode = node->Get("cutbackfactor", ParamNode::PASS);
+    if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
 
     std::string s = node->Get("Stepsizesmoothing")->As<std::string>();
     smoothing_    = (s == "ON");
-    minStepFactor_ = smoothing_ ? 0.2 : 0.25;
+    minStepFactor_ = smoothing_ ? 0.15 : 0.2;
+
+    PtrParamNode startNode = node->Get("StartAtmin", ParamNode::PASS);
+    startFromDtMin_ = startNode && (startNode->As<std::string>() == "ON");
+
+    PtrParamNode warmUpNode = node->Get("warmUpLTE", ParamNode::PASS);
+    if (warmUpNode) {
+        if (startFromDtMin_)
+            EXCEPTION("warmUpLTE and StartAtmin=\"ON\" are mutually exclusive.");
+        warmUpEnabled_  = true;
+        warmUpLTETarget_ = warmUpNode->MathParse<Double>();
+        inWarmUpPhase_  = true;
+    }
 
     PtrParamNode minSFNode = node->Get("minStepFactor", ParamNode::PASS);
     if (minSFNode) minStepFactor_ = minSFNode->MathParse<Double>();
@@ -28,6 +41,19 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
 
     std::string scheme = node->Get("scheme")->As<std::string>();
     errorScheme_ = (scheme == "normalizedError") ? 2 : 1;
+}
+
+void AdaptiveTimesteppingData::registerFieldLTE(double lte)
+{
+    fieldLocalErrors_.push_back(lte);
+    localError_ = getControllingError();
+    lteCollected_ = true;
+}
+
+double AdaptiveTimesteppingData::getControllingError() const
+{
+    if (fieldLocalErrors_.empty()) return localError_;
+    return *std::max_element(fieldLocalErrors_.begin(), fieldLocalErrors_.end());
 }
 
 bool AdaptiveTimesteppingData::is_error_finite(Double Error)
