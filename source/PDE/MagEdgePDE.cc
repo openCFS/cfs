@@ -133,9 +133,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-      std::string integId = curRegNode->Get("integId")->As<std::string>();
-      feSpace->SetRegionApproximation(actRegion,polyId,integId);
 
       if(useGradFields_){
         feSpace->SetUseGradients(actRegion);

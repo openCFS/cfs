@@ -215,39 +215,40 @@ namespace CoupledField{
     useGradients_[region] = false;
 
 
-    if(!refElems_[region].empty()) // FIXME: Fabian - first check why this is called multiple times?!
-      WARN("FeSpaceHCurlHi::SetRegionElements: overwrite " << refElems_[region].size() << " elements for regions " << region << " will create memory leaks!");
+    // The reference elements might be already set if there is no polyomial list in the xml file, because
+    // in this case SetRegionApproximation calls SetDefaultElements, which sets elements for all regions at once.
+    // But in the set up of the PDEs SetRegionApproximation is called for each region.
+    if(refElems_[region].empty()) {
+      //ToDo: save the information...
+      // QUERY FOR USER PARAMS IS STILL TO COME
+      refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
+      refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+      refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+      refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
+      refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+      refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
+      
+      refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
+      refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+      refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+      refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
+      refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+      refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
-    //ToDo: save the information...
-    // QUERY FOR USER PARAMS IS STILL TO COME
-    refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
-    refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
-    refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
-    refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
-    refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
-    refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
-    
-    refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
-    refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
-    refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
-    refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
-    refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
-    refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
+      refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
+      refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+      refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+      refElems1St_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
+      refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+      refElems1St_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
 
-    refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
-    refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
-    refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
-    refElems1St_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
-    refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
-    refElems1St_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
-
-    refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
-    refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
-    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
-    refElems1St_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();;
-    refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
-    refElems1St_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
-
+      refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
+      refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+      refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+      refElems1St_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();;
+      refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+      refElems1St_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
+    }
 
     
     // set order for every region
