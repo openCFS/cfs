@@ -1,0 +1,19 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! FEAST internal include - MKL Inspector-Executor Sparse BLAS
+! Drop inside subroutine declaration block only (not at file scope)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  integer(8) :: csrA          ! sparse_matrix_t  - opaque handle
+  integer(4) :: descrA(3)     ! matrix_descr     - type, mode, diag
+  integer(4) :: stat, operation
+
+  integer(4), parameter :: FEAST_SPARSE_INDEX_BASE_ONE           = 1
+  integer(4), parameter :: FEAST_SPARSE_OPERATION_NON_TRANSPOSE  = 10
+  integer(4), parameter :: FEAST_SPARSE_OPERATION_TRANSPOSE      = 11
+  integer(4), parameter :: FEAST_SPARSE_OPERATION_CONJ_TRANSPOSE = 12
+  integer(4), parameter :: FEAST_SPARSE_MATRIX_TYPE_GENERAL      = 20
+  integer(4), parameter :: FEAST_SPARSE_MATRIX_TYPE_SYMMETRIC    = 21
+  integer(4), parameter :: FEAST_SPARSE_MATRIX_TYPE_HERMITIAN    = 22
+  integer(4), parameter :: FEAST_SPARSE_FILL_MODE_LOWER          = 40
+  integer(4), parameter :: FEAST_SPARSE_FILL_MODE_UPPER          = 41
+  integer(4), parameter :: FEAST_SPARSE_DIAG_NON_UNIT            = 50
+  integer(4), parameter :: FEAST_SPARSE_LAYOUT_COLUMN_MAJOR      = 102
