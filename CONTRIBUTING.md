@@ -98,11 +98,13 @@ Please use the following workflow to contribute
 Notes for Maintainers
 ---------------------
 
+* Adapt the `CFS_NAME` and `PrintHistory`, bump up version number.
 * Generate a __Release__ by pushing an annotated tag `git tag -a`. 
   The annotation message should summarize the changes since the last release.
   Usually, we do two releases per year, tagged as `yyyyS` (summer) and `yyyyW` (winter).
   Do not forget to replace `:release` in the URLs below with the tag, e.g. `2022W`.
 * A binary __Package__ can be distributed by using [GitLab's Generic Packages Repository](https://docs.gitlab.com/ee/user/packages/generic_packages/).
+  This happens automatically via the Piepline but can be done manually too.
   Push the file using the API: `curl --header "PRIVATE-TOKEN: <personal_access_token>" --upload-file CFS-2022W-Linux.tar.gz "https://gitlab.com/api/v4/projects/12930334/packages/generic/openCFS/:release/CFS-2022W-Linux.tar.gz"`.
   Use a _personal access token_ with _api_ privileges created via the gitlab web-ui.
 * Releases and packages are connected by __links__ in the release.

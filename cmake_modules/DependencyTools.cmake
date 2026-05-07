@@ -426,6 +426,9 @@ macro(create_external_unpack_precompiled)
       INSTALL_COMMAND ""
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   else()
+    if(POLICY CMP0135)
+      cmake_policy(SET CMP0135 OLD)
+    endif()
     ExternalProject_Add(${PACKAGE_NAME}
       PREFIX ${DEPS_PREFIX}
       DOWNLOAD_COMMAND ""
