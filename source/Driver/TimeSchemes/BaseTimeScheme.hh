@@ -79,6 +79,11 @@ class BaseTimeScheme{
     /// step-size decision is made.  Default is a no-op (non-adaptive schemes).
     virtual void FinishStepLTE() {}
 
+    /// Returns true if the scheme coefficients (a0/dt etc.) changed since the last step.
+    /// Used by StdSolveStep to decide whether the system matrix must be rebuilt even when
+    /// no physical matrix (DAMPING, STIFFNESS) was reassembled.
+    virtual bool CoefficientsChanged() const { return false; }
+
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
 

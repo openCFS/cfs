@@ -321,11 +321,14 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     dtPrev1_ = deltaT;
     dtPrev2_ = deltaT;
     initialized_ = true;
+    coefChanged_ = true;
   }else
   {
+    Double oldDt = dtCurrent_;
     dtPrev2_ = dtPrev1_;
     dtPrev1_ = dtCurrent_;
     dtCurrent_ = deltaT;
+    coefChanged_ = (dtCurrent_ != oldDt);
   }
 
   curTStepSize_ = deltaT;

@@ -124,6 +124,10 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //! Restores dtCurrent_, dtPrev1_, dtPrev2_ from last-accepted snapshots; call on step rejection to keep BDF2 coefficient history consistent for the retry.
     void reset_dt();
 
+    virtual bool CoefficientsChanged() const override {
+      return curScheme_ && curScheme_->coefChanged_;
+    }
+
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
     virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
                                   std::map<FEMatrixType,Double> & matFactors);

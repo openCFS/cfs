@@ -64,7 +64,6 @@ public:
     bool   warmUpEnabled_   = false;
     double warmUpLTETarget_ = 2.0;
     bool   inWarmUpPhase_   = false;
-    int    warmUpRampSteps_ = 0;   // counts accepted adaptive steps during post-warm-up ramp (0-3)
 
     //! Calculates next Step (Standart fomular)
     Double standardStepsize(bool* accepted, Double local_error_, Double dtCurrent_);

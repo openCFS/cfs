@@ -488,21 +488,6 @@ namespace CoupledField{
                 reset_dt();
                 return;
               }
-              if (atd->warmUpEnabled_ && atd->warmUpRampSteps_ < 3) {
-                atd->warmUpRampSteps_++;
-                double h        = curScheme_->dtCurrent_;
-                double h_next   = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
-                double fraction = std::pow(10.0, -3.0 + (atd->warmUpRampSteps_ - 1));
-                h_next = h + fraction * (h_next - h);
-                mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
-                std::cout << " [Adaptive] Ramp-up " << atd->warmUpRampSteps_ << "/3"
-                          << ", fraction=" << fraction
-                          << ", dt=" << h_next << "\n";
-                if (atd->toleranceNotReachable_) {
-                  atd->warmUpRampSteps_ = 0;
-                  std::cout << " [Adaptive] Ramp-up reset after saturation/force-accept.\n";
-                }
-              }
             }
           }
           // stepDecisionMade_ && !stepRejected_: accepted — fall through to
@@ -540,21 +525,6 @@ namespace CoupledField{
                         << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
               reset_dt();
               return;
-            }
-            if (atd->warmUpEnabled_ && atd->warmUpRampSteps_ < 10) {
-              atd->warmUpRampSteps_++;
-              double h        = curScheme_->dtCurrent_;
-              double h_next   = mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt");
-              double fraction = std::pow(10.0, -3.0 + 3.0 * (atd->warmUpRampSteps_ - 1) / 9.0);
-              h_next = h + fraction * (h_next - h);
-              mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
-              std::cout << " [Adaptive] Ramp-up " << atd->warmUpRampSteps_ << "/10"
-                        << ", fraction=" << fraction
-                        << ", dt=" << h_next << "\n";
-              if (atd->toleranceNotReachable_) {
-                atd->warmUpRampSteps_ = 0;
-                std::cout << " [Adaptive] Ramp-up reset after saturation/force-accept.\n";
-              }
             }
           }
         }
@@ -904,6 +874,8 @@ namespace CoupledField{
     curScheme_->dtCurrent_ = curScheme_->prev_dtCurrent_;
     curScheme_->dtPrev1_   = curScheme_->prev_dtPrev1_;
     curScheme_->dtPrev2_   = curScheme_->prev_dtPrev2_;
+    // The system matrix may have been rebuilt for the rejected dt; force a rebuild on retry.
+    curScheme_->coefChanged_ = true;
   }
 
 }

@@ -44,6 +44,7 @@ class GLMScheme{
   bool   adaptiveBDF2  = false;
   Double local_error_  = 0.0;
   bool   initialized_  = false;
+  bool   coefChanged_  = false;  // true when a0/dt changed; triggers system matrix rebuild
 
   /// Enumeration for each GLM scheme available
   typedef enum{

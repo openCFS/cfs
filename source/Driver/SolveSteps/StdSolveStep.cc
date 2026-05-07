@@ -686,7 +686,11 @@ namespace CoupledField {
         // are introduced, since right now only the system matrix is considered
         // for harmonic computations (no splitting in M and K).
 
-        if(assemble_->IsMatrixUpdated()){
+        bool schemeCoefChanged = false;
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++)
+          if(fncIt->second->GetTimeScheme()->CoefficientsChanged()) schemeCoefChanged = true;
+
+        if(assemble_->IsMatrixUpdated() || schemeCoefChanged){
           //if AMG is used, rebuild auxiliary matrix
           auxSet_ = false;
           // set system matrix to zero initially, as ConstructEffectiveMatrix only sums up the contributions
