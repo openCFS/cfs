@@ -12,11 +12,26 @@
 #include "CoefFunction.hh"
 
 namespace CoupledField {
-// forward class declaration
+
 // ============================================================================
-//  Coef Function Up Coth
+//  Coef Function Rotation
 // ============================================================================
-//! Coefficient function for alligning tensor fields with a vector field
+//! Rotates a material tensor coefficient function using two vector fields.
+//!
+//! The rotation procedure works as follows:
+//!  1. The material tensor is assumed to be defined in the x-y-z coordinate
+//!     system (i.e. the 1-2-3 axes in the mat-XML correspond to x-y-z).
+//!  2. A rotation matrix is computed as the shortest rotation that
+//!     maps \c refVec onto \c targetVec.
+//!  3. The rotation matrix is applied to the material tensor via
+//!     \f$ T' = R \, T \, R^\top \f$.
+//!
+//! \note This procedure is only sufficient for transversely isotropic material
+//!       tensors where a single principal direction fully determines the tensor.
+//!
+//! Both 2D and 3D tensors are supported. The dimension of the vector fields
+//! must match the tensor dimension (2D tensor → 2D vectors, 3D tensor → 3D
+//! vectors).
 
   class CoefFunctionRotation : public CoefFunction , public enable_shared_from_this<CoefFunctionRotation>
   {
@@ -44,13 +59,13 @@ namespace CoupledField {
 
   protected:
 
-    // material tensor coefficient function
+    //! Material tensor coefficient function (defined in x-y-z / 1-2-3 system)
     PtrCoefFct matCoeff_;
 
-    // reference vector field for rotation
+    //! Reference vector field (principal direction as given in the mat-XML)
     PtrCoefFct vec1Coeff_;
 
-    // target vector field for rotation
+    //! Target vector field (desired orientation in the simulation domain)
     PtrCoefFct vec2Coeff_;
 
   };

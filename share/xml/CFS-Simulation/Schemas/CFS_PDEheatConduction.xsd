@@ -48,7 +48,11 @@
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="rotateMaterialTensorsId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="rotateMaterialTensorsId" type="xsd:token" use="optional" default="">
+                      <xsd:annotation>
+                        <xsd:documentation>References a rotation entry in rotationList by name. When set, all material tensors of this region are rotated using the referenced refVec/targetVec pair.</xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -113,18 +117,26 @@
           <!-- Type of rotation (optional) -->
           <xsd:element name="rotationList" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
-              <xsd:documentation>This list contains rotations to be applied to all material tensors of specified regions</xsd:documentation>
+              <xsd:documentation>List of named rotations that can be referenced by regions via rotateMaterialTensorsId. Each rotation rotates the material tensor of the assigned region from a reference orientation to a target orientation using the shortest rotation (Rodrigues formula). This is sufficient for transversely isotropic materials where a single principal direction (e.g. a fibre direction) determines the tensor.</xsd:documentation>
             </xsd:annotation>
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded" minOccurs="1">
                 <xsd:element name="rotation">
                   <xsd:annotation>
-                    <xsd:documentation>A rotation is defined by 2 vectors, a reference vector and a target vector.</xsd:documentation>
+                    <xsd:documentation>Defines a rotation by a reference vector and a target vector. The rotation matrix is the shortest rotation mapping refVec onto targetVec, and is applied as T' = R * T * R^T. The material tensor is assumed to be given in the x-y-z coordinate system (axes 1-2-3 in the mat-XML correspond to x-y-z).</xsd:documentation>
                   </xsd:annotation>
                   <xsd:complexType>
                     <xsd:sequence>
-                      <xsd:element name="refVec" type="DT_BcInhomVector"/>
-                      <xsd:element name="targetVec" type="DT_BcInhomVector"/>
+                      <xsd:element name="refVec" type="DT_BcInhomVector">
+                        <xsd:annotation>
+                          <xsd:documentation>The reference direction of the rotation. Can be a constant vector or a spatially varying vector field.</xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:element>
+                      <xsd:element name="targetVec" type="DT_BcInhomVector">
+                        <xsd:annotation>
+                          <xsd:documentation>The desired orientation of the reference direction after the rotation in the simulation domain. Can be a constant vector or a spatially varying vector field.</xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:element>
                     </xsd:sequence>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                   </xsd:complexType>
