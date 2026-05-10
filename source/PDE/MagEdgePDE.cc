@@ -133,9 +133,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-      std::string integId = curRegNode->Get("integId")->As<std::string>();
-      feSpace->SetRegionApproximation(actRegion,polyId,integId);
 
       if(useGradFields_){
         feSpace->SetUseGradients(actRegion);
@@ -461,9 +458,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           EXCEPTION("MagEdgePDE: VelocityStiffInt not implemented for complex case!");
         } else {
           if(dim_ == 2)
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),coeff, 1.0, coefUpdateGeo);
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),coeff, -1.0, coefUpdateGeo);
           else
-            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),coeff, 1.0, coefUpdateGeo);
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),coeff, -1.0, coefUpdateGeo);
         }
         assert(velocityStiff != NULL);
 

@@ -47,7 +47,7 @@
                 </nonLinList>
                 <velocityList>
                     <velocity name="velId1">
-                        <comp dof="y" value="5.0"/>
+                        <comp dof="y" value="-5.0"/>
                     </velocity>
                 </velocityList>
                 <bcsAndLoads>

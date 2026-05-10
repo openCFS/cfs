@@ -902,8 +902,78 @@ namespace CoupledField
 
   void MagBasePDE::GenerateMaxwellForce(CoupledField::StdVector<std::string> &vecComponents,
     CoupledField::PtrCoefFct &bFunc, shared_ptr<CoupledField::BaseFeFunction> &feFct) {
-    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-      // === MAXWELL FORCE DENSITY ===
+
+    if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC)
+    {
+      // Note: The positive normal direction is defined as the inward facing one (factor = -1.0).
+      // For MULTIHARMONIC, field amplitudes are 1/2 of the harmonic ones;
+      // the Maxwell stress is quadratic in B, so we apply the same factor-of-2 scaling
+      // convention used for the Lorentz force to recover the correct total force
+      // by summing contributions from all harmonics.
+      if (analysistype_ == MULTIHARMONIC) {
+        WARN("For multiharmonic analysis, Maxwell force density is not properly validated.");
+      }
+      Double normalFactor = (analysistype_ == MULTIHARMONIC) ? -2.0 : -1.0;
+
+      // === MAXWELL FORCE DENSITY HARMONIC STATIC (DC, time-averaged) ===
+      // T_DC = (1/2μ) * {(B_re·n)B_re + (B_im·n)B_im - (1/2)|B̂|²n}
+      shared_ptr<ResultInfo> mfd_static(new ResultInfo);
+      mfd_static->resultType = MAG_FORCE_MAXWELL_DENSITY_STATIC;
+      mfd_static->dofNames = vecComponents;
+      mfd_static->unit = "N/m^2";
+      mfd_static->definedOn = ResultInfo::SURF_ELEM;
+      mfd_static->entryType = ResultInfo::VECTOR;
+      availResults_.insert( mfd_static );
+
+      shared_ptr<CoefFunctionSurfMaxwell> maxForceDens_static( new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, normalFactor, mfd_static) );
+      DefineFieldResult( maxForceDens_static, mfd_static);
+      surfCoefFcts_[maxForceDens_static] = bFunc;
+
+      // === MAXWELL FORCE DENSITY HARMONIC TIME (2ω complex amplitude) ===
+      // T_2ω = (1/2μ) * {(B̂·n)B̂ - (1/2)(B̂·B̂)n}  (non-Hermitian products)
+      shared_ptr<ResultInfo> mfd_harmonic(new ResultInfo);
+      mfd_harmonic->resultType = MAG_FORCE_MAXWELL_DENSITY_HARMONIC;
+      mfd_harmonic->dofNames = vecComponents;
+      mfd_harmonic->unit = "N/m^2";
+      mfd_harmonic->definedOn = ResultInfo::SURF_ELEM;
+      mfd_harmonic->entryType = ResultInfo::VECTOR;
+      availResults_.insert( mfd_harmonic );
+
+      shared_ptr<CoefFunctionSurfMaxwell> maxForceDens_harmonic(
+        new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, normalFactor, mfd_harmonic));
+      DefineFieldResult( maxForceDens_harmonic, mfd_harmonic);
+      surfCoefFcts_[maxForceDens_harmonic] = bFunc;
+      WARN( "WARNING: For multiharmonic analysis, Maxwell force density is not properly validated." ); 
+    
+      // === MAXWELL FORCE STATIC (TOTAL) ===
+      shared_ptr<ResultInfo> mf_static(new ResultInfo);
+      mf_static->resultType = MAG_FORCE_MAXWELL_STATIC;
+      mf_static->dofNames = vecComponents;
+      mf_static->unit = "N";
+      mf_static->definedOn = ResultInfo::SURF_REGION;
+      mf_static->entryType = ResultInfo::VECTOR;
+      availResults_.insert( mf_static );
+
+      shared_ptr<ResultFunctor> mfFunc_static(
+        new ResultFunctorIntegrate<Complex>(maxForceDens_static, feFct, mf_static));
+      resultFunctors_[MAG_FORCE_MAXWELL_STATIC] = mfFunc_static;
+
+      // === MAXWELL FORCE HARMONIC (TOTAL) ===
+      shared_ptr<ResultInfo> mf_harmonic(new ResultInfo);
+      mf_harmonic->resultType = MAG_FORCE_MAXWELL_HARMONIC;
+      mf_harmonic->dofNames = vecComponents;
+      mf_harmonic->unit = "N";
+      mf_harmonic->definedOn = ResultInfo::SURF_REGION;
+      mf_harmonic->entryType = ResultInfo::VECTOR;
+      availResults_.insert( mf_harmonic );
+
+      shared_ptr<ResultFunctor> mfFunc_harmonic(
+        new ResultFunctorIntegrate<Complex>(maxForceDens_harmonic, feFct, mf_harmonic));
+      resultFunctors_[MAG_FORCE_MAXWELL_HARMONIC] = mfFunc_harmonic;
+
+    }
+    else {
+      // === MAXWELL FORCE DENSITY (STATIC / TRANSIENT) ===
       shared_ptr<ResultInfo> mfd(new ResultInfo);
       mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
       mfd->dofNames = vecComponents;

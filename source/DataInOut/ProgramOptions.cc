@@ -729,7 +729,12 @@ namespace CoupledField {
         << endl
         << "22.10, Welcome World" << endl
         << "  CFS++ became officially open source and got renamed to openCFS (www.opencfs.org)." << endl
-        << "  Feel free to contribute via gitlab.com/openCFS :)" << endl;
+        << "  Feel free to contribute via gitlab.com/openCFS :)" << endl
+        << endl
+        << "26.05, Kaum Konvergenz" << endl
+        << "  only describes the most difficult non-linear problems that CFS can handle if asked nicely ;-)" << endl
+        << "  This release brings several important features all over the place!" << endl
+        << endl;
   }
 
   void ProgramOptions::PrintHeader(std::ostream & out)

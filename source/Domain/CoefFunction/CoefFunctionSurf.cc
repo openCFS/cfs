@@ -305,7 +305,7 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
 
   //get regionId from surfRegion
   RegionIdType surRegId = surfLpm.ptEl->regionId;
-  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  RegionIdType volNeighborRegionId = (neighborRegionId_.count(surRegId) > 0) ? neighborRegionId_.at(surRegId) : NO_REGION_ID;
   surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
 
   //get magnetic flux density
@@ -354,7 +354,7 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
 
   //get regionId from surfRegion
   RegionIdType surRegId = surfLpm.ptEl->regionId;
-  RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
+  RegionIdType volNeighborRegionId = (neighborRegionId_.count(surRegId) > 0) ? neighborRegionId_.at(surRegId) : NO_REGION_ID;
   surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
 
   // normal unit vector
@@ -376,23 +376,50 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
   permFncs[volNeighborRegionId]->GetScalar(permeability, *surfLpm.lpmVol );
   matFactor = 1.0 / permeability;
 
-  //compute B* \cdot n; Bn = B \cdot n; compute B^2
-  Complex Bn1 = conjBvec * normalVecC; // normal component of B
-  Complex Bn2 = Bvec * normalVecC;
-  Complex B2 = Bvec.Inner(); // square of B
+  if (resultType_ == MAG_FORCE_MAXWELL_DENSITY_HARMONIC) {
+    // === Harmonic (2ω) Maxwell traction complex amplitude ===
+    // T_2ω = (1/2μ) * {(B̂·n)B̂ - (1/2)(B̂·B̂)n}
+    // Both products are NON-Hermitian (operator*, not Inner()):
+    //   B̂·n = Σ B_i * n_i  (no conjugate)
+    //   B̂·B̂ = Σ B_i^2      (non-Hermitian, gives complex result)
+    Complex Bn = Bvec * normalVecC;  // B̂·n  (non-Hermitian)
+    Complex B2 = Bvec * Bvec;        // B̂·B̂  (non-Hermitian: Σ B_i^2)
 
-  //compute BnB1 = (B* \cdot n)*B; BnB2 = (B \cdot n)*B*
-  Vector<Complex> BnB1;
-  Vector<Complex> BnB2;
-  BnB1 = Bvec; BnB1.ScalarMult(0.25*Bn1);
-  BnB2 = conjBvec; BnB2.ScalarMult(0.25*Bn2);
+    // compute (1/2)(B̂·n)B̂
+    Vector<Complex> BnB = Bvec;
+    BnB.ScalarMult(0.5 * Bn);       
 
-  Vector<Complex> B2n(normalVecC);
-  B2n.ScalarMult(0.25*B2); // n * B^2/2
+    // compute (1/4)(B̂·B̂)n = (1/2)*(1/2)(B̂·B̂)n
+    Vector<Complex> B2n = normalVecC;
+    B2n.ScalarMult(0.25 * B2);       // (1/4)(B̂·B̂)n = (1/2)*(1/2)(B̂·B̂)n
 
-  //compute force vector on the surface: (1/mu) * ( 1/4 ((B* \cdot n) B + (B \cdot n) B*) - 1/4*(B \cdot B*) n )
-  coefVec = BnB1 + BnB2 - B2n;
-  coefVec.ScalarMult(factor_ * matFactor);
+
+    coefVec = BnB - B2n; // sum both parts
+    coefVec.ScalarMult(factor_ * matFactor); // multiply with material factor
+  } else if ( resultType_ == MAG_FORCE_MAXWELL_DENSITY_STATIC || resultType_ == MAG_FORCE_MAXWELL_DENSITY ) {
+    // === DC (time-averaged) Maxwell traction ===
+    // T_DC = (1/2μ) * {(B_re·n)B_re + (B_im·n)B_im - (1/2)|B̂|²n}
+    // Using: (B̂*·n)B̂ + (B̂·n)B̂* = 2[(B_re·n)B_re + (B_im·n)B_im]  (always real)
+    //        B̂·B̂* = |B̂|² = |B_re|² + |B_im|²  (Hermitian via Inner(), always real)
+
+    //compute B* \cdot n; Bn = B \cdot n; compute B^2
+    Complex Bn1 = conjBvec * normalVecC; // normal component of B
+    Complex Bn2 = Bvec * normalVecC;
+    Complex B2 = Bvec.Inner(); // |B̂|² (Hermitian: Σ B_i * conj(B_i) — always real)
+
+    //compute BnB1 = (B* \cdot n)*B; BnB2 = (B \cdot n)*B*
+    Vector<Complex> BnB1;
+    Vector<Complex> BnB2;
+    BnB1 = Bvec; BnB1.ScalarMult(0.25*Bn1);
+    BnB2 = conjBvec; BnB2.ScalarMult(0.25*Bn2);
+
+    Vector<Complex> B2n(normalVecC);
+    B2n.ScalarMult(0.25*B2); // n * |B̂|^2/4
+
+    //compute force vector on the surface: (1/mu) * ( 1/4 ((B* \cdot n) B + (B \cdot n) B*) - 1/4*|B̂|^2 * n )
+    coefVec = BnB1 + BnB2 - B2n;
+    coefVec.ScalarMult(factor_ * matFactor);
+  }
 
   if ( resultType_ == MAG_NORMALFORCE_MAXWELL_DENSITY
        || resultType_ == MAG_TANGENTIALFORCE_MAXWELL_DENSITY) {
