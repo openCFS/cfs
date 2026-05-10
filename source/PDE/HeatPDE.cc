@@ -1840,6 +1840,9 @@ void HeatPDE::DefineSolveStep() {
 
   void HeatPDE::InitTimeStepping()
   {
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("Adaptive timestepping is not supported for HeatPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
+
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 

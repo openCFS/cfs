@@ -46,7 +46,7 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="normalizedError" Stepsizesmoothing="OFF">
+        <adaptiveTimeStepping scheme="normalizedError" controller="I">
           <deltaTmin>1e-7</deltaTmin>
           <deltaTmax>1e-4</deltaTmax>
           <directTol>5e-8</directTol>

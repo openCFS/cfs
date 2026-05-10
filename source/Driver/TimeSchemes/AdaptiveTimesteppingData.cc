@@ -9,9 +9,11 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     PtrParamNode sigmaNode = node->Get("cutbackfactor", ParamNode::PASS);
     if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
 
-    std::string s = node->Get("Stepsizesmoothing")->As<std::string>();
-    smoothing_    = (s == "ON");
-    minStepFactor_ = smoothing_ ? 0.15 : 0.2;
+    std::string ctrl = node->Get("controller")->As<std::string>();
+    if      (ctrl == "PI")  controllerType_ = 1;
+    else if (ctrl == "PID") controllerType_ = 2;
+    else                    controllerType_ = 0;  // "I"
+    minStepFactor_ = (controllerType_ > 0) ? 0.15 : 0.2;
 
     PtrParamNode startNode = node->Get("StartAtmin", ParamNode::PASS);
     startFromDtMin_ = startNode && (startNode->As<std::string>() == "ON");
@@ -85,7 +87,7 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
     return h_next;
 }
 
- Double AdaptiveTimesteppingData::standardStepsize(bool* accepted, Double local_error_, Double dtCurrent_)
+ Double AdaptiveTimesteppingData::iController(bool* accepted, Double local_error_, Double dtCurrent_)
   {
     Double Rtol  = tol_;
     Double est   = local_error_;
@@ -113,7 +115,7 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
     return h_next;
   }
 
-  Double AdaptiveTimesteppingData::smoothStepsize(bool* accepted, Double local_error_,Double dtCurrent_ )
+  Double AdaptiveTimesteppingData::piController(bool* accepted, Double local_error_,Double dtCurrent_ )
   {
     Double Rtol  = tol_;
     Double est   = local_error_;
@@ -152,5 +154,33 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
   
     return h_next;
   }
+
+Double AdaptiveTimesteppingData::pidController(bool* accepted,
+        Double local_error_, Double dtCurrent_)
+{
+    // H312 PID (Söderlind 2005, eq. 38): kk_I=2/9, k=3 → kI=2/27
+    // h_{n+1} = h × (σ·tol/r̂_n)^e1 × (σ·tol/r̂_{n-1})^e2 × (σ·tol/r̂_{n-2})^e1
+    // Fall back to PI when not yet enough history.
+    if (prevPrevError_ <= 0.0)
+        return piController(accepted, local_error_, dtCurrent_);
+
+    const Double kI  = (2.0/9.0) / 3.0;  // kk_I/k = 2/27
+    const Double e1  = kI / 4.0;
+    const Double e2  = kI / 2.0;
+
+    Double h   = dtCurrent_;
+    Double est = local_error_;
+
+    if (est == 0.0) { *accepted = true; return 1.5 * h; }
+
+    Double base   = sigma_ * tol_;
+    Double h_next = h
+        * std::pow(base / est,            e1)
+        * std::pow(base / prevError_,     e2)
+        * std::pow(base / prevPrevError_, e1);
+
+    *accepted = (est <= tol_);
+    return h_next;
+}
 
 } // namespace CoupledField

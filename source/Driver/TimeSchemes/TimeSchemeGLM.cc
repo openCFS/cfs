@@ -466,10 +466,11 @@ namespace CoupledField{
               } else {
                 double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
                 if (ratio <= atd->warmUpLTETarget_) {
-                  atd->inWarmUpPhase_ = false;
-                  atd->prevError_ = atd->localError_;
+                  atd->inWarmUpPhase_   = false;
+                  atd->prevPrevError_   = atd->prevError_;
+                  atd->prevError_       = atd->localError_;
                   std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
-                  skipAdaptiveControl = true;  // one extra hold so the PI controller doesn't cold-start with a large jump
+                  skipAdaptiveControl = true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
                 } else {
                   std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
                             << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
@@ -506,10 +507,11 @@ namespace CoupledField{
             } else {
               double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
               if (ratio <= atd->warmUpLTETarget_) {
-                atd->inWarmUpPhase_ = false;
-                atd->prevError_ = atd->localError_;
+                atd->inWarmUpPhase_   = false;
+                atd->prevPrevError_   = atd->prevError_;
+                atd->prevError_       = atd->localError_;
                 std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
-                skipAdaptiveControl = true;  // one extra hold so the PI controller doesn't cold-start with a large jump
+                skipAdaptiveControl = true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
               } else {
                 std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
                           << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
@@ -825,11 +827,12 @@ namespace CoupledField{
       return true;
     }
 
-    // Smoothing == false: PI controller disabled; use classic single-step size formula.
-    if(!atd->smoothing_)
-      h_next = atd->standardStepsize(&accepted,curScheme_->local_error_,curScheme_->dtCurrent_);
+    if (atd->controllerType_ == 0)
+      h_next = atd->iController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
+    else if (atd->controllerType_ == 1)
+      h_next = atd->piController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
     else
-      h_next = atd->smoothStepsize(&accepted,curScheme_->local_error_,curScheme_->dtCurrent_);
+      h_next = atd->pidController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
     // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
     if (h_next / h > maxRatio)
       h_next = h * maxRatio;

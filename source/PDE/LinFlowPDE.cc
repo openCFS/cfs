@@ -1777,6 +1777,9 @@ namespace CoupledField {
 
   void LinFlowPDE::InitTimeStepping()
   {
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("Adaptive timestepping is not supported for LinFlowPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
+
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);

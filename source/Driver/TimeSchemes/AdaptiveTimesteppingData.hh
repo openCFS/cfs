@@ -20,7 +20,7 @@ public:
     double rtol_            = 0.0;     // 0 = disabled
     double atol_            = 0.0;
     double minStepFactor_   = 0.2;
-    bool   smoothing_       = false;
+    int    controllerType_   = 0;    // 0 = I, 1 = PI, 2 = PID
     bool   startFromDtMin_  = false;
 
     // per-step state (written by TimeSchemeGLM, read by TransientDriver)
@@ -41,7 +41,8 @@ public:
     double getControllingError() const;
 
     // per-step feedback (written by TransientDriver, read by TimeSchemeGLM)
-    double prevError_ = 0.0;
+    double prevError_     = 0.0;
+    double prevPrevError_ = 0.0;
 
     bool is_error_finite(Double Error);
 
@@ -65,11 +66,14 @@ public:
     double warmUpLTETarget_ = 2.0;
     bool   inWarmUpPhase_   = false;
 
-    //! Calculates next Step (Standart fomular)
-    Double standardStepsize(bool* accepted, Double local_error_, Double dtCurrent_);
-    
-    //! Calculates next Step (Söderlin PI Controller)
-    Double smoothStepsize(bool* accepted, Double local_error_,Double dtCurrent_ );
+    //! I-controller: simple single-step power-law formula
+    Double iController(bool* accepted, Double local_error_, Double dtCurrent_);
+
+    //! PI.3.4 controller (Söderlind 2002)
+    Double piController(bool* accepted, Double local_error_, Double dtCurrent_);
+
+    //! H312 PID controller (Söderlind 2005, eq. 38) — for non-smooth/noisy problems
+    Double pidController(bool* accepted, Double local_error_, Double dtCurrent_);
 };
 
 } // namespace CoupledField

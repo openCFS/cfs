@@ -54,7 +54,7 @@ namespace CoupledField {
     initialTime_ = 0.0;
     firstdt_ = 0.0;
     restartCount_ = 0;
-    Smoothing_ = false;
+    controllerType_ = 0;
     restartStep_ = 0;
     simulationENDTime_ = 0.0;
     endStep_ = 0;
@@ -93,7 +93,7 @@ namespace CoupledField {
       deltaTMin_  = atData_->dtMin_;
       deltaTMax_  = atData_->dtMax_;
       sigma_      = atData_->sigma_;
-      Smoothing_  = atData_->smoothing_;
+      controllerType_ = atData_->controllerType_;
       tol_        = atData_->tol_;
 
       if(deltaTMin_ > deltaTMax_)
@@ -319,21 +319,24 @@ namespace CoupledField {
         retryCount = 0;
         atData_->prevRetryError_ = 0.0;
 
+        // t_n: physical time of the just-accepted state (start of this step).
+        // Results are stored at t_n; the restart file also uses t_n.
+        Double t_n = actTime_ - dt_used;
+
         // Write results only for accepted steps
-        resHandler->BeginStep( actTimeStep_, actTime_ - dt_used );
-        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ - dt_used );
+        resHandler->BeginStep( actTimeStep_, t_n );
+        ptPDE_->WriteResultsInFile(actTimeStep_, t_n );
         resHandler->FinishStep( );
 
         // write out re-start only in the last step
         if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
           if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
-           simState_->WriteStep( actTimeStep_, actTime_ - dt_used );
+           simState_->WriteStep( actTimeStep_, t_n );
         }
 
-        if (actTime_ >= (simulationENDTime_+ dt_used))
+        if (t_n >= simulationENDTime_)
         {
           simulationEndTimeReached_ = true;
-          
         }else
         {
           endStep_ = endStep_+1;
@@ -501,9 +504,11 @@ namespace CoupledField {
                 << " -- step force-accepted with error above tolerance.\n";
       prevLTEerror_ = antiWindupError_;
     }
-    // Only update prevError for accepted steps (including force-accepts).
-    if (accepted || tolNotReachable)
-      atData_->prevError_ = prevLTEerror_;
+    // Only update error history for accepted steps (including force-accepts).
+    if (accepted || tolNotReachable) {
+      atData_->prevPrevError_ = atData_->prevError_;
+      atData_->prevError_     = prevLTEerror_;
+    }
 
     std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";

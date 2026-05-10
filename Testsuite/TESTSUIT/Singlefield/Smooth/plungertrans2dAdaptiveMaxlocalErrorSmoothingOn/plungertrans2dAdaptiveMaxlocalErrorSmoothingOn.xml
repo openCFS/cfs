@@ -46,7 +46,7 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="maxlocalError" Stepsizesmoothing="ON">
+        <adaptiveTimeStepping scheme="maxlocalError" controller="PI">
           <deltaTmin>1e-8</deltaTmin>
           <deltaTmax>3e-3</deltaTmax>
           <directTol>5e-8</directTol>

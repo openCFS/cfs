@@ -126,8 +126,8 @@ namespace CoupledField {
     //! restartCount_ : tracks howmany restarts were done
     UInt restartCount_;
 
-    //! True when Stepsizesmoothing="ON"; activates PI3.4 step-size controller.
-    bool Smoothing_;
+    //! Step-size controller type: 0=I, 1=PI (PI.3.4), 2=PID (H312).
+    int controllerType_;
 
     // =======================================================================
     //  Restart related data
