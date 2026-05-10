@@ -20,6 +20,7 @@
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "TimeSchemes/AdaptiveTimesteppingData.hh"
 
 using std::cout;
 using std::endl;

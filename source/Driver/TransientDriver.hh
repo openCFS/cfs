@@ -2,7 +2,6 @@
 #define FILE_TRANSIENTDRIVER_2001
 
 #include "SingleDriver.hh"
-#include "Driver/TimeSchemes/AdaptiveTimesteppingData.hh"
 
 #include <memory>
 
@@ -10,6 +9,7 @@ namespace CoupledField {
 
   //! forward class declarations
   class Timer;
+  class AdaptiveTimesteppingData;
 
   //! Class for transient simulations
   

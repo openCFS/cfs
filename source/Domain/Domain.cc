@@ -2,7 +2,6 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include "Domain.hh"
-#include "Driver/TimeSchemes/AdaptiveTimesteppingData.hh"
 
 #include <set>
 #include <map>
