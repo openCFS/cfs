@@ -164,6 +164,9 @@ namespace CoupledField {
     //! LTE error saved at the first rejection of a retry sequence; fed back to the PI controller when toleranceNotReachable is set to prevent integrator windup.
     double antiWindupError_;
 
+    //! Cumulative count of all step rejections across the whole simulation run.
+    int totalRetryCount_ = 0;
+
     //! Shared adaptive timestepping state; null when adaptive is disabled.
     shared_ptr<AdaptiveTimesteppingData> atData_;
 

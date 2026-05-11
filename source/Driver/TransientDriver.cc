@@ -317,6 +317,8 @@ namespace CoupledField {
           actTime_ -= dt_used;  // undo with the same dt that was added
           continue;             // redo this step with reduced dt_
         }
+        totalRetryCount_ += retryCount;
+        info_->Get("totalAdaptiveRetries")->SetValue(totalRetryCount_);
         retryCount = 0;
         atData_->prevRetryError_ = 0.0;
 

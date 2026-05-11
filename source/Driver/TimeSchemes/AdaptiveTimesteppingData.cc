@@ -13,7 +13,12 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     if      (ctrl == "PI")  controllerType_ = 1;
     else if (ctrl == "PID") controllerType_ = 2;
     else                    controllerType_ = 0;  // "I"
-    minStepFactor_ = (controllerType_ > 0) ? 0.15 : 0.2;
+    minStepFactor_ = (controllerType_ > 0) ? 0.2 : 0.25;
+  
+    if(controllerType_ == 2)
+    {
+      minStepFactor_ = 0.10;
+    }
 
     PtrParamNode startNode = node->Get("StartAtmin", ParamNode::PASS);
     startFromDtMin_ = startNode && (startNode->As<std::string>() == "ON");
