@@ -186,9 +186,9 @@ namespace CoupledField {
     //! This pointer is used to hold the address of a part of the internal
     //! (S)CRS matrix structures. The related memory segment must not
     //! be altered of deleted. Therefore the pointer is const!
-    Integer *rowPtr_;
-    Integer *colPtr_;
-    const T *datPtr_;
+    Integer *rowPtr_ = nullptr;
+    Integer *colPtr_ = nullptr;
+    const T *datPtr_ = nullptr;
     //@}
 
     //! Stored information about the storage type and entry type of the matrix
@@ -243,13 +243,13 @@ namespace CoupledField {
     //! the message level to 1 results in statistical information being printed
     //! to the standard output. The attribute's value is set in the Setup()
     //! method corresponding to the PARDISO_stats parameter.
-    int msgLvl_;
+    int msgLvl_ = -1;
 
     //! Integer value of zero for passing to Pardiso
-    int zeroINT_;
+    int zeroINT_ = -1;
 
     //! Floating point value of zero for passing to Pardiso
-    Double zeroDBL_;
+    Double zeroDBL_ = 0.0;
 
     //! Array containing entries of problem matrix
 
@@ -259,10 +259,10 @@ namespace CoupledField {
     Double* theMatrix_ = NULL;
 
     //! A flag specifying if Setup is being called for the first time
-    bool firstCall_;
+    bool firstCall_ = true;
 
     // ! Should PARDISO performance be logged for each PARDISO call?
-    bool logPerformance_;
+    bool logPerformance_ = false;
 
     //! Array with identity reordering
 

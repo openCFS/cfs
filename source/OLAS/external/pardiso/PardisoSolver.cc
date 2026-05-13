@@ -125,13 +125,9 @@ extern "C" {
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
 
-    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::INSERT);
       
-    if(solverType == "direct") {
-      mSolver_ = 0;
-    } else {
-      mSolver_ = 1;
-    }
+    mSolver_ = solverType == "direct" ? 0 : 1;
 
     PtrParamNode stopRulenode = xml_->Get("stoppingRule", ParamNode::INSERT);
     std::string sRule = "relNormRes0";
