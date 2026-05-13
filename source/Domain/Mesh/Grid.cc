@@ -600,19 +600,12 @@ namespace CoupledField
     // We reset the interfaces in reverse order, so we always only delete nodes and elements that were created last
     // the double loop in Grid::InitNcInterfacesFromXML() assures that moving interfaces are updated last.
     // also, we need to assure that actively moving interfaces are updated before passively moving ones.
-    for (auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
-      (*it)->ResetInterface();
-    }
-    for (auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
-      (*it)->UpdateInterface();
-    }
-  }
+    for(int i = ((int) ncInterfaces_.GetSize())-1; i >= 0; i--)
+      ncInterfaces_[(unsigned) i]->ResetInterface();
 
-  bool Grid::HasNCI() {
-    if (!ncInterfaces_.IsEmpty())
-      return true;
-    else 
-      return false;
+    // Update in forward order
+    for(const shared_ptr<BaseNcInterface>& nci : ncInterfaces_)
+      nci->UpdateInterface();
   }
 
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
