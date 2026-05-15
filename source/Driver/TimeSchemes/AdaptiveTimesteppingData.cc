@@ -145,13 +145,6 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
       }
       Double factor = ratio_I * ratio_P;
 
-      if (est > Rtol && factor > 0.95)
-        {
-            *accepted = true;
-            h_next = h*0.9;   // keep current dt — don't reduce to dtMin
-            toleranceNotReachable_ = true;
-            return h_next;
-        }
       h_next = h * factor;
 
       *accepted = (est <= Rtol);
@@ -166,8 +159,17 @@ Double AdaptiveTimesteppingData::pidController(bool* accepted,
     // H312 PID (Söderlind 2005, eq. 38): kk_I=2/9, k=3 → kI=2/27
     // h_{n+1} = h × (σ·tol/r̂_n)^e1 × (σ·tol/r̂_{n-1})^e2 × (σ·tol/r̂_{n-2})^e1
     // Fall back to PI when not yet enough history.
-    if (prevPrevError_ <= 0.0)
-        return piController(accepted, local_error_, dtCurrent_);
+    // Bounds on step-size change: reject if ratio is outside [minShrink, maxGrowth].
+    // maxGrowth mirrors the BDF2 stability limit already applied in TimeSchemeGLM.
+    const Double minShrink = 0.10;
+    const Double maxGrowth = 1.0 + std::sqrt(2.0);
+
+    if (prevPrevError_ <= 0.0) {
+        Double h_pi = piController(accepted, local_error_, dtCurrent_);
+        Double ratio = h_pi / dtCurrent_;
+        *accepted = (ratio >= minShrink && ratio <= maxGrowth);
+        return h_pi;
+    }
 
     const Double kI  = (2.0/9.0) / 3.0;  // kk_I/k = 2/27
     const Double e1  = kI / 4.0;
@@ -184,8 +186,100 @@ Double AdaptiveTimesteppingData::pidController(bool* accepted,
         * std::pow(base / prevError_,     e2)
         * std::pow(base / prevPrevError_, e1);
 
-    *accepted = (est <= tol_);
+    Double ratio = h_next / h;
+    *accepted = (ratio >= minShrink && ratio <= maxGrowth);
     return h_next;
+}
+
+AdaptiveTimesteppingData::StepResult
+AdaptiveTimesteppingData::computeNextStep(
+        double h, double h_prev, double est, double dtMin, double dtMax)
+{
+    const double maxRatio = 1.0 + std::sqrt(2.0);
+
+    // 1. NaN/Inf guard — Newton solver diverged; solution vector is NaN.
+    // Retrying cannot recover once NaN is in the history. Abort after 3 consecutive occurrences.
+    if (!is_error_finite(est)) {
+        consecutiveNaN_++;
+        if (consecutiveNaN_ >= 3)
+            EXCEPTION("Adaptive timestepping aborted: Newton solver produced NaN for "
+                      << consecutiveNaN_ << " consecutive steps. "
+                      "The solution has diverged — loosen tolerances or raise deltaTmin.");
+        std::cout << " [Adaptive] LTE is NaN/Inf (diverged solve " << consecutiveNaN_
+                  << "/3) — force-accepting.\n";
+        toleranceNotReachable_ = true;
+        mark_saturated();
+        return {dtMin, true};
+    }
+    consecutiveNaN_ = 0;
+
+    // 2. Growing-error detection — LTE increases as dt shrinks → ill-conditioned.
+    // Revert to h_prev (the last accepted step) and force-accept that instead.
+    if (prevRetryError_ > 0.0 && est > prevRetryError_) {
+        std::cout << " [Adaptive] Growing LTE on retry (" << prevRetryError_
+                  << " → " << est << ") — reverting to previous dt and force-accepting.\n";
+        mark_saturated();
+        if (h_prev > 0.0) {
+            revertToPrevDt_ = true;
+            return {h_prev, false};  // reject; TransientDriver retries with h_prev
+        }
+        // h_prev unavailable (warm-up) — fall back to force-accept at current h
+        prevRetryError_        = est;
+        toleranceNotReachable_ = true;
+        return {std::max(h, dtMin), true};
+    }
+    prevRetryError_ = est;
+
+    // 3. Saturation early detection — h/h_prev < minStepFactor → ratio already minimal.
+    if (h_prev > 0.0 && h / h_prev < minStepFactor_) {
+        toleranceNotReachable_ = true;
+        mark_saturated();
+        return {std::max(h, dtMin), true};
+    }
+
+    // 4. Controller dispatch.
+    bool   accepted = false;
+    double h_next   = 0.0;
+    if      (controllerType_ == 0) h_next = iController(&accepted,  est, h);
+    else if (controllerType_ == 1) h_next = piController(&accepted, est, h);
+    else                           h_next = pidController(&accepted, est, h);
+
+    // 5. BDF2 stability cap — upper bound on growth ratio.
+    if (h_next / h > maxRatio)
+        h_next = h * maxRatio;
+
+    // 6. Lower bound — prevent too-large shrinkage (BDF2 ill-conditioning).
+    const double h_next_unclamped = h_next;
+    if (h_next < h * minStepFactor_)
+        h_next = h * minStepFactor_;
+
+    // 7. Post-saturation growth limiter.
+    if (!accepted)
+        mark_saturated();
+    h_next = apply_post_saturation_cap(h_next, h, est, accepted);
+
+    // 8. Absolute clamps.
+    h_next = std::max(h_next, dtMin);
+    h_next = std::min(h_next, dtMax);
+
+    // 9. Force-accepts.
+    if (!accepted && h_next >= dtMax * 0.9999)
+        accepted = true;
+
+    if (!accepted && h_next_unclamped < dtMin) {
+        accepted               = true;
+        toleranceNotReachable_ = true;
+        mark_saturated();
+    }
+
+    // Fixed-point: h_next ≈ h → retrying gives identical LTE → infinite loop.
+    if (!accepted && std::abs(h_next - h) / h < 1e-6) {
+        accepted               = true;
+        toleranceNotReachable_ = true;
+        mark_saturated();
+    }
+
+    return {h_next, accepted};
 }
 
 } // namespace CoupledField

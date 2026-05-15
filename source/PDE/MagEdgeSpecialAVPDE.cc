@@ -305,12 +305,16 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
   void MagEdgeSpecialAVPDE::InitTimeStepping()
   {
-    if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for MagEdgeSpecialAVPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
-
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
+
+    if (GetDomain()->GetAdaptiveData() && !integrationScheme)
+      EXCEPTION("Adaptive time-stepping with automatic BDF2 is not supported for MagEdgeSpecialAVPDE.\n"
+                "  Reason: this formulation is pseudo-parabolic — the eddy-current mass matrix\n"
+                "  (sigma * dA/dt) is zero in non-conducting regions (air), so the LTE estimator\n"
+                "  cannot reliably distinguish time-integration error from the elliptic solution\n"
+                "  in those regions.  A conductivity-masked error norm would be required.");
 
     auto makeScheme = [&]() -> GLMScheme* {
       if (integrationScheme)

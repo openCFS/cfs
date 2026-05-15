@@ -28,6 +28,8 @@ public:
     bool   stepRejected_          = false;
     bool   toleranceNotReachable_ = false;
     double prevRetryError_        = 0.0;  // LTE from previous retry; 0 = first attempt
+    bool   revertToPrevDt_       = false; // retry with h_prev after growing-LTE saturation
+    int    consecutiveNaN_       = 0;     // consecutive NaN-solution steps; abort after threshold
 
     // Multi-field LTE collection: each field registers its LTE via FinishStepLTE()
     // before FinishStep() makes a single consistent step-size decision.
@@ -60,6 +62,19 @@ public:
 
     bool postSaturationMode_ = false;
     int  healthyStepCount_   = 0;
+
+    struct StepResult {
+        double h_next;
+        bool   accepted;
+    };
+
+    StepResult computeNextStep(double h, double h_prev, double est,
+                               double dtMin, double dtMax);
+
+    // bound-saturation counters (reset each sequence step by TransientDriver)
+    int stepsAtDtMin_      = 0;
+    int stepsAtDtMax_      = 0;
+    int totalAcceptedSteps_ = 0;
 
     // warm-up phase: run at fixed deltaT until LTE/tol drops to warmUpLTETarget_
     bool   warmUpEnabled_   = false;

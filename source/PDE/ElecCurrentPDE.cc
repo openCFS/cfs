@@ -438,9 +438,6 @@ namespace CoupledField {
 
   void ElecCurrentPDE::InitTimeStepping()
   {
-    if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for ElecCurrentPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
-
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
@@ -453,9 +450,15 @@ namespace CoupledField {
     }
     else
     {
-      // Until now no effective mass formulation in the trapezoidal
-      // integration scheme is implemented!
-      scheme = new Trapezoidal(1.0);
+      if (GetDomain()->GetAdaptiveData()) {
+        std::cout << " [ElecCurrentPDE] Adaptive timestepping: defaulting to BDF2"
+                     " (add <integrationScheme><bdf2/></integrationScheme> to suppress).\n";
+        scheme = new Bdf2();
+      } else {
+        // Until now no effective mass formulation in the trapezoidal
+        // integration scheme is implemented!
+        scheme = new Trapezoidal(1.0);
+      }
     }
 
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0));

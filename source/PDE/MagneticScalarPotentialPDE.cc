@@ -332,9 +332,6 @@ namespace CoupledField
 
   void MagneticScalarPotentialPDE::InitTimeStepping()
   {
-    if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for MagneticScalarPotentialPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
-
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
@@ -346,7 +343,13 @@ namespace CoupledField
     }
     else
     {
-      scheme = new Trapezoidal(1.0);
+      if (GetDomain()->GetAdaptiveData()) {
+        std::cout << " [MagneticScalarPotentialPDE] Adaptive timestepping: defaulting to BDF2"
+                     " (add <integrationScheme><bdf2/></integrationScheme> to suppress).\n";
+        scheme = new Bdf2();
+      } else {
+        scheme = new Trapezoidal(1.0);
+      }
     }
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;

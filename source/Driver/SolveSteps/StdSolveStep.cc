@@ -644,6 +644,9 @@ namespace CoupledField {
       algsys_->GetRHSVal(rhsVec_);
 
       // assemble matrices...
+      // Track whether time-scheme coefficients changed (dt changed) so the solver
+      // can be re-factorized even when the sparsity pattern (IsMatrixUpdated) did not change.
+      bool schemeCoefChanged = false;
       // if we want to use static condensation we have to perform the timestepping on element level
       if(algsys_->UseStaticCondensation()){
         matrix_factor_.clear();
@@ -686,7 +689,7 @@ namespace CoupledField {
         // are introduced, since right now only the system matrix is considered
         // for harmonic computations (no splitting in M and K).
 
-        bool schemeCoefChanged = false;
+        schemeCoefChanged = false;
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++)
           if(fncIt->second->GetTimeScheme()->CoefficientsChanged()) schemeCoefChanged = true;
 
@@ -731,7 +734,9 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if( assemble_->IsMatrixUpdated() ) {
+      // schemeCoefChanged covers adaptive BDF2: dt change updates a0/dt in the matrix
+      // but does not change the sparsity pattern, so IsMatrixUpdated() stays false.
+      if( assemble_->IsMatrixUpdated() || schemeCoefChanged ) {
 
         // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
         SetupGetRidOfZerosActive();

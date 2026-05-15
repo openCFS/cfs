@@ -352,8 +352,8 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);    // -1/3;
     schemeCoefs_[2][3] = 0;
     schemeCoefs_[3][0] = 0;
-    schemeCoefs_[3][1] = 0;
-    schemeCoefs_[3][2] = 1;
+    schemeCoefs_[3][1] = 1;   // new_glm[1] = old_glm[0] = y_n → tracks y_{n-1} correctly
+    schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
     schemeCoefs_[4][0] = 1;
     schemeCoefs_[4][1] = 0;

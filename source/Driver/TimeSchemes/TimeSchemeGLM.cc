@@ -100,7 +100,8 @@ namespace CoupledField{
       delete predictors_[i];
     }
     predictors_.Clear();
-    
+
+    delete prevPrevSol_; prevPrevSol_ = nullptr;
   }
 
   void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){
@@ -482,10 +483,15 @@ namespace CoupledField{
             if (!skipAdaptiveControl) {
               bool accepted = ComputeAdaptiveStepSize();
               if (!accepted) {
-                std::cout << " [Adaptive] Step REJECTED: LocalError= "
-                          << atd->getControllingError()
-                          << " > tol, retrying with dt= "
-                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+                if (atd->revertToPrevDt_)
+                  std::cout << " [Adaptive] Re-running with previous dt= "
+                            << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt")
+                            << " (force-accept on next attempt).\n";
+                else
+                  std::cout << " [Adaptive] Step REJECTED: LocalError= "
+                            << atd->getControllingError()
+                            << " > tol, retrying with dt= "
+                            << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
                 reset_dt();
                 return;
               }
@@ -522,9 +528,14 @@ namespace CoupledField{
           if (!skipAdaptiveControl) {
             bool accepted = ComputeAdaptiveStepSize();
             if (!accepted) {
-              std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
-                        << " > tol, retrying with dt= "
-                        << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+              if (atd->revertToPrevDt_)
+                std::cout << " [Adaptive] Re-running with previous dt= "
+                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt")
+                          << " (force-accept on next attempt).\n";
+              else
+                std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
+                          << " > tol, retrying with dt= "
+                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
               reset_dt();
               return;
             }
@@ -532,17 +543,23 @@ namespace CoupledField{
         }
       }
 
-      // Step accepted (or warm-up): save dt history for reset_dt() and y_{n-1}
-      // for the next LTE computation.
+      // Step accepted (or warm-up): save dt history for reset_dt() and
+      // glm[1] (y_{n-1}) as prevPrevSol_ (y_{n-2}) for the next LTE computation.
+      // NOTE: glmVector_[1] still holds y_{n-1} here (before the GLM update below).
       curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;
       curScheme_->prev_dtPrev1_   = curScheme_->dtPrev1_;
       curScheme_->prev_dtPrev2_   = curScheme_->dtPrev2_;
 
-      if (prevPrevSol_ == nullptr) {
-        prevPrevSol_ = new Vector<Double>();
-        prevPrevSol_->Resize(glmVector_[1]->GetSize());
+      // Save y_{n-1} (= glm[1] before this step's GLM update) as y_{n-2} for the next LTE.
+      // glm[1] is only valid (non-zero) after the first accepted step has run its GLM update,
+      // so skip the save on the very first step (adaptiveStepCount_ == 0).
+      if (adaptiveStepCount_ >= 1) {
+        if (prevPrevSol_ == nullptr) {
+          prevPrevSol_ = new Vector<Double>();
+          prevPrevSol_->Resize(glmVector_[1]->GetSize());
+        }
+        prevPrevSol_->operator=(*glmVector_[1]);
       }
-      prevPrevSol_->operator=(*glmVector_[1]);
       adaptiveStepCount_++;
     }
   
@@ -728,16 +745,19 @@ namespace CoupledField{
 
   void TimeSchemeGLM::LTELocalErrorEstimation()
   {
-    // BDF2 local truncation error estimate via three-point finite-difference formula.
-    
-    Double h2 = curScheme_->dtCurrent_;  // h_{n+2}
-    Double h1 = curScheme_->dtPrev1_;    // h_{n+1}
-    Double h0 = curScheme_->dtPrev2_;    // h_n
+    // BDF2 LTE estimate via Newton divided differences on solution values.
+    //
+    // solDerivOrder==0 (e.g. HeatPDE): stageVector_[0] IS y_{n+1} (Newton solves for temperature).
+    // solDerivOrder==1 (e.g. acoustic): stageVector_[0] is ẏ_{n+1}; y_{n+1} must be reconstructed.
+    //
+    // In both cases:
+    //   glmVector_[0]  = y_n   (current solution, before GLM update)
+    //   glmVector_[1]  = y_{n-1}
+    //   prevPrevSol_   = y_{n-2} (glm[1] saved one accepted step ago)
 
-    Double prefactor = (h1 + h2) / 6.0;
-    Double c1 = 1.0 / h2;
-    Double c2 = (1.0 + h2 / h1) / h1;
-    Double c3 = h2 / (h1 * h0);
+    Double h2 = curScheme_->dtCurrent_;  // step being accepted
+    Double h1 = curScheme_->dtPrev1_;
+    Double h0 = curScheme_->dtPrev2_;
 
     auto* atd = domain_->GetAdaptiveData().get();
     int    ErrorScheme = atd->errorScheme_;
@@ -745,23 +765,53 @@ namespace CoupledField{
     double ATOL        = atd->atol_;
     bool useScaling = (RTOL > 0.0);
 
+    // Guard: need two accepted steps before prevPrevSol_ is valid.
+    // glm[1] is valid (y_{n-1}) after the first step; prevPrevSol_ (y_{n-2}) after the second.
+    if (prevPrevSol_ == nullptr) {
+        atd->localError_ = 0.0;
+        curScheme_->local_error_ = 0.0;
+        return;
+    }
+
+    // BDF2 reconstruction coefficients: y_{n+1} = (h2/a0)*ẏ + (1+w)/a0*y_n - w²/(1+2w)*y_{n-1}
+    const Double w_r  = (h2 > 0.0 && h1 > 0.0) ? h1 / h2 : 1.0;
+    const Double a0_r = (1.0 + 2.0*w_r) / (1.0 + w_r);
+
     double l2_norm = 0.0;
 
     Double maxLTE = 0.0;
     UInt n = stageVector_[0]->GetSize();
     Double sum = 0.0;
     for (UInt j = 0; j < n; j++) {
-        Double yNp2, yNp1, yN, yNm1;
-        stageVector_[0]->GetEntry(j, yNp2);
-        glmVector_[0]->GetEntry(j, yNp1);
-        glmVector_[1]->GetEntry(j, yN);
-        prevPrevSol_->GetEntry(j, yNm1);
+        Double stage_j, yNp1_raw, yN_raw, yNm1_raw;
+        stageVector_[0]->GetEntry(j, stage_j);    // ẏ_{n+1}
+        glmVector_[0]->GetEntry(j, yNp1_raw);    // y_n
+        glmVector_[1]->GetEntry(j, yN_raw);      // y_{n-1} (direct from glm[1])
+        prevPrevSol_->GetEntry(j, yNm1_raw);     // y_{n-2}
 
-        Double lte = std::abs(prefactor * (
-              c1 * (yNp2 - yNp1)
-            - c2 * (yNp1 - yN)
-            + c3 * (yN  - yNm1)
-        ));
+        // y_{n+1}: for solDerivOrder==0 the stage IS the solution;
+        // for solDerivOrder==1 reconstruct from BDF2: y = (dt/a0)*ẏ + (1+w)/a0*y_n - w^2/(1+2w)*y_{n-1}
+        Double yNp2;
+        if (curScheme_->solDerivOrder_ == 0) {
+          yNp2 = stage_j;
+        } else {
+          yNp2 = (h2/a0_r)*stage_j + (1.0+w_r)/a0_r*yNp1_raw
+                 - w_r*w_r/(1.0+2.0*w_r)*yN_raw;
+        }
+        Double yNp1 = yNp1_raw;
+        Double yN   = yN_raw;
+        Double yNm1 = yNm1_raw;
+
+        Double D21  = (yNp2 - yNp1) / h2;
+        Double D10  = (yNp1 - yN)   / h1;
+        Double D0m  = (yN   - yNm1) / h0;
+
+        Double D210 = (D21 - D10) / (h2 + h1);
+        Double D10m = (D10 - D0m) / (h1 + h0);
+
+        Double D3   = (D210 - D10m) / (h2 + h1 + h0);
+
+        Double lte  = std::abs(h2 * h2 * (h2 + h1) * D3);
 
         if (useScaling) {
             Double sc = ATOL + std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)}) * RTOL;
@@ -787,88 +837,34 @@ namespace CoupledField{
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
     auto* atd = domain_->GetAdaptiveData().get();
-    double maxChange = atd->minStepFactor_;
-    Double h     = curScheme_->dtCurrent_;
-    bool   accepted = false;
-    Double h_next = 0.0;
-    const Double maxRatio = 1.0 + std::sqrt(2.0);  // BDF2 stability limit (growth only)
 
-    // NaN/Inf localError means the solve diverged — jump to dtMin immediately.
-    if (!atd->is_error_finite(atd->localError_)) {
-      atd->stepRejected_         = true;
-      atd->toleranceNotReachable_ = true;
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", atd->dtMin_);
-      return false;
+    // Reverted step after growing-LTE saturation: skip LTE check and force-accept.
+    if (atd->revertToPrevDt_) {
+        atd->revertToPrevDt_        = false;
+        atd->toleranceNotReachable_ = true;
+        atd->stepRejected_          = false;
+        atd->totalAcceptedSteps_++;
+        mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", curScheme_->dtCurrent_);
+        return true;
     }
 
-    // Growing-error detection: when the LTE estimate increases as dt shrinks,
-    // further retries only make things worse (BDF2 ill-conditioning at high
-    double est = atd->localError_;
-    if (atd->prevRetryError_ > 0.0 && est > atd->prevRetryError_) {
-      std::cout << " [Adaptive] Growing LTE on retry (" << atd->prevRetryError_
-                << " → " << est << ") — saturation detected, force-accepting.\n";
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", std::max(h, atd->dtMin_));
-      atd->prevRetryError_        = est;
-      atd->stepRejected_          = false;
-      atd->toleranceNotReachable_ = true;
-      atd->mark_saturated();
-      return true;
-    }
-    atd->prevRetryError_ = est;
+    auto r = atd->computeNextStep(
+        curScheme_->dtCurrent_,
+        curScheme_->dtPrev1_,
+        atd->localError_,
+        atd->dtMin_,
+        atd->dtMax_);
 
-    // LTE formula asymptotes to h1²·y''/6 when h2/h1 << 1 — independent of h2.
-    // Detect saturation early: force-accept rather than driving h2 to dtMin.
-    const Double h1 = curScheme_->dtPrev1_;
-    if (h1 > 0.0 && h / h1 < maxChange) {
-      mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", std::max(h, atd->dtMin_));
-      atd->stepRejected_         = false;
-      atd->toleranceNotReachable_ = true;
-      atd->mark_saturated();
-      return true;
+    mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", r.h_next);
+    atd->stepRejected_ = !r.accepted;
+
+    if (r.accepted) {
+      atd->totalAcceptedSteps_++;
+      if (r.h_next <= atd->dtMin_ * 1.0001) atd->stepsAtDtMin_++;
+      if (r.h_next >= atd->dtMax_ * 0.9999) atd->stepsAtDtMax_++;
     }
 
-    if (atd->controllerType_ == 0)
-      h_next = atd->iController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
-    else if (atd->controllerType_ == 1)
-      h_next = atd->piController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
-    else
-      h_next = atd->pidController(&accepted, curScheme_->local_error_, curScheme_->dtCurrent_);
-    // BDF2 stability: ratio h_next/h must not exceed 1+sqrt(2).
-    if (h_next / h > maxRatio)
-      h_next = h * maxRatio;
-
-    // BDF2 ill-conditioning guard: variable-step BDF2 uses w_ = h_prev/h_retry.
-    // For w_ >> 1 the coefficient w²/(1+2w) ≈ w/2 causes catastrophic cancellation
-    Double h_next_unclamped = h_next;
-    if (h_next < h * maxChange) {
-      h_next = h * maxChange;
-    }
-    // Activate the post-saturation growth limiter on any rejection so the
-    // retry's recovery is gradual 
-    if (!accepted)
-      atd->mark_saturated();
-
-    // Post-saturation growth limiter: prevents aggressive dt recovery after
-    // source-onset force-accepts, which can drive L2-norm runs into solver divergence.
-    h_next = atd->apply_post_saturation_cap(h_next, h, curScheme_->local_error_, accepted);
-
-    // Apply user-defined bounds after the stability cap
-    double dtMin = atd->dtMin_;
-    double dtMax = atd->dtMax_;
-    h_next = std::max(h_next, dtMin);
-    h_next = std::min(h_next, dtMax);
-
-    // Force-accept only when the formula truly wanted to go below dtMin.
-    if (!accepted && h_next_unclamped < dtMin) {
-      accepted = true;
-      atd->toleranceNotReachable_ = true;
-      atd->mark_saturated();
-    }
-
-    mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", h_next);
-    atd->stepRejected_ = !accepted;
-
-    return accepted;
+    return r.accepted;
   }
 
   void TimeSchemeGLM::reset_dt()

@@ -210,7 +210,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
     ///Store the type of nonlinearity to be considered in the scheme
     NonLinType nLinType_;
 
-    //! Stores y_{n-1} (solution two accepted steps back); required for the three-point LTE formula.
+    //! Solution history for BDF2 LTE estimation.
+    // prevPrevSol_ = y_{n-2} (glm[1] saved one accepted step ago, before GLM update)
+    // y_{n-1} is read directly from glm[1] (correct after the schemeCoefs_[3] fix).
     SingleVector* prevPrevSol_ = nullptr;
 
     int adaptiveStepCount_ = 0;

@@ -638,7 +638,8 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
   void DarwinPDE::InitTimeStepping()
   {
     if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for DarwinPDE: variable-step BDF2 requires C3-smooth solution history, which is not registered for this PDE. Use fixed deltaT.");
+      EXCEPTION("DarwinPDE: adaptive timestepping not yet tested in transient mode. "
+                "Please use a non-adaptive scheme (remove <adaptiveTimeStepping> from XML).");
 
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);

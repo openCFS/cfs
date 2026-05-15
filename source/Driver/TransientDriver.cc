@@ -250,6 +250,8 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt",   dt_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
       // Reset per-step adaptive state each attempt.
+      // revertToPrevDt_ is intentionally NOT cleared here — it must survive
+      // the retry so ComputeAdaptiveStepSize can force-accept the reverted step.
       if (atData_) {
         atData_->stepRejected_          = false;
         atData_->toleranceNotReachable_ = false;
@@ -374,6 +376,24 @@ namespace CoupledField {
         envNode->Get("timePerStep")->SetValue(timePerStep_);
       }
       
+    }
+
+    if (adaptiveEnabeled_) {
+      int total = atData_->totalAcceptedSteps_;
+      int nMin  = atData_->stepsAtDtMin_;
+      int nMax  = atData_->stepsAtDtMax_;
+      if (total > 0) {
+        double fracMin = 100.0 * nMin / total;
+        double fracMax = 100.0 * nMax / total;
+        if (fracMin > 20.0)
+          std::cout << " WARNING: Adaptive timestepping: controller saturated against deltaTmin in "
+                    << nMin << "/" << total << " steps (" << static_cast<int>(fracMin)
+                    << "%) -- consider loosening tolerances or lowering deltaTmin.\n";
+        if (fracMax > 20.0)
+          std::cout << " WARNING: Adaptive timestepping: controller saturated against deltaTmax in "
+                    << nMax << "/" << total << " steps (" << static_cast<int>(fracMax)
+                    << "%) -- consider tightening tolerances or raising deltaTmax.\n";
+      }
     }
 
     // notify resultHandler about finishing of current sequence step
