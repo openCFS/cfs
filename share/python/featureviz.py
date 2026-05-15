@@ -40,7 +40,7 @@ def dump_shapes(shapes):
   for s in shapes:
      print(s)   
 
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
+colors = ['tab:blue', 'tab:green', 'tab:red', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
 # transforms ids from 0 to 6 to color codes 'b' to 'k'. Only for matplotlib, not for vtk!
 def matplotlib_color_coder(id):
   return colors[id % len(colors)]
@@ -237,7 +237,7 @@ def plot_data(res, shapes, detail, domain, ghost):
       # start and endpoint
       fig.gca().add_artist(plt.Circle(s.P, 0.1 * s.p, alpha=lineopacity, color=c)) 
       fig.gca().add_artist(plt.Circle(s.Q, 0.1 * s.p, alpha=lineopacity, color=c))
-      tail = '_{' + str(s.id) + '}$'
+      tail = '_{' + str(s.id) + '}$' if len(shapes) > 1 else '$'
       if detail > 2:
         plt.annotate('$P' + tail, s.P, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = c)
         plt.annotate('$Q' + tail, s.Q, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = c)
@@ -278,7 +278,7 @@ if __name__ == '__main__':
     os.sys.exit()
   file = args.input 
   
-  colors = ['tab:gray'] if args.gray else ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
+  colors = ['tab:gray'] if args.gray else ['tab:blue', 'tab:green', 'tab:red', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
   
   if args.interactive or args.animate:
     xml = ut.open_xml(file)

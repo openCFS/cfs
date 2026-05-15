@@ -28,7 +28,7 @@
       <hdf5 fileName="MovingMortar.h5"/>
     </input>
     <output>
-      <hdf5 compressionLevel="9"></hdf5>
+      <hdf5/>
     </output>
     <materialData file="mat.xml" format="xml"></materialData>
   </fileFormats>

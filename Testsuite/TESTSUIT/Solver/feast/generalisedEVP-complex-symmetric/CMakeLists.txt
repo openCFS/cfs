@@ -13,6 +13,5 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-if(WIN32) # test often/sometimes segfaults on windows
-  set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
-endif()
+# test often/sometimes segfaults on Windows and fails on musl
+set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

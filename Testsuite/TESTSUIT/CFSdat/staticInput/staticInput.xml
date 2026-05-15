@@ -47,7 +47,7 @@
     
     <meshOutput id="staticInput" inputFilterIds="cfdEnsight">
       <outputFile>
-        <hdf5 compressionLevel="1" externalFiles="no"/>
+        <hdf5 externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="fluidMechTEF">
@@ -58,4 +58,3 @@
 
   </pipeline>
 </cfsdat>
-

@@ -73,7 +73,7 @@
 
     <meshOutput id="NearestNeighbour_2D_Ensight_vector" inputFilterIds="interp1 interp2">
       <outputFile>
-        <hdf5 extension="cfs" compressionLevel="1" externalFiles="no"/>
+        <hdf5 extension="cfs"   externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="meanFluidMechVelocity">

@@ -47,7 +47,7 @@
     
     <meshOutput id="SpatialDerivative_2D_Curl" inputFilterIds="calc">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/> <!-- compression level (greater number = bigger compression; default=1) -->
+        <hdf5 extension="h5" externalFiles="no"/>  
       </outputFile>
       <saveResults>
         <result resultName="res">
@@ -57,5 +57,3 @@
     </meshOutput>
   </pipeline>
 </cfsdat>
-
-

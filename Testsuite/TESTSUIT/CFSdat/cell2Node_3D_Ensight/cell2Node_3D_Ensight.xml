@@ -50,7 +50,7 @@
     
     <meshOutput id="cell2Node_3D_Ensight" inputFilterIds="interp1">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="acouRhsLoad">
@@ -60,5 +60,3 @@
     </meshOutput>
   </pipeline>
 </cfsdat>
-
-

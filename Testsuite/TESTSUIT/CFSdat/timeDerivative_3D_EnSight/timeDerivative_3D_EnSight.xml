@@ -47,7 +47,7 @@
 
     <meshOutput id="timeDerivative_3D_EnSight" inputFilterIds="deriv">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="fluidMechPressure_timeDeriv1">

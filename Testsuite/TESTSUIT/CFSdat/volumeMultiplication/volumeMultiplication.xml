@@ -36,7 +36,7 @@
 
     <meshOutput id="volumeMultiplication" inputFilterIds="integrate,integrateVec,input">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="FEVolume">
