@@ -2755,7 +2755,7 @@ namespace CoupledField {
       nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
       
       // abort if max number of iterations is reached?
-      nonLinNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::INSERT);
+      nonLinNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::PASS);
       
       LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
       LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
