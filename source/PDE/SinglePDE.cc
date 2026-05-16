@@ -126,46 +126,34 @@ namespace CoupledField {
   // **************
   //   Destructor
   // **************
-  SinglePDE::~SinglePDE() {
+  SinglePDE::~SinglePDE() 
+  {
     // Delete algebraic system only if
     // PDE is not direct coupled
-    if ( isDirectCoupled_ == false ) {
-      if ( needsAlgsys_ && (algsys_ != NULL)) {
-        delete algsys_;
-        algsys_ = NULL;
-      }
-      if (solveStep_) {
-        delete solveStep_;
-        solveStep_ = NULL;
-      }
-      if (assemble_) { 
-        delete assemble_;
-        assemble_ = NULL;
-      }
+    if(!isDirectCoupled_) 
+    {
+      if((needsAlgsys_ || !simState_->HasInput())) 
+        delete algsys_;      
+      
+      delete solveStep_;
+      delete assemble_;
     }
 
     // delete materials
-    std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      if (it->second != NULL) delete it->second;
-    }
+    for(std::map<RegionIdType, BaseMaterial*>::value_type& entry : materials_)
+      delete entry.second;
     materials_.clear();
     
     // Loop overall feFunctions and finalize them
-    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator feIt;
-    for( feIt = feFunctions_.begin(); feIt != feFunctions_.end(); ++feIt)  {
-      feIt->second->CleanUp();
-    }
-    for( feIt = prevFeFunctions_.begin(); feIt != prevFeFunctions_.end(); ++feIt)  {
-      feIt->second->CleanUp();
-    }
-    for( feIt = rhsFeFunctions_.begin(); feIt != rhsFeFunctions_.end(); ++feIt)  {
-      feIt->second->CleanUp();
-    }
-
-    for( feIt = timeDerivFeFunctions_.begin(); feIt != timeDerivFeFunctions_.end(); ++feIt)  {
-      feIt->second->CleanUp();
-    }
+    typedef std::map<SolutionType, shared_ptr<BaseFeFunction> >::value_type FeFctEntry;
+    for(FeFctEntry& entry : feFunctions_)
+      entry.second->CleanUp();
+    for(FeFctEntry& entry : prevFeFunctions_)
+      entry.second->CleanUp();
+    for(FeFctEntry& entry : rhsFeFunctions_)    
+      entry.second->CleanUp();
+    for(FeFctEntry& entry : timeDerivFeFunctions_)
+       entry.second->CleanUp();    
 
     feFunctions_.clear();
     prevFeFunctions_.clear();
@@ -173,11 +161,10 @@ namespace CoupledField {
     timeDerivFeFunctions_.clear();
     
     // delete external domains
-    std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();
-    for( ; inputIt != inputs_.end(); ++inputIt) {
-      inputIt->first->Finalize();
-      delete inputIt->second;
-    }
+    for(std::map<std::shared_ptr<SimState>, Domain*>::value_type& entry : inputs_) {
+       entry.first->Finalize();
+       delete entry.second;
+    }    
   }
 
 
