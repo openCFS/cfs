@@ -73,7 +73,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ )
+      for(UInt iDim = 0; iDim < tempField.GetSize(); iDim++ )
         vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
     }
     break;
