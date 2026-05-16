@@ -1,0 +1,44 @@
+--- boost/numeric/conversion/udt_builtin_mixture_enum.hpp
++++ boost/numeric/conversion/udt_builtin_mixture_enum.hpp
+@@ -12,7 +12,7 @@
+
+ namespace boost { namespace numeric
+ {
+-  enum udt_builtin_mixture_enum
++  enum udt_builtin_mixture_enum : int
+   {
+      builtin_to_builtin
+     ,builtin_to_udt
+--- boost/numeric/conversion/sign_mixture_enum.hpp
++++ boost/numeric/conversion/sign_mixture_enum.hpp
+@@ -12,7 +12,7 @@
+
+ namespace boost { namespace numeric
+ {
+-  enum sign_mixture_enum
++  enum sign_mixture_enum : int
+   {
+      unsigned_to_unsigned
+     ,signed_to_signed
+--- boost/numeric/conversion/int_float_mixture_enum.hpp
++++ boost/numeric/conversion/int_float_mixture_enum.hpp
+@@ -12,7 +12,7 @@
+
+ namespace boost { namespace numeric
+ {
+-  enum int_float_mixture_enum
++  enum int_float_mixture_enum : int
+   {
+      integral_to_integral
+     ,integral_to_float
+--- boost/log/utility/strictest_lock.hpp
++++ boost/log/utility/strictest_lock.hpp
+@@ -55,7 +55,7 @@
+ BOOST_LOG_OPEN_NAMESPACE
+
+ //! Access modes for different types of locks
+-enum lock_access_mode
++enum lock_access_mode : int
+ {
+     unlocked_access,    //!< A thread that owns this kind of lock doesn't restrict other threads in any way
+     shared_access,      //!< A thread that owns this kind of lock requires that no other thread modify the locked data

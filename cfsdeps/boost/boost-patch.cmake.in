@@ -40,6 +40,11 @@ IF(WIN32)
   ENDIF()
 else()
   set(patches "boost-musl-pre1.79.patch") # required by MUSL clib based system, fixed in boost 1.79: https://github.com/boostorg/interprocess/pull/162
+  # Apple Clang 15+ (and equivalent Clang) rejects static_cast<T>(value±1) as a non-type template argument
+  # in boost::mpl::integral_wrapper. Fix: use the template parameter N directly instead of the static member.
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") # includes AppleClang
+    list(APPEND patches "boost-mpl-integral-wrapper-clang.patch")
+  endif()
 ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")
