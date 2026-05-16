@@ -50,7 +50,7 @@
   <!-- ******************************************************************** -->
   <!-- Definition of element for OLAS_ID Preconditioner (Dummy Definition) -->
   <!-- ******************************************************************** -->
-  <xsd:element name="ID" type="DT_PrecondID"
+  <xsd:element name="Id" type="DT_PrecondID"
     substitutionGroup="PrecondBasic"/>
   
   <!-- ******************************************************************** -->
