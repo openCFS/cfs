@@ -156,12 +156,13 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       //real scrs jacobi
       PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::SPARSE_SYM,RSCRSJacDof1);
       //complex scrs jacobi
-      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::DIAG,CSCRSJacDof1);
-
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_SYM,CSCRSJacDof1);
+      
       //real diag jacobi
       PRECOND_OBJ(BaseMatrix::DOUBLE,BaseMatrix::DIAG,RDIAGJacDof1);
       //complex diag jacobi
-      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::SPARSE_SYM,CDIAGJacDof1);
+      PRECOND_OBJ(BaseMatrix::COMPLEX,BaseMatrix::DIAG,CDIAGJacDof1);
+      
 
       break;
       
