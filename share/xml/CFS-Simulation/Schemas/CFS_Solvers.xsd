@@ -1446,6 +1446,42 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                          OLAS_COCR Solver                     == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for OLAS_COCR Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="cocr" type="DT_SolverOLASCOCR" substitutionGroup="SolverBasic"/>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for OLAS_COCR Solver -->
+  <!--   COCR is the complex-symmetric analogue of CR. -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverOLASCOCR">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
+          <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="1000"/>
+          <xsd:element name="resDirectly" type="xsd:nonNegativeInteger"  minOccurs="0" default="0">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Recompute the true residual r = b - A*x every N iterations
+                instead of relying on the recurrence residual which drifts in
+                finite precision. 0 disables periodic recomputation (default).
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

@@ -20,6 +20,7 @@ namespace CoupledField {
     EnumTuple( BaseSolver::CG, "cg"),
     EnumTuple( BaseSolver::GMRES, "gmres" ),
     EnumTuple( BaseSolver::MINRES, "minres" ),
+    EnumTuple( BaseSolver::COCR, "cocr" ),
     EnumTuple( BaseSolver::SYMMLQ, "symmlq"),
     EnumTuple( BaseSolver::LAPACK_LU, "lapackLU"),
     EnumTuple( BaseSolver::LAPACK_LL, "lapackLL" ),
