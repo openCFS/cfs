@@ -1,0 +1,451 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="8" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.8224s" wall="0.822424" cpu="0.789487" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="240" peak="260"/>
+  </summary>
+  <header id="">
+    <environment started="06-May-26 18:03:02" host="TPX1"/>
+    <progOpts problem="reflected_angle" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/reflected_angle/reflected_angle.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.04" name="Just Jacobians" build="RELEASE" git_commit="e591fd1dee2c42689fdc54fee6fdee50baef20ec" git_branch="felhub_multiex" compiled="May  4 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="12" ny="24" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="356" nodes="325">
+          <timer id="5" wall-clock="0.01084s" wall="0.0108433" cpu="0.010734" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.001501s" wall="0.00150129" cpu="0.001502" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.001585s" wall="0.00158542" cpu="0.001585" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="8.78e-06s" wall="8.78e-06" cpu="9e-06" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="L_axi_pml_in_surf" id="0" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_top_pml_in_surf" id="1" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_in_surf" id="2" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_in_surf" id="3" type="surface" regular="yes" hom="yes" nodes="9" elems="8" isQuadratic="no"/>
+        <region name="L_top_in_surf" id="4" type="surface" regular="yes" hom="yes" nodes="9" elems="8" isQuadratic="no"/>
+        <region name="L_axi_abh_surf" id="5" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="no"/>
+        <region name="L_top_abh_surf" id="6" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="no"/>
+        <region name="L_out_surf" id="7" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_pml_out_surf" id="8" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_top_pml_out_surf" id="9" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="S_pml_in" id="10" type="volume" regular="yes" hom="yes" nodes="33" elems="20" isQuadratic="no"/>
+        <region name="S_pml" id="11" type="volume" regular="yes" hom="yes" nodes="75" elems="48" isQuadratic="no"/>
+        <region name="S_acou" id="12" type="volume" regular="yes" hom="yes" nodes="99" elems="80" isQuadratic="no"/>
+        <region name="S_opt" id="13" type="volume" regular="yes" hom="yes" nodes="143" elems="120" isQuadratic="no"/>
+        <region name="S_pml_out" id="14" type="volume" regular="yes" hom="yes" nodes="33" elems="20" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="13"/>
+        <nodes name="top" count="13"/>
+        <nodes name="left" count="25"/>
+        <nodes name="right" count="25"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(0.6,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1.2)"/>
+        <nodes name="top_right" count="1" coord="(0.6,1.2)"/>
+        <nodes name="L_in" count="11"/>
+        <nodes name="L_out" count="11"/>
+        <nodes name="L_axi" count="25"/>
+        <nodes name="L_top" count="25"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser ang="30" c0="343.42" dt="0" f="200" kperf="0.018296" nx="12" ny="24" nz="1" step="0" t="0" t0="0" win="0.5"/>
+    </domain>
+    <results>
+      <timer id="38" wall-clock="0.0202s" wall="0.0201994" cpu="0.018872" calls="26"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0219s" wall="0.0218994" cpu="0.021526" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="2.429e-06s" wall="2.429e-06" cpu="3e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <warning lineNum="671" fileName="/home/felhub/d/code_cfs/cfs/source/Domain/Mesh/NcInterfaces/MortarInterface.cc" message="Non-conforming interface 'NC_pbc_pml_out' is assumed to be curved even as the two planar surfaces that are not coplanar!
+This might lead to errors!"/>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="200" end="200" numFreq="1"/>
+      <init_harmonic>
+        <timer id="17" wall-clock="0.07809s" wall="0.0780853" cpu="0.07695" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="S_pml_out" damping="pml"/>
+          <region name="S_acou" damping="none"/>
+          <region name="S_opt" damping="none"/>
+          <region name="S_pml_in" damping="pml"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="S_pml_out">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary1Acou" type="BBInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="L_axi_pml_in_surf">
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary1Acou" type="ABInt" complex="yes" region="NC_pbc_pml_out">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary2Acou" type="BBInt" complex="yes" region="L_axi_pml_out_surf">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary2Acou" type="ABInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="NC_pbc_pml_out">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="S_pml_out">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary2Acou" type="BBInt" complex="yes" region="L_axi_in_surf">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary2Acou" type="ABInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="NC_pbc_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary1Acou" type="BBInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="L_axi_abh_surf">
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary1Acou" type="ABInt" complex="yes" region="NC_pbc_abh">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary2Acou" type="BBInt" complex="yes" region="L_axi_abh_surf">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary2Acou" type="ABInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="NC_pbc_abh">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary1Acou" type="BBInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="L_axi_pml_out_surf">
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary1Acou" type="ABInt" complex="yes" region="NC_pbc_pml_in">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary2Acou" type="BBInt" complex="yes" region="L_axi_pml_in_surf">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary2Acou" type="ABInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="NC_pbc_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="secondary1Acou" type="BBInt" complex="yes" coef="CoefFunctionTimeFreq&lt;complex&gt;" region="L_axi_in_surf">
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="primary1Acou" type="ABInt" complex="yes" region="NC_pbc_in">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="1" result="lagrangeMultiplier"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NormalVelocityIntegrator">
+                <entities name="L_in_surf" size="10" region="L_in_surf"/>
+                <row pde="acoustic" result="acouPressure" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_acou"/>
+            <region name="S_opt"/>
+            <region name="S_pml_in"/>
+            <region name="S_pml_out"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_acou/>
+                <default order="1"/>
+                <S_opt/>
+                <S_pml_in/>
+                <S_pml_out/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+          <lagrangeMultiplier>
+            <h1Nodal>
+              <regionList>
+                <L_axi_pml_in_surf/>
+                <default order="1"/>
+                <L_axi_in_surf/>
+                <L_axi_abh_surf/>
+                <L_axi_pml_out_surf/>
+              </regionList>
+            </h1Nodal>
+          </lagrangeMultiplier>
+        </feSpaces>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="300" totalNumFreeEqns="300" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="275" lastFreeEqn="275" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+            <function id="1" name="lagrangeMultiplier" numEqns="25" lastFreeEqn="25" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="300" lastFreeIndex="300"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="13" solver="direct">
+            <summary>
+              <setup>
+                <timer id="29" label="setup_pardiso" wall-clock="0.007765s" wall="0.00776456" cpu="0.007687" calls="1"/>
+              </setup>
+              <solve>
+                <timer id="30" label="solve_pardiso" wall-clock="0.004709s" wall="0.00470914" cpu="0.004705" calls="2"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.004056" wall="0.0041362" peakMem="353" permanentMem="299"/>
+                <numfact cpu="0.00336" wall="0.0033625" peakMem="211"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="31" wall-clock="2.79e-06s" wall="2.79e-06" cpu="3e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph nnz="2555">
+        <timer id="24" wall-clock="0.005098s" wall="0.00509771" cpu="0.0051" calls="1" sub="true" parent="17"/>
+        <finalize>
+          <timer id="25" wall-clock="0.0002794s" wall="0.0002794" cpu="0.000282" calls="1" sub="true" parent="24"/>
+        </finalize>
+        <sort>
+          <timer id="26" wall-clock="0.0001176s" wall="0.000117573" cpu="0.000118" calls="1" sub="true" parent="24"/>
+        </sort>
+        <rows number="300" min="4" max="9" mean="8.5167" estimated_row_size="100"/>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="19" wall-clock="0.02367s" wall="0.0236654" cpu="0.02211" calls="4"/>
+          <matrices>
+            <timer id="20" wall-clock="0.02254s" wall="0.0225357" cpu="0.020976" calls="1" sub="true" parent="19"/>
+          </matrices>
+          <rhs>
+            <timer id="21" wall-clock="0.001099s" wall="0.0010988" cpu="0.001098" calls="3" sub="true" parent="19"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="23" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <optimization haltopt_file="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/reflected_angle/HALTOPT">
+    <header>
+      <objective type="reflectedWave" name="reflectedWave" parameter="1.1547" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
+      <constraints/>
+      <designSpace pamping="0" regular="yes" localElementCache="disabled">
+        <setup_design>
+          <timer id="18" wall-clock="0.001085s" wall="0.00108539" cpu="0.000781" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="3.1" contribution="linear" design="density" elems="120" avg_radius="0.155" avg_neighbors="21.7">
+            <tanh eta="0.2" beta="1.000000" scaling="2.3218" offset="-0.93175"/>
+          </filter>
+          <timer id="22" wall-clock="0.001091s" wall="0.00109082" cpu="0.001092" calls="1"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="simp" application="acoustic" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="120" field_elems="120" field_fe_elemes="120">
+          <design type="density" upperBound="1" lowerBound="1e-09" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <regions>
+          <region name="S_opt" elements="120" bimaterial="-" groundmaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="yes" harmonic="yes" eigenvalue="no" bloch="no" material="acoustic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1" load="L_in_surf" frequency="200"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="10"/>
+    <optimizer>
+      <evaluate>
+        <scaling active="no"/>
+      </evaluate>
+    </optimizer>
+    <summary>
+      <eval_objective>
+        <timer id="34" wall-clock="0.0004894s" wall="0.000489359" cpu="0.000488" calls="1"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="35" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="36" wall-clock="0.005414s" wall="0.00541355" cpu="0.005411" calls="1"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="37" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </eval_grad_constraints>
+      <functions>
+        <reflectedWave min="1.7556" max="1.7556" oscillations="0"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" frequency="200.0" duration="0.78121" reflectedWave="1.75559102882911"/>
+    </process>
+  </optimization>
+</cfsInfo>

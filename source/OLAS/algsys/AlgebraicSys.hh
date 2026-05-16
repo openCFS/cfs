@@ -1136,6 +1136,8 @@ namespace CoupledField {
 
     GraphManager* GetGraphManager() { return graphManager_; };
 
+    bool IsSymmetric() const {return sbmSymm_;}
+
   protected:
 
     //! Auxiliary method for logging information on matrix patterns

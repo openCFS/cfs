@@ -19,7 +19,6 @@ namespace CoupledField {
   // BASE SOLVER
   // =========================================================================
 
-
   //! Base class for algebraic system solver
   class BaseSolver : public BasePrecond {
     
@@ -34,6 +33,13 @@ namespace CoupledField {
                   UMFPACK, CHOLMOD, LIS, GINKGO, PETSC, SUPERLU,
                   LDL_SOLVER, LU_SOLVER, DIAGSOLVER ,PHIST, EXTERNAL_SOLVER} SolverType;
     static Enum<SolverType> solverType;
+
+    // Transpose type used for solvers supporting it
+    enum TransposeType {
+      NO_TRANSPOSE,
+      CONJUGATE_TRANSPOSE,
+      TRANSPOSE
+    };
 
   public:
 
@@ -90,6 +96,8 @@ namespace CoupledField {
     void SetUsingPenalty(bool usingPenalty) {
       usingPenalty_ = usingPenalty;
     }
+
+    virtual void SetTranspose(TransposeType ttype) { EXCEPTION("Solver does not know transpose"); }
     
   protected:
     

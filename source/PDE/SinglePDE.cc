@@ -376,7 +376,7 @@ namespace CoupledField {
     // Proceed with initialization stage 2 in the un-coupled case
   }
   
-    void SinglePDE::Init_Stage2() {
+  void SinglePDE::Init_Stage2() {
     
     // =====================================================================
     // read in boundary conditions

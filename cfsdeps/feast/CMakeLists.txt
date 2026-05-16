@@ -26,6 +26,10 @@ include_directories(${FEAST_VERSION}/src/kernel)
 
 add_library(feast STATIC ${FEAST_SRCS})
 
+#add_library(feast_c STATIC ${FEAST_VERSION}/src/kernel/wrapper_mkl_sparse.c)
+
+#add_library(feast_c STATIC ${FEAST_VERSION}/src/kernel/wrapper_mkl_sparse.c)
+
 # set special CMAKE_Fortran_FLAGS flags like -cpp and for gfortran -ffree-line-length-none -ffixed-line-length-none -fallow-argument-mismatch
 
 install(TARGETS feast ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

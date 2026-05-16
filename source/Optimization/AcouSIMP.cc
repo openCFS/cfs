@@ -43,7 +43,6 @@ StdVector<Complex> AcouSIMP::GetExcitationPressureVector(Excitation& excite, Fun
   assert(integ != nullptr);
   PtrCoefFct coef = integ->GetCoef();
   
-
   // get c0 and K coef functions
   std::map<RegionIdType, BaseMaterial*> mat = acoupde->GetMaterialData();
   auto it = mat.find(volreg);
@@ -69,6 +68,12 @@ StdVector<Complex> AcouSIMP::GetExcitationPressureVector(Excitation& excite, Fun
 
   // init scaling factor to convert coef to vn
   Complex coef2vn{0, 1/excite.GetOmega()};
+
+  // hotfix: parameter can be used to scale the incident wave
+  // e.g. used for angled periodic excitation where scale = 1/cos(alpha)
+  double scale = 1;
+  if(std::abs(f->GetParameter()) > 1e-12)
+    scale = f->GetParameter();
 
   StdVector<unsigned> nodeList;
   LocPointMapped lpm;
@@ -100,7 +105,7 @@ StdVector<Complex> AcouSIMP::GetExcitationPressureVector(Excitation& excite, Fun
       double rho, K;
       dens->GetScalar(rho, lpm);
       blk->GetScalar(K, lpm);
-      val *= -rho * std::sqrt(K/rho) / 2;
+      val *= -rho * std::sqrt(K/rho) * scale / 2;
 
       zvec[eqnr] = val;
     }

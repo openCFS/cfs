@@ -74,8 +74,12 @@ public:
   /** Here we also write the density files */
   PtrParamNode CommitIteration();
 
-  /** Adds validation stuff here to keep out of long constructor */
+  /** Adds filters, robust and multiload */
   virtual void PostInit();
+
+  /** Add validation stuff here.
+   * Optimization::PostInitSecond is called at the end of this function!! */
+  void PostInitSecond();
 
   /** Types of ersatz material optimization methods, the strings are read from the xml file */
   typedef enum

@@ -26,7 +26,7 @@
             <hdf5 fileName="Periodic2d.h5"/>
         </input>
         <output>
-            <hdf5 compressionLevel="9"/>
+            <hdf5/>
         </output>
         <materialData/>
     </fileFormats>

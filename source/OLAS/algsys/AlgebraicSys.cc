@@ -4084,7 +4084,8 @@ namespace CoupledField
     // resize rhsVec to match number of functions
     rhsVec.Resize( numFcts_);
     // loop over all feFctIDs
-    for(UInt i = 0; i < numFcts_; ++i ) GetRHSVal(rhsVec(i), i);
+    for(UInt i = 0; i < numFcts_; ++i ) 
+      GetRHSVal(rhsVec(i), i);
   }
 
 

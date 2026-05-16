@@ -36,6 +36,7 @@ Context::Context()
   analysis = BasePDE::NO_ANALYSIS;
 
   num_harm_freq = 0;
+  num_loads = 1;  // we have at least one load
   num_bloch_wave_vectors = 0;
   num_eigenmodes = 0;
 

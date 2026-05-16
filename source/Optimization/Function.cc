@@ -38,6 +38,7 @@
 #include "Utils/TriCubicInterpolate.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/ToolsFull.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 DEFINE_LOG(func, "opt_func")
 
@@ -80,7 +81,10 @@ Function::Function(PtrParamNode pn)
     this->design_ = BaseDesignElement::type.Parse(
         pn->Get("design")->As<string>());
 
-  this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
+  // use mathparser for the parameter
+  parameter_ = 0.0;
+  if(pn->Has("parameter"))
+    parameter_ = pn->Get("parameter")->MathParse<double>();
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   // FIXME

@@ -2520,9 +2520,8 @@ void GridCFS::MapFaces()
 
     // this is expensive but still O(n)
     // for all nodes we store the volume elements where they participate
-    StdVector<StdVector<Elem*>> nodes;
     // we assume that the all nodes are consecutive and start with 0 or 1!
-    nodes.Reserve(numNodes_ + 1);
+    StdVector<StdVector<Elem*>> nodes(numNodes_ + 1);
     // StdVector<StdVector<Elem*> > volElems_;
     for(StdVector<Elem*>& reg: volElems_)
       for(Elem* elem : reg) 

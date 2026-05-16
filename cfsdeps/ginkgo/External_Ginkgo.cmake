@@ -5,10 +5,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "ginkgo")
-set(PACKAGE_VER "1.9.0")
+set(PACKAGE_VER "1.11.0")
 set(ZLIB_VER ${PACKAGE_VER}) # required by boost 
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "461e21d1f7bdeacdf371af47b9c1b103")
+set(PACKAGE_MD5 "2ff3daee2f917ad0e3d9636534cb2201")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 set(PACKAGE_MIRRORS "https://github.com/ginkgo-project/ginkgo/archive/refs/tags/${PACKAGE_FILE}")
@@ -55,6 +55,10 @@ invert(_NOT_OMP USE_OPENMP)
 
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  # Skip auto-detection of Intel VTune (causes errors with partial oneAPI installs)
+  # and TAU profiler (also auto-detected, also unused) — openCFS does not use either.
+  -DCMAKE_DISABLE_FIND_PACKAGE_VTune=ON
+  -DCMAKE_DISABLE_FIND_PACKAGE_PerfStubs=ON
   -DBUILD_GMOCK=OFF
   -DBUILD_SHARED_LIBS=OFF
   -DBUILD_TESTING=OFF

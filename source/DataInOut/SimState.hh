@@ -11,6 +11,8 @@
 #include <memory>
 #include "General/Enum.hh"
 #include "PDE/BasePDE.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
+
 // including boost/signals2.hpp is expensive as we include SimState almost everywhere
 // therefore we do a forward declaration and use as smart pointer
 namespace boost { namespace signals2 { class connection; } }
@@ -22,7 +24,6 @@ namespace CoupledField {
   //! Forward class declarations
   class BaseFeFunction;
   class Domain;  
-  class SimOutputHDF5;
   class SimInputHDF5;
   class MathParser;
   class Grid;

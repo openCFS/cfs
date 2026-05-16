@@ -1,0 +1,352 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="68" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.2697s" wall="0.269672" cpu="0.26875" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="240" peak="260"/>
+  </summary>
+  <header id="">
+    <environment started="07-May-26 00:09:45" host="TPX1"/>
+    <progOpts problem="complex_bimat" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/complex_bimat/complex_bimat.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.04" name="Just Jacobians" build="RELEASE" git_commit="036a1a804b4458df78998c41ed3ed1fcf1f98de3-modified" git_branch="felhub_multiex" compiled="May  6 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="12" ny="24" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="356" nodes="325">
+          <timer id="5" wall-clock="0.001321s" wall="0.00132115" cpu="0.001322" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0002042s" wall="0.000204193" cpu="0.000205" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0002187s" wall="0.000218702" cpu="0.000219" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="1.449e-06s" wall="1.449e-06" cpu="1e-06" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="L_axi_pml_in_surf" id="0" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_top_pml_in_surf" id="1" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_in_surf" id="2" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_in_surf" id="3" type="surface" regular="yes" hom="yes" nodes="9" elems="8" isQuadratic="no"/>
+        <region name="L_top_in_surf" id="4" type="surface" regular="yes" hom="yes" nodes="9" elems="8" isQuadratic="no"/>
+        <region name="L_axi_abh_surf" id="5" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="no"/>
+        <region name="L_top_abh_surf" id="6" type="surface" regular="yes" hom="yes" nodes="13" elems="12" isQuadratic="no"/>
+        <region name="L_out_surf" id="7" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_pml_out_surf" id="8" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_top_pml_out_surf" id="9" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="S_pml_in" id="10" type="volume" regular="yes" hom="yes" nodes="33" elems="20" isQuadratic="no"/>
+        <region name="S_pml" id="11" type="volume" regular="yes" hom="yes" nodes="75" elems="48" isQuadratic="no"/>
+        <region name="S_acou" id="12" type="volume" regular="yes" hom="yes" nodes="99" elems="80" isQuadratic="no"/>
+        <region name="S_opt" id="13" type="volume" regular="yes" hom="yes" nodes="143" elems="120" isQuadratic="no"/>
+        <region name="S_pml_out" id="14" type="volume" regular="yes" hom="yes" nodes="33" elems="20" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="13"/>
+        <nodes name="top" count="13"/>
+        <nodes name="left" count="25"/>
+        <nodes name="right" count="25"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(0.6,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1.2)"/>
+        <nodes name="top_right" count="1" coord="(0.6,1.2)"/>
+        <nodes name="L_in" count="11"/>
+        <nodes name="L_out" count="11"/>
+        <nodes name="L_axi" count="25"/>
+        <nodes name="L_top" count="25"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="500" nx="12" ny="24" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="38" wall-clock="0.0211s" wall="0.0211037" cpu="0.021095" calls="620"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.003343s" wall="0.00334301" cpu="0.003343" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="4.33e-07s" wall="4.33e-07" cpu="1e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="500" end="500" numFreq="1"/>
+      <init_harmonic>
+        <timer id="17" wall-clock="0.008867s" wall="0.00886748" cpu="0.008866" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="S_pml_in" damping="pml"/>
+          <region name="S_acou" damping="none"/>
+          <region name="S_opt" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NormalVelocityIntegrator">
+                <entities name="L_in_surf" size="10" region="L_in_surf"/>
+                <row pde="acoustic" result="acouPressure" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_acou"/>
+            <region name="S_opt"/>
+            <region name="S_pml_in"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(142000,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.42422648314749"/>
+          <property name="Density" value="(1.204,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_acou/>
+                <default order="1"/>
+                <S_opt/>
+                <S_pml_in/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="253" totalNumFreeEqns="253" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="253" lastFreeEqn="253" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="253" lastFreeIndex="253"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer id="29" label="setup_pardiso" wall-clock="0.007279s" wall="0.00727925" cpu="0.007281" calls="30"/>
+              </setup>
+              <solve>
+                <timer id="30" label="solve_pardiso" wall-clock="0.006412s" wall="0.00641189" cpu="0.006406" calls="60"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.000535" wall="0.00053536" peakMem="243" permanentMem="239"/>
+                <numfact cpu="0.000162" wall="0.00016215" peakMem="106"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="31" wall-clock="2.141e-05s" wall="2.1411e-05" cpu="2.6e-05" calls="30"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph nnz="2077">
+        <timer id="24" wall-clock="0.0005621s" wall="0.000562104" cpu="0.000546" calls="1" sub="true" parent="17"/>
+        <finalize>
+          <timer id="25" wall-clock="3.548e-05s" wall="3.5475e-05" cpu="3.5e-05" calls="1" sub="true" parent="24"/>
+        </finalize>
+        <sort>
+          <timer id="26" wall-clock="1.624e-05s" wall="1.6239e-05" cpu="1.7e-05" calls="1" sub="true" parent="24"/>
+        </sort>
+        <rows number="253" min="4" max="9" mean="8.2095" estimated_row_size="100"/>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="19" wall-clock="0.05034s" wall="0.0503356" cpu="0.049857" calls="120"/>
+          <matrices>
+            <timer id="20" wall-clock="0.04864s" wall="0.0486353" cpu="0.048133" calls="30" sub="true" parent="19"/>
+          </matrices>
+          <rhs>
+            <timer id="21" wall-clock="0.001632s" wall="0.00163173" cpu="0.001631" calls="90" sub="true" parent="19"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="23" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <optimization haltopt_file="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/complex_bimat/HALTOPT">
+    <header>
+      <objective type="reflectedWave" name="reflectedWave" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
+      <constraints>
+        <constraint type="volume" name="plain_volume" linear="no" access="plain" bound_value="0.5" bound="upperBound" design="default"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes" localElementCache="disabled">
+        <setup_design>
+          <timer id="18" wall-clock="0.0001063s" wall="0.000106327" cpu="0.000107" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="3.1" contribution="linear" design="density" elems="120" avg_radius="0.155" avg_neighbors="21.7">
+            <tanh eta="0.5" beta="64.000000" scaling="1" offset="1e-09"/>
+          </filter>
+          <timer id="22" wall-clock="0.0001546s" wall="0.000154642" cpu="0.000155" calls="1"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="simp" application="acoustic" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="120" field_elems="120" field_fe_elemes="120">
+          <design type="density" upperBound="1" lowerBound="1e-09" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <regions>
+          <region name="S_opt" elements="120" bimaterial="baso" groundmaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="yes" harmonic="yes" eigenvalue="no" bloch="no" material="acoustic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1" load="L_in_surf" frequency="500"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="10"/>
+    <optimizer>
+      <dumas_mma move_limit="0.500000" asyminit="0.5" asymdec="0.7" asyminc="1.2" a0_lin_aux_z="1" ai_lin_aux_z="0" c_lin_aux_y="1000" d_quad_aux_y="0">
+        <summary>
+          <dumas_mma>
+            <timer id="33" wall-clock="0.003475s" wall="0.00347457" cpu="0.003505" calls="153"/>
+          </dumas_mma>
+        </summary>
+        <scaling active="no"/>
+      </dumas_mma>
+    </optimizer>
+    <summary>
+      <eval_objective>
+        <timer id="34" wall-clock="0.003347s" wall="0.00334675" cpu="0.003337" calls="120"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="35" wall-clock="0.0006765s" wall="0.000676455" cpu="0.000679" calls="30"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="36" wall-clock="0.03608s" wall="0.0360805" cpu="0.036082" calls="30"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="37" wall-clock="0.00126s" wall="0.00126026" cpu="0.001256" calls="30"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="Maximum iterations exceeded"/>
+      </break>
+      <functions>
+        <reflectedWave min="4.3769" max="9506.5" oscillations="16"/>
+        <plain_volume min="0.10472" max="0.5" oscillations="19"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" frequency="500.0" duration="0.10775" reflectedWave="4128.39706507173" plain_volume="0.499999999999999"/>
+      <iteration number="1" frequency="500.0" duration="0.0034279" reflectedWave="4128.39706507173" plain_volume="0.499999999999999"/>
+      <iteration number="2" frequency="500.0" duration="0.0066479" reflectedWave="3095.37092366414" plain_volume="0.157918275792939"/>
+      <iteration number="3" frequency="500.0" duration="0.0060785" reflectedWave="9506.49376689273" plain_volume="0.126491219881952"/>
+      <iteration number="4" frequency="500.0" duration="0.0076428" reflectedWave="4672.95926723235" plain_volume="0.152320372470834"/>
+      <iteration number="5" frequency="500.0" duration="0.0047543" reflectedWave="6129.8961976651" plain_volume="0.104719657482618"/>
+      <iteration number="6" frequency="500.0" duration="0.007185" reflectedWave="3155.45174560092" plain_volume="0.143063910701127"/>
+      <iteration number="7" frequency="500.0" duration="0.0046062" reflectedWave="3243.79789355652" plain_volume="0.17530757352391"/>
+      <iteration number="8" frequency="500.0" duration="0.0046676" reflectedWave="1558.61861452992" plain_volume="0.168348770159641"/>
+      <iteration number="9" frequency="500.0" duration="0.0066138" reflectedWave="467.077712899643" plain_volume="0.196647049658985"/>
+      <iteration number="10" frequency="500.0" duration="0.0047121" reflectedWave="725.795087625499" plain_volume="0.215209665650833"/>
+      <iteration number="11" frequency="500.0" duration="0.006494" reflectedWave="997.310232020686" plain_volume="0.227158151749138"/>
+      <iteration number="12" frequency="500.0" duration="0.0057924" reflectedWave="414.991896856698" plain_volume="0.20538781347961"/>
+      <iteration number="13" frequency="500.0" duration="0.004593" reflectedWave="85.7602278040086" plain_volume="0.229719073867956"/>
+      <iteration number="14" frequency="500.0" duration="0.0044966" reflectedWave="6.58060915362063" plain_volume="0.228462665176573"/>
+      <iteration number="15" frequency="500.0" duration="0.0050467" reflectedWave="49.983450194044" plain_volume="0.239849680502002"/>
+      <iteration number="16" frequency="500.0" duration="0.0053079" reflectedWave="557.657623091604" plain_volume="0.261998698317456"/>
+      <iteration number="17" frequency="500.0" duration="0.0043501" reflectedWave="25.7543603247353" plain_volume="0.245524996351027"/>
+      <iteration number="18" frequency="500.0" duration="0.004759" reflectedWave="502.440299210478" plain_volume="0.273078930909591"/>
+      <iteration number="19" frequency="500.0" duration="0.0058479" reflectedWave="34.5453805186649" plain_volume="0.279414782490305"/>
+      <iteration number="20" frequency="500.0" duration="0.0046084" reflectedWave="58.0803004454629" plain_volume="0.284478473689415"/>
+      <iteration number="21" frequency="500.0" duration="0.0071606" reflectedWave="87.7808948704726" plain_volume="0.295192260253208"/>
+      <iteration number="22" frequency="500.0" duration="0.0052428" reflectedWave="25.9839167434258" plain_volume="0.306573356218201"/>
+      <iteration number="23" frequency="500.0" duration="0.0044731" reflectedWave="21.8870597781762" plain_volume="0.295118230322217"/>
+      <iteration number="24" frequency="500.0" duration="0.0045744" reflectedWave="12.0588904607201" plain_volume="0.304149323669073"/>
+      <iteration number="25" frequency="500.0" duration="0.0052701" reflectedWave="8.14900196000972" plain_volume="0.29757278233298"/>
+      <iteration number="26" frequency="500.0" duration="0.0047713" reflectedWave="7.1761101020892" plain_volume="0.301874851767134"/>
+      <iteration number="27" frequency="500.0" duration="0.0044333" reflectedWave="5.47322479093036" plain_volume="0.298337370615009"/>
+      <iteration number="28" frequency="500.0" duration="0.0047389" reflectedWave="4.54808634608939" plain_volume="0.299878218810922"/>
+      <iteration number="29" frequency="500.0" duration="0.0051891" reflectedWave="4.66799987756171" plain_volume="0.295980661429008"/>
+      <iteration number="30" frequency="500.0" duration="0.0045795" reflectedWave="4.37690863280525" plain_volume="0.298294907810242"/>
+    </process>
+  </optimization>
+</cfsInfo>

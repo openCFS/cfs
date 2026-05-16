@@ -1054,8 +1054,7 @@ namespace CoupledField
     //! and then updated from first to last.
     void MoveNcInterfaces();
 
-    bool HasNCI();
-
+    bool HasNCI() const { return ncInterfaces_.GetSize() > 0; }
 
   protected:
     

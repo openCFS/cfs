@@ -2536,15 +2536,18 @@ PtrCoefFct DesignSpace::DesignRegion::GetScndMaterial(MaterialClass mc, Material
       case DENSITY:
         if (mc != ACOUSTIC){
           scnd_materials[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
-        } else
+        } else {
           // because in acoustics the density factor is 1/density
-          scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::REAL, CoefXprBinOp(mp, "1.0", mat->GetScalCoefFnc(DENSITY,Global::REAL), CoefXpr::OP_DIV));
+          scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::COMPLEX, CoefXprBinOp(mp, "1.0", mat->GetScalCoefFnc(DENSITY,Global::COMPLEX), CoefXpr::OP_DIV));
+        }
         break;
 
       case ACOU_BULK_MODULUS:
+      {
         // because in acoustics the bulk modulus factor is 1/bulk
-        scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::REAL, CoefXprBinOp(mp, "1.0",  mat->GetScalCoefFnc(ACOU_BULK_MODULUS,Global::REAL), CoefXpr::OP_DIV));
+        scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::COMPLEX, CoefXprBinOp(mp, "1.0", mat->GetScalCoefFnc(ACOU_BULK_MODULUS,Global::COMPLEX), CoefXpr::OP_DIV));
         break;
+      }
 
       case MECH_STIFFNESS_TENSOR:
       {

@@ -39,6 +39,7 @@
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
+#include "Optimization/Optimization.hh"
 
 #include <cmath>
 
@@ -104,14 +105,62 @@ namespace CoupledField{
       // ===================================
       // blochPeriodic Mortar
       // ===================================
-      CoupledField::PtrParamNode bcsList = myParam_->Get("bcsAndLoads", ParamNode::ActionType::PASS);
-      if (bcsList != nullptr && bcsList->GetListByVal("blochPeriodic", "formulation", "Mortar").GetSize())
+      bool prepareMortar = false;
+      // check for Mortar bcs in the PDE
+      CoupledField::PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::ActionType::PASS);
+      if(bcNode != nullptr && bcNode->GetListByVal("blochPeriodic", "formulation", "Mortar").GetSize())
+        prepareMortar = true;
+      // check for Mortar bcs in the Optimization
+      if(domain->GetOptimization() != nullptr) {
+        CoupledField::ParamNodeList mexopt = domain->GetOptimization()->GetMultipleExcitionsNodes();
+        if(mexopt.GetSize() && !prepareMortar) {
+          for(PtrParamNode ex : mexopt) {
+            prepareMortar = ex->GetListByVal("blochPeriodic", "formulation", "Mortar").GetSize() > 0;
+            if(prepareMortar) {
+              bcNode = ex;
+              break;
+            }
+          }
+        }
+      }
+      // prepare Moratr BCs
+      if (prepareMortar)
       {
         // Create FE-Space for Lagrange multiplier
         PtrParamNode lagSpaceNode = infoNode->Get("lagrangeMultiplier");
         crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, lagSpaceNode, FeSpace::H1, ptGrid_);
         crSpaces[LAGRANGE_MULT]->SetLagrSurfSpace();
         crSpaces[LAGRANGE_MULT]->Init(solStrat_);
+
+        // All this effort to set the region approximation (also some code duping from DefineSurfaceIntegrators())
+        // This has to be done before PDE init stage3, but for the optimization DefineSurfaceIntegrators() is called after stage3
+        // Therefore, we set the region approximation here, so its safely called before InitStage3()
+        // Note: For multipleExciatation in Optimization, only the settings of the last periodicBC persists
+        ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
+        for (PtrParamNode& node : blochNodesList)
+        {
+          std::string formulation = node->Get("formulation")->As<std::string>();
+          ParamNodeList regionsList = node->GetList("region");
+          for (PtrParamNode& regnode : regionsList)
+          {
+            // get NCI
+            std::string ncRegionName = regnode->Get("name")->As<std::string>();
+            shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncRegionName));
+            if(!ncIf)
+              EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
+
+            if (formulation == "Mortar")
+            {
+              shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
+              assert(mortarIf);
+              // --- Set the approximation for Lagrange Multipliers for the current region ---
+              RegionIdType regId = mortarIf->GetSecondarySurfRegion();
+              std::string polyId = regnode->Get("polyId")->As<std::string>();
+              std::string integId = regnode->Get("integId")->As<std::string>();
+              crSpaces[LAGRANGE_MULT]->SetRegionApproximation(regId, polyId, integId);
+            }
+          }
+        }
       }
     }else{
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
@@ -1730,11 +1779,13 @@ namespace CoupledField{
     massInts_[actRegion] = massInt;
   }
 
-  void AcousticPDE::DefineSurfaceIntegrators( ){
+  void AcousticPDE::DefineSurfaceIntegrators( PtrParamNode bcNode ){
     //========================================================================================
     // ABC boundaries
     //========================================================================================
-    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    // per default we read from bcsAndLoads
+    if(bcNode == nullptr)
+      bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     LOG_DBG(acousticpde) << "Define Surface Integrator BEGIN"<< "\n";
 
     if( bcNode ) {
@@ -2098,7 +2149,6 @@ namespace CoupledField{
       {
         if(formulation_ != ACOU_PRESSURE)
           throw Exception("blochPeriodic only tested for acouPressure!");
-
         // probably also works for normal acoustics
         if(!complexFluidFormulation_)
           throw Exception("blochPeriodic only tested for complexFluid!");
@@ -2106,7 +2156,6 @@ namespace CoupledField{
         std::string str_value = node->Get("factor_value")->As<std::string>();
         std::string str_phase = node->Get("factor_phase")->As<std::string>();
         std::string formulation = node->Get("formulation")->As<std::string>();
-        
         // propagation factor \gamma from xml-file
         std::string str_real, str_imag;
         str_real = AmplPhaseToReal(str_value, str_phase, true);
@@ -2120,40 +2169,33 @@ namespace CoupledField{
         {
           std::string ncRegionName = regnode->Get("name")->As<std::string>();
           shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncRegionName));
-          if (!ncIf)
-          {
+          if(!ncIf)
             EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
-          }
-          shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
-          assert(mortarIf);
-          
           if (formulation == "Mortar")
           {
+            shared_ptr<MortarInterface> mortarIf = dynamic_pointer_cast<MortarInterface>(ncIf);
+            assert(mortarIf);
+
             shared_ptr<SurfElemList> surfPrmGrid(new SurfElemList(ptGrid_)), surfSndGrid(new SurfElemList(ptGrid_));
             surfPrmGrid->SetRegion(mortarIf->GetPrimarySurfRegion());
             surfSndGrid->SetRegion(mortarIf->GetSecondarySurfRegion());
             
-            // --- Set the approximation for Lagrange Multipliers for the current region ---
-            RegionIdType regId = surfSndGrid->GetRegion();
-            std::string polyId = regnode->Get("polyId")->As<std::string>();
-            std::string integId = regnode->Get("integId")->As<std::string>();
-            feFunctions_[LAGRANGE_MULT]->GetFeSpace()->SetRegionApproximation(regId, polyId, integId);
-            
-            BiLinearForm* intOne1 = nullptr;
-            BiLinearForm* intFactor1 = nullptr;
-            BiLinearForm* intOne2 = nullptr;
-            BiLinearForm* intFactor2 = nullptr;
+            BiLinearForm* potPrmAcou = nullptr;
+            BiLinearForm* potSndAcou = nullptr;
+            BiLinearForm* fluxSndAcou = nullptr;
+            BiLinearForm* fluxPrmAcou = nullptr;
 
             if (dim_ == 2)
             {
-              intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+              // we map the primary side on the secondary side, where the lagrange_mult DOFs are specified
+              potPrmAcou = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
                     new IdentityOperator<FeH1, 2, 1, Complex>(),
                     one, 1.0,
                     mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
                     mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
-              intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), factor, -1.0, updatedGeo_);
-              intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), one, 1.0, updatedGeo_);
-              intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+              potSndAcou = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), factor, -1.0, updatedGeo_);
+              fluxSndAcou = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), one, 1.0, updatedGeo_);
+              fluxPrmAcou = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
                       new IdentityOperator<FeH1, 2, 1, Complex>(),
                       factor, -1.0,
                       mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
@@ -2161,49 +2203,48 @@ namespace CoupledField{
             }
             else
             {
-              intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+              potPrmAcou = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
                       new IdentityOperator<FeH1, 3, 1, Complex>(),
                       one, 1.0,
                       mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
                       mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
-              intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), factor, -1.0, updatedGeo_);
-              intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), one, 1.0, updatedGeo_);
-              intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+              potSndAcou = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), factor, -1.0, updatedGeo_);
+              fluxSndAcou = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), one, 1.0, updatedGeo_);
+              fluxPrmAcou = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
                       new IdentityOperator<FeH1, 3, 1, Complex>(),
                       factor, -1.0,
                       mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
                       mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::PRIM_SEC);
             }
             
-            intOne1->SetName("primary1Acou");
-            intFactor1->SetName("secondary1Acou");
-            intOne2->SetName("primary2Acou");
-            intFactor2->SetName("secondary2Acou");
+            potPrmAcou->SetName("potPrmAcou");
+            potSndAcou->SetName("potSndAcou");
+            fluxSndAcou->SetName("fluxSndAcou");
+            fluxPrmAcou->SetName("fluxPrmAcou");
             
-            // (1) weak form of the periodic boundary conditions
-            BiLinFormContext* lagPotContPrm = new BiLinFormContext(intFactor1, STIFFNESS);
-            NcBiLinFormContext* lagPotContSnd = new NcBiLinFormContext(intOne1, STIFFNESS);
-            
-            // I dont understand why this is different to the ElecPDE, but it works...
-            lagPotContPrm->SetEntities(surfSndGrid, surfSndGrid);
-            lagPotContSnd->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
-            lagPotContPrm->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ACOU_PRESSURE]);
+            // continous potential (weak form)
+            BiLinFormContext* lagPotContSnd = new BiLinFormContext(potSndAcou, STIFFNESS);
+            NcBiLinFormContext* lagPotContPrm = new NcBiLinFormContext(potPrmAcou, STIFFNESS);
+
+            lagPotContSnd->SetEntities(surfSndGrid, surfSndGrid);
+            lagPotContPrm->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
             lagPotContSnd->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ACOU_PRESSURE]);
+            lagPotContPrm->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ACOU_PRESSURE]);
             
-            assemble_->AddBiLinearForm(lagPotContPrm);
             assemble_->AddBiLinearForm(lagPotContSnd);
+            assemble_->AddBiLinearForm(lagPotContPrm);
             
-            // (2) weak form of the boundary integrals of the PDE
-            BiLinFormContext* potLagContPrm = new BiLinFormContext(intOne2, STIFFNESS);
-            NcBiLinFormContext* potLagContSnd = new NcBiLinFormContext(intFactor2, STIFFNESS);
+            // continous flux via lagrange multipliers
+            BiLinFormContext* potLagContSnd = new BiLinFormContext(fluxSndAcou, STIFFNESS);
+            NcBiLinFormContext* potLagContPrm = new NcBiLinFormContext(fluxPrmAcou, STIFFNESS);
             
-            potLagContPrm->SetEntities(surfSndGrid, surfSndGrid);
-            potLagContSnd->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
-            potLagContPrm->SetFeFunctions(feFunctions_[ACOU_PRESSURE], feFunctions_[LAGRANGE_MULT]);
+            potLagContSnd->SetEntities(surfSndGrid, surfSndGrid);
+            potLagContPrm->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
             potLagContSnd->SetFeFunctions(feFunctions_[ACOU_PRESSURE], feFunctions_[LAGRANGE_MULT]);
+            potLagContPrm->SetFeFunctions(feFunctions_[ACOU_PRESSURE], feFunctions_[LAGRANGE_MULT]);
             
-            assemble_->AddBiLinearForm(potLagContPrm);
             assemble_->AddBiLinearForm(potLagContSnd);
+            assemble_->AddBiLinearForm(potLagContPrm);
             
             feFunctions_[LAGRANGE_MULT]->AddEntityList(surfSndGrid);
             feFunctions_[ACOU_PRESSURE]->AddEntityList(surfPrmGrid);
@@ -2320,8 +2361,8 @@ namespace CoupledField{
     }
   }
 
-  void AcousticPDE::DefineRhsLoadIntegrators() {
-    LOG_TRACE(acousticpde) << "Defining rhs load integrators for acoustic PDE";
+  void AcousticPDE::DefineRhsLoadIntegrators(PtrParamNode input) {
+    LOG_DBG(acousticpde) << "Defining rhs load integrators for acoustic PDE";
     
     // Get FESpace and FeFunction
     shared_ptr<BaseFeFunction> myFct = feFunctions_[formulation_];
@@ -2350,7 +2391,7 @@ namespace CoupledField{
     LOG_DBG(acousticpde) << "Reading normal velocity"; 
     
     ReadRhsExcitation( "normalVelocity", empty, ResultInfo::SCALAR, isComplex_,
-                          ent, coef, coefUpdateGeo );
+                          ent, coef, coefUpdateGeo, input);
 
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if ( sosAtLaplace_)
@@ -2436,7 +2477,7 @@ namespace CoupledField{
     if(dim_ == 2 && isaxi_)
       vecDofNames = "r", "z";
     ReadRhsExcitation( "velocity", vecDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef,coefUpdateGeo );
+                       ent, coef, coefUpdateGeo, input );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if ( sosAtLaplace_)
@@ -2513,7 +2554,7 @@ namespace CoupledField{
     LOG_DBG(acousticpde) << "Reading normal acceleration";
 
     ReadRhsExcitation( "normalAcceleration", empty, ResultInfo::SCALAR, isComplex_,
-                          ent, coef, coefUpdateGeo );
+                          ent, coef, coefUpdateGeo, input);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if ( sosAtLaplace_)
         EXCEPTION("RHS and speed of sound at Laplace operator currently not possible");
@@ -2572,7 +2613,7 @@ namespace CoupledField{
     // ===========================
     // Only possible for harmonic potential formulation
     ReadRhsExcitation( "pressure", empty, ResultInfo::SCALAR, isComplex_,
-                       ent, coef, coefUpdateGeo );
+                       ent, coef, coefUpdateGeo, input );
     if( formulation_ == ACOU_POTENTIAL && isComplex_ ) { 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         if ( sosAtLaplace_)
@@ -2611,7 +2652,7 @@ namespace CoupledField{
     //LOG_DBG(heatcondpde) << "Reading acoustic source density";
 
     ReadRhsExcitation( "acouSourceDensity", empty,
-                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -2641,7 +2682,7 @@ namespace CoupledField{
     //  rhsValues for e.g. for aeroacoustics
     // =====================================
     ReadRhsExcitation( "rhsValues", empty, ResultInfo::SCALAR, isComplex_,
-                          ent, coef, coefUpdateGeo );
+                          ent, coef, coefUpdateGeo, input );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       if ( sosAtLaplace_)
         EXCEPTION("RHS and speed of sound at Laplace operator currently not possible");
@@ -2687,7 +2728,7 @@ namespace CoupledField{
        // ================
        LOG_DBG(acousticpde) << "Reading rhsDensityVector";
        ReadRhsExcitation( "rhsDensityVector", vecDofNames, ResultInfo::VECTOR,
-    		   isComplex_, ent, coef, updatedGeo_ );
+    		   isComplex_, ent, coef, updatedGeo_, input );
 
        //perform checks
 
@@ -2746,7 +2787,7 @@ namespace CoupledField{
        //  Diss Freidhager 2022
        // ================
        LOG_DBG(acousticpde) << "Reading BCVector";
-             ReadRhsExcitation( "BCVector", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+             ReadRhsExcitation( "BCVector", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input );
 
              for( UInt i = 0; i < ent.GetSize(); ++i ) {
                EntityIterator it = ent[i]->GetIterator();
@@ -2810,7 +2851,7 @@ namespace CoupledField{
     //  RHS DENSITY
     // ================
     ReadRhsExcitation( "rhsDensity", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_, input );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -2868,7 +2909,7 @@ namespace CoupledField{
     //  RHS Mass time derivative
     // ================
     ReadRhsExcitation( "rhsMassTimeDeriv", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_, input );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -2926,7 +2967,7 @@ namespace CoupledField{
     //  RHS Mass convective term
     // ================
     ReadRhsExcitation( "rhsMassConvective", empty,
-                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_, input );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {

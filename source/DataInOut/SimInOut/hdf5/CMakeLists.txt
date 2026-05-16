@@ -1,7 +1,7 @@
 INCLUDE_DIRECTORIES(${HDF5_INCLUDE_DIR})
 
 SET(SIMINOUTHDF5_SRCS
-  hdf5io.cc
+  CommonHDF5.cc
   SimInputHDF5.cc
   SimOutputHDF5.cc)
 

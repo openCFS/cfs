@@ -221,6 +221,9 @@ namespace CoupledField
         /** The current multiple excitation state -> check with IsEnabled() */
         MultipleExcitation* GetMultipleExcitation() const { return me; }
 
+        /** Get the list of excitations given in multipleExcitations in the costFunction */
+        ParamNodeList GetMultipleExcitionsNodes();
+
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 

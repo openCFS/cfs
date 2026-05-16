@@ -63,7 +63,7 @@
 
     <meshOutput id="test_block3x3x3poly" inputFilterIds="input">
       <outputFile>
-        <hdf5 compressionLevel="1" externalFiles="yes"/>
+        <hdf5 externalFiles="yes"/>
       </outputFile>
       <saveResults>
         <result resultName="fluidMechPressure">

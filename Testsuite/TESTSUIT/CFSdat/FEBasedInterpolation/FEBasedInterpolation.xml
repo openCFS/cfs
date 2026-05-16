@@ -48,7 +48,7 @@
 
     <meshOutput id="FEBasedInterpolation" inputFilterIds="interp">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="fluidMechVelocityInt">

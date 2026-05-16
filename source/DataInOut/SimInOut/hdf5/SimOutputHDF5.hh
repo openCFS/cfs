@@ -7,8 +7,8 @@
 
 #include <set>
 #include <map>
-
-#include <any>
+#include <chrono>
+#include <H5Ipublic.h>
 
 #include <Domain/Mesh/Grid.hh>
 #include <Domain/Results/ResultInfo.hh>
@@ -16,31 +16,21 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
-#include "H5Cpp.h"
 
 namespace CoupledField {
 
   //! Forward class declaration
   class SimState;
 
-  //! define CFS-HDF5 file format version
-#define CFS_HDF5_FORMAT_MAJOR 0
-#define CFS_HDF5_FORMAT_MINOR 9
-
   //! HDF5 output writer class
-  class SimOutputHDF5: virtual public SimOutput {
-
+  class SimOutputHDF5: public SimOutput 
+  {
     // declare SimState class as friend, as it
     // needs direct write access to the underlying H5 file
     friend class SimState;
     
   public:
 
-    // =======================================================================
-    //  CONSTRUCTION AND INTIIALIZATION
-    // =======================================================================
-    //@{ \name Constructor / Initialization
-    
     //! Constructor with name of mesh-file
     SimOutputHDF5(std::string fileName, PtrParamNode inputNode,
                   PtrParamNode infoNode, bool isRestart );
@@ -49,57 +39,36 @@ namespace CoupledField {
     virtual ~SimOutputHDF5();
 
     //! Initialize class 
-    virtual void Init( Grid* ptGrid,
-                       bool printGridOnly );
+    void Init( Grid* ptGrid, bool printGridOnly ) override;
     
     //! Return file name including path
-    fs::path GetFileName() {
-      return  currFileName_;
-    }
-    //@}
-
-    // =======================================================================
-    //  RESULTS RELATED SECTION
-    // =======================================================================
-    //@{ \name Result Handling
-
+    fs::path GetFileName() { return  currFileName_; }
+    
     //! Begin multisequence step
-    virtual void BeginMultiSequenceStep( UInt step,
+    void BeginMultiSequenceStep( unsigned int step,
                                          BasePDE::AnalysisType type,
-                                         UInt numSteps  );
+                                         unsigned int numSteps  ) override;
     
     //! Register result (within one multisequence step)
-    virtual void RegisterResult( shared_ptr<BaseResult> sol,
-                                 UInt saveBegin, UInt saveInc,
-                                 UInt saveEnd,
-                                 bool isHistory );
+    void RegisterResult( shared_ptr<BaseResult> sol,
+                                 unsigned int saveBegin, unsigned int saveInc,
+                                 unsigned int saveEnd,
+                                 bool isHistory ) override;
 
     //! Begin single analysis step
-    virtual void BeginStep( UInt stepNum, Double stepVal );
+    void BeginStep( unsigned int stepNum, double stepVal ) override;
 
     //! Add result to current step
-    virtual void AddResult( shared_ptr<BaseResult> sol );
+    void AddResult( shared_ptr<BaseResult> sol ) override;
 
     //! End single analysis step
-    virtual void FinishStep( );
+    void FinishStep( ) override;
 
     //! End multisequence step
-    virtual void FinishMultiSequenceStep( );
+    void FinishMultiSequenceStep( ) override;
 
     //! Finalize the output
-    virtual void Finalize();
-
-    //! Initialize 
-    virtual void InitModule();
-
-    //! Write grid
-    virtual void WriteGrid();
-    //@}
-    
-    // =======================================================================
-    //  DATABASE SECTION
-    // =======================================================================
-    //@{ \name Database Handling
+    void Finalize() override;
 
     //! Initialize database
     void DB_Init();
@@ -107,15 +76,11 @@ namespace CoupledField {
     //! Write parameter and xml file
     void DB_WriteXmlFiles( fs::path simFile, fs::path matFile );
 
-    //! Write python file
-    void DB_WritePythonFile( fs::path pythonFile);
-
     //! Begin new multisequence step for database section
-    void DB_BeginMultiSequenceStep( UInt step,
-                                    BasePDE::AnalysisType type );
+    void DB_BeginMultiSequenceStep( unsigned int step, BasePDE::AnalysisType type );
 
     //! Begin single analysis step
-    void DB_BeginStep( UInt stepNum, Double stepVal );
+    void DB_BeginStep( unsigned int stepNum, double stepVal );
 
     //! Write coefficients of coefficient function
     void DB_WriteFeFunction( const std::string& pdeCplName,
@@ -123,30 +88,30 @@ namespace CoupledField {
                              SingleVector* coefs );
 
     //! End multisequence step for database section
-    void DB_FinishMultiSequenceStep(bool completed, Double accTime );
+    void DB_FinishMultiSequenceStep(bool completed, double accTime );
 
-    //@}
-
-    void WriteStringToUserData(const std::string& dSetName, 
-                               const std::string& str);
+    void WriteStringToUserData(const std::string& dSetName, const std::string& str);
     
   private:
 
-    // =======================================================================
-    //  GRID HELPER FUNCTIONS
-    // =======================================================================
+    //! Initialize 
+    void InitModule();
+
+    //! Write grid
+    void WriteGrid();
+
     //! Write Nodes/Edges/Faces/Elements of Regions to file
-    void WriteRegions(const H5::Group& meshGroup);
+    void WriteRegions(hid_t meshGroup);
 
     //! Write list of node groups to file
-    void WriteNodeGroups(const H5::Group& meshGroup);
+    void WriteNodeGroups(hid_t meshGroup);
 
     //! Write list of element groups to file
-    void WriteElemGroups(const H5::Group& meshGroup);
+    void WriteElemGroups(hid_t meshGroup);
 
     //! Write Meta-Information about results to file
-    void WriteResultDescriptions( const H5::Group& descGroup,
-                                  UInt numSteps,
+    void WriteResultDescriptions( hid_t descGroup,
+                                  unsigned int numSteps,
                                   bool isHistory );
 
     //! Create separate external file for each time / frequency step
@@ -161,13 +126,6 @@ namespace CoupledField {
     //! Close the file
     void CloseFile();
     
-
-  private:
-    
-    // =======================================================================
-    //  HELPER METHODS
-    // =======================================================================
-    
     //! Add mesh result
     void AddMeshResult( shared_ptr<BaseResult> sol );
     
@@ -175,165 +133,128 @@ namespace CoupledField {
     void AddHistResult( shared_ptr<BaseResult> sol );
     
     //! Write single result to file
-    void WriteResults( H5::Group& resultGroup,
-                       Vector<Double>& resultVals,
-                       const UInt numDOFs,
+    void WriteResults( hid_t resultGroup,
+                       Vector<double>& resultVals,
+                       const unsigned int numDOFs,
                        const bool isImag );
     
-    //! Get lock during low-level file operation
-    void LockFile();
-    
-    //! Release lock after performing file operation and flush file
-    void UnlockFile();
+    /** test if he shall have an intermediate flush. 
+     * CloseFile() implicitly flushed, no need to calls this function.
+     * for very slow simulations we flush and then ParaView can check intermediate results */
+    void AutoFlush();
 
-    // =======================================================================
-    //  HDF5 DATA MEMBERS
-    // =======================================================================
-    
-    //@{ \name H5 Data MEMBERS
-
-    //! Dataset property list (used for chunking and compression )
-    H5::DSetCreatPropList dPropList_;
-    
     //! Main file containing grid and meta information
-    H5::H5File mainFile_;
+    hid_t mainFile_ = -1;
 
     //! In case we use
-    H5::H5File currStepFile_;
+    hid_t currStepFile_ = -1;
 
     //! Main / Root Group
-    H5::Group mainGroup_;
+    hid_t mainGroup_ = -1;
 
     //! Mesh Group
-    H5::Group meshGroup_;
+    hid_t meshGroup_ = -1;
 
     //! Group for results
-    H5::Group resultsGroup_;
+    hid_t resultsGroup_ = -1;
 
     //! Group for mesh results
-    H5::Group meshResultsGroup_;
+    hid_t meshResultsGroup_ = -1;
     
     //! Group for history results
-    H5::Group histResultsGroup_;
+    hid_t histResultsGroup_ = -1;
 
     //! Group for current multisequence step for mesh results
-    H5::Group currMSMeshGroup_;
+    hid_t currMSMeshGroup_ = -1;
     
     //! Group for current multisequence step for history results
-    H5::Group currMSHistGroup_;
+    hid_t currMSHistGroup_ = -1;
 
     //! Group for current analysis step for mesh results
-    H5::Group currMeshStepGroup_;
+    hid_t currMeshStepGroup_ = -1;
     
     //! Group for current analysis step for history results
-    H5::Group currHistStepGroup_;
+    hid_t currHistStepGroup_ = -1;
     
     //! Group for internal database
-    H5::Group dbGroup_;
+    hid_t dbGroup_ = -1;
     
     //! Group for database entries of current sequence step
-    H5::Group currMsDbGroup_;
-    //@}
-
-    // =======================================================================
-    //  GENERIC DATA MEMBERS
-    // =======================================================================
-    
-    //@{ \name Generic Data Members
+    hid_t currMsDbGroup_ = -1;
 
     //! Set with used capabilities, i.e. types of content written to file
     std::set<Capability> usedCapabilities_;
     
     //! Flag if module is initialized
-    bool isInitialized_;
+    bool isInitialized_ = false;
     
     //! Flag indicating if grid is already written
-    bool gridWritten_;
+    bool gridWritten_ = false;
 
     //! Flag indicating if external file per analysis step is used
-    bool externalFiles_;
+    bool externalFiles_ = false;
 
     //! Flag indicating if only grid is to be printed
-    bool printGridOnly_;
+    bool printGridOnly_ = false;
     
     //! Flag, if database capability is used
-    bool useDataBase_;
+    bool useDataBase_ = false;
     
     //! Flag, if mesh / history results capability is used
-    bool useResults_;
+    bool useResults_ = false;
     
+    /** seconds for auto flush. 0.0 means we flush on every AutoFlush() call, which is not too bad */
+    double autoFlushSeconds_ = 2.0;
+
+    /** compression level: 0 disables, 1 is fast and good, 2 ... 9 is usually slow but not much better */
+    int compressionLevel_ = 1;
+
     //! Current multisequence number
-    UInt currMS_;
+    unsigned int currMS_ = 0;
     
     //! Number of steps in this multisequence step
-    UInt currMSNumSteps_;
+    unsigned int currMSNumSteps_ = 0;
     
     //! Current analysis step
-    UInt currStep_;
+    unsigned int currStep_ = 0;
     
     //! Current analysis step value (time / frequency);
-    Double currStepValue_;
+    double currStepValue_ = 0.0;
 
     //! Type of current analysis type
-    BasePDE::AnalysisType currAnalysisType_;
-
-    //! Type definition for registered results
-    typedef std::map< std::string, std::vector< 
-      shared_ptr<BaseResult> > > ResDescType;
+    BasePDE::AnalysisType currAnalysisType_ = BasePDE::AnalysisType::NO_ANALYSIS;
     
     //! Set of registered mesh results for current MSstep
-    ResDescType registeredMeshResults_;
+    std::map<std::string, StdVector<shared_ptr<BaseResult>>> registeredMeshResults_;
     
     //! Set of registered history results for current MSstep
-    ResDescType registeredHistResults_;
-    
-    //! Map attribute saveBegin for each result type (mesh)
-    std::map<std::string, UInt> meshResultSaveBegin_;
-    
-    //! Map attribute saveEnd for each result type (mesh)
-    std::map<std::string, UInt> meshResultSaveEnd_;
-        
-    //! Map attribute saveBegin for each result type (mesh)
-    std::map<std::string, UInt> meshResultSaveInc_;
-    
-    //! Map attribute saveBegin for each result type (history)
-    std::map<std::string, UInt> histResultSaveBegin_;
-        
-    //! Map attribute saveEnd for each result type (history)
-    std::map<std::string, UInt> histResultSaveEnd_;
-            
-    //! Map attribute saveBegin for each result type (history)
-    std::map<std::string, UInt> histResultSaveInc_;
+    std::map<std::string, StdVector<shared_ptr<BaseResult>>> registeredHistResults_;
     
     //! Map with step numbers for each mesh result
-    std::map<std::string, StdVector<UInt> > meshResultStepNums_;
+    std::map<std::string, StdVector<unsigned int> > meshResultStepNums_;
     
     //! Map with step numbers for each hist result
-    std::map<std::string, StdVector<UInt> > histResultStepNums_;
+    std::map<std::string, StdVector<unsigned int> > histResultStepNums_;
     
     //! Map with step values for each mesh result
-    std::map<std::string, StdVector<Double> > meshResultStepVal_;
+    std::map<std::string, StdVector<double> > meshResultStepVal_;
     
     //! Map with step values for each hist result
-    std::map<std::string, StdVector<Double> > histResultStepVal_;
+    std::map<std::string, StdVector<double> > histResultStepVal_;
     
     //! Filename, so it can be used for reopening the file
     std::string currFileName_;
     
-    //@}
-    
-    // =======================================================================
-    //  DATABASE SECTION
-    // =======================================================================
-    
+    shared_ptr<Timer> initTimer_;
+
+    /** last action point for automatic flush */
+    std::chrono::steady_clock::time_point lastFlush_;
+        
     //! Current analysis step
-    UInt currStepDb_;
+    unsigned int currStepDb_ = 0;
 
     //! Current analysis step value (time / frequency);
-    Double currStepValueDb_;
-
-    shared_ptr<Timer> initTimer_;
-    
+    double currStepValueDb_ = 0.0;
   };
 }
-#endif //FILE_CFS_SIMOUTPUTXMDF_HH
+#endif // end FILE_CFS_SIMOUTPUTHDF5_HH

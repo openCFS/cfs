@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+  <material name="air">
+    <acoustic>
+      <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul"
+      Reference(s) :  -->
+      <!-- Remarks : Standardbedingungen bei Temp. T=20 degree und Druckp=1013 hPa"
+                     Kompressionsmodul aus Adiabatenexponent gamma = 1,40 berechnet -->
+      <density>
+        <linear>
+          <real> 1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 0.142e+6 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="baso">
+    <!-- Derived from JCAL https://doi.org/10.1051/aacus/2025033 
+     with values from dataset https://zenodo.org/records/18242697?preview_file=JCAL_params_Basotect.csv
+     for t = 50mm and D = 98mm-->
+    <acoustic>
+      <density>
+        <linear>
+          <real> sample1D('./densReal.txt',f,1) </real>
+          <imag> sample1D('./densImag.txt',f,1) </imag>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> sample1D('./cmpMReal.txt',f,1) </real>
+          <imag> sample1D('./cmpMImag.txt',f,1) </imag>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

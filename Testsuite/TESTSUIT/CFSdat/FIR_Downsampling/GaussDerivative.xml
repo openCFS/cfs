@@ -43,7 +43,7 @@
 
     <meshOutput id="GaussDerivative" inputFilterIds="gaussA,gaussB">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="ThreeScalar">

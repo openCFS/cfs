@@ -82,7 +82,7 @@
 
     <meshOutput id="BinaryOperations" inputFilterIds="multDyadic,multEntrywise,multScalar,multCross,multConst,multTensVec,multTensTens,plus,minus,div">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="vecDyadic">

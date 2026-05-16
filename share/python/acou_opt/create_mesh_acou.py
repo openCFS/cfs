@@ -134,49 +134,41 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
                     mesh.elements.append(e)
                 last_out_i = i
 
-        # axi
+        # axi (this is needed for bloch periodic)
         if x < eps:
-            if y - t_pml < -eps:
-                continue
-            if y - (L_in + t_pml) < eps:
-                Ls_axi.append(i)
-                # create surface region
-                if last_axi_i is not None:
-                    e = mesh_tool.Element(region="L_axi_in_surf", type=mesh_tool.Ansys.LINE)
-                    e.nodes = (last_axi_i, i)
-                    mesh.elements.append(e)
+            Ls_axi.append(i)
+            if last_axi_i is None:
                 last_axi_i = i
                 continue
-            if y - Y + t_pml < eps:
-                Ls_axi.append(i)
-                # create surface region
-                if last_axi_i is not None:
-                    e = mesh_tool.Element(region="L_axi_abh_surf", type=mesh_tool.Ansys.LINE)
-                    e.nodes = (last_axi_i, i)
-                    mesh.elements.append(e)
-                last_axi_i = i
+            if y - t_pml < eps:
+                e = mesh_tool.Element(region="L_axi_pml_in_surf", type=mesh_tool.Ansys.LINE)
+            elif y - (L_in + t_pml) < eps:
+                e = mesh_tool.Element(region="L_axi_in_surf", type=mesh_tool.Ansys.LINE)
+            elif y - Y + t_pml < eps:
+                e = mesh_tool.Element(region="L_axi_abh_surf", type=mesh_tool.Ansys.LINE)
+            else:
+                e = mesh_tool.Element(region="L_axi_pml_out_surf", type=mesh_tool.Ansys.LINE)
+            e.nodes = (last_axi_i, i)
+            mesh.elements.append(e)
+            last_axi_i = i
 
         # top
-        if abs(x - max(ws)) < eps and t_pml - y < eps and y - Y + t_pml < eps:
-            if y - t_pml < -eps:
-                continue
-            if y - (L_in + t_pml) < eps:
-                Ls_top.append(i)
-                # create surface region
-                if last_top_i is not None:
-                    e = mesh_tool.Element(region="L_top_in_surf", type=mesh_tool.Ansys.LINE)
-                    e.nodes = (last_top_i, i)
-                    mesh.elements.append(e)
+        if abs(x - max(ws)) < eps:
+            Ls_top.append(i)
+            if last_top_i is None:
                 last_top_i = i
                 continue
-            if y - Y + t_pml < eps:
-                Ls_top.append(i)
-                # create surface region
-                if last_top_i is not None:
-                    e = mesh_tool.Element(region="L_top_abh_surf", type=mesh_tool.Ansys.LINE)
-                    e.nodes = (last_top_i, i)
-                    mesh.elements.append(e)
-                last_top_i = i
+            if y - t_pml < eps:
+                e = mesh_tool.Element(region="L_top_pml_in_surf", type=mesh_tool.Ansys.LINE)
+            elif y - (L_in + t_pml) < eps:
+                e = mesh_tool.Element(region="L_top_in_surf", type=mesh_tool.Ansys.LINE)
+            elif y - Y + t_pml < eps:
+                e = mesh_tool.Element(region="L_top_abh_surf", type=mesh_tool.Ansys.LINE)
+            else:
+                e = mesh_tool.Element(region="L_top_pml_out_surf", type=mesh_tool.Ansys.LINE)
+            e.nodes = (last_top_i, i)
+            mesh.elements.append(e)
+            last_top_i = i
 
     mesh.bc.append(('L_in', Ls_in))
     mesh.bc.append(("L_out", Ls_out))

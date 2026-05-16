@@ -70,10 +70,12 @@ namespace CoupledField{
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators();
+    void DefineSurfaceIntegrators(PtrParamNode bcNode);
+    void DefineSurfaceIntegrators() { DefineSurfaceIntegrators(PtrParamNode()); }
     
     //! Define all RHS linearforms for load / excitation 
-    void DefineRhsLoadIntegrators();
+    void DefineRhsLoadIntegrators(PtrParamNode input);
+    void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); }
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();

@@ -125,13 +125,9 @@ extern "C" {
     std::string solverType = "direct";
     xml_->GetValue("type", solverType, ParamNode::INSERT);
 
-    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::APPEND);
+    xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::INSERT);
       
-    if(solverType == "direct") {
-      mSolver_ = 0;
-    } else {
-      mSolver_ = 1;
-    }
+    mSolver_ = solverType == "direct" ? 0 : 1;
 
     PtrParamNode stopRulenode = xml_->Get("stoppingRule", ParamNode::INSERT);
     std::string sRule = "relNormRes0";
@@ -156,6 +152,11 @@ extern "C" {
     rowPtr_ = NULL;
     colPtr_ = NULL;
     datPtr_ = NULL;
+
+    // setup transpose types for xml parsing
+    transposeTypeEnum_.Add(TransposeType::NO_TRANSPOSE, "no");
+    transposeTypeEnum_.Add(TransposeType::TRANSPOSE, "transpose");
+    transposeTypeEnum_.Add(TransposeType::CONJUGATE_TRANSPOSE, "conjugate-transpose");
   }
 
 
@@ -583,12 +584,10 @@ extern "C" {
 
     // Solve transpose (^T) or conjugate-transpose (^H) problem
     // A^T x = b or A^H x = b
-    std::string adjoint = "no"; // Adjoint usually refers to conjugate-transpose, we also use it for transpose
-    xml_->GetValue("adjoint", adjoint, ParamNode::INSERT);
-    if ( adjoint == "transpose" ) { iparm_[11] = 2; }
-    else if ( adjoint == "conjugate-transpose" ) { iparm_[11] = 1; }
-    else if ( adjoint == "no" ) { iparm_[11] = 0; }
-    else { EXCEPTION("Please select 'no', 'transpose' or 'conjugate-transpose' for the tag 'adjoint'!") }
+    std::string adjoint = xml_->Get("adjoint", ParamNode::INSERT)->As<string>();
+    if(adjoint == "")
+      adjoint = "no";  // this is the default from the xml, no idea why its not parsed correctly...
+    SetTranspose(transposeTypeEnum_.Parse(adjoint));
 
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)

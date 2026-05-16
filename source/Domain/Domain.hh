@@ -33,7 +33,15 @@ namespace CoupledField
   class DesignSpace;
   class AdaptiveTimesteppingData;
   struct Elem;
-  
+
+  // The different initialization stages for InitPDEs()
+  enum InitStage{
+    ALL,
+    STAGE1,
+    STAGE2,
+    STAGE3,
+    ALGSYS
+  };
 
   //! This class defines the computational domain.
 
@@ -99,7 +107,8 @@ namespace CoupledField
 
     //! Initialize all PDEs which are previously created
     //! \param sequenceStep step index in MultiSequenceSimulation
-    void InitPDEs( UInt sequenceStep );
+    //! \param stage select what stage(s) should be initialized
+    void InitPDEs(unsigned int sequenceStep, InitStage stage = ALL);
 
     /** reset pdes
      * @param keep if false the pointers are deleted if true they are to be kept in the multi sequence driver */

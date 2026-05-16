@@ -15,7 +15,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     </documentation>
 
     <fileFormats>
-        <!-- create_mesh_acou.py -lin 0.04 -labh 0.06 -win 0.05 -wabh 0.05 -wout 0.05 -tpml 0.002 -o bloch_periodic.mesh 10 -->
+        <!-- create_mesh_acou.py -lin 0.04 -labh 0.06 -win 0.05 -wabh 0.05 -wout 0.05 -tpml 0.1 -o bloch_periodic.mesh 10 -->
         <output>
             <hdf5 />
             <info id="info"/>

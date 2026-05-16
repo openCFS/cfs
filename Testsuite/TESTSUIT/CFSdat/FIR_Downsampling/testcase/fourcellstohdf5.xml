@@ -27,7 +27,7 @@
 
     <meshOutput id="fourcells" inputFilterIds="input">
       <outputFile>
-        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+        <hdf5 extension="h5" externalFiles="no"/>
       </outputFile>
       <saveResults>
         <result resultName="optResult_1">

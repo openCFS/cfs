@@ -29,16 +29,17 @@ namespace CoupledField {
     //! Type for associating a result name the related BaseResult objects
     typedef std::map<std::string, StdVector<shared_ptr<BaseResult> > > ResultMapType;
 
-    //! Define capabilities of writing out certain information
+    /** Define capabilities of writing out certain information. 
+     check writing hdf5 files when making changes here. */
     typedef enum {
-      NONE,          /*!< No specific output data*/
-      MESH,          /*!< Mesh information present*/
-      MESH_RESULTS,  /*!< Results defined spatial entities (nodes, elements)*/
-      HISTORY,       /*!< Non spatially resolved results (energy, power etc.)
+      NONE = 0,          /*!< No specific output data*/
+      MESH = 1,          /*!< Mesh information present*/
+      MESH_RESULTS = 2,  /*!< Results defined spatial entities (nodes, elements)*/
+      HISTORY = 3,       /*!< Non spatially resolved results (energy, power etc.)
                           or just specified for some few nodes, elements*/
-      USERDATA,      /*!< Information about user (environment, build status for
+      USERDATA = 4,      /*!< Information about user (environment, build status for
                           program etc.)*/  
-      DATABASE       /*!< Detailed internal data, for re-creating FeFunctions
+      DATABASE = 5       /*!< Detailed internal data, for re-creating FeFunctions
                           and the internal state of PDEs */
     } Capability;
 

@@ -994,14 +994,16 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputHDF5">
     <xsd:attribute name="externalFiles" type="DT_CFSBool" default="no"/>
-    <xsd:attribute name="maxChunkSize" type="xsd:nonNegativeInteger" default="128"/>
-    <xsd:attribute name="compressionLevel" default="6">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:nonNegativeInteger">
-          <xsd:maxInclusive value="9"/>
-        </xsd:restriction>
-      </xsd:simpleType>
+    <xsd:attribute name="flushSeconds" type="xsd:float" default="2">
+      <xsd:annotation>
+        <xsd:documentation>Seconds for auto flush (write intermediate results to file). 0.0 write every computed step.</xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="compressionLevel" type="xsd:float" default="1">
+      <xsd:annotation>
+        <xsd:documentation>level 0 disables, 1 is fast and good, 2 ... 9  is usually slow but not much better.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>    
     <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
     <xsd:attribute name="extension" type="xsd:string" default="cfs"/>
     <xsd:attribute name="id" type="xsd:token" default="hdf5"/>

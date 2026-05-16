@@ -14,7 +14,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
-#include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -184,29 +183,62 @@ void MultipleExcitation::WriteInInfo(PtrParamNode in)
   domain->GetInfoRoot()->ToFile();
 }
 
-void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_freq)
+void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_freq, int num_loads)
 {
   // this sets the first and only excitation even when we have multiple harmonic forward case
   // but not multiple excitations. Then only the first frequency is called.
   // Fills the excitations list with the data provided in the xml file as problem description
-
+  Assemble* ass = ctxt->pde->GetAssemble();
   assert(excitations.GetCapacity() >= base + num_freq);
-  excitations.Resize(base + num_freq);
 
-  // maybe in the future, we would use pn_ex here to parse the loads given in
-  // the optimization section
-  if(pn_ex.GetSize() != 0)
-    WARN("multipleExciatations (given in the optimization) is not implemented for multi frequency and ignored.");
+  // when the loads are given in the optimization section of the xml file
+  if(pn_ex.GetSize() > 0)
+  {
+    // multiple frequencies and multiple loads
+    excitations.Resize(base + num_freq * num_loads);
+
+    // this allows flexible weights, currently only when the loads are given in the optimization part and not for the simulation
+    MathParser* parser = domain->GetMathParser();
+    unsigned int handle = parser->GetNewHandle();
+
+    // we did not implement coild for multiload harmonic
+    assert(ParamNode::GetListByGrandChild(pn_ex , "coil").GetSize() == 0);
+
+    // don't mix optimization excitations with bcsAndLoads stuff
+    if(ass->GetLinForms().GetSize() > 0)
+      WARN("Excitations are given in optimization mulitipleExcitations, loads from the bcsAndLoads section will be deleted.");
+    ass->GetLinForms().Clear(); // the forms eventually read by cfs are ignored, we use our own from optimization
+    assert(ass->GetBiLinForms().size() > 0);  // check the "universal" BiLienarForms, which should be present for every excitation
+
+    for(int i = 0; i < num_loads; i++)
+    {
+      PtrParamNode pnex = pn_ex[i];
+      parser->SetExpr(handle, pnex->Get("weight")->As<std::string>());
+      const double weight = parser->Eval(handle);
+      for(int f = 0; f < num_freq; f++)
+      {
+        Excitation& ex = excitations[base + i*num_freq + f];
+        ex.weight = weight;
+
+        assert(!pnex->Has("trackings"));
+
+        ex.ReadLoads(ctxt, pnex); // possibly multiple forms and/or biforms
+        SetHarmonicExcitation(ctxt, ex, f);
+        ex.reassemble = true;
+      }
+    }
+    parser->ReleaseHandle(handle);
+  }
 
   // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
   // Apply() can be used to change frequencies for freq dependent loads
-  Assemble* ass = ctxt->pde->GetAssemble();
   if(pn_ex.GetSize() == 0 && !DoHomogenization() && !ctxt->DoBloch())
   {
     // a force is a linarForm with integrator NodalForceInt
-    StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
-    // we expect only one form, cause we dont handle multi frequency multi load (yet?)
+    StdVector<LinearFormContext*>& forms = ass->GetLinForms();
+    // we expect only one form, cause we dont handle multi frequency multi load here!
     assert((int) forms.GetSize() == 1);
+    excitations.Resize(base + num_freq);  // single load case
 
     for(int i = 0; i < num_freq; i++) // via num_loads or num_freq
     {
@@ -320,13 +352,9 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
   for(unsigned int i = 0; i < manager->context.GetSize(); i++)
   {
     Context& ctxt = manager->context[i];
+    ctxt.num_loads = GetNumberLoads(opt, &(ctxt));
 
-    // no C++11 yet :(
-    unsigned int tmp = std::max(ctxt.num_harm_freq, ctxt.num_bloch_wave_vectors);
-    // we don't know the real number of loads, hence make an estimate. It's just to reserve!
-    if(ctxt.analysis == BasePDE::STATIC)
-      tmp = std::max(tmp, (unsigned int) 10); // FIXME we don't have Context::num_static_loads yet
-    upper_bound += tmp;
+    upper_bound += std::max({(ctxt.num_harm_freq * ctxt.num_loads), ctxt.num_bloch_wave_vectors, ctxt.num_loads});
   }
 
   upper_bound *= std::max(1,num_trans_);
@@ -334,12 +362,45 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
   excitations.Reserve(upper_bound);
 }
 
+unsigned int MultipleExcitation::GetNumberLoads(Optimization* opt, Context* ctxt) {
+  Assemble* ass = ctxt->pde->GetAssemble();
+  PtrParamNode pn = opt->optParamNode->Get("costFunction");
+
+  // to be overwritten when we have multiple excitations in optimization or to be faked later for homogenization test strains
+  int num_loads = ass->GetLinForms().GetSize();
+
+  // initialize data and do simple plausibility check. Note that also 1 is "multiple"
+  // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimization
+  if(IsEnabled(ctxt->sequence))
+  {
+    if(sequence_ == ctxt->sequence)
+    {
+      // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
+      // and trackings in one excitation when specified in multipleExcitation (this is done here)
+      ParamNodeList pn_ex = opt->GetMultipleExcitionsNodes();
+      if(pn_ex.GetSize())
+        num_loads = pn_ex.GetSize();  // we overwrite the num_loads from bcs
+
+      // sets and resizes excitations with strain loads
+      if(DoHomogenization())
+        num_loads = GetNumberHomogenization(ctxt->ToApp());
+    }
+
+    // usually we provide a macrostress in the xml, so we have only one excitation
+    // one could change that to more excitations and use unit vectors as test stresses
+    if(DoHomogenization() && ctxt->DoBuckling())
+      num_loads += 1;
+
+    // we average the solutions(s) only for output.
+    // In the calculations we average the individual calculations
+  } // end IsEnabled()
+  return num_loads;
+}
+
 void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* ctxt)
 {
   // we assume InitializeMultipleExcitations() to be called
   assert(num_trans_ >= 0 && robust_[ctxt->context_idx].num_robust >= 0);
-
-  Assemble* ass = ctxt->pde->GetAssemble();
 
   // the already existing excitations from a prior context
   unsigned int context_base = excitations.GetSize();
@@ -361,7 +422,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   int num_wave = ctxt->num_bloch_wave_vectors;
 
   // to be overwritten when we have multiple excitations in optimization or to be faked later for homogenization test strains
-  int num_loads = ass->GetLinForms().GetSize();
+  int num_loads = ctxt->num_loads;
 
   LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads << " trans: " << num_trans_;
 
@@ -377,42 +438,22 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     if(sequence_ == ctxt->sequence)
     {
       // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
-      // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
-      if(!ctxt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
-      {
-        pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
-        num_loads = pn_ex.GetSize(); // in the magnetic coil case, we overwrite the num_loads from bcs
-      }
-
-      // decide if we have multiple loads or multiple frequencies
-      // we cannot do both!
-
-      if(num_freq > 1 && num_loads > 1)
-        throw Exception("Cannot do concurrent multiple excitations for multiple loads and multiple frequencies");
-
-      assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans_ > 0)));
+      // and trackings in one excitation when specified in multipleExcitation (this is done here)
+      pn_ex = opt->GetMultipleExcitionsNodes();
+      assert(!(num_wave > 0 && num_trans_ > 0));
 
       // sets and resizes excitations with strain loads
       if(DoHomogenization())
-        num_loads = SetHomogenizationTestStrains(context_base, ctxt);
+        SetHomogenizationTestStrains(context_base, ctxt);
     }
-
-    // usually we provide a macrostress in the xml, so we have only one excitation
-    // one could change that to more excitations and use unit vectors as test stresses
-    if(DoHomogenization() && ctxt->DoBuckling())
-      //num_loads += SetHomogenizationTestStrains(context_base, ctxt);
-      num_loads += 1;
-
-    // we average the solutions(s) only for output.
-    // In the calculations we average the individual calculations
-  } // end IsEnabled()
+  }
   else
   {
     if(DoRobust(ctxt) && Optimization::manager.context.GetSize() == 1)
       throw Exception("robust filters are defined but 'multiple_excitation' is not enabled in 'costFunction");
     if(num_trans_ > 1)
       throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
-    if(pn->Has("multipleExcitation/excitations"))
+    if(opt->GetMultipleExcitionsNodes().GetSize())
       opt->optInfoNode->Get(ParamNode::HEADER)->SetWarning("'multiple_excitations' set to false but 'multipleExcitation/excitations' given");
   }
 
@@ -425,8 +466,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     SetBlochWaves(ctxt, context_base, num_wave);
 
   // when we do acoustics or magnetic coupling with 1 frequency but two loads
-  if(ctxt->IsHarmonic() && (num_freq > 1 || num_loads <= 1))
-    SetHarmonic(ctxt, context_base, pn_ex, num_freq);
+  if(ctxt->IsHarmonic())
+    SetHarmonic(ctxt, context_base, pn_ex, num_freq, num_loads);
 
   // SetLoadCases()
   if( IsEnabled(ctxt->sequence) &&                          // check if we are in the correct sequence step
@@ -521,7 +562,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 }
 
 
-int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context* ctxt)
+void MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context* ctxt)
 {
   unsigned int dim = domain->GetDim();
   int cases = GetNumberHomogenization(ctxt->ToApp());
@@ -568,8 +609,6 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     }
     LOG_DBG3(exlog) << "SHTS: i=" << i << " base=" << base << " label:" << ex.label << " testStrain: " << ex.test_strain.ToString();
   }
-
-  return cases;
 }
 
 unsigned int MultipleExcitation::CountExcitations(const Context* ctxt) const
@@ -607,11 +646,13 @@ void MultipleExcitation::ApplyRobust(const Context* ctxt)
 
   assert(robust.num_robust >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
 
+  LOG_DBG2(exlog) << "FindForm: " << (excitations.First().forms.First()->GetIntegrator() == NULL ? "NULL" : excitations.First().forms.First()->GetIntegrator()->GetName());
   assert(excitations.GetCapacity() >= (principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust); // the *additional* excitations only!
   excitations.Resize((principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust);
 
   LOG_DBG2(exlog) << "AR: c=" << ctxt->context_idx << " principle=" << principle << " n_ex_ctxt=" << n_ex_ctxt
       << " num_robust=" << robust.num_robust << " alt_filter=" << robust.alt_filter;
+  LOG_DBG2(exlog) << "FindForm: " << (excitations.First().forms.First()->GetIntegrator() == NULL ? "NULL" : excitations.First().forms.First()->GetIntegrator()->GetName());
 
   // we now loop over excitations where the later part might is uninitialized in the robust case after resize
   // we start from 0 to get also the existing ones
@@ -651,7 +692,7 @@ void MultipleExcitation::ApplyRobust(const Context* ctxt)
       // If we have total_base_ > 1 we assume the weights were properly set and are copied
       if(principle == 1)
         ex.weight = 1.0;
-
+      // TODO: Why is here the integrator zero? When it was there in PrepareMultipleExcitations() ?????
       LOG_DBG2(exlog) << "AR: r=" << r << " b=" << b << " org_idx=" << org_idx << " new_idx=" << new_idx << " rfi=" << ex.robust_filter_idx
           << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
           << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
@@ -744,7 +785,7 @@ void MultipleExcitation::SetCoils(unsigned int base, Assemble* ass, const ParamN
   // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
   // Apply() will then change the entities for this loads
   // Therefore we do not call ReadLoads() which would read the loads now. This does not work as nicely for Magnetic, therefore we use the approach described above
-  StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
+  StdVector<LinearFormContext*>& forms = ass->GetLinForms();
 
   ParamNodeList exc = ParamNode::GetListByChild(pn_ex, "excitation");
   for(int l = 0; l < num_loads; l++)
@@ -832,7 +873,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
   if(pn_ex.GetSize() == 0 && !DoHomogenization() && !ctxt->DoBloch())
   {
     // a force is a linarForm with integrator NodalForceInt
-    StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
+    StdVector<LinearFormContext*>& forms = ass->GetLinForms();
     assert((int) forms.GetSize() == num_loads);
 
     for(int i = 0; i < num_loads; i++) // via num_loads or num_freq
@@ -848,18 +889,6 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
 
     // "remove" the loads from the simulation. From now on we Apply() ist
     forms.Resize(0); // won't delete content but set the internal size_ counter
-  }
-
-  // check for the harmonic single frequency case, then we also store this information in the excitation
-  assert(!(ctxt->IsHarmonic() && ctxt->num_harm_freq != 1)); // might also be extended for multiple frequencies
-  if(ctxt->IsHarmonic())
-  {
-    for(int i = 0; i < num_loads; i++) // via num_loads or num_freq
-    {
-      Excitation& ex = excitations[base + i];
-      SetHarmonicExcitation(ctxt, ex, 0); // we have exactly one frequency!
-      ex.label = ""; // we don't want the frequency as label
-    }
   }
 }
 
@@ -986,18 +1015,6 @@ Excitation::Excitation()
   this->reassemble = false; // normally
 }
 
-Excitation::~Excitation()
-{
-  // we have the ownerhip of the loads (form) with multiple excitation. We took if from Assemble::linForms_
-  // Coils are a special case, they are owned by the PDE
-  for(unsigned int i = 0; i < forms.GetSize(); i++)
-    if(meta_index == 0) {
-      LinearForm* integ = forms[i]->GetIntegrator();
-      if(integ != nullptr && integ->GetName() != "CoilIntegrator")
-         delete forms[i];
-    }
-}
-
 bool Excitation::Apply(bool switch_context)
 {
   LOG_DBG(exlog) << "A: sc=" << switch_context << " curr_ex=" << Optimization::context->GetExcitation()->index << " new_ex=" << index;
@@ -1012,22 +1029,36 @@ bool Excitation::Apply(bool switch_context)
   Optimization::context->SetExcitation(this);
   assert(!switch_context || Optimization::context->sequence == sequence);
 
-  // Update mathParser freq and step, currently just implemented for harmonic simulation
   if(Optimization::context->IsHarmonic() && !Optimization::context->DoBloch()) {
     assert(Optimization::context->GetHarmonicDriver() != nullptr);
+    // Update mathParser freq and step, currently just implemented for harmonic simulation
     Optimization::context->GetHarmonicDriver()->SetMathParserFreq(frequency, freq_idx);
   }
     
+  Context& ctxt = Optimization::manager.GetContext(this);
+  Assemble* ass = ctxt.pde->GetAssemble();
   if(forms.GetSize() > 0)
   {
-    Context& ctxt = Optimization::manager.GetContext(this);
-    Assemble* ass = ctxt.pde->GetAssemble();
     ass->GetLinForms() = forms; // let the copy constructor do the stuff
 
     assert(ass->GetLinForms().GetSize() == forms.GetSize());
     LOG_DBG(exlog) << "A: set form " << forms[0]->ToString();
     assert(ctxt.pde->GetAnalysisType() == forms[0]->GetPde()->GetAnalysisType());
   }
+
+  if(biforms.size() > 0) {
+    ass->SetBiLinForms(biforms);
+
+    assert(ass->GetBiLinForms().size() == biforms.size());
+    //std::stringstream ss;
+    //ss << "A: set " << biforms.size() << " biforms:\n";
+    //for (const auto& ptr : biforms) {
+    //  ss << "  " << ptr->ToString() << "\n";
+    //}
+    //LOG_DBG(exlog) << ss.str();
+    LOG_DBG(exlog) << "A: set " << biforms.size() << " biform(s)";
+  }
+
 
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
@@ -1176,18 +1207,30 @@ void Excitation::ReadTrackings(PtrParamNode ts){
 
 void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
 {
-  // the original loads need to be cleared before
+  // the original loads need to be cleared before!!
   Assemble* ass = ctxt->pde->GetAssemble();
   assert(ass->GetLinForms().GetSize() == 0);
   LOG_DBG(exlog) << "RL: paramnode ls=" << ls->GetChildren().GetSize() << " ls=" << ls->GetName();
+
+  // READ LHS loads
+  assert(biforms.size() == 0);  // bifirms should not be set yet!!
+  // store the "universal" biforms present for every excitation
+  Assemble::BiLinContextListType base_biforms = ass->GetBiLinForms();
+  LOG_DBG2(exlog) << "RL: basebf=" << base_biforms.size();
+  // on top of the universal biforms, we add the surface biforms of the given excitation
+  ctxt->pde->DefineSurfaceIntegrators(ls);
+  // get base + surface biforms back
+  biforms = ass->GetBiLinForms(); // copy
+  LOG_DBG2(exlog) << "RL: basebf=" << base_biforms.size() << ", bif=" << biforms.size();
+  ass->SetBiLinForms(base_biforms);  // restore the base_biforms (for the next call of this function)
+
+  // Read RHS loads
   // reads all loads and adds them to Assemble::linForms_
   ctxt->pde->DefineRhsLoadIntegrators(ls);
-
   LOG_DBG(exlog) << "RL: paramnode ls: " << ls << " ctxt exc size: " << ctxt->excitations.GetSize();
   // own vector with the pointers in assemble and we have to delete the content
-  forms = ass->GetLinForms(true); // take ownership. copy constructor!
+  forms = ass->GetLinForms(); // copy constructor!
   assert(forms.GetSize() > 0);
-
   // delete the stuff from assemble to prepare for the next (()
   ass->GetLinForms().Resize(0); // the elements must not be destructed
 }
@@ -1196,7 +1239,7 @@ void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
 {
   // the original loads need to be cleared before
   Assemble* ass = ctxt->pde->GetAssemble();
-  forms = ass->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
+  forms = ass->GetLinForms(); // copy constructor!
   assert(ass->GetLinForms().GetSize() == 0);
   assert(ctxt->ToApp() == App::MECH || ctxt->ToApp() == App::HEAT);
   switch(ctxt->ToApp())

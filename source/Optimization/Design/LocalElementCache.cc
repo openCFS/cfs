@@ -33,30 +33,28 @@ void LocalElementCache::InitOrg()
   LOG_DBG(lec) << "IO: #forms=" << assemble->GetBiLinForms().size();
 
   // read the stuff from the current context
-  for(std::set<BiLinFormContext*>::iterator it = assemble->GetBiLinForms().begin();
-      it != assemble->GetBiLinForms().end(); it++ )
-  {
-    BiLinFormContext& context = **it;
-    BiLinearForm*     form    = context.GetIntegrator();
+  for (const auto& [_, contexts] : assemble->GetBiLinForms()) {
+    for(BiLinFormContext* context : contexts) {
+      BiLinearForm* form = context->GetIntegrator();
 
-    LOG_DBG(lec) << "IO: forms=" << form->GetName();
-    LOG_DBG(lec) << "IO: pde1=" << context.GetFirstPde()->GetName();
-    LOG_DBG(lec) << "IO: ent1=" << context.GetFirstEntities()->GetName();
-    LOG_DBG(lec) << "IO: reg1=" << context.GetFirstEntities()->GetRegion();
-    RegionIdType reg = context.GetFirstEntities()->GetRegion();
+      LOG_DBG(lec) << "IO: forms=" << form->GetName();
+      LOG_DBG(lec) << "IO: pde1=" << context->GetFirstPde()->GetName();
+      LOG_DBG(lec) << "IO: ent1=" << context->GetFirstEntities()->GetName();
+      LOG_DBG(lec) << "IO: reg1=" << context->GetFirstEntities()->GetRegion();
+      RegionIdType reg = context->GetFirstEntities()->GetRegion();
 
-    // for buckling we must not use local element caching as the
-    // local element matrices depend on the current stresses
-    if (Optimization::context->DoBuckling() && form->GetName() == "PreStressInt")
-      continue;
+      // for buckling we must not use local element caching as the
+      // local element matrices depend on the current stresses
+      if (Optimization::context->DoBuckling() && form->GetName() == "PreStressInt")
+        continue;
 
-    // the data is not created when it exists for previous regions
-    FormData& data = GetFormData(form, ORG, DesignElement::NO_DERIVATIVE, true);
+      // the data is not created when it exists for previous regions
+      FormData& data = GetFormData(form, ORG, DesignElement::NO_DERIVATIVE, true);
 
-    // sets the form temporarily to ORG
-    next_state = FillFormData(data, form, reg) ? true : next_state; // if false we don't change the state
+      // sets the form temporarily to ORG
+      next_state = FillFormData(data, form, reg) ? true : next_state; // if false we don't change the state
+    }
   }
-
   active_ = next_state;
 }
 

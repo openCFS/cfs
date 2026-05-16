@@ -2,6 +2,7 @@ set(CMAKE_SOURCE_DIR  "@CMAKE_SOURCE_DIR@")
 set(DEPS_PREFIX  "@DEPS_PREFIX@")
 set(PACKAGE_NAME "@PACKAGE_NAME@")
 set(FEAST_VER "@FEAST_VER@")
+set(USE_BLAS_LAPACK "@USE_BLAS_LAPACK@")
 
 include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
@@ -11,3 +12,8 @@ assert_set(FEAST_VER)
 
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/feast_cpp.h" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}/${FEAST_VER}/include")
+# fix for MKL >= 2026, source from Eric Polizzi, should not be needed any more once FEAST is updated > 4.0. Also remove the wrapper library wrapper_mkl_sparse.c in OLAS!
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/libnum.f90" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}/${FEAST_VER}/src/kernel")
+  file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/feast_mkl_spblas.fi" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}/${FEAST_VER}/src/kernel")
+endif()

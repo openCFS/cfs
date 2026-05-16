@@ -39,7 +39,7 @@
     </input>
     
     <output>
-      <hdf5 externalFiles="no" compressionLevel="9"/>
+      <hdf5 externalFiles="no"/>
     </output>
 
     <materialData file="mat.xml" format="xml"/>

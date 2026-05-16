@@ -15,7 +15,6 @@
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"

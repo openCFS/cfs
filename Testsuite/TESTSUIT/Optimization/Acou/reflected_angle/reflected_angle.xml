@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - Reflected wave for angled planar wave</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2026-05-06</date>
+        <isVerified>yes</isVerified>
+        <description>The problem here uses a waveguide with PMLs on both ends and blochPeriodic BCs on the sides.
+            We use the phase of the normalVelocity to excite an angled wave set with the variable "ang". The phase
+            of the blochPeriodic condition is adjusted accordingly to simulate true angled wave propagation.
+            To compute the correct reflectedWave value, wa also need to scale the inciedent wave amplitude.
+            The implemented p_I = v_n * Z_0 / 2 does not hold, we add the factor 1 / cos(ang) via the "parameter" to scale the impedance.
+            The test is verified, because the expected very low reflectedWave value is achieved for each angle, small deviations are due to numerical error.
+            Furthermore we see no standing wave, when looking at the magnitude field.
+            NCI requires PARDISO!
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <!-- create_mesh_acou.py -lin 0.4 -labh 0.6 -win 0.5 -wabh 0.5 -wout 0.5 -tpml 0.1 -o reflected_angle.mesh 10 -->
+        <output>
+            <hdf5 />
+            <info id="info"/>
+        </output>
+        <materialData file="mat.xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <variableList>
+            <var name="ang" value="30" />  <!-- dont forget to change in parameter!!-->
+            <var name="win" value="0.5" />  <!-- with this width, the limit of plane wave is < 300Hz-->
+            <!-- taken from info xml -->
+            <var name="c0" value="343.42422648314749" />
+            <var name="kperf" value="2 * pi / c0" />
+        </variableList>
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+            <region material="air" name="S_pml_in" />
+            <region material="air" name="S_pml_out" />
+        </regionList>
+        <ncInterfaceList>
+            <ncInterface name="NC_pbc_pml_in"  primarySide="L_top_pml_in_surf"  secondarySide="L_axi_pml_in_surf"  mutualProjection="yes"/>
+            <ncInterface name="NC_pbc_in"      primarySide="L_top_in_surf"      secondarySide="L_axi_in_surf"      mutualProjection="yes" />
+            <ncInterface name="NC_pbc_abh"     primarySide="L_top_abh_surf"     secondarySide="L_axi_abh_surf"     mutualProjection="yes"/>
+            <ncInterface name="NC_pbc_pml_out" primarySide="L_top_pml_out_surf" secondarySide="L_axi_pml_out_surf" mutualProjection="yes"/>
+        </ncInterfaceList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>200</startFreq>
+                <stopFreq>200</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
+                    <region name="S_pml_in" dampingId="pml"/>
+                    <region name="S_pml_out" dampingId="pml"/>
+                </regionList>
+                <dampingList>
+                    <pml  id="pml">
+                        <type> inverseDist </type>
+                        <dampFactor> 1 </dampFactor>
+                    </pml>
+                </dampingList>
+                <bcsAndLoads>
+                    <normalVelocity name="L_in_surf" value="1" phase="360*f/c0*x*sin(pi/180*ang)" />
+                    <blochPeriodic factor_value="1.0" factor_phase="kperf * f * win * sin(pi/180*ang)" formulation="Mortar" >
+                        <region name="NC_pbc_pml_in" />
+                        <region name="NC_pbc_in" />
+                        <region name="NC_pbc_abh" />
+                        <region name="NC_pbc_pml_out" />
+                    </blochPeriodic>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                     <elemResult type="pseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalPseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </acoustic>
+        </pdeList> 
+        <linearSystems getRidOfZeros="no">
+            <system></system>
+        </linearSystems>
+    </sequenceStep>
+    <optimization>
+        <!--We compute the incident pressure for reflected wave with pI = vn * Z_0 / 2 * parameter
+        For angled incidence the impedance is scaled with Z = Z_0 / cos(ang)-->
+        <costFunction type="reflectedWave" task="minimize" parameter="1/cos(pi/180*ang)">
+            <stopping queue="10" value="1e-3" type="relativeCostChange"/>
+            <output>
+                <acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/>
+            </output>
+        </costFunction>
+
+        <optimizer type="evaluate" maxIterations="1">
+            <snopt>
+                <option type="integer" name="verify_level" value="3" />
+            </snopt>
+        </optimizer>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="simp">
+            <designSpace local_element_cache="false"/>
+            <filters>
+                <filter neighborhood="maxEdge" value="3.1" type="density">
+                    <density type="tanh" beta="1" eta="0.2" />
+                </filter>
+            </filters>
+
+            <design name="density" initial="1" physical_lower="1e-9" upper="1"/>
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+
+        <!-- visualize both load cases -->    
+        <commit mode="forward" stride="10" />
+    </optimization>
+</cfsSimulation>
