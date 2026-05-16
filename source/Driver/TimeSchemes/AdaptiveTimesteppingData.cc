@@ -156,11 +156,8 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
 Double AdaptiveTimesteppingData::pidController(bool* accepted,
         Double local_error_, Double dtCurrent_)
 {
-    // H312 PID (Söderlind 2005, eq. 38): kk_I=2/9, k=3 → kI=2/27
+    // H312 PID (Söderlind 2005 eq.38): kk_I=2/9, k=3 → kI=2/27; falls back to PI when history < 2.
     // h_{n+1} = h × (σ·tol/r̂_n)^e1 × (σ·tol/r̂_{n-1})^e2 × (σ·tol/r̂_{n-2})^e1
-    // Fall back to PI when not yet enough history.
-    // Bounds on step-size change: reject if ratio is outside [minShrink, maxGrowth].
-    // maxGrowth mirrors the BDF2 stability limit already applied in TimeSchemeGLM.
     const Double minShrink = 0.10;
     const Double maxGrowth = 1.0 + std::sqrt(2.0);
 

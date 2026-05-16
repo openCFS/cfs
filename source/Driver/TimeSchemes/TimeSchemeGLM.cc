@@ -226,10 +226,7 @@ namespace CoupledField{
   
   void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
 
-    //-------------------------------------------------------------
-    // Adaptive timestepping initialization: read flag and configure
-    // BDF2 for variable steps. Runs once per scheme instance.
-    //-------------------------------------------------------------
+    // Adaptive timestepping init: read flag and configure BDF2 for variable steps.
      if(domain_ != nullptr && mathparser_ == nullptr)
      {
         mathparser_ = domain_->GetMathParser();
@@ -251,19 +248,13 @@ namespace CoupledField{
         }
       }
     }
-    //-------------------------------------------------------------
-
-    //-------------------------------------------------------------
-    // Adaptive Timestepping
-    // Updates timestep, according to AdaptiveTimsteppingData value and recalculates
-    // the BDF2 Coefficients.
+    // Adaptive Timestepping: update dt from AdaptiveTimesteppingData and recompute BDF2 coefficients.
     if(curScheme_->adaptiveBDF2)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
       curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_, dt);
     }
-    //-------------------------------------------------------------
-  
+
     //update for old solutions
     if(curScheme_->usePredictors_){
       if( updatePredictor ) {
@@ -435,18 +426,12 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::FinishStep(){
-    //--------------------------------------------------------------------
-    // Adaptive Timestepping:
-    //---------------------------------------------------------------------
-
     if (curScheme_->adaptiveBDF2) {
       if (adaptiveStepCount_ >= 2) {
         auto* atd = domain_->GetAdaptiveData().get();
 
         if (atd->lteCollected_) {
-          // ── Multi-field path ──────────────────────────────────────────
-          // LTE was already collected from all fields by FinishStepLTE();
-          // use the domain-wide controlling error so every field agrees.
+          // Multi-field path: LTE collected by FinishStepLTE(); use domain-wide controlling error.
           curScheme_->local_error_ = atd->getControllingError();
 
           if (atd->stepRejected_) {
@@ -543,16 +528,13 @@ namespace CoupledField{
         }
       }
 
-      // Step accepted (or warm-up): save dt history for reset_dt() and
-      // glm[1] (y_{n-1}) as prevPrevSol_ (y_{n-2}) for the next LTE computation.
+      // Step accepted: save dt history and glm[1] (y_{n-1}) as prevPrevSol_ (y_{n-2}).
       // NOTE: glmVector_[1] still holds y_{n-1} here (before the GLM update below).
       curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;
       curScheme_->prev_dtPrev1_   = curScheme_->dtPrev1_;
       curScheme_->prev_dtPrev2_   = curScheme_->dtPrev2_;
 
-      // Save y_{n-1} (= glm[1] before this step's GLM update) as y_{n-2} for the next LTE.
-      // glm[1] is only valid (non-zero) after the first accepted step has run its GLM update,
-      // so skip the save on the very first step (adaptiveStepCount_ == 0).
+      // Save y_{n-1} (glm[1]) as y_{n-2} before GLM update; skip first step (glm[1] not yet valid).
       if (adaptiveStepCount_ >= 1) {
         if (prevPrevSol_ == nullptr) {
           prevPrevSol_ = new Vector<Double>();
@@ -745,15 +727,8 @@ namespace CoupledField{
 
   void TimeSchemeGLM::LTELocalErrorEstimation()
   {
-    // BDF2 LTE estimate via Newton divided differences on solution values.
-    //
-    // solDerivOrder==0 (e.g. HeatPDE): stageVector_[0] IS y_{n+1} (Newton solves for temperature).
-    // solDerivOrder==1 (e.g. acoustic): stageVector_[0] is ẏ_{n+1}; y_{n+1} must be reconstructed.
-    //
-    // In both cases:
-    //   glmVector_[0]  = y_n   (current solution, before GLM update)
-    //   glmVector_[1]  = y_{n-1}
-    //   prevPrevSol_   = y_{n-2} (glm[1] saved one accepted step ago)
+    // BDF2 LTE via Newton divided differences. solDerivOrder==0: stage=y_{n+1}; ==1: reconstruct y_{n+1}.
+    // glmVector_[0]=y_n, glmVector_[1]=y_{n-1}, prevPrevSol_=y_{n-2}.
 
     Double h2 = curScheme_->dtCurrent_;  // step being accepted
     Double h1 = curScheme_->dtPrev1_;
@@ -798,6 +773,9 @@ namespace CoupledField{
           yNp2 = (h2/a0_r)*stage_j + (1.0+w_r)/a0_r*yNp1_raw
                  - w_r*w_r/(1.0+2.0*w_r)*yN_raw;
         }
+
+        //LTE estimate uses Newton's divided differences — specifically the 3rd divided difference over 4 points 
+
         Double yNp1 = yNp1_raw;
         Double yN   = yN_raw;
         Double yNm1 = yNm1_raw;
@@ -811,9 +789,10 @@ namespace CoupledField{
 
         Double D3   = (D210 - D10m) / (h2 + h1 + h0);
 
+        // D3 = y[t_{n+1},t_n,t_{n-1},t_{n-2}] ≈ y'''/6; BDF2 LTE = h²(h+h₋₁)/6·y''' → factor 6 cancels.
         Double lte  = std::abs(h2 * h2 * (h2 + h1) * D3);
 
-        if (useScaling) {
+        if (useScaling) {  // when using girect tol instead of rtol/atol implementation
             Double sc = ATOL + std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)}) * RTOL;
             lte = lte / sc;
         }

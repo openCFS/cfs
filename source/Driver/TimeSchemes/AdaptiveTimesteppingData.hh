@@ -31,10 +31,8 @@ public:
     bool   revertToPrevDt_       = false; // retry with h_prev after growing-LTE saturation
     int    consecutiveNaN_       = 0;     // consecutive NaN-solution steps; abort after threshold
 
-    // Multi-field LTE collection: each field registers its LTE via FinishStepLTE()
-    // before FinishStep() makes a single consistent step-size decision.
-    // fieldLocalErrors_ holds one entry per field; getControllingError() returns
-    // the worst (currently max) — future: per-domain field selection.
+    // Multi-field LTE: each field registers via FinishStepLTE(); FinishStep() makes one consistent decision.
+    // fieldLocalErrors_ per field; getControllingError() returns max.
     std::vector<double> fieldLocalErrors_;
     bool lteCollected_     = false;  // true once at least one field has registered
     bool stepDecisionMade_ = false;  // true once the first field called ComputeAdaptiveStepSize
@@ -48,15 +46,10 @@ public:
 
     bool is_error_finite(Double Error);
 
-    //! Post-saturation growth limiter: activated by mark_saturated() whenever
-    // a force-accept (toleranceNotReachable) occurs.  
+    //! Post-saturation growth limiter: caps h_next to 1.5×h for 3 steps after a force-accept.
     void   mark_saturated();
 
-    //! apply_post_saturation_cap()
-    // restricts h_next to at most 1.5×h until 3 consecutive healthy steps have
-    // been seen.  Call mark_saturated() at every toleranceNotReachable site;
-    // call apply_post_saturation_cap() after the BDF2 stability cap, before
-    // the dtMin/dtMax clamp.
+    //! Call mark_saturated() at every toleranceNotReachable site; apply_post_saturation_cap() after BDF2 cap.
     Double apply_post_saturation_cap(Double h_next, Double h,
                                      Double local_error, bool accepted);
 
@@ -84,7 +77,7 @@ public:
     //! I-controller: simple single-step power-law formula
     Double iController(bool* accepted, Double local_error_, Double dtCurrent_);
 
-    //! PI.3.4 controller (Söderlind 2002)
+    //! PI.3.4 controller (Söderlind 2002) (includes error rejektion)
     Double piController(bool* accepted, Double local_error_, Double dtCurrent_);
 
     //! H312 PID controller (Söderlind 2005, eq. 38) — for non-smooth/noisy problems

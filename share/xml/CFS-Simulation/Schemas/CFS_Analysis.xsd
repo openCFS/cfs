@@ -112,7 +112,7 @@
                   warmUpLTE         : If set, run at fixed deltaT until LTE/tol &lt;= value, then activate adaptive control. Mutually exclusive with StartAtmin="ON". Typical value: 1.5-3.0.
                 </xsd:documentation>
               </xsd:annotation>
-              <xsd:sequence>
+              <xsd:all>
                 <xsd:element name="deltaTmin" type="xsd:token"/>
                 <xsd:element name="deltaTmax" type="xsd:token"/>
                 <xsd:element name="directTol"       type="xsd:token" minOccurs="0" maxOccurs="1"/>
@@ -121,7 +121,7 @@
                 <xsd:element name="absoluteTol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="minStepFactor" type="xsd:token" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="warmUpLTE"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
-              </xsd:sequence>
+              </xsd:all>
               <xsd:attribute name="scheme" use="required">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
