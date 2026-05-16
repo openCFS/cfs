@@ -112,16 +112,18 @@ void CoefFunctionMaterialModel<T>::GetScalar(
     Vector<Complex> DependentVec;
 
     depCoef_->GetVector(DependentVec, lpm);
+    UInt sizeVec =  DependentVec.GetSize();
 
     // Can i do this in less codelines? Complex vector to Real Vector??
     Vector<Double> RealDependentVec;
 
-    RealDependentVec.Resize(3);
+    RealDependentVec.Resize(DependentVec.GetSize());
     RealDependentVec.Init(0);
 
-    RealDependentVec[0] = std::real(DependentVec[0]);
-    RealDependentVec[1] = std::real(DependentVec[1]);
-    RealDependentVec[2] = std::real(DependentVec[2]);
+    for ( UInt i=0; i<DependentVec.GetSize(); i++)
+      RealDependentVec[i] = std::real(DependentVec[i]);
+    //RealDependentVec[1] = std::real(DependentVec[1]);
+    //RealDependentVec[2] = std::real(DependentVec[2]);
 
     coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
 
