@@ -1167,9 +1167,14 @@
           </xsd:complexType>
         </xsd:element>
       </xsd:sequence>
-       <xsd:attribute name="solver" use="optional" default="cg">
+       <xsd:attribute name="solver" use="optional" default="auto">
         <xsd:simpleType>
          <xsd:restriction base="xsd:token">
+            <xsd:enumeration value="auto">
+              <xsd:annotation>
+                <xsd:documentation>Selects 'cg' for real valued and 'gmres' for complex systems. This fails e.g. for real saddle-point systems.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
             <xsd:enumeration value="cg">
               <xsd:annotation>
                 <xsd:documentation>Efficient for symmetric positive-definite (SPD) systems.</xsd:documentation>

@@ -39,7 +39,7 @@ namespace CoupledField
 
   private:
     /** see CFS_Solvers.xsd or Ginkgo for a description of the types */
-    typedef enum {NOSOLVER = 0, ST_JSON, CG, BICGSTAB, GMRES} GinkgoSolverType;
+    typedef enum {NOSOLVER = 0, ST_AUTO, ST_JSON, CG, BICGSTAB, GMRES} GinkgoSolverType;
     static Enum<GinkgoSolverType> ginkgoSolverType;
 
     typedef enum {NOPRECOND = 0, PT_JSON, JACOBI, ILU, IC, AMG} GinkgoPrecondType;
@@ -63,7 +63,10 @@ namespace CoupledField
 
     /** either OmpExecutor::create(), ReferenceExecutor::create() or the HIP (CUDA) variant in future */
     shared_ptr<gko::Executor> exec;
-    std::variant<shared_ptr<gko::log::Convergence<float>>,shared_ptr<gko::log::Convergence<double>>> logger;
+    std::variant<shared_ptr<gko::log::Convergence<float>>,
+                 shared_ptr<gko::log::Convergence<double>>,
+                 shared_ptr<gko::log::Convergence<std::complex<float>>>,
+                 shared_ptr<gko::log::Convergence<std::complex<double>>>> logger;
     shared_ptr<gko::LinOpFactory> precond;
     shared_ptr<gko::LinOp> solver;
 

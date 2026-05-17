@@ -9,7 +9,7 @@ set(PACKAGE_VER "1.11.0")
 set(ZLIB_VER ${PACKAGE_VER}) # required by boost 
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "2ff3daee2f917ad0e3d9636534cb2201")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 set(PACKAGE_MIRRORS "https://github.com/ginkgo-project/ginkgo/archive/refs/tags/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
@@ -74,6 +74,7 @@ set(DEPS_ARGS
   -DGINKGO_BUILD_TESTS=OFF
   -DGINKGO_CONFIG_LOG_DETAILED=OFF
   -DGINKGO_ENABLE_HALF=OFF
+  -DGINKGO_ENABLE_BFLOAT16=OFF
   -DGINKGO_EXTENSION_KOKKOS_CHECK_=OFF
   -DGINKGO_VERBOSE_LEVEL=1
   -DGINKGO_WITH_CCACHE=OFF

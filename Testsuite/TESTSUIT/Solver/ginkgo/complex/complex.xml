@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation 
+  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Timeharmonic Linear Elasticity Ginkgo Test</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-05-17</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>no math</references>
+    <isVerified>yes</isVerified>
+    <description>Solve a simple time harmonic linear elasticity problem with complex excitation and solution.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="complex.h5ref" />
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"  />
+    </regionList>
+    <nodeList>
+      <nodes name="right_center">
+        <coord x="3" y="1"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+    
+      <harmonic>
+        <numFreq>1</numFreq>
+        <startFreq>400</startFreq>
+        <stopFreq>400</stopFreq>
+      </harmonic>
+     </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" dampingId="rayleigh"/>
+        </regionList>
+
+        <dampingList>
+          <adaptedLossTangensDelta id="rayleigh"/>
+        </dampingList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+          <force name="right_center">
+              <comp dof="y" value="1"/>
+          </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+            <nodeList>
+              <nodes name="right_center"/>
+            </nodeList>
+          </nodeResult>
+          <regionResult type="mechKinEnergy"  complexFormat="realImag">
+            <allRegions/>
+          </regionResult>
+          <regionResult type="mechDeformEnergy"  complexFormat="realImag">
+            <allRegions/>
+          </regionResult>
+          <regionResult type="mechTotalEnergy"  complexFormat="realImag">
+            <allRegions/>
+          </regionResult>   
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <!-- <directLDL/> is a built-in reference direct solver (very slow!) -->
+          <!-- the default solver for ginkgo in the complex case is gmres -->
+          <ginkgo />
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>
