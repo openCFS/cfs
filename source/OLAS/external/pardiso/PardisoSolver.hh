@@ -2,6 +2,7 @@
 #define PARDISO_SOLVER_HH
 
 #include <string>
+#include <limits>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/StdVector.hh"
@@ -147,6 +148,10 @@ namespace CoupledField {
       }
     };
 
+    //! Mid-loop refresh trigger; returns true once per host Solve()
+    //! when freezing is on and the iter count crosses the threshold.
+    bool ShouldAbortAndRefresh(UInt currentIter) override;
+
   private:
 
     //! Default constructor
@@ -280,12 +285,28 @@ namespace CoupledField {
 
     //! Per-call timers (existing). Reset on each invocation, hold only the most
     //! recent call's duration. Used for the per-call <process><call> entries.
+    //! Timer objects
     Timer tNumfact_, tSymfact_;
 
     //! Sub-timers under <solver><pardiso><summary><setup>, parented to BaseSolver::setupTimer_.
     //! Accumulated runtime for symbolic and numeric factorisation, respectively.
     std::shared_ptr<Timer> SymbFactTimer_;
     std::shared_ptr<Timer> NumFactTimer_;
+    
+    //! Frozen-factorisation mode: Setup() short-circuits after first call.
+    bool freezeFactorization_ = false;
+
+    //! Iteration count above which ShouldAbortAndRefresh() returns true.
+    //! Default = numeric_limits<int>::max() (never).
+    int refreshIterThreshold_ = std::numeric_limits<int>::max();
+
+    //! Set when the host solver triggered an abort-refresh; consumed by
+    //! the next Setup() call so it refactorises instead of short-circuiting.
+    bool forceRefresh_ = false;
+
+    //! Guard: ShouldAbortAndRefresh() returns true at most once per
+    //! host Solve(). Cleared inside Setup() when the refresh is consumed.
+    bool refreshAlreadyTriggered_ = false;
 
     //! Check if we have a new matrix pattern
     bool newMatrixPattern_ = false;

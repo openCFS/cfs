@@ -126,6 +126,18 @@ extern "C" {
     xml_->GetValue("type", solverType, ParamNode::INSERT);
 
     xml_->GetValue("loggingPerformance",logPerformance_, ParamNode::INSERT);
+
+    // Frozen-factorisation controls (default: off = standard behaviour)
+    freezeFactorization_ = false;
+    xml_->GetValue("freezeFactorization", freezeFactorization_, ParamNode::INSERT);
+
+    refreshIterThreshold_ = std::numeric_limits<int>::max();
+    if (xml_->Has("refreshIterThreshold")) {
+      xml_->GetValue("refreshIterThreshold", refreshIterThreshold_,
+                     ParamNode::INSERT);
+    }
+    forceRefresh_ = false;
+    refreshAlreadyTriggered_ = false;
       
     mSolver_ = solverType == "direct" ? 0 : 1;
 
@@ -236,6 +248,26 @@ extern "C" {
   {
     // Flag for check Pardiso's return status
     int errorFlag = 0;
+
+    // ============================================================
+    //  Frozen-factorisation short-circuit
+    //  Skip both factor phases if a fresh factor already exists,
+    //  no abort-refresh has been requested, and the matrix pattern
+    //  has not been invalidated. Assumes the matrix object is
+    //  reassembled in place across solver calls.
+    // ============================================================
+    if (freezeFactorization_ && !firstCall_
+        && !forceRefresh_ && !newMatrixPattern_) {
+      LOG_TRACE(pardisoSolver) << "Frozen factorisation: skipping factorise";
+      return;
+    }
+    // Reaching this point in frozen mode means we are about to refresh;
+    // consume the flags so the next call short-circuits again and a future
+    // Solve() can request one more refresh.
+    if (freezeFactorization_) {
+      forceRefresh_ = false;
+      refreshAlreadyTriggered_ = false;
+    }
 
     // Determine, whether we are expected to be verbose
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
@@ -815,6 +847,16 @@ extern "C" {
 
     // PARDISO - Third Phase : Solution of the system
     int errorFlag = 0;
+
+    // When running with a frozen factorisation, force iparm[7] = 0 because
+    // iterative refinement at phase 33 would otherwise use theMatrix_
+    // (which now points to the *current* assembled matrix, not the matrix
+    // the factors were built from) and refine toward the wrong solution.
+    const int savedIparm7 = iparm_[7];
+    if (freezeFactorization_) {
+      iparm_[7] = 0;
+    }
+
     int phase = 33;
 
     // we have to increment the entries of the col- and row-position arrays
@@ -846,7 +888,9 @@ extern "C" {
       rowPtr_[i] -= 1;
     for (UInt i=0; i< nnz_; i++ )
       colPtr_[i] -= 1;
-
+    
+    iparm_[7] = savedIparm7;
+    
     // Check return status
     if ( errorFlag != PARDISO_NO_ERROR ) {
       EXCEPTION( "Error occured during solution of linear system:\n"
@@ -880,7 +924,26 @@ extern "C" {
   }
 
 
-// Explicit template instantiation
+  // ============================================================
+  //   Abort-and-refresh trigger
+  // ============================================================
+  template<typename T>
+  bool PardisoSolver<T>::ShouldAbortAndRefresh(UInt currentIter) {
+    if (!freezeFactorization_) return false;
+    if (refreshAlreadyTriggered_) return false;
+    if (static_cast<int>(currentIter) <= refreshIterThreshold_) return false;
+
+    // Commit: the next Setup() will refactorise on the current matrix.
+    forceRefresh_ = true;
+    refreshAlreadyTriggered_ = true;
+
+    LOG_TRACE(pardisoSolver) << "Abort+refresh triggered: niter="
+                              << currentIter
+                              << " > threshold=" << refreshIterThreshold_;
+    return true;
+  }
+
+  // Explicit template instantiation
   template class PardisoSolver<Double>;
   template class PardisoSolver<Complex>;
 }
