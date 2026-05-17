@@ -32,7 +32,7 @@ namespace CoupledField {
 
       // === Solvers used as Preconditioners ==
       DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
-      MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_PRECOND,  
+      MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_PRECOND, PARDISO_FACTREUSE,
       LU_SOLVER, CHOLMOD,
       LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER} 
     PrecondType;
@@ -96,6 +96,18 @@ namespace CoupledField {
     //! \param r residual vector for current iteration step
     //! \param z output vector computed by the preconditioner
     virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, BaseVector& z) = 0;
+    
+    //! Mid-solve hook called by the host iterative solver, once per
+    //! iteration, to ask whether it should abort and retry with a
+    //! refreshed preconditioner. Returning true is a one-way commitment:
+    //! the precond marks itself stale (next Setup() refactorises), and
+    //! the host solver must abort, call Setup() on this precond, and
+    //! restart the inner loop from the current iterate. A precond MUST
+    //! return true at most once per host Solve() call.
+    //! \param currentIter current iteration count of the host solver
+    virtual bool ShouldAbortAndRefresh(UInt currentIter) {
+      return false;
+    }
 
     //! Export precontitioned matrix \f[C^{-1}A\f]
     
