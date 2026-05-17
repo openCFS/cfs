@@ -361,6 +361,39 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
 #endif
       break;
 
+      // ============================================================
+      //   Pardiso with factorisation reuse (frozen LDL preconditioner)
+      // ============================================================
+    case BasePrecond::PARDISO_FACTREUSE:
+#ifdef USE_PARDISO
+      if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+        EXCEPTION( "pardisoFactReuse only works with (S)CRS_Matrix class!" );
+      }
+      else {
+        const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+        if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM &&
+             stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM ) {
+          EXCEPTION( "pardisoFactReuse only works with (S)CRS_Matrix class!" );
+        }
+      }
+
+      if ( entryType == BaseMatrix::DOUBLE ) {
+        retVal = new PardisoSolver<Double>( precondNode, olasInfo );
+        ASSERTMEM( retVal, sizeof(PardisoSolver<Double>) );
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated real "
+                            << "factor-reuse Pardiso precond";
+      }
+      if ( entryType == BaseMatrix::COMPLEX ) {
+        retVal = new PardisoSolver<Complex>( precondNode, olasInfo );
+        ASSERTMEM( retVal, sizeof(PardisoSolver<Complex>) );
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated complex "
+                            << "factor-reuse Pardiso precond";
+      }
+#else
+      EXCEPTION( "Compile with USE_PARDISO to enable the factor-reuse "
+                 "Pardiso preconditioner" );
+#endif
+      break;
    
       
       // ============================
@@ -641,6 +674,7 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
             
         // Solver Based preconditioners
       case BasePrecond::PARDISO_PRECOND :
+      case BasePrecond::PARDISO_FACTREUSE :
         ret.insert(BaseMatrix::SPARSE_SYM);
         ret.insert(BaseMatrix::SPARSE_NONSYM);
         break;

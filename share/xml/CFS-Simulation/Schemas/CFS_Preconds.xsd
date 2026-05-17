@@ -381,4 +381,35 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                  PARDISO as preconditioner                     == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  <!-- Reuses PARDISO's LDL^T factorisation as a preconditioner for an      -->
+  <!-- openCFS iterative solver (e.g. COCR for complex symmetric problems). -->
+  <!-- Two extra knobs for 2.5D wavenumber-sweep workflows:                 -->
+  <!--   * freezeFactorization: factorise once, reuse as M^-1 thereafter    -->
+  <!--   * refreshIterThreshold: if the host iterative solver exceeds       -->
+  <!--     this many iterations during a single Solve(), abort and          -->
+  <!--     refactorise on the current matrix, then restart the solve.       -->
+
+  <xsd:element name="pardisoFactReuse" type="DT_PrecondPardiso" substitutionGroup="PrecondBasic"/>
+  <xsd:complexType name="DT_PrecondPardiso">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence minOccurs="0" maxOccurs="1">
+          <!-- Matrix-property flags, same semantics as solver/pardiso -->
+          <xsd:element name="posDef"    type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="hermitean" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
+          <!-- Frozen-factorisation controls -->
+          <xsd:element name="freezeFactorization" type="xsd:boolean" minOccurs="0" default="true"/>
+          <xsd:element name="refreshIterThreshold" type="xsd:positiveInteger" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>
