@@ -1505,7 +1505,7 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
     }
   } catch(std::exception& ex) {
-    std::cerr << "The following error occured during program execution:\n\n" << ex.what();
+    std::cerr << "The following error occurred during program execution:\n\n" << ex.what();
 
     if (info != NULL)
     {
