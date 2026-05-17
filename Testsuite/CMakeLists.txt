@@ -104,7 +104,7 @@ endif()
 
 # set the mode of cfstool
 set(TESTSUITE_CFSTOOL_MODE "relL2diff" CACHE STRING "The mode used to compare hdf5 files by cfstool.")
-set_property(CACHE TESTSUITE_CFSTOOL_MODE PROPERTY STRINGS scalardiff L2diff relL2diff absL2diff)
+set_property(CACHE TESTSUITE_CFSTOOL_MODE PROPERTY STRINGS scalardiff relL2diff absL2diff)
 
 # set the test timeout
 set(TESTSUITE_TIMEOUT 300 CACHE STRING "timeout in s for each test in the testsuite (sets DART_TESTING_TIMEOUT)")
