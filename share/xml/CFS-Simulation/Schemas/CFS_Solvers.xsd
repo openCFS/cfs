@@ -1467,8 +1467,8 @@
         <xsd:sequence>
           <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0" default="1e-6"/>
-          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="1000"/>
-          <xsd:element name="resDirectly" type="xsd:nonNegativeInteger"  minOccurs="0" default="0">
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="2000"/>
+          <xsd:element name="recomputeTrueResEvery" type="xsd:nonNegativeInteger"  minOccurs="0" default="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en">
                 Recompute the true residual r = b - A*x every N iterations

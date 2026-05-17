@@ -12,9 +12,15 @@ namespace CoupledField {
   //! analogue of CR; for real symmetric A it degenerates to ordinary CR.
   //!
   //! Reference:
-  //!   T. Sogabe, S.-L. Zhang,
+  //!   [1] T. Sogabe, S.-L. Zhang,
   //!   "A COCR method for solving complex symmetric linear systems",
   //!   J. Comp. Appl. Math. 199 (2007) 297-303.
+  //!
+  //!   [2] H. A. van der Vorst, Q. Ye,
+  //!   "Residual Replacement Strategies for Krylov Subspace Iterative
+  //!   Methods for the Convergence of True Residuals",
+  //!   SIAM J. Sci. Comput. 22(3) (2000) 835-852.
+  //!   (for the residual-replacement strategy used in recomputeTrueResEvery)
   //!
   //! The implementation follows the practical preconditioned variant used
   //! in the LIS library (lis_cocr), which is mathematically equivalent to
@@ -74,15 +80,15 @@ namespace CoupledField {
   private:
 
     //! Auxiliary vectors (six, following the LIS variant)
-    BaseVector *r_;     //!< current residual r = b - A x
-    BaseVector *p_;     //!< search direction
-    BaseVector *q_;     //!< q = A p
-    BaseVector *z_;     //!< preconditioned-residual recurrence z = M^-1 r
-    BaseVector *qtld_;  //!< qtld = M^-1 q (preconditioner output)
-    BaseVector *az_;    //!< az = A z
+    BaseVector *r_ = nullptr;     //!< current residual r = b - A x
+    BaseVector *p_ = nullptr;     //!< search direction
+    BaseVector *q_ = nullptr;     //!< q = A p
+    BaseVector *z_ = nullptr;     //!< preconditioned-residual recurrence z = M^-1 r
+    BaseVector *qtld_ = nullptr;  //!< qtld = M^-1 q (preconditioner output)
+    BaseVector *az_ = nullptr;    //!< az = A z
 
     //! Cached vector length; triggers re-allocation when problem size grows
-    UInt vectorLength_;
+    UInt vectorLength_ = 0;
 
     //! Internal allocator usable from Solve (Setup uses non-const sysMat)
     void PrivateSetup( const BaseMatrix &sysMat );

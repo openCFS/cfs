@@ -10,33 +10,21 @@ namespace CoupledField {
 
   DEFINE_LOG(cocrsolver, "cocrsolver")
 
-
   // ***************
   //   Constructor
   // ***************
   template<typename T>
   COCRSolver<T>::COCRSolver( PtrParamNode solverNode,
                              PtrParamNode olasInfo ) {
-
     xml_      = solverNode;
     infoNode_ = olasInfo->Get( "cocr" );
-
-    r_    = NULL;
-    p_    = NULL;
-    q_    = NULL;
-    z_    = NULL;
-    qtld_ = NULL;
-    az_   = NULL;
-    vectorLength_ = 0;
   }
-
 
   // **********************
   //   Default destructor
   // **********************
   template<typename T>
   COCRSolver<T>::~COCRSolver() {
-
     delete r_;
     delete p_;
     delete q_;
@@ -45,7 +33,6 @@ namespace CoupledField {
     delete az_;
   }
 
-
   // **************************
   //   Setup (public version)
   // **************************
@@ -53,7 +40,6 @@ namespace CoupledField {
   void COCRSolver<T>::Setup( BaseMatrix &sysMat ) {
     PrivateSetup( sysMat );
   }
-
 
   // ***************************
   //   Setup (private version)
@@ -125,24 +111,6 @@ namespace CoupledField {
     az_->Init();
   }
 
-
-  // ******************************************************
-  //   Bilinear dot product (NOT the Hermitian inner prod)
-  // ******************************************************
-  template<typename T>
-  T COCRSolver<T>::BilinearInner( const BaseVector &x,
-                                  const BaseVector &y ) const {
-
-    // Vector<T>::operator* performs the bilinear product x^T y without
-    // complex conjugation (see Vector.hh: "Vector product, but not the
-    // scalar product, which would use the complex conjugate as Inner()
-    // does!"). This is exactly the dot product COCR requires.
-    const Vector<T> &xt = dynamic_cast<const Vector<T>&>( x );
-    const Vector<T> &yt = dynamic_cast<const Vector<T>&>( y );
-    return xt * yt;
-  }
-
-
   // *********
   //   Solve
   // *********
@@ -157,13 +125,13 @@ namespace CoupledField {
     // ------------------------
     Integer maxIter            = 1000;
     Double  eps                = 1e-6;
-    Integer resDirectly        = 0;       // 0 = never refresh true residual
+    Integer recomputeTrueResEvery = 0;       // 0 = never refresh true residual
     bool    consoleConvergence = false;
 
     if ( xml_ != NULL ) {
-      xml_->GetValue( "maxIter",            maxIter,            ParamNode::INSERT );
-      xml_->GetValue( "tol",                eps,                ParamNode::INSERT );
-      xml_->GetValue( "resDirectly",        resDirectly,        ParamNode::INSERT );
+      xml_->GetValue( "maxIter", maxIter, ParamNode::INSERT );
+      xml_->GetValue( "tol", eps, ParamNode::INSERT );
+      xml_->GetValue( "recomputeTrueResEvery", recomputeTrueResEvery, ParamNode::INSERT );
       xml_->GetValue( "consoleConvergence", consoleConvergence, ParamNode::INSERT );
     }
 
@@ -202,6 +170,11 @@ namespace CoupledField {
 
       T alpha, beta, rho, dot_rq, dot_zq;
 
+      Vector<T> &rVec    = dynamic_cast<Vector<T>&>( *r_    );
+      Vector<T> &qVec    = dynamic_cast<Vector<T>&>( *q_    );
+      Vector<T> &qtldVec = dynamic_cast<Vector<T>&>( *qtld_ );
+      Vector<T> &azVec   = dynamic_cast<Vector<T>&>( *az_   );
+
       // ------------------------
       //   Main loop
       // ------------------------
@@ -213,7 +186,7 @@ namespace CoupledField {
         ptPrecond_->Apply( sysMat, *q_, *qtld_ );
 
         // rho = (qtld, q)_bilinear
-        rho = BilinearInner( *qtld_, *q_ );
+        rho = qtldVec * qVec;
 
         if ( Abs( rho ) < breakdownEps ) {
           WARN( "COCRSolver: breakdown at iteration " << niter
@@ -223,7 +196,7 @@ namespace CoupledField {
         }
 
         // dot_rq = (r, qtld)_bilinear
-        dot_rq = BilinearInner( *r_, *qtld_ );
+        dot_rq = rVec * qtldVec;
 
         // alpha = dot_rq / rho
         alpha = dot_rq / rho;
@@ -233,10 +206,10 @@ namespace CoupledField {
         // r_k = r_{k-1} - alpha * q_{k-1}
         r_->Add( -alpha, *q_ );
 
-        // Periodic true-residual refresh for monitoring (CG-style).
-        // We replace the recurrence r by b - A x; the z/p/q recurrence
-        // continues unchanged, which matches the established CG pattern.
-        if ( resDirectly > 0 && ( niter % resDirectly ) == 0 ) {
+        // Residual replacement: periodically replace the recurrence residual
+        // with the true residual r = b - A*x to counter the finite-precision
+        // drift that accumulates in the recurrence r_k = r_{k-1} - alpha * q_{k-1}.
+        if ( recomputeTrueResEvery > 0 && ( niter % recomputeTrueResEvery ) == 0 ) {
           sysMat.CompRes( *r_, sol, rhs );
         }
 
@@ -262,15 +235,15 @@ namespace CoupledField {
         sysMat.Mult( *z_, *az_ );
 
         // dot_zq = (az, qtld)_bilinear
-        dot_zq = BilinearInner( *az_, *qtld_ );
+        dot_zq = azVec * qtldVec;
 
         // beta = -dot_zq / rho
         beta = -dot_zq / rho;
 
-        // p_k = z_k + beta * p_{k-1}
-        // Self-aliasing is safe for the 4-arg Add: data_[i] is written
-        // AFTER both reads idvec1[i] (= z) and idvec2[i] (= p) within the
-        // same loop iteration (see Vector.cc Vector<T>::Add).
+        // p_k = 1*z_k + beta * p_{k-1}.  p_ appears on both sides of Add,
+        // which is safe here: Vector<T>::Add writes data_[i] only after
+        // reading both source operands at index i within the same iteration
+        // (see Vector.cc).
         p_->Add( T(1), *z_, beta, *p_ );
 
         // q_k = az + beta * q_{k-1}
@@ -297,8 +270,7 @@ namespace CoupledField {
     // ------------------------
     //   Solution report
     // ------------------------
-    PtrParamNode out = infoNode_->Get( ParamNode::PROCESS )
-                                ->Get( "solver", ParamNode::APPEND );
+    PtrParamNode out = infoNode_->Get( ParamNode::PROCESS )->Get( "solver", ParamNode::APPEND );
     out->Get( "numIter"        )->SetValue( niter );
     out->Get( "finalNorm"      )->SetValue( trueResNorm );
     out->Get( "solutionIsOkay" )->SetValue( converged );
@@ -312,12 +284,10 @@ namespace CoupledField {
       accReduction_ += trueResNorm / scalFac_;
     }
 
-    PtrParamNode stat = infoNode_->Get( ParamNode::SUMMARY )
-                                 ->Get( "statistics" );
+    PtrParamNode stat = infoNode_->Get( ParamNode::SUMMARY )->Get( "statistics" );
     stat->Get( "avgIterations"   )->SetValue( accIters_ / numCalls_ );
     stat->Get( "avgResReduction" )->SetValue( accReduction_ / numCalls_ );
   }
-
 
   // Explicit template instantiation
   template class COCRSolver<Double>;
