@@ -125,7 +125,7 @@ namespace CoupledField {
     // ------------------------
     Integer maxIter            = 1000;
     Double  eps                = 1e-6;
-    Integer recomputeTrueResEvery = 0;       // 0 = never refresh true residual
+    Integer recomputeTrueResEvery = 0;
     bool    consoleConvergence = false;
 
     if ( xml_ != NULL ) {
@@ -136,12 +136,9 @@ namespace CoupledField {
     }
 
     // ------------------------
-    //   Initialisation
+    //   Initial residual & threshold (computed once, reused across retries)
     // ------------------------
-    // r_0 = b - A x_0
     sysMat.CompRes( *r_, sol, rhs );
-
-    // Stopping threshold via inherited ComputeThreshold(); also fills resNorm
     Double resNorm   = 0;
     Double threshold = ComputeThreshold( eps, rhs, *r_, resNorm, false );
 
@@ -149,25 +146,42 @@ namespace CoupledField {
                         << ", threshold = " << threshold;
 
     Integer niter       = 0;
-    bool    converged   = false;
+    bool    converged   = ( resNorm <= threshold );
+    bool    refreshTriggered = false;
     Double  trueResNorm = resNorm;
 
-    // Early exit if the initial guess already satisfies the stopping test
-    if ( resNorm <= threshold ) {
-      converged = true;
-    }
-    else {
+    // ----------------------------------------------------------
+    //   Outer retry loop. Runs once normally; up to twice when
+    //   the preconditioner requests an abort-and-refresh.
+    // ----------------------------------------------------------
+    bool restartRequested = false;
+    do {
+      restartRequested = false;
+      if ( converged ) break;
 
-      // p_0 = M^-1 r_0
+      // On retry, refresh r from the current iterate (sol carries
+      // partial progress from the aborted attempt).
+      if ( refreshTriggered ) {
+        sysMat.CompRes( *r_, sol, rhs );
+        resNorm = r_->NormL2();
+        if ( resNorm <= threshold ) {
+          converged = true;
+          break;
+        }
+      }
+
+      // ------------------------
+      //   Re-initialise p, q, z with the *current* preconditioner
+      // ------------------------
+      // p_0 = M^{-1} r_0   (uses freshly refactorised M on retry)
       ptPrecond_->Apply( sysMat, *r_, *p_ );
       // q_0 = A p_0
       sysMat.Mult( *p_, *q_ );
-      // z_0 = p_0   (z is zero from PrivateSetup; one in-place add does it)
+      // z_0 = p_0
+      z_->Init();
       z_->Add( *p_ );
 
-      // Hard floor for breakdown detection on rho = (qtld, q)
       const Double breakdownEps = 1e-30;
-
       T alpha, beta, rho, dot_rq, dot_zq;
 
       Vector<T> &rVec    = dynamic_cast<Vector<T>&>( *r_    );
@@ -179,15 +193,13 @@ namespace CoupledField {
       //   Main loop
       // ------------------------
       while ( niter < maxIter ) {
-
         niter++;
 
-        // qtld = M^-1 q
+        // qtld = M^{-1} q
         ptPrecond_->Apply( sysMat, *q_, *qtld_ );
 
         // rho = (qtld, q)_bilinear
         rho = qtldVec * qVec;
-
         if ( Abs( rho ) < breakdownEps ) {
           WARN( "COCRSolver: breakdown at iteration " << niter
                 << " (|rho| = " << Abs( rho )
@@ -195,26 +207,18 @@ namespace CoupledField {
           break;
         }
 
-        // dot_rq = (r, qtld)_bilinear
         dot_rq = rVec * qtldVec;
+        alpha  = dot_rq / rho;
 
-        // alpha = dot_rq / rho
-        alpha = dot_rq / rho;
-
-        // x_k = x_{k-1} + alpha * p_{k-1}
+        // x_k = x_{k-1} + alpha p_{k-1}; r_k = r_{k-1} - alpha q_{k-1}
         sol.Add( alpha, *p_ );
-        // r_k = r_{k-1} - alpha * q_{k-1}
         r_->Add( -alpha, *q_ );
 
-        // Residual replacement: periodically replace the recurrence residual
-        // with the true residual r = b - A*x to counter the finite-precision
-        // drift that accumulates in the recurrence r_k = r_{k-1} - alpha * q_{k-1}.
         if ( recomputeTrueResEvery > 0 && ( niter % recomputeTrueResEvery ) == 0 ) {
           sysMat.CompRes( *r_, sol, rhs );
         }
 
         resNorm = r_->NormL2();
-
         if ( consoleConvergence ) {
           std::cout << "COCR iter " << niter
                     << "  ||r|| = " << resNorm << std::endl;
@@ -228,52 +232,55 @@ namespace CoupledField {
           break;
         }
 
-        // z_k = z_{k-1} - alpha * qtld
+        // ------------------------------------------------
+        //   Adaptive abort-and-refresh check
+        //   (returns true at most once per Solve)
+        // ------------------------------------------------
+        if ( !refreshTriggered && ptPrecond_ != nullptr
+             && ptPrecond_->ShouldAbortAndRefresh( static_cast<UInt>(niter) ) ) {
+          refreshTriggered = true;
+          restartRequested = true;
+          // Refactorise the preconditioner on the current system matrix.
+          // PardisoSolver::Setup will see forceRefresh_ and do a numeric refac.
+          ptPrecond_->Setup( const_cast<BaseMatrix&>( sysMat ) );
+          break;
+        }
+
+        // ------------------------
+        //   Rest of CR-style recurrences
+        // ------------------------
         z_->Add( -alpha, *qtld_ );
-
-        // az = A z_k
         sysMat.Mult( *z_, *az_ );
-
-        // dot_zq = (az, qtld)_bilinear
         dot_zq = azVec * qtldVec;
+        beta   = -dot_zq / rho;
 
-        // beta = -dot_zq / rho
-        beta = -dot_zq / rho;
-
-        // p_k = 1*z_k + beta * p_{k-1}.  p_ appears on both sides of Add,
-        // which is safe here: Vector<T>::Add writes data_[i] only after
-        // reading both source operands at index i within the same iteration
-        // (see Vector.cc).
+        // p_k = z_k + beta p_{k-1}
         p_->Add( T(1), *z_, beta, *p_ );
-
-        // q_k = az + beta * q_{k-1}
+        // q_k = az_k + beta q_{k-1}
         q_->Add( T(1), *az_, beta, *q_ );
-      }
+      } // inner while
+    } while ( restartRequested );
 
-      // ------------------------------------------------
-      //   False-convergence check at termination.
-      //   The recurrence residual drifts in finite
-      //   precision; the only authoritative norm is
-      //   the explicitly computed one.
-      // ------------------------------------------------
-      sysMat.CompRes( *r_, sol, rhs );
-      trueResNorm = r_->NormL2();
-
-      if ( converged && trueResNorm > threshold ) {
-        WARN( "COCRSolver: false convergence detected.\n"
-              << " Recurrence residual norm = " << resNorm << '\n'
-              << " True residual norm       = " << trueResNorm );
-        converged = false;
-      }
+    // ------------------------------------------------
+    //   False-convergence check at termination
+    // ------------------------------------------------
+    sysMat.CompRes( *r_, sol, rhs );
+    trueResNorm = r_->NormL2();
+    if ( converged && trueResNorm > threshold ) {
+      WARN( "COCRSolver: false convergence detected.\n"
+            << " Recurrence residual norm = " << resNorm << '\n'
+            << " True residual norm       = " << trueResNorm );
+      converged = false;
     }
 
     // ------------------------
     //   Solution report
     // ------------------------
     PtrParamNode out = infoNode_->Get( ParamNode::PROCESS )->Get( "solver", ParamNode::APPEND );
-    out->Get( "numIter"        )->SetValue( niter );
-    out->Get( "finalNorm"      )->SetValue( trueResNorm );
-    out->Get( "solutionIsOkay" )->SetValue( converged );
+    out->Get( "numIter"          )->SetValue( niter );
+    out->Get( "finalNorm"        )->SetValue( trueResNorm );
+    out->Get( "solutionIsOkay"   )->SetValue( converged );
+    out->Get( "refreshTriggered" )->SetValue( refreshTriggered );
 
     // ------------------------
     //   Running statistics
@@ -283,7 +290,6 @@ namespace CoupledField {
     if ( scalFac_ > 0 ) {
       accReduction_ += trueResNorm / scalFac_;
     }
-
     PtrParamNode stat = infoNode_->Get( ParamNode::SUMMARY )->Get( "statistics" );
     stat->Get( "avgIterations"   )->SetValue( accIters_ / numCalls_ );
     stat->Get( "avgResReduction" )->SetValue( accReduction_ / numCalls_ );
