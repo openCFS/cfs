@@ -1000,9 +1000,6 @@ namespace CFSTool {
           Double maxL2rel_sequence = 0;
           std::string infoStringRel_sequence;
           UInt actMsStep = it->first;
-          std::cout << std::endl;
-          std::cout << "Sequence step " << actMsStep << std::endl;
-          std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
 
           // get resulttypes
           StdVector<shared_ptr<ResultInfo> > infos, infos_ref;
@@ -1016,12 +1013,12 @@ namespace CFSTool {
           std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
           std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
 
-          if( infos.GetSize() > 0 ){
-              std::cout << "Checking the following results:\n";
-          }
+          std::cout << std::endl;
+          std::cout << "Sequence step " << actMsStep << (infos.GetSize() > 0 ? "Checking the following results" : "") << std::endl;
+          
           // iterate over all result types of input_ref
           for( UInt iRes=0, numRes=infos_ref.GetSize(); iRes < numRes; ++iRes) {
-              std::cout << "+ " << infos_ref[iRes]->resultName;
+              std::cout << infos_ref[iRes]->resultName;
               // find the corresponding result in the file to be tested
               Integer testRes = -1;
               for ( UInt j=0, n=infos.GetSize(); j<n; ++j ) {
@@ -1036,23 +1033,18 @@ namespace CFSTool {
                   }
               }
               if ( testRes == -1 ) {
-                  EXCEPTION("Result '" << infos_ref[iRes]->resultName
-                          << "' is missing in file '" << inFile_fut << "'.");
+                  EXCEPTION("Result '" << infos_ref[iRes]->resultName << "' is missing in file '" << inFile_fut << "'.");
               }
 
               // get stepvalues of reference file
               shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
-              input_ref->GetStepValues( actMsStep, actRes_ref,
-                      resultSteps_ref[actRes_ref], isHistory);
-              stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),
-                      resultSteps_ref[actRes_ref].end() );
+              input_ref->GetStepValues( actMsStep, actRes_ref, resultSteps_ref[actRes_ref], isHistory);
+              stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),  resultSteps_ref[actRes_ref].end() );
 
               // get stepvalues of file under test
               shared_ptr<ResultInfo> actRes = infos[testRes];
-              input_fut->GetStepValues( actMsStep, actRes,
-                      resultSteps[actRes], isHistory);
-              stepVals.insert( resultSteps[actRes].begin(),
-                      resultSteps[actRes].end() );
+              input_fut->GetStepValues( actMsStep, actRes, resultSteps[actRes], isHistory);
+              stepVals.insert( resultSteps[actRes].begin(),  resultSteps[actRes].end() );
 
               // Loop over all step values in both sets and compare them. Thus we can see
               // differences e.g. in eigenfrequency analysis
@@ -1061,18 +1053,14 @@ namespace CFSTool {
               svIt_ref = stepVals_ref.begin();
               for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
                   if( svIt_fut->first != svIt_ref->first ) {
-                      EXCEPTION( "Encountered different result steps for result " <<
-                              infos[testRes]->resultName );
+                      EXCEPTION( "Encountered different result steps for result " << infos[testRes]->resultName );
                   } else {
-
                       Double val_fut = svIt_fut->second;
                       Double val_ref = svIt_ref->second;
                       Double relDiff = std::abs(std::abs(val_fut-val_ref))/std::abs(val_fut);
                       if ( relDiff > 1e-4 ) {
-                          EXCEPTION("Time / Frequency values of step " << svIt_ref->first << " differ by "
-                                  << relDiff*100.0 << " %:\n"
-                                  << "\treference value: " << val_ref <<" s / Hz\n\tcompared value:  " << val_fut
-                                  << " s / Hz" << std::endl );
+                          EXCEPTION("For step " << svIt_ref->first << " the step values differs by " << relDiff*100.0 << "%: "
+                                  << "ref=" << val_ref << " test=" << val_fut);
                       }
                   }
               }
@@ -1122,16 +1110,12 @@ namespace CFSTool {
               std::string infoStringRel_step;
               UInt actStepNum = iStep+1;
               Double actStepVal = stepVals[actStepNum];
-              std::cout << "\n";
-              std::cout << "\tStep nr " << actStepNum << " val " << actStepVal << " s / Hz/ iteration\n";
-              std::cout << "\t=======================================================================\n";
               // iterate over all results
-              for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
-                  // check if result exists: no idea why this is necessary, but it definitely is (ftoth, 2018/02/10)
-                  if( resultSteps[inResults_fut[iRes]->GetResultInfo()].find(actStepNum)
-                     == resultSteps[inResults_fut[iRes]->GetResultInfo()].end() ) {
-                      continue;
-                  }
+              for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) 
+              {
+                 const shared_ptr<ResultInfo>& resInfo = inResults_fut[iRes]->GetResultInfo();
+                 if(resultSteps.count(resInfo) == 0 || resultSteps[resInfo].count(actStepNum) == 0) 
+                   continue;
                   // obtain both result objects for current step
                   input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
                   input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
@@ -1266,12 +1250,7 @@ int main(int argc, char** argv)
     CFSTool::ParamsInit(argc, argv, param, logConf);
 
     // Switch this flag tc true for debugging
-    if (param->Get("forceSegFault")->As<bool>())
-    {
-      Exception::segfault_ = true;
-    } else {
-      Exception::segfault_ = false;
-    }
+    Exception::segfault_ =  param->Get("forceSegFault")->As<bool>();
 
     // Register callback function with exception class for warning
     Exception::SetCallbackWarn(CFSTool::PrintWarning);
@@ -1358,12 +1337,10 @@ int main(int argc, char** argv)
                     << " file1='" << file1 << "' file2='" << file2 << "'");
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
-      std::cout << "Checking for mesh results:\n"
-        << "==========================\n";
+      std::cout << "Checking for mesh results:\n==========================\n";
       maxDiffMesh = CFSTool::Diff( file1, file2, "", true, false, maxDiffResultName);
       std::cout << "<DartMeasurement name=\"scalardiff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
-      std::cout << "Checking for history results:\n"
-        << "=============================\n";
+      std::cout << "Checking for history results:\n=============================\n";
       maxDiffHist = CFSTool::Diff( file1, file2, "", true, true, maxDiffResultName );
       std::cout << "<DartMeasurement name=\"scalardiff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
