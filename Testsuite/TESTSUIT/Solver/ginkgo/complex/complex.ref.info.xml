@@ -1,0 +1,244 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.1432s" wall="0.143236" cpu="0.145201" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="55"/>
+  </summary>
+  <header id="">
+    <environment started="17-May-26 15:52:49" host="Finsternis.fritz.box" estimatedEnd="2026-May-17 15:52:49" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="complex" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Solver/ginkgo/complex/complex.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.05" name="Kaum Konvergenz" build="RELEASE" git_commit="68fc8cccacc63ad19ed98e781eba513afcb7640f-modified" git_branch="fwein_ginkgo" compiled="May 17 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="10" ny="7" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="70" nodes="88">
+          <timer id="5" wall-clock="0.001111s" wall="0.00111067" cpu="0.001114" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0003433s" wall="0.000343333" cpu="0.000343" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0002s" wall="0.000200042" cpu="0.0002" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="9.033e-05s" wall="9.0334e-05" cpu="9e-05" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="3.383e-05s" wall="3.3834e-05" cpu="3.6e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="88" elems="70" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="11"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(3,0)"/>
+        <nodes name="left" count="8"/>
+        <nodes name="right" count="8"/>
+        <nodes name="right_center" count="1" coord="(3,1.14286)"/>
+        <nodes name="top" count="11"/>
+        <nodes name="top_left" count="1" coord="(0,2)"/>
+        <nodes name="top_right" count="1" coord="(3,2)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="400" nx="10" ny="7" nz="1" step="1" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="29" wall-clock="0.002129s" wall="0.00212879" cpu="0.002129" calls="12"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0006827s" wall="0.00068275" cpu="0.000683" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5e-07s" wall="5e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process>
+          <sequence step="0">
+            <result data="mechKinEnergy" location="mech" definedOn="region">
+              <item step="1" step_val="400" value="(19.759,1.351e-17)" unit="Ws"/>
+            </result>
+            <result data="mechTotalEnergy" location="mech" definedOn="region">
+              <item step="1" step_val="400" value="(31.563,2.3389e-15)" unit="Ws"/>
+            </result>
+            <result data="mechDeformEnergy" location="mech" definedOn="region">
+              <item step="1" step_val="400" value="(11.805,-6.6323e-15)" unit="Ws"/>
+            </result>
+            <result data="mechDisplacement" location="right_center" definedOn="node">
+              <item step="1" step_val="400" x="(0.74353,0.044979)" y="(-15.909,-0.94685)" unit="m" id="55"/>
+            </result>
+          </sequence>
+        </process>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="400" end="400" numFreq="1"/>
+      <init_harmonic>
+        <timer id="17" wall-clock="0.01159s" wall="0.0115941" cpu="0.011605" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" alpha_M="0.03* pi * f * (1 - (0.01)^2)" alpha_K="0.03* 1 / (4 * pi * f)" damping="adaptedLossTangensDelta"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionConst" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="damping" feSecondMatrixFac="0.03* 1 / (4 * pi * f) "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="mech">
+                <coef type="CoefFunctionConst" value="1e-08"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="damping" feSecondMatrixFac="0.03* pi * f * (1 - (0.01)^2) "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="right_center" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0+0j, 1+0j]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.346154e+00  5.769231e-01  0.000000e+00
+                 5.769231e-01  1.346154e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="left" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="160" totalNumFreeEqns="160" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="160" lastFreeEqn="160" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="160" lastFreeIndex="160"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <ginko exec="openmp" cuda_available="no">
+            <summary>
+              <setup>
+                <timer id="25" label="setup_ginkgo" wall-clock="0.0003495s" wall="0.000349458" cpu="0.000352" calls="1"/>
+              </setup>
+              <solve>
+                <timer id="26" label="solve_ginkgo" wall-clock="0.05809s" wall="0.0580873" cpu="0.059303" calls="1"/>
+              </solve>
+            </summary>
+            <precond type="jacobi" max_block_size="1"/>
+            <solver type="gmres" max_iter="10000" tolerance="1e-09" mode="absolute" cfs="std::__1::complex&lt;double&gt;" ginkgo="std::__1::complex&lt;double&gt;" precision="64"/>
+            <solve analysis_id="step:1time:400" converged="yes" iters="83" residual="9.1957e-10" sol="98.762" initial="0"/>
+          </ginko>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="27" wall-clock="4.17e-07s" wall="4.17e-07" cpu="2e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="28" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph nnz="2464">
+        <timer id="22" wall-clock="0.0003674s" wall="0.000367417" cpu="0.000389" calls="1" sub="true" parent="17"/>
+        <finalize>
+          <timer id="23" wall-clock="3.533e-05s" wall="3.5333e-05" cpu="5.8e-05" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="2.292e-05s" wall="2.2917e-05" cpu="2.4e-05" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="160" min="8" max="18" mean="15.4" estimated_row_size="100"/>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="18" wall-clock="0.001082s" wall="0.00108208" cpu="0.001995" calls="2"/>
+          <matrices>
+            <timer id="19" wall-clock="0.001074s" wall="0.00107404" cpu="0.001986" calls="1" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="6.708e-06s" wall="6.708e-06" cpu="6e-06" calls="1" sub="true" parent="18"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

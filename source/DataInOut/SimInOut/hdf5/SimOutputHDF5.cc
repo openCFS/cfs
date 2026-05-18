@@ -560,25 +560,47 @@ namespace CoupledField
       meshGroup_ = OpenGroup(mainGroup_, "Mesh"); 
   }
   
+  void ReportOpenHDF5Objects(hid_t fid)
+  {
+    assert(fid >= 0);
+    const unsigned int types = H5F_OBJ_DATASET | H5F_OBJ_GROUP | H5F_OBJ_DATATYPE | H5F_OBJ_ATTR;
+    ssize_t nOpen = H5Fget_obj_count(fid, types);
+    if (nOpen <= 0)
+      return;
+
+    std::string fn(H5Fget_name(fid, nullptr, 0), '\0');
+    H5Fget_name(fid, fn.data(), fn.size() + 1);
+    std::string msg = std::to_string(nOpen) + " object(s) were open on closing " + fn + ": ";
+
+    std::vector<hid_t> ids(nOpen);
+    H5Fget_obj_ids(fid, types, nOpen, ids.data());
+    for (hid_t obj : ids)
+    {
+      std::string typeName;
+      switch (H5Iget_type(obj))
+      {
+        case H5I_GROUP:    typeName = "group";    break;
+        case H5I_DATASET:  typeName = "dataset";  break;
+        case H5I_DATATYPE: typeName = "datatype"; break;
+        case H5I_ATTR:     typeName = "attr";     break;
+        default:           typeName = "unknown";  break;
+      }
+      ssize_t nameLen = H5Iget_name(obj, nullptr, 0);
+      std::string name(nameLen, '\0');
+      H5Iget_name(obj, name.data(), nameLen + 1);
+      msg += " " + typeName + ": " + name;
+    }
+    WARN(msg);
+  }
+
   void SimOutputHDF5::CloseFile()
   {
-    // used twice in this function, so use lambda
-    auto Close = [](hid_t& fid) 
-    {
-      assert(fid >= 0);
-      if (H5Fget_obj_count(fid, H5F_OBJ_DATASET | H5F_OBJ_GROUP | H5F_OBJ_DATATYPE | H5F_OBJ_ATTR) > 0) 
-      {
-        std::string fn(H5Fget_name(fid, nullptr, 0), '\0');
-        H5Fget_name(fid, fn.data(), fn.size() + 1);
-        std::cerr << "There are still objects open in the hdf5 file " << fn << "\n\n";
-      }
-      H5Fclose(fid);
-      fid = -1;
-    };
-
     LOG_DBG(h5Out) << "CF";
-    if(currStepFile_ >= 0) 
-      Close(currStepFile_);
+    if(currStepFile_ >= 0) {
+      ReportOpenHDF5Objects(currStepFile_);
+      H5Fclose(currStepFile_);
+      currStepFile_ = -1;
+    }
 
     // check, if any group is open at all
     if(resultsGroup_ >= 0) 
@@ -603,8 +625,11 @@ namespace CoupledField
     mainGroup_ = -1;
 
     // check for open groups, datasets etc.
-    if (mainFile_ >= 0)
-      Close(mainFile_);
+    if (mainFile_ >= 0) {
+      ReportOpenHDF5Objects(mainFile_);
+      H5Fclose(mainFile_);
+      mainFile_ = -1;
+    }
   }
 
   void SimOutputHDF5::WriteGrid() 
@@ -1082,6 +1107,9 @@ namespace CoupledField
     currAnalysisType_ = type;
     std::string stepStr = std::to_string(step);
     hid_t msGroup = OpenGroup(dbGroup_, "MultiSteps");
+
+    if(currMsDbGroup_ >= 0)  
+      H5Gclose(currMsDbGroup_);
     currMsDbGroup_ = CreateGroup(msGroup, stepStr, true); // use existing
     H5Gclose(msGroup);
     
@@ -1145,11 +1173,10 @@ namespace CoupledField
     H5Gclose(physGroup);
   }
   
-  void SimOutputHDF5::DB_FinishMultiSequenceStep( bool completed, 
-                                                  Double accTime ) {
+  void SimOutputHDF5::DB_FinishMultiSequenceStep( bool completed, double accTime ) 
+  {
     WriteAttribute( currMsDbGroup_, "Completed", (int)completed );
     WriteAttribute( currMsDbGroup_, "AccTime", accTime );
-    
   }
      
 void SimOutputHDF5::AutoFlush() 

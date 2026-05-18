@@ -38,6 +38,7 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
 
   ginkgoSolverType.SetName("GinkgoSolver::GinkgoSolverType");
   ginkgoSolverType.Add(NOSOLVER, "nosolver");
+  ginkgoSolverType.Add(ST_AUTO, "auto");
   ginkgoSolverType.Add(CG, "cg");
   ginkgoSolverType.Add(BICGSTAB, "bicgstab");
   ginkgoSolverType.Add(GMRES, "gmres");
@@ -59,6 +60,12 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
   // solver and precond might be overwritten by "json"
   solver_type = ginkgoSolverType.Parse(pn->Get("solver")->As<string>());
   precond_type = ginkgoPrecondType.Parse(pn->Get("precond")->As<string>());
+  
+  if(solver_type == ST_AUTO)
+    solver_type = (type == BaseMatrix::COMPLEX) ? GMRES : CG;
+
+  if(type == BaseMatrix::COMPLEX && solver_type == CG) 
+    infoNode_->SetWarning("'cg' solver within ginkgo for complex systems will fail. Try e.g. 'gmres'");
 
   max_iter = pn->Get("maxIter")->As<double>();
   tolerance = pn->Get("tolerance")->As<double>();
@@ -183,7 +190,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
 
   // the std::move makes sure we don't call a copy constructor
   auto csr = gko::share(gko::matrix::Csr<GK_T, int>::create_const(exec, gko::dim<2>(nrow,ncol), std::move(vv), std::move(cv), std::move(rv)));
-  logger = gko::share(gko::log::Convergence<GK_REAL_T>::create());
+  logger = gko::share(gko::log::Convergence<GK_T>::create());
   shared_ptr<gko::LinOpFactory> factory;
 
   // we set this information every time as we handle the options here in detail
@@ -216,12 +223,12 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
       break;
     }
     case ILU:
-      precond = gko::preconditioner::Ilu<>::build().on(exec);
+      precond = gko::preconditioner::Ilu<gko::solver::LowerTrs<GK_T, int>>::build().on(exec);
       break;
     case IC:
       // there is also ParIct with fill in factor limit, however this is extremely slow. Experiment via json
       // gko::factorization::ParIct<T, int>::build().with_fill_in_limit(limit).with_iterations(iter).on(exec);
-      precond = gko::preconditioner::Ic<>::build().on(exec);
+      precond = gko::preconditioner::Ic<gko::solver::LowerTrs<GK_T, int>>::build().on(exec);
       break;
     case AMG:
     {
@@ -264,6 +271,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
       factory = gko::solver::Gmres<GK_T>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
       break;
     case NOSOLVER:
+    case ST_AUTO:
     case ST_JSON:
       assert(false);
       break;
@@ -271,7 +279,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
   }
 
   solver = factory->generate(csr);
-  solver->add_logger(std::get<shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger)); // C++ is so ugly :()
+  solver->add_logger(std::get<shared_ptr<gko::log::Convergence<GK_T>>>(logger)); // C++ is so ugly :()
 }
 
 void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
@@ -330,7 +338,7 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
     sol.SetEntry(i, (CFS_T) x->at(i));
 
   assert(solver->get_loggers().size() == 1);
-  auto mylogger = std::get<shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger);
+  auto mylogger = std::get<shared_ptr<gko::log::Convergence<GK_T>>>(logger);
   bool conv = mylogger->has_converged();
   size_t iters = mylogger->get_num_iterations();
   // in the cuda case we live on the GPU and need to copy to CPU
