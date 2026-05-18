@@ -618,8 +618,6 @@ cfsdeps:msvc2022:
   needs:
     - job: install:msvc2022
       optional: true
-    - job: largedeps:msvc2022
-      optional: true
 
 
 #######################################################################
