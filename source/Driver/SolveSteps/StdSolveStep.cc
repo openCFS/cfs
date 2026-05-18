@@ -550,8 +550,18 @@ namespace CoupledField {
 
 
   void StdSolveStep::InitTimeStepping(){
+    // Adaptive BDF2 + static condensation: unsupported. Fix-L LU-refactor path is
+    // not wired through the condensation branch, and p>=2 spatial accuracy dominates BDF2.
+    if (algsys_->UseStaticCondensation()
+        && PDE_.GetDomain()->GetAdaptiveData() != nullptr) {
+      EXCEPTION("Adaptive timestepping is not supported in combination with "
+                "static condensation. Disable <staticCondensation> in the "
+                "solver setup, or remove <adaptiveTimeStepping> from the "
+                "analysis block.");
+    }
+
     //also initialize vectors for the time stepping scheme
-    
+
     stageRHS_.Resize(feFunctions_.size());
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
