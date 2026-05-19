@@ -8,6 +8,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include <string>
 #include <sstream>
+#include <Utils/ToolsFull.hh>
 #include <stdio.h>
 #include <filesystem>
 #include <boost/predef.h>
@@ -255,8 +256,8 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
     is->Get("tolerance")->SetValue(tolerance);
     is->Get("mode")->SetValue(tolType.ToString(tol_type));
 
-    is->Get("cfs")->SetValue(boost::typeindex::type_id<CFS_T>().pretty_name());
-    is->Get("ginkgo")->SetValue(boost::typeindex::type_id<GK_T>().pretty_name());
+    is->Get("cfs")->SetValue(TypeName<CFS_T>(true)); // use round braces for type string
+    is->Get("ginkgo")->SetValue(TypeName<GK_T>(true));
     is->Get("precision")->SetValue(fp32 ? 32 : 64);
 
     switch(solver_type)
