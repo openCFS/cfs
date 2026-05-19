@@ -278,8 +278,14 @@ namespace CoupledField {
     //! number of non zero entries
     UInt nnz_ = 0;
 
-    //! Timer objects
+    //! Per-call timers (existing). Reset on each invocation, hold only the most
+    //! recent call's duration. Used for the per-call <process><call> entries.
     Timer tNumfact_, tSymfact_;
+
+    //! Sub-timers under <solver><pardiso><summary><setup>, parented to BaseSolver::setupTimer_.
+    //! Accumulated runtime for symbolic and numeric factorisation, respectively.
+    std::shared_ptr<Timer> SymbFactTimer_;
+    std::shared_ptr<Timer> NumFactTimer_;
 
     //! Check if we have a new matrix pattern
     bool newMatrixPattern_ = false;

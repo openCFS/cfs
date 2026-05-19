@@ -651,6 +651,8 @@ extern "C" {
        colPtr_[i] += 1;
 
 
+    // The memory consumption unit from pardiso is Kilobyte (KB), write a comment to the info xml file to avoid confusion
+    infoNode_->Get(ParamNode::PROCESS)->SetComment("memory in KB");
     // write out additional information in info xml file
     PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
     node->Get("number")->SetValue(tNumfact_.GetCalls());
@@ -660,8 +662,15 @@ extern "C" {
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
+      // Setup subtimer
+      if (!SymbFactTimer_) {
+        SymbFactTimer_ = infoNode_->Get(ParamNode::SUMMARY)->Get("setup")->Get("symbfact/timer")->AsTimer(setupTimer_);
+      }
 
+      // per-call timer
       tSymfact_.ResetStart();
+      // cumulative timer for phase 11 (symbolic factorisation)
+      SymbFactTimer_->Start();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation) ... ";
 
@@ -693,6 +702,8 @@ extern "C" {
       }
 
       tSymfact_.Stop();
+      SymbFactTimer_->Stop();
+
       node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
       node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
     }
@@ -700,8 +711,14 @@ extern "C" {
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
-
+      // setup subtimer
+      if (!NumFactTimer_) {
+        NumFactTimer_ = infoNode_->Get(ParamNode::SUMMARY)->Get("setup")->Get("numfact/timer")->AsTimer(setupTimer_);
+      }
+      // per-call timer
       tNumfact_.ResetStart();
+      // cumulative timer for phase 22 (numerical factorisation)
+      NumFactTimer_->Start();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
@@ -735,6 +752,8 @@ extern "C" {
       }
 
       tNumfact_.Stop();
+      NumFactTimer_->Stop();
+
       node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
       node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
     }
