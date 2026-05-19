@@ -1014,8 +1014,10 @@ namespace CFSTool {
           std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
 
           std::cout << std::endl;
-          std::cout << "Sequence step " << actMsStep << (infos.GetSize() > 0 ? "Checking the following results" : "") << std::endl;
-          
+          std::cout << "Sequence step " << actMsStep << "\n---------------\n";
+          if(infos.GetSize() > 0) 
+            std::cout << "Checking the following results:\n";
+         
           // iterate over all result types of input_ref
           for( UInt iRes=0, numRes=infos_ref.GetSize(); iRes < numRes; ++iRes) {
               std::cout << infos_ref[iRes]->resultName;
@@ -1263,17 +1265,18 @@ int main(int argc, char** argv)
     }
 
     std::cout << std::endl
-              << "============================================================"
-              << "===========" << std::endl;
+              << "=======================================================================" << std::endl;
     std::cout << " CFSTOOL - File Conversions/Comparisons for openCFS" << std::endl << std::endl
               << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
               << " (rev " << CFS_GIT_COMMIT << ")" << std::endl
               << " compiled " << __DATE__
               << " as " << CMAKE_BUILD_TYPE << std::endl;
-    std::cout << "============================================================"
-              << "==========="
-              << std::endl << std::endl;
-
+    std::cout << "=======================================================================\n";
+    std::cout << "Command line arguments: ";
+    for (int i = 1; i < argc; ++i)
+       std::cout << argv[i] << " ";
+    std::cout << "\n";    
+    
     std::string param_mode = param->Get("mode")->As<std::string>();
 
     // get filenames from parameter
