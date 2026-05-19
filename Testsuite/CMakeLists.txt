@@ -125,8 +125,8 @@ include("TestMacros.cmake")
 # Set file name for configured version of CFS++ standard test macro (there is a .in version)
 # * cfstool for comparisson of h5 files (default)
 # * compare_info_xml.py for comparison of special info.xml stuff (eigenfrequencies) via parameter "info.xml"
-set(CFS_STANDARD_TEST "${CFS_BINARY_DIR}/testsuite/StandardTest.cmake")
-set(PYTHON_TEST "${CFS_BINARY_DIR}/testsuite/PythonTest.cmake")
+set(CFS_STANDARD_TEST "${CMAKE_BINARY_DIR}/testsuite/StandardTest.cmake")
+set(PYTHON_TEST "${CMAKE_BINARY_DIR}/testsuite/PythonTest.cmake")
 
 # Define path to info.xml compare script (for eigenvalue and other stuff)
 set(COMPARE_INFO_XML "${CMAKE_CURRENT_SOURCE_DIR}/compare_info_xml.py")
