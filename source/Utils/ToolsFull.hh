@@ -4,6 +4,7 @@
 /** ToolsCore.hh is includes almost nothing, here we include slightly more
  * but still try to have not too many dependencies */
 
+#include <cassert>
 #include <cmath>
 #include <charconv>
 #include <string>
@@ -273,6 +274,29 @@ namespace CoupledField
       os << it << sep;
     return os.str();
   }
+
+
+  template<typename T>
+  static const char* TypeName(bool round_braces = false)
+  {
+    if(std::is_same_v<T, double>)        return "double";
+    if(std::is_same_v<T, float>)         return "float";
+    if(std::is_same_v<T, int>)           return "int";
+    if(std::is_same_v<T, unsigned int>)  return "unsigned int";
+    if(std::is_same_v<T, long>)          return "long";
+    if(std::is_same_v<T, bool>)          return "bool";
+
+    if(round_braces)  {
+      if(std::is_same_v<T, std::complex<double>>) return "complex(double)";
+      if(std::is_same_v<T, std::complex<float>>)  return "complex(float)";
+    } else {
+      if(std::is_same_v<T, std::complex<double>>) return "complex<double>";
+      if(std::is_same_v<T, std::complex<float>>)  return "complex<float>";
+    }
+    assert(false);
+    return "unknown";
+  }
+
 
   /** We have types for Direction in EnvironmentTypes.hh and ShapeParamElement::Dof
    * but this is an easy int to x,y,z conversion for loops */
