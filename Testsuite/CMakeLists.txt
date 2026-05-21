@@ -185,6 +185,17 @@ if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES
     endforeach()
   endif()
   mark_as_advanced(PythonModules_DIR)
+
+  # Find h5diff from hdf5-tools — used by Python-script tests to compare
+  # .h5 result against .h5ref reference.  Independent of cfstool so the CI
+  # pipeline (which does not build cfstool) can still run these tests.
+  find_program(H5DIFF_EXECUTABLE NAMES h5diff)
+  if(TESTSUITE_PYTHON AND NOT H5DIFF_EXECUTABLE)
+    message(WARNING "h5diff not found — Python HDF5 comparison tests will fail. "
+                    "Install hdf5-tools (apt: hdf5-tools, conda: hdf5).")
+  else()
+    message(STATUS "using ${H5DIFF_EXECUTABLE} for Python HDF5 comparison tests")
+  endif()
 endif()
 
 #-------------------------------------------------------------------------------

@@ -34,7 +34,7 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2025.05
+  BUILD_ENVIRONMENT_TAG: 2026.05
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
@@ -1209,7 +1209,7 @@ unstable_ser:msvc2022:windows:
     - windows:msvc2022
 
 python:linux:
-  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu24.04:$BUILD_ENVIRONMENT_TAG
   extends: .ctest_default
   tags:
     - saas-linux-small-amd64
@@ -1243,6 +1243,7 @@ python:linux:
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
+    - ctest -D ExperimentalSubmit --group $CDASH_TRACK || echo "submit fail?" # intermediate submit
     - ctest -D ExperimentalTest -R PYTHON --group $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit

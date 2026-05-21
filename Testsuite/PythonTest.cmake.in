@@ -37,6 +37,9 @@ SET(COMPARE_HIST_FILE "@COMPARE_HIST_FILE@")
 # used for homogenization in basecell tests
 SET(CFS_BINARY "${CFS_BINARY_DIR}/bin/cfs")
 
+# Path to hdf5-tools/h5diff.
+SET(H5DIFF_EXECUTABLE "@H5DIFF_EXECUTABLE@")
+
 #-------------------------------------------------------------------------------
 # Include some macros. Especially the one for generating test names out of
 # directory names.
@@ -49,6 +52,8 @@ INCLUDE("${TESTSUITE_SRC_DIR}/TestMacros.cmake")
 MACRO(PYTHON_TEST)
   # Generate test names
   GENERATE_TEST_NAME_AND_FILE("${CURRENT_TEST_DIR}")
+  DETERMINE_TEST_FILE_LIST()
+  CLEANUP_TEST_DIR()
 
   # MESSAGE("TARGET=${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.png")
   # MESSAGE("REF=${CURRENT_TEST_DIR}/${TEST}.ref.png")
@@ -68,7 +73,7 @@ MACRO(PYTHON_TEST)
       ENDIF(EXISTS "${CURRENT_TEST_DIR}/${TEST}.ref.png")  
     ENDIF()  
   ENDIF()
-  
+
   # copy reference file for compare_images
   IF (BASECELL_ARGS)  
     FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.info.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
