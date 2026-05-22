@@ -368,6 +368,12 @@ ubuntu:rolling:
     entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] 
 
 # older LTS releases ...
+ubuntu:24.04:
+  extends: .platform
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "24.04"
+
 ubuntu:20.04:
   extends: .platform
   variables:
