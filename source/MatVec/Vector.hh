@@ -572,21 +572,24 @@ template<typename T> class ElemStoreSol;
 
     //! Return a reference to i-th entry
     inline T & operator[]( UInt i) {
+/*
 #ifdef CHECK_INDEX
     if (i >= size_)
       EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
 #endif
+*/
       
       return data_[i];
     };
 
     //! Return a reference to i-th entry
     inline const T& operator[]( UInt i ) const {
-#ifdef CHECK_INDEX
+/*
+      #ifdef CHECK_INDEX
     if (i >= size_)
       EXCEPTION("Vector: invalid access to index " << i << " when size is " << size_);
 #endif
-      
+*/    
       return data_[i];
     };
 
