@@ -5,10 +5,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "boost")
-set(PACKAGE_VER "1.90.0")  
-set(PACKAGE_FILE "boost_1_90_0.tar.bz2") # does not reflect PACKAGE_VER style
-set(PACKAGE_MD5 "c67feac0b00506632881675c1b39d019") # 1.90.0
-
+set(PACKAGE_VER "1.91.0")  
+# with boost 1.91.tar.bz2 we have unpacking issues in the RHEL8 pipeline
+set(PACKAGE_FILE "boost_1_91_0.tar.gz") # does not reflect PACKAGE_VER style
+set(PACKAGE_MD5 "e799ed3e5af9708739fb2e088c670ae1") # 1.91.0
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
@@ -82,7 +82,7 @@ generate_packing_script_install_dir()
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
 
-# dump_depencency_variables()
+dump_depencency_variables()
 
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -109,7 +109,7 @@ else()
   assert_unset(PATCHES_SCRIPT)
 
   # more and more of boost is header only. Add here the libs which are not required for cfs and some cfsdeps which also use boost
-  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --without-histogram --without-mysql --no-cmake-config) 
+  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --no-cmake-config) 
 
   # we need to build the package - here in cmake style
   ExternalProject_Add(${PACKAGE_NAME}
