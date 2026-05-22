@@ -1038,7 +1038,7 @@ namespace CFSTool {
                         << " ref=" << inVec_ref[worst_idx] << "\n";
           }
           if (diffL2 > maxL2_step) maxL2_step = diffL2;
-          if (relL2 > maxL2rel_step) {
+          if (relL2 >= maxL2rel_step) {
               maxL2rel_step = relL2;
               infoStringRel_step = resultName + " on " + entityName;
           }
@@ -1202,18 +1202,17 @@ namespace CFSTool {
                       EXCEPTION("not impl");
                   } // switch: Analysitype
               } // loop over results
-              std::cout << "\n\tL2-Norm: " << maxL2_step << " (difference), " << maxL2rel_step <<" (relative) @ "<<infoStringRel_step<<"\n";
               if (maxL2_step > maxL2_sequence ) maxL2_sequence = maxL2_step;
-              if (maxL2rel_step > maxL2rel_sequence ) {
+              if (maxL2rel_step >= maxL2rel_sequence ) {
                   maxL2rel_sequence = maxL2rel_step;
                   std::stringstream tmpstr;
-                  tmpstr << "Step "<< actStepNum << " (=" << actStepVal << " s|Hz|iteration): " << infoStringRel_step;
+                  tmpstr << "step "<< actStepNum << " with step value " << actStepVal << ": " << infoStringRel_step;
                   infoStringRel_sequence = tmpstr.str();
               }
           }// time step
-          std::cout << "\nL2-Norm: " << maxL2_sequence << " (difference), " << maxL2rel_sequence <<" (relative) @ " <<infoStringRel_sequence<<"\n";
+          std::cout << "\nMaximal error withing multi sequence step: L2-Norm: " << maxL2_sequence << " (difference), " << maxL2rel_sequence <<" (relative) @ " <<infoStringRel_sequence<<"\n";
           if ( maxL2_sequence > maxL2 ) maxL2 = maxL2_sequence;
-          if ( maxL2rel_sequence > maxL2rel ) {
+          if ( maxL2rel_sequence >= maxL2rel ) {
               maxL2rel = maxL2rel_sequence;
               std::stringstream tmpstr;
               tmpstr << "MultiSequenceStep "<< actMsStep << ", " << infoStringRel_sequence;
@@ -1433,8 +1432,12 @@ int main(int argc, char** argv)
         Double absDiff,maxDiffMeshRel;
         CFSTool::CheckL2(file1,file2,false,absDiff,maxDiffMeshRel,maxDiffResultName,tolerance);
         std::cout << "\n";
-        std::cout << " -> Maximum relative L2 norm = " << maxDiffMeshRel << " @ "<< maxDiffResultName << "\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
+        if ( maxDiffMeshRel < tolerance ) 
+            std::cout << "OK: relative mesh results maximal err: L2-norm=" << maxDiffMeshRel << " < " << tolerance << " -> all fine for mesh";
+        else 
+            std::cout << "ERROR: relative mesh results maximal err: L2-norm=" << maxDiffMeshRel << " >= " << tolerance << " @ "<< maxDiffResultName << " continue";
+
+        std::cout << "\n\n<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
         std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
         std::cout << "\n";
         std::cout << "#####################################################\n";
@@ -1442,20 +1445,21 @@ int main(int argc, char** argv)
         std::cout << "#####################################################\n";
         Double maxDiffHistRel;
         CFSTool::CheckL2(file1,file2,true,absDiff,maxDiffHistRel,maxDiffResultName,tolerance);
+        std::cout << "========================================================\n";
         std::cout << "\n";
-        std::cout << " -> Maximum relative L2 norm = " << maxDiffHistRel << " @ " << maxDiffResultName << "\n";
+
+        std::cout << "-> Final maximal relative history error: L2-norm= " << maxDiffHistRel << " @ " << maxDiffResultName << "\n\n";
         std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
         std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
         std::cout << "\n";
         Double err = std::max(maxDiffMeshRel,maxDiffHistRel);
         std::cout << "<DartMeasurement name=\"relL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
+        std::cout << "========================================================\n";
         if ( err < tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
+            std::cout << "OK: History results maximal err=" << err << " < " << tolerance << " -> all fine for history\n";
             exit(EXIT_SUCCESS);
         } else {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
+            std::cout << "Error: History results maximal err=" << err << " >= " << tolerance << "\n";
             exit(EXIT_FAILURE);
         }
     } else if (param_mode == "meshdiff") {
