@@ -389,12 +389,6 @@ debian:12: # (bookworm)
     IMAGE: "debian"
     TAG: "12"
 
-debian:11: # (bullseye)
-  extends: .platform
-  variables:
-    IMAGE: "debian"
-    TAG: "11"
-
 # RHEL derivatives
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
