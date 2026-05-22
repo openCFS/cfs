@@ -410,6 +410,13 @@ rhel:9:
     IMAGE: "rockylinux"
     TAG: "9"
 
+# almalinux 10, see https://hub.docker.com/_/almalinux
+rhel:10:
+  extends: .platform
+  variables:
+    IMAGE: "almalinux"
+    TAG: "10"
+
 #######################################################################
 # cfsdeps stage
 #######################################################################
