@@ -411,42 +411,17 @@ macro(create_external_unpack_precompiled)
   assert_set(PRECOMPILED_PCKG_FILE)
   assert_set(DEPS_PREFIX)
 
-  # since CMake 3.24 we need cmake_policy(SET CMP0135 OLD) or set DOWNLOAD_EXTRACT_TIMESTAMP ON (since 3.24)
-  # otherwise the timestamp of the extracted precompiled files are set to now and everything recompiles.
-  # remove this guard once we set set the minimal cmake for openCFS sufficiently high.
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
-    ExternalProject_Add(${PACKAGE_NAME}
-      PREFIX ${DEPS_PREFIX}
-      DOWNLOAD_COMMAND ""
-      DOWNLOAD_EXTRACT_TIMESTAMP ON
-      PATCH_COMMAND ""
-      UPDATE_COMMAND ""
+  # add a minimal project that just extracts the precompiled file into the correct location
+  ExternalProject_Add(${PACKAGE_NAME}
+      SOURCE_DIR ${CMAKE_BINARY_DIR} # needed so no download step is done, also sets working directory
       CONFIGURE_COMMAND ""
-      BUILD_COMMAND ""
+      BUILD_COMMAND ${CMAKE_COMMAND} -E echo "unpacking precompiled ${PACKAGE_NAME} from ${PRECOMPILED_PCKG_FILE} in ${CMAKE_BINARY_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E tar xzf ${PRECOMPILED_PCKG_FILE}
+      BUILD_IN_SOURCE TRUE # actually use defined SOURCE_DIR in the build step
       INSTALL_COMMAND ""
-      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
-  else()
-    if(POLICY CMP0135)
-      cmake_policy(SET CMP0135 OLD)
-    endif()
-    ExternalProject_Add(${PACKAGE_NAME}
-      PREFIX ${DEPS_PREFIX}
-      DOWNLOAD_COMMAND ""
-      PATCH_COMMAND ""
-      UPDATE_COMMAND ""
-      CONFIGURE_COMMAND ""
-      BUILD_COMMAND ""
-      INSTALL_COMMAND ""
-      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
-  endif()
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY})
 
-  # we need a step as we need to set WORKING_DIRECTORY
-  ExternalProject_Add_Step(${PACKAGE_NAME} pre_download
-    COMMAND ${CMAKE_COMMAND} -E echo "unpacking ${PRECOMPILED_PCKG_FILE}"
-    COMMAND ${CMAKE_COMMAND} -E tar xzf ${PRECOMPILED_PCKG_FILE}
-    DEPENDERS download 
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR} )
-endmacro()    
+endmacro()
 
 # add cmake external project for building a patched cmake project 
 #
