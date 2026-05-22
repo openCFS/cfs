@@ -263,6 +263,18 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
+          <xsd:enumeration value="minEnergyHeavy">
+          <xsd:annotation>
+            <xsd:documentation>
+              Computes the optimal line search parameter by minimizing the residual L2-norm
+              in the Newton direction. A fixed set of parameters eta in 
+              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0} are evaluated and the 
+              parameter that yields the smallest residual norm is selected.
+              In contrast to minEnergyHeuristic, which minimizes the energy derivative,
+              this method directly minimizes the residual.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:enumeration>
           <xsd:enumeration value="Armijo">
           <xsd:annotation>
               <xsd:documentation>
