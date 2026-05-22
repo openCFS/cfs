@@ -235,7 +235,7 @@ namespace CFSTool
             E.g.  'x 0 1 0.1'")
         ("mode,m", \
             po::value<std::string>(&param_mode)->default_value("scalardiff"),
-            "Type of mode: calcAverage | convert | scalardiff | L2diff | absL2diff | relL2diff | meshdiff | meshdiffnormed | wvt")
+            "Type of mode: calcAverage | convert | scalardiff | absL2diff | relL2diff | meshdiff | meshdiffnormed | wvt")
         ("forceSegFault", \
             po::value<std::string>(&param_forceSegFault)->implicit_value("true")->default_value("false"),
             "Force a segmentation fault at exceptions.")
@@ -319,13 +319,9 @@ namespace CFSTool
         std::cout <<
           "\tCall: cfstool --mode scalardiff reference_file file_under_test --eps 'eps'" << std::endl;
         std::cout <<
-                  "'L2diff' calculates the L2 norm of the difference between two vectors, as well as the \n\t" <<
-                  " normalized L2 (by L2 of the reference vector) and checks if either is smaller than a given tolerance.\n\t" <<
-                  "Option '--eps' is obligatory." << std::endl;
+                  "'relL2diff' checks |test - ref|_2 / |ref|_2 < --eps." << std::endl;
         std::cout <<
-                  "'relL2diff' calculates like 'L2diff' but only checks if the relative L2 norm < 'eps'." << std::endl;
-        std::cout <<
-                  "'absL2diff' calculates like 'L2diff' but only checks if the absolute L2 norm < 'eps'." << std::endl;
+                  "'absL2diff' checks |test - ref|_2 < --eps." << std::endl;
         std::cout <<
                   "\tCall: cfstool --mode scalardiff reference_file file_under_test --eps 'eps'" << std::endl;
         std::cout <<

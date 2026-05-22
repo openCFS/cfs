@@ -926,7 +926,9 @@ namespace CFSTool {
     delete ptGrid;
   } //calcAverage
 
-  Double CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double & maxL2, Double & maxL2rel, std::string& maxDiffInfo, Double tolerance = 0.0) {
+  
+
+  Double CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double& maxL2, Double& maxL2rel, std::string& maxDiffInfo, Double tolerance = 0.0) {
       // initialize the diff values
       maxL2 = 0.0;
       maxL2rel = 0.0;
@@ -1009,29 +1011,47 @@ namespace CFSTool {
           Double diffL2 = diffVec.NormL2();
           Double refL2  = inVec_ref.NormL2();
           Double testL2 = inVec_fut.NormL2();
-          int worst_idx = 0;
-          double worst_rel_pt = 0.0;
-          for (UInt i = 0; i < diffVec.GetSize(); i++) {
-              double rel = std::abs(diffVec[i]) / (std::abs(inVec_ref[i]) + 1e-300);
-              if (rel > worst_rel_pt) { worst_rel_pt = rel; worst_idx = (int)i; }
-          }
           std::cout << "\n/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum
                     << "/" << resultName << "/" << entityName
                     << " step_val=" << actStepVal
-                    << ", " << (inVec_fut.GetSize() / numDofs) << " entries (" << kind << ")\n";
-          if (!(std::isfinite(diffL2))) {
-              std::cout << "  WARNING: non-finite value encountered\n";
+                    << ", " << (inVec_fut.GetSize() / numDofs) << "x" << numDofs << " entries (" << kind << ")\n";
+          if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
+          {
+            if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
+              std::cout << "  ERROR: NaN value encountered in test but not reference result\n";
               diffL2 = std::numeric_limits<Double>::max();
-          }
+            } 
+            else  {
+              std::cout << "  WARNING: NaN in reference=" <<  inVec_ref.ContainsNaN() << " and in test=" << inVec_fut.ContainsNaN() << " -> cannot compare\n";
+              diffL2 = 0;
+            }
+          } 
+          double relL2 = 0.0;
+          if(refL2 == 0.0) {
+              if(diffL2 == 0.0) {
+                  std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
+              } else {
+                  std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> ERROR\n";
+                  diffL2 = std::numeric_limits<Double>::max();
+
+              }
+          } else {
           Double relL2 = diffL2 / refL2;
-          std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2
-                    << " rel_diff=" << relL2;
+          std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " rel_diff=" << relL2;
           if (relL2 <= tolerance) {
               std::cout << " <= " << tolerance << " -> OK\n";
           } else {
               std::cout << " > " << tolerance << " -> ERROR\n";
               std::cout << "  Minimum: test=" << futMin << " ref=" << refMin << "\n";
               std::cout << "  Maximum: test=" << futMax << " ref=" << refMax << "\n";
+
+              int worst_idx = 0;
+              double worst_rel_pt = 0.0;
+              for (UInt i = 0; i < diffVec.GetSize(); i++) {
+                  double rel = std::abs(diffVec[i]) / (std::abs(inVec_ref[i]) + 1e-300);
+                  if (rel > worst_rel_pt) { worst_rel_pt = rel; worst_idx = (int)i; }
+              }
+
               std::cout << "  entry with largest relative difference:"
                         << " dataset_index=" << worst_idx
                         << " test=" << inVec_fut[worst_idx]
@@ -1042,6 +1062,7 @@ namespace CFSTool {
               maxL2rel_step = relL2;
               infoStringRel_step = resultName + " on " + entityName;
           }
+          } // closes else (refL2 != 0.0)
       };
 
       std::map<UInt,UInt>::iterator it;
@@ -1352,39 +1373,6 @@ int main(int argc, char** argv)
         std::cout << "  No differences larger than tolerance found.\n";
         exit(EXIT_SUCCESS);
       }
-    }  else if (param_mode == "L2diff") {
-        Double tolerance = param->Get("eps")->As<Double>();
-        if (num_files != 2)
-        {
-            EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
-                            << " file1='" << file1 << "' file2='" << file2 << "'");
-        }
-        std::cout << "Checking for mesh results:\n"
-        << "==========================\n";
-        Double maxDiffMesh,maxDiffMeshRel;
-        Double errMesh = CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName,tolerance);
-        std::cout << "Maximum L2 norm = " << errMesh << " @ "<< maxDiffResultName << "\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
-        std::cout << "Checking for history results:\n"
-        << "==========================\n";
-        Double maxDiffHist,maxDiffHistRel;
-        Double errHist = CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName,tolerance);
-        std::cout << "Maximum L2 norm = " << errHist << " @ "<< maxDiffResultName <<"\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
-        Double err = std::max(errMesh,errHist);
-        std::cout << "\n";
-        std::cout << "<DartMeasurement name=\"L2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-        if ( err < tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
-            exit(EXIT_SUCCESS);
-        } else {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-            exit(EXIT_FAILURE);
-        }
     } else if (param_mode == "absL2diff"){
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
@@ -1467,15 +1455,13 @@ int main(int argc, char** argv)
       {
         EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( file1, file2, file3, \
-                     false, false, maxDiffResultName);
+      CFSTool::Diff( file1, file2, file3, false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
         EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( file1, file2, file3, \
-                     true, false, maxDiffResultName);
+      CFSTool::Diff( file1, file2, file3, true, false, maxDiffResultName);
     } else if (param_mode == "wvt") {
 
       CFSTool::WVT wvt( param, info );
