@@ -926,9 +926,110 @@ namespace CFSTool {
     delete ptGrid;
   } //calcAverage
 
-  
 
-  Double CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double& maxL2, Double& maxL2rel, std::string& maxDiffInfo, Double tolerance = 0.0) {
+  enum class L2DiffMode {
+    ABSDIFF = 0, // absL2diff
+    RELDIFF      // relL2diff
+  };
+
+   /** checks a single result for abs or rel difference w.r.t tolerance
+    * maxL2_step/maxL2rel_step check the maximal value within the multi sequence step
+    * infoStringRel_step is set when we update maxL2_step/maxL2rel_step, depending on mode
+    * @return true if within tolerance */
+  template<typename T>
+  static bool CheckL2Result(L2DiffMode mode, double tolerance,
+      Vector<T>& inVec_fut, Vector<T>& inVec_ref,
+      UInt actMsStep, UInt actStepNum, Double actStepVal,
+      const std::string& resultName, const std::string& entityName, UInt numDofs, 
+      Double& maxL2_step, Double& maxL2rel_step, std::string& infoStringRel_step)
+  {
+    Vector<T> diffVec;
+    diffVec.Resize(inVec_fut.GetSize());
+    diffVec = inVec_fut - inVec_ref;
+    T futMin, futMax, refMin, refMax;
+    inVec_fut.MinMax(futMin, futMax);
+    inVec_ref.MinMax(refMin, refMax);
+    Double diffL2 = diffVec.NormL2();
+    Double refL2  = inVec_ref.NormL2(); // abs
+    Double testL2 = inVec_fut.NormL2();
+    double relL2 = 0.0;
+    bool good = true;
+    const char* kind = std::is_same<T, double>::value ? "real" : "complex";
+
+    std::cout << "\n/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum
+              << "/" << resultName << "/" << entityName
+              << " step_val=" << actStepVal
+              << ", " << (inVec_fut.GetSize() / numDofs) << "x" << numDofs << " entries (" << kind << ")\n";
+    if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
+    {
+      if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
+        std::cout << "  ERROR: NaN value encountered in test but not reference result\n";
+        diffL2 = std::numeric_limits<Double>::max();
+        good = false;
+      } 
+      else  {
+        std::cout << "  WARNING: NaN in reference=" <<  inVec_ref.ContainsNaN() << " and in test=" << inVec_fut.ContainsNaN() << " -> cannot compare\n";
+        diffL2 = 0;
+      }
+    } 
+    else if(refL2 == 0.0) 
+    {
+      if(diffL2 == 0.0) 
+        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
+      else {
+        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> ERROR\n";
+        diffL2 = std::numeric_limits<Double>::max();
+      }
+    } 
+    else 
+    {
+      // we always report relL2diff and absL2diff values but check only one
+      relL2 = diffL2 / refL2;
+      const char* ms = mode == L2DiffMode::RELDIFF ? "rel" : "abs";
+      double cmp = mode == L2DiffMode::RELDIFF ? relL2 : diffL2;
+      std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " " << ms << "_diff=" << cmp;
+      if (cmp <= tolerance) 
+        std::cout << " <= " << tolerance << " -> OK\n";
+      else 
+      {
+        std::cout << " > " << tolerance << " -> ERROR\n";
+        std::cout << "  Minimum: test=" << futMin << " ref=" << refMin << "\n";
+        std::cout << "  Maximum: test=" << futMax << " ref=" << refMax << "\n";
+
+        unsigned int worst_idx = 0; 
+        double worst_val = 0.0;
+        for(unsigned int i = 0; i < diffVec.GetSize(); i++) 
+        {
+          double cmp = std::abs(diffVec[i]);
+          if(mode == L2DiffMode::RELDIFF)
+            cmp /= (std::abs(inVec_ref[i]) + 1e-300); // avoid division by zero
+          if(cmp > worst_val) { 
+            worst_val = cmp; worst_idx = i; 
+          }
+        }
+        std::cout << "  entry with largest " << ms << " difference:"
+                  << " dataset_index=" << worst_idx
+                  << " test=" << inVec_fut[worst_idx]
+                  << " ref=" << inVec_ref[worst_idx] << "\n";
+        good = false;                     
+      }
+      if (diffL2 > maxL2_step) {
+        maxL2_step = diffL2;
+        if(mode == L2DiffMode::ABSDIFF)
+          infoStringRel_step = resultName + " on " + entityName;
+      }
+      if (relL2 >= maxL2rel_step) {
+        maxL2rel_step = relL2;
+        if(mode == L2DiffMode::RELDIFF)
+          infoStringRel_step = resultName + " on " + entityName;
+      }
+    }
+    return good;
+  }
+
+  /** independent on the mode we always compute abs and rel diff - but need the info for tolerance
+    * @return true if all within tolerance -> max stuff not set */
+  bool CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double& maxL2, Double& maxL2rel, std::string& maxDiffInfo, L2DiffMode mode, double tolerance) {
       // initialize the diff values
       maxL2 = 0.0;
       maxL2rel = 0.0;
@@ -995,76 +1096,6 @@ namespace CFSTool {
       }
 
       // iterate over all Sequence Steps
-      auto checkL2Result = [tolerance](auto& inVec_fut, auto& inVec_ref,
-          UInt actMsStep, UInt actStepNum, Double actStepVal,
-          const std::string& resultName, const std::string& entityName,
-          UInt numDofs, const char* kind,
-          Double& maxL2_step, Double& maxL2rel_step, std::string& infoStringRel_step)
-      {
-          using T = std::remove_reference_t<decltype(inVec_fut[0])>;
-          Vector<T> diffVec;
-          diffVec.Resize(inVec_fut.GetSize());
-          diffVec = inVec_fut - inVec_ref;
-          T futMin, futMax, refMin, refMax;
-          inVec_fut.MinMax(futMin, futMax);
-          inVec_ref.MinMax(refMin, refMax);
-          Double diffL2 = diffVec.NormL2();
-          Double refL2  = inVec_ref.NormL2();
-          Double testL2 = inVec_fut.NormL2();
-          std::cout << "\n/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum
-                    << "/" << resultName << "/" << entityName
-                    << " step_val=" << actStepVal
-                    << ", " << (inVec_fut.GetSize() / numDofs) << "x" << numDofs << " entries (" << kind << ")\n";
-          if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
-          {
-            if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
-              std::cout << "  ERROR: NaN value encountered in test but not reference result\n";
-              diffL2 = std::numeric_limits<Double>::max();
-            } 
-            else  {
-              std::cout << "  WARNING: NaN in reference=" <<  inVec_ref.ContainsNaN() << " and in test=" << inVec_fut.ContainsNaN() << " -> cannot compare\n";
-              diffL2 = 0;
-            }
-          } 
-          double relL2 = 0.0;
-          if(refL2 == 0.0) {
-              if(diffL2 == 0.0) {
-                  std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
-              } else {
-                  std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> ERROR\n";
-                  diffL2 = std::numeric_limits<Double>::max();
-
-              }
-          } else {
-          Double relL2 = diffL2 / refL2;
-          std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " rel_diff=" << relL2;
-          if (relL2 <= tolerance) {
-              std::cout << " <= " << tolerance << " -> OK\n";
-          } else {
-              std::cout << " > " << tolerance << " -> ERROR\n";
-              std::cout << "  Minimum: test=" << futMin << " ref=" << refMin << "\n";
-              std::cout << "  Maximum: test=" << futMax << " ref=" << refMax << "\n";
-
-              int worst_idx = 0;
-              double worst_rel_pt = 0.0;
-              for (UInt i = 0; i < diffVec.GetSize(); i++) {
-                  double rel = std::abs(diffVec[i]) / (std::abs(inVec_ref[i]) + 1e-300);
-                  if (rel > worst_rel_pt) { worst_rel_pt = rel; worst_idx = (int)i; }
-              }
-
-              std::cout << "  entry with largest relative difference:"
-                        << " dataset_index=" << worst_idx
-                        << " test=" << inVec_fut[worst_idx]
-                        << " ref=" << inVec_ref[worst_idx] << "\n";
-          }
-          if (diffL2 > maxL2_step) maxL2_step = diffL2;
-          if (relL2 >= maxL2rel_step) {
-              maxL2rel_step = relL2;
-              infoStringRel_step = resultName + " on " + entityName;
-          }
-          } // closes else (refL2 != 0.0)
-      };
-
       std::map<UInt,UInt>::iterator it;
       for( it = numSteps_ref.begin(); it != numSteps_ref.end(); it++ ) {
           Double maxL2_sequence = 0; // maximum L2 difference in sequence step
@@ -1186,42 +1217,40 @@ namespace CFSTool {
               // iterate over all results
               for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) 
               {
-                 const shared_ptr<ResultInfo>& resInfo = inResults_fut[iRes]->GetResultInfo();
-                 if(resultSteps.count(resInfo) == 0 || resultSteps[resInfo].count(actStepNum) == 0) 
-                   continue;
-                  // obtain both result objects for current step
-                  input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
-                  input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
-                  // cast result objects, get vector and calculate difference vector
-                  const std::string& resultName = inResults_fut[iRes]->GetResultInfo()->resultName;
-                  const std::string& entityName = inResults_fut[iRes]->GetEntityList()->GetName();
-                  UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
-                  if (numDofs == 0) numDofs = 1;
-                  if( types[actMsStep] == BasePDE::STATIC || types[actMsStep] == BasePDE::TRANSIENT ) {
-                      Vector<Double> & inVec_fut = dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
-                      Vector<Double> & inVec_ref = dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
-                      checkL2Result(inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
-                                    resultName, entityName, numDofs, "real",
-                                    maxL2_step, maxL2rel_step, infoStringRel_step);
-                  } else if(types[actMsStep] == BasePDE::EIGENVALUE || types[actMsStep] == BasePDE::BUCKLING ||  types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::HARMONIC || types[actMsStep] == BasePDE::MULTIHARMONIC || types[actMsStep] == BasePDE::HARMONIC25D) {
-                      Vector<Complex> & inVec_fut = dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
-                      Vector<Complex> & inVec_ref = dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
-                      // normalize modes
-                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::BUCKLING|| types[actMsStep] == BasePDE::EIGENVALUE) {
-                        int i_ref = 0;
-                        Complex norm_ref = inVec_ref.MaxAbs(i_ref);
-                        Complex norm_fut = inVec_fut[i_ref];
-                        std::cout << "  MAC(fut,ref) = " << inVec_fut.MAC(inVec_ref) << "\n";
-                        std::cout << "  Normalizing modes by "<< norm_fut << " (fut), "<< norm_ref << " (ref)\n";
-                        inVec_fut.ScalarDiv(norm_fut);
-                        inVec_ref.ScalarDiv(norm_ref);
-                      }
-                      checkL2Result(inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
-                                    resultName, entityName, numDofs, "complex",
-                                    maxL2_step, maxL2rel_step, infoStringRel_step);
-                  } else {
-                      EXCEPTION("not impl");
-                  } // switch: Analysitype
+                const shared_ptr<ResultInfo>& resInfo = inResults_fut[iRes]->GetResultInfo();
+                if(resultSteps.count(resInfo) == 0 || resultSteps[resInfo].count(actStepNum) == 0) 
+                  continue;
+                // obtain both result objects for current step
+                input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
+                input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
+                // cast result objects, get vector and calculate difference vector
+                const std::string& resultName = inResults_fut[iRes]->GetResultInfo()->resultName;
+                const std::string& entityName = inResults_fut[iRes]->GetEntityList()->GetName();
+                UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
+                if (numDofs == 0) numDofs = 1;
+                if( types[actMsStep] == BasePDE::STATIC || types[actMsStep] == BasePDE::TRANSIENT ) {
+                    Vector<Double>& inVec_fut = dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
+                    Vector<Double>& inVec_ref = dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
+                                  resultName, entityName, numDofs, maxL2_step, maxL2rel_step, infoStringRel_step);
+                } else if(types[actMsStep] == BasePDE::EIGENVALUE || types[actMsStep] == BasePDE::BUCKLING ||  types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::HARMONIC || types[actMsStep] == BasePDE::MULTIHARMONIC || types[actMsStep] == BasePDE::HARMONIC25D) {
+                    Vector<Complex>& inVec_fut = dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+                    Vector<Complex>& inVec_ref = dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
+                    // normalize modes
+                    if (types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::BUCKLING|| types[actMsStep] == BasePDE::EIGENVALUE) {
+                      int i_ref = 0;
+                      Complex norm_ref = inVec_ref.MaxAbs(i_ref);
+                      Complex norm_fut = inVec_fut[i_ref];
+                      std::cout << "  MAC(fut,ref) = " << inVec_fut.MAC(inVec_ref) << "\n";
+                      std::cout << "  Normalizing modes by "<< norm_fut << " (fut), "<< norm_ref << " (ref)\n";
+                      inVec_fut.ScalarDiv(norm_fut);
+                      inVec_ref.ScalarDiv(norm_ref);
+                    }
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
+                                  resultName, entityName, numDofs, maxL2_step, maxL2rel_step, infoStringRel_step);
+                } else {
+                    EXCEPTION("not impl");
+                } // switch: Analysitype
               } // loop over results
               if (maxL2_step > maxL2_sequence ) maxL2_sequence = maxL2_step;
               if (maxL2rel_step >= maxL2rel_sequence ) {
@@ -1386,13 +1415,13 @@ int main(int argc, char** argv)
       std::cout << "Checking for mesh results:\n"
       << "==========================\n";
       Double maxDiffMesh,maxDiffMeshRel;
-      CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName,tolerance);
+      CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName,CFSTool::L2DiffMode::ABSDIFF,tolerance);
       std::cout << "Maximum L2 norm = " << maxDiffMesh << " @ "<< maxDiffResultName << "\n";
       std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
       std::cout << "Checking for history results:\n"
       << "==========================\n";
       Double maxDiffHist,maxDiffHistRel;
-      CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName,tolerance);
+      CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName,CFSTool::L2DiffMode::ABSDIFF,tolerance);
       std::cout << "Maximum L2 norm = " << maxDiffHist << " @ "<< maxDiffResultName <<"\n";
       std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
       Double err = std::max(maxDiffMesh,maxDiffHist);
@@ -1418,7 +1447,7 @@ int main(int argc, char** argv)
         std::cout << "#           Checking for mesh results ...           #\n";
         std::cout << "#####################################################\n";
         Double absDiff,maxDiffMeshRel;
-        CFSTool::CheckL2(file1,file2,false,absDiff,maxDiffMeshRel,maxDiffResultName,tolerance);
+        CFSTool::CheckL2(file1,file2,false,absDiff,maxDiffMeshRel,maxDiffResultName,CFSTool::L2DiffMode::RELDIFF,tolerance);
         std::cout << "\n";
         if ( maxDiffMeshRel < tolerance ) 
             std::cout << "OK: relative mesh results maximal err: L2-norm=" << maxDiffMeshRel << " < " << tolerance << " -> all fine for mesh";
@@ -1432,7 +1461,7 @@ int main(int argc, char** argv)
         std::cout << "#           Checking for history results ...        #\n";
         std::cout << "#####################################################\n";
         Double maxDiffHistRel;
-        CFSTool::CheckL2(file1,file2,true,absDiff,maxDiffHistRel,maxDiffResultName,tolerance);
+        CFSTool::CheckL2(file1,file2,true,absDiff,maxDiffHistRel,maxDiffResultName,CFSTool::L2DiffMode::RELDIFF,tolerance);
         std::cout << "========================================================\n";
         std::cout << "\n";
 
