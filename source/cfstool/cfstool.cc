@@ -982,12 +982,14 @@ namespace CFSTool {
     std::cout << "\n" << location << ", " << (inVec_fut.GetSize() / numDofs) << "x" << numDofs << " entries";
     std::cout << (std::is_same_v<T, double> ? " (real)\n" : " (complex)\n");
     
+    // filter NaN data
     if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
     {
       std::cout << "  ERROR: search for NaN gave test=" << inVec_fut.ContainsNaN() << " ref=" << inVec_ref.ContainsNaN() << "\n";
       peak.SetError("NaN encountered in datasets");
     } 
-    else if(mode == L2DiffMode::RELDIFF && refL2 == 0.0) // no rel when ref is zero
+    // filter rel case with ref is zero
+    else if(mode == L2DiffMode::RELDIFF && refL2 == 0.0) 
     {
       if(diffL2 == 0.0) 
         std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
@@ -999,33 +1001,33 @@ namespace CFSTool {
     }
     else 
     {
+      // this is the pretty normal case
+      // OK: L2-Norm: test=7.29023e-09 ref=7.29023e-09 (abs_diff=1.09477e-21) rel_diff=1.50169e-13 <= 1e-06
       double rel = diffL2 / refL2; // division by zero checked above
-      std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " ";
-      double cmp = -1.0; // with what do we compare the tolerance?
-      if(mode == L2DiffMode::RELDIFF) {
-        std::cout << "(abs_diff=" << diffL2 << "), rel_diff=" << rel << " -> ";
-        cmp = rel;
-      } else {
-        std::cout << "(rel_diff=" << rel << "), abs_diff=" << diffL2 << " -> ";
-        cmp = diffL2;
-      }
-      // all good: within tolerance and no new peak value
-      if (cmp <= tolerance && cmp <= peak.rel.value && cmp <= peak.abs.value) 
-        std::cout << " <= " << tolerance << " -> OK\n";
+      double cmp = mode == L2DiffMode::RELDIFF ? rel : diffL2;
+      bool ok = cmp <= tolerance;
+      std::cout << (ok ? "OK:" : "ERROR:");
+      std::cout << " L2-Norm: test=" << testL2 << " ref=" << refL2 << " ";
+      if(mode == L2DiffMode::RELDIFF) 
+        std::cout << "(abs_diff=" << diffL2 << ") rel_diff=" << rel;
       else 
+        std::cout << "(rel_diff=" << rel << ") abs_diff=" << diffL2;
+      std::cout << (ok ? " <= " : " > ") << tolerance << std::endl;
+
+      // when we are not ok or when any peak is larger, print verbose
+      if(!ok || rel > peak.rel.value || diffL2 > peak.abs.value)
       {
-        // we have a new peak but still within tolerance
-        if(cmp <= tolerance) {
-          std::cout << " <= " << tolerance << " -> OK\n";
+        // when we a ok, print info, why we print verbose
+        if(ok) {
           if(peak.rel.value == 0.0 && peak.abs.value == 0.0) 
             std::cout << "  INFO: First dataset\n";
-          if(peak.rel.value == 0.0 && peak.abs.value != 0.0)
-            std::cout << "  INFO: New rel peak value within tolerance reached, previous rel_diff= " << peak.rel.value << "\n";
-          if(peak.rel.value != 0.0 && peak.abs.value == 0.0)
-            std::cout << "  INFO: New abs peak value within tolerance reached, previous abs_diff= " << peak.abs.value << "\n";
+          else {
+            if(rel > peak.rel.value)
+              std::cout << "  INFO: New rel peak value within tolerance reached, previous rel_diff= " << peak.rel.value << "\n";
+            if(diffL2 > peak.abs.value)
+              std::cout << "  INFO: New abs peak value within tolerance reached, previous abs_diff= " << peak.abs.value << "\n";
+          }
         } 
-        else // indeed a new error
-          std::cout << " > " << tolerance << " -> ERROR\n";
 
         // we verbose for abs and rel, only at least one is a new peak  
         if(cmp > peak.abs.value) {
@@ -1043,9 +1045,14 @@ namespace CFSTool {
         inVec_ref.MinMax(refMin, refMax);
         std::cout << "  Minimum: test=" << futMin << " ref=" << refMin << "\n";
         std::cout << "  Maximum: test=" << futMax << " ref=" << refMax << "\n";
-        std::cout << "  Count zeros: test=" << (inVec_fut.GetSize() - inVec_fut.CountNonZero()) 
-                  << " ref=" << (inVec_ref.GetSize() - inVec_ref.CountNonZero()) << "\n";
+        // we print zero values only if not both are zero
+        unsigned int test_nonzeros = inVec_fut.CountNonZero();
+        unsigned int ref_nonzeros = inVec_ref.CountNonZero();
+        if(test_nonzeros != ref_nonzeros)
+          std::cout << "  Different number of zeros: test=" << (inVec_fut.GetSize() - test_nonzeros) 
+                    << " ref=" << (inVec_ref.GetSize() - ref_nonzeros) << "\n";
 
+        // print index and sample data for word rel and abs diff by entry (component only of if dof > 1)            
         std::pair<double, unsigned int> worst_rel = std::make_pair(0.0, 0); // value, index
         std::pair<double, unsigned int> worst_abs = std::make_pair(0.0, 0); 
         for(unsigned int i = 0; i < diffVec.GetSize(); i++) 
@@ -1054,119 +1061,26 @@ namespace CFSTool {
           double cmp_abs = std::abs(diffVec[i]);
 
           if(cmp_rel > worst_rel.first) { 
-            worst_rel.first = cmp_rel; 
-            worst_rel.second = i; 
-          }
+            worst_rel.first = cmp_rel; worst_rel.second = i; }
           if(cmp_abs > worst_abs.first) {
-            worst_abs.first = cmp_abs; 
-            worst_abs.second = i;
-          }
+            worst_abs.first = cmp_abs; worst_abs.second = i; }
         }
-        std::cout << "  entry with largest rel difference:" << " dataset_index=" << worst_rel.second
-                  << " test=" << inVec_fut[worst_rel.second] << " ref=" << inVec_ref[worst_rel.second] << "\n";
-        std::cout << "  entry with largest abs difference:" << " dataset_index=" << worst_abs.second
-                  << " test=" << inVec_fut[worst_abs.second] << " ref=" << inVec_ref[worst_abs.second] << "\n";
+        if(worst_rel.second == worst_abs.second)
+          std::cout << "  entry with largest abs and rel difference:" << " dataset_index=" << worst_rel.second
+                    << " test=" << inVec_fut[worst_rel.second] << " ref=" << inVec_ref[worst_rel.second] << "\n";
+        else {
+          std::cout << "  entry with largest rel difference:" << " dataset_index=" << worst_rel.second
+                    << " test=" << inVec_fut[worst_rel.second] << " ref=" << inVec_ref[worst_rel.second] << "\n";
+          std::cout << "  entry with largest abs difference:" << " dataset_index=" << worst_abs.second
+                    << " test=" << inVec_fut[worst_abs.second] << " ref=" << inVec_ref[worst_abs.second] << "\n";
+        }
       }
     }
   }
 
 
 
-   /** checks a single result for abs or rel difference w.r.t tolerance
-    * maxL2_step/maxL2rel_step check the maximal value within the multi sequence step
-    * infoStringRel_step is set when we update maxL2_step/maxL2rel_step, depending on mode
-    * @return true if within tolerance */
-  template<typename T>
-  static bool CheckL2Result(L2DiffMode mode, double tolerance,
-      Vector<T>& inVec_fut, Vector<T>& inVec_ref,
-      UInt actMsStep, UInt actStepNum, Double actStepVal,
-      const std::string& resultName, const std::string& entityName, UInt numDofs, 
-      Double& maxL2_step, Double& maxL2rel_step, std::string& infoStringRel_step)
-  {
-    Vector<T> diffVec;
-    diffVec.Resize(inVec_fut.GetSize());
-    diffVec = inVec_fut - inVec_ref;
-    T futMin, futMax, refMin, refMax;
-    inVec_fut.MinMax(futMin, futMax);
-    inVec_ref.MinMax(refMin, refMax);
-    Double diffL2 = diffVec.NormL2();
-    Double refL2  = inVec_ref.NormL2(); // abs
-    Double testL2 = inVec_fut.NormL2();
-    double relL2 = 0.0;
-    bool good = true;
-    const char* kind = std::is_same<T, double>::value ? "real" : "complex";
-
-    std::cout << "\n/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum
-              << "/" << resultName << "/" << entityName
-              << " step_val=" << actStepVal
-              << ", " << (inVec_fut.GetSize() / numDofs) << "x" << numDofs << " entries (" << kind << ")\n";
-    if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
-    {
-      if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
-        std::cout << "  ERROR: NaN value encountered in test but not reference result\n";
-        diffL2 = std::numeric_limits<Double>::max();
-        good = false;
-      } 
-      else  {
-        std::cout << "  WARNING: NaN in reference=" <<  inVec_ref.ContainsNaN() << " and in test=" << inVec_fut.ContainsNaN() << " -> cannot compare\n";
-        diffL2 = 0;
-      }
-    } 
-    else if(refL2 == 0.0) 
-    {
-      if(diffL2 == 0.0) 
-        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
-      else {
-        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> ERROR\n";
-        diffL2 = std::numeric_limits<Double>::max();
-      }
-    } 
-    else 
-    {
-      // we always report relL2diff and absL2diff values but check only one
-      relL2 = diffL2 / refL2;
-      const char* ms = mode == L2DiffMode::RELDIFF ? "rel" : "abs";
-      double cmp = mode == L2DiffMode::RELDIFF ? relL2 : diffL2;
-      std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " " << ms << "_diff=" << cmp;
-      if (cmp <= tolerance) 
-        std::cout << " <= " << tolerance << " -> OK\n";
-      else 
-      {
-        std::cout << " > " << tolerance << " -> ERROR\n";
-        std::cout << "  Minimum: test=" << futMin << " ref=" << refMin << "\n";
-        std::cout << "  Maximum: test=" << futMax << " ref=" << refMax << "\n";
-
-        unsigned int worst_idx = 0; 
-        double worst_val = 0.0;
-        for(unsigned int i = 0; i < diffVec.GetSize(); i++) 
-        {
-          double cmp = std::abs(diffVec[i]);
-          if(mode == L2DiffMode::RELDIFF)
-            cmp /= (std::abs(inVec_ref[i]) + 1e-300); // avoid division by zero
-          if(cmp > worst_val) { 
-            worst_val = cmp; worst_idx = i; 
-          }
-        }
-        std::cout << "  entry with largest " << ms << " difference:"
-                  << " dataset_index=" << worst_idx
-                  << " test=" << inVec_fut[worst_idx]
-                  << " ref=" << inVec_ref[worst_idx] << "\n";
-        good = false;                     
-      }
-      if (diffL2 > maxL2_step) {
-        maxL2_step = diffL2;
-        if(mode == L2DiffMode::ABSDIFF)
-          infoStringRel_step = resultName + " on " + entityName;
-      }
-      if (relL2 >= maxL2rel_step) {
-        maxL2rel_step = relL2;
-        if(mode == L2DiffMode::RELDIFF)
-          infoStringRel_step = resultName + " on " + entityName;
-      }
-    }
-    return good;
-  }
-
+   
   /** independent on the mode we always compute abs and rel diff - but need the info for tolerance
     * @return true if all within tolerance -> max stuff not set */
   bool CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double& maxL2, Double& maxL2rel, std::string& maxDiffInfo, L2DiffMode mode, double tolerance) {
@@ -1405,18 +1319,18 @@ namespace CFSTool {
               std::cout << (sequencePeak.rel.value <= tolerance ? "OK: " : "ERROR: ");
               std::cout << "Maximal rel diff for sequence step " << actMsStep << "; is " << sequencePeak.rel.value;
               std::cout << (sequencePeak.rel.value <= tolerance ? " <= " : " > ") << tolerance;
-              std::cout << " at " << sequencePeak.rel.msg;
+              std::cout << " at " << sequencePeak.rel.msg << std::endl;
 
               std::cout << "INFO: Maximal abs diff for sequence step " << actMsStep << "; is " << sequencePeak.abs.value;
-              std::cout << " at " << sequencePeak.abs.msg;
+              std::cout << " at " << sequencePeak.abs.msg << std::endl;
             } else {
               std::cout << (sequencePeak.abs.value <= tolerance ? "OK: " : "ERROR: ");
               std::cout << "Maximal abs diff for sequence step " << actMsStep << "; is " << sequencePeak.abs.value;
               std::cout << (sequencePeak.abs.value <= tolerance ? " <= " : " > ") << tolerance;
-              std::cout << " at " << sequencePeak.abs.msg;
+              std::cout << " at " << sequencePeak.abs.msg << std::endl;
 
               std::cout << "INFO: Maximal rel diff for sequence step " << actMsStep << "; is " << sequencePeak.rel.value;
-              std::cout << " at " << sequencePeak.rel.msg;
+              std::cout << " at " << sequencePeak.rel.msg << std::endl;
             }
           }
 
