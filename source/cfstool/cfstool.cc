@@ -987,7 +987,7 @@ namespace CFSTool {
   template<typename T>
   static void CheckL2Result(L2DiffMode mode, double tolerance,
       Vector<T>& inVec_fut, Vector<T>& inVec_ref,
-      UInt actMsStep, UInt actStepNum, Double actStepVal,
+      bool isHistory, UInt actMsStep, UInt actStepNum, Double actStepVal,
       const std::string& resultName, const std::string& entityName, UInt numDofs, Peak& peak)
   {
     Vector<T> diffVec;
@@ -998,7 +998,8 @@ namespace CFSTool {
     double testL2 = inVec_fut.NormL2(); // test data norm
 
     std::stringstream ss; // /Results/Mesh/MultiStep_2/Step_18/elecPotential/Vol
-    ss << "/Results/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum << "/" << resultName << "/" << entityName;
+    std::string source = isHistory ? "History" : "Mesh";
+    ss << "/Results/" + source + "/MultiStep_" << actMsStep << "/Step_" << actStepNum << "/" << resultName << "/" << entityName;
     std::string location = ss.str();
 
     // /Mesh/MultiStep_2/Step_18/elecPotential/Vol step_val=9, 27x1 entries (complex)    
@@ -1155,15 +1156,19 @@ namespace CFSTool {
       // read in mesh of reference file
       input_ref->InitModule();
       UInt dim = input_ref->GetDim();
-      Grid * ptGrid_ref = new GridCFS(dim, param, info);
-      input_ref->ReadMesh(ptGrid_ref);
-      ptGrid_ref->FinishInit();
+      GridCFS ref_grid(dim, param, info);
+      input_ref->ReadMesh(&ref_grid);
+      ref_grid.FinishInit();
 
       // read in mesh of file under test
       input_fut->InitModule();
-      Grid * ptGrid_fut = new GridCFS(dim, param, info);
-      input_fut->ReadMesh(ptGrid_fut);
-      ptGrid_fut->FinishInit();
+      GridCFS fut_grid(dim, param, info);
+      input_fut->ReadMesh(&fut_grid);
+      fut_grid.FinishInit();
+
+    if(ref_grid.GetNumNodes() != fut_grid.GetNumNodes() || ref_grid.GetNumElems() != fut_grid.GetNumElems()) 
+      EXCEPTION("Mesh mismatch: ref has " << ref_grid.GetNumNodes() << " nodes / " << ref_grid.GetNumElems() << " elems, but test has "
+            << fut_grid.GetNumNodes() << " nodes / " << fut_grid.GetNumElems() << " elems");
 
       // obtain number of Sequence Steps and get analysis types
       std::map<UInt, BasePDE::AnalysisType> types;
@@ -1315,7 +1320,7 @@ namespace CFSTool {
                 {
                     Vector<Double>& inVec_fut = dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
                     Vector<Double>& inVec_ref = dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
-                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, isHistory, actMsStep, actStepNum, actStepVal,
                                   resultName, entityName, numDofs, sequencePeak);
                 }
                 else  // complex case
@@ -1332,7 +1337,7 @@ namespace CFSTool {
                       inVec_fut.ScalarDiv(norm_fut);
                       inVec_ref.ScalarDiv(norm_ref);
                     }
-                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, actMsStep, actStepNum, actStepVal,
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, isHistory, actMsStep, actStepNum, actStepVal,
                                   resultName, entityName, numDofs, sequencePeak);
                 }
               } // end of loop over results of current step
@@ -1350,8 +1355,6 @@ namespace CFSTool {
           if(sequencePeak.rel.value > totalPeak.rel.value)
             totalPeak.rel = sequencePeak.rel;
       } // all multi-sequence steps
-      delete ptGrid_fut;
-      delete ptGrid_ref;
       return totalPeak;
   } //CheckL2
 
@@ -1543,7 +1546,7 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
     }
   } catch(std::exception& ex) {
-    std::cerr << "The following error occurred during program execution:\n\n" << ex.what();
+    std::cerr << "\nThe following error occurred during program execution:\n" << ex.what();
 
     if (info != NULL)
     {
