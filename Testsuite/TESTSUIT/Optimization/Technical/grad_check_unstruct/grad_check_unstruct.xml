@@ -1,7 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation 
+  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
 
-<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Gradient-Check</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-05-24</date>
+    <description>This is a fresh up of an old test - just smaller and faster.
+      We usually check gradients in optimization with snopt verify_level=3.
+      The cfs-internal optimizer gradientCheck allows to visualize the finite difference error.
+      It would be useful to implement also some textual output like with snopt.
+      We are not really unstrutured, but we don't use the local_element_cache, which is similar.
+    </description>
+  </documentation>
+
   <fileFormats>
+    <input>
+      <hdf5 fileName="grad_check_unstruct.h5ref"/>
+    </input>
     <output>
       <hdf5 directory="results_hdf5" />
       <info/>
@@ -9,15 +29,10 @@
     <materialData file="mat.xml" format="xml" />
   </fileFormats>
 
-  <domain geometryType="3d">
+  <domain geometryType="plane">
     <regionList>
       <region material="99lines" name="mech" />
     </regionList>
-    <nodeList>
-      <nodes name="load">
-        <coord x="1.0" y="0.5" z="1.0"/>
-      </nodes>
-    </nodeList>
   </domain>
 
   <sequenceStep index="1">
@@ -26,19 +41,18 @@
     </analysis>
 
     <pdeList>
-      <mechanic subType="3d">
+      <mechanic subType="planeStrain">
         <regionList>
           <region name="mech" />
         </regionList>
 
         <bcsAndLoads>
-           <fix name="support"> 
+           <fix name="left"> 
               <comp dof="x"/> 
               <comp dof="y"/>
-              <comp dof="z"/>
            </fix>
-          <force name="load">
-              <comp dof="x" value="-0.1"/>
+          <force name="bottom_right" >
+              <comp dof="y" value="-1"/>
           </force>
         </bcsAndLoads>
         <storeResults>
@@ -78,24 +92,24 @@
     <constraint type="volume" bound="upperBound" value="0.5" linear="false"/>
 
     <optimizer type="gradientCheck" maxIterations="0">
-      <gradientCheck h="1e-6"/>
+      <gradientCheck h="1e-6" />
     </optimizer>
 
     <ersatzMaterial region="mech" material="mechanic" method="simp">
       <filters>
-        <filter neighborhood="radius" value="0.1" type="density"/>
+        <filter neighborhood="maxEdge" value="1.2" type="density"/>
       </filters>
       <designSpace local_element_cache="false"/>
-      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <design name="density" initial="0.5" physical_lower="1e-3" upper="1.0" />
       <transferFunction type="simp" application="mech"  param="3" />
       
       <result value="costGradient" id="optResult_1" detail="finiteDiffCostGrad" design="density"/>
       <result value="costGradient" id="optResult_2" detail="finiteDiffCostGradRelError" design="density"/>
+      <export save="last" write="finally"/>
     </ersatzMaterial>
+  
     <commit mode="each_forward" stride="1" />
   </optimization>
  
   
 </cfsSimulation>
-
-
