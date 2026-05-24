@@ -1010,11 +1010,14 @@ namespace CFSTool {
       std::cout << "  WARNING: incompatible test_size=" << inVec_fut.GetSize() << " ref_size=" << inVec_ref.GetSize() << std::endl;
 
     // filter NaN data
-    if(inVec_fut.ContainsNaN() || inVec_ref.ContainsNaN()) 
-    {
+    if(inVec_fut.ContainsNaN() && inVec_ref.ContainsNaN()) 
+      std::cout << "  WARNING: search for NaN gave test=" << inVec_fut.ContainsNaN() << " ref=" << inVec_ref.ContainsNaN() << "\n";
+
+    if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
       std::cout << "  ERROR: search for NaN gave test=" << inVec_fut.ContainsNaN() << " ref=" << inVec_ref.ContainsNaN() << "\n";
-      peak.SetError("NaN encountered in datasets");
+      peak.SetError("NaN encountered in test data " + location);
     } 
+
     // filter rel case with ref is zero
     else if(mode == L2DiffMode::RELDIFF && refL2 == 0.0) 
     {
@@ -1172,7 +1175,7 @@ namespace CFSTool {
       // TODO: this shall be an exception
       if(ref_grid.GetNumNodes() != fut_grid.GetNumNodes() || ref_grid.GetNumElems() != fut_grid.GetNumElems()) 
         std::cout << "WARNING: Mesh mismatch: ref has " << ref_grid.GetNumNodes() << " nodes / " << ref_grid.GetNumElems() << " elems, but test has "
-                  << fut_grid.GetNumNodes() << " nodes / " << fut_grid.GetNumElems() << " elems";
+                  << fut_grid.GetNumNodes() << " nodes / " << fut_grid.GetNumElems() << " elems" << std::endl;
 
       // obtain number of Sequence Steps and get analysis types
       std::map<UInt, BasePDE::AnalysisType> types;
