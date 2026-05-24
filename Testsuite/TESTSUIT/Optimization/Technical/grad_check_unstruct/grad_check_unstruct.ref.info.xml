@@ -2,55 +2,82 @@
 
 <cfsInfo status="finished" infoWriteCounter="8" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="5.215s" wall="5.215" cpu="19.9589" calls="1"/>
+    <timer id="0" wall-clock="0.08241s" wall="0.0824052" cpu="0.0832" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="464.39" peak="535.54"/>
+    <memory final="52"/>
   </summary>
   <header id="">
-    <environment started="2019-Feb-01 16:33:20" host="mo42"/>
-    <progOpts problem="grad_check_unstruct" parameterFile="/home/daniel/code/cfstest/TESTSUIT/Optimization/Technical/grad_check_unstruct/grad_check_unstruct.xml" schemaPath="/home/daniel/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="18.03" name="AMGme" build="Release" git_commit="7b410f119bed3f51ba197db34f76f680f57dde73" git_branch="Opt-DanielHuebner-0715" exe="cfs.rel"/>
-      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    <environment started="24-May-26 21:36:38" host="Finsternis.fritz.box"/>
+    <progOpts problem="grad_check_unstruct" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/grad_check_unstruct/grad_check_unstruct.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.05" name="Kaum Konvergenz" build="RELEASE" git_commit="407ec9d501ce8a99ce343eb46c63e75a6ec8d262" git_branch="fwein_cfstool" compiled="May 24 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
-    <domain>
+    <domain nx="5" ny="5" nz="1">
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
       <grids>
-        <grid gridId="default" dimensions="3" elements="981" nodes="252"/>
+        <grid gridId="default" dimensions="2" elements="25" nodes="36">
+          <timer id="5" wall-clock="0.0009599s" wall="0.000959875" cpu="0.000962" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0002946s" wall="0.000294583" cpu="0.000294" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="9.108e-05s" wall="9.1083e-05" cpu="9.2e-05" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="6.25e-07s" wall="6.25e-07" cpu="2e-06" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="1.246e-05s" wall="1.2458e-05" cpu="1.3e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
       </grids>
       <regions>
-        <region name="mech" id="0" type="volume" regular="no" hom="yes" nodes="252" elems="981" isQuadratic="no"/>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="36" elems="25" isQuadratic="no"/>
       </regions>
       <namedNodes>
-        <nodes name="support" count="27"/>
-        <nodes name="load" count="2"/>
+        <nodes name="bottom" count="6"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="left" count="6"/>
+        <nodes name="right" count="6"/>
+        <nodes name="top" count="6"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(1,1)"/>
       </namedNodes>
       <namedElements/>
-      <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
+      <globalMathParser dt="0" f="0" nx="5" ny="5" nz="1" step="0" t="0" t0="0"/>
     </domain>
-    <update_results>
-      <timer wall-clock="0s" wall="0" cpu="1.6e-05" calls="5"/>
-    </update_results>
-    <finish_step>
-      <timer wall-clock="0.062s" wall="0.062" cpu="0.189831" calls="1"/>
-    </finish_step>
+    <results>
+      <timer id="36" wall-clock="0.0008155s" wall="0.000815502" cpu="0.000765" calls="12"/>
+    </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0005529s" wall="0.000552875" cpu="0.000554" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5e-07s" wall="5e-07" cpu="1e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
-    <static/>
+    <static>
+      <init_static>
+        <timer id="16" wall-clock="0.00876s" wall="0.00875975" cpu="0.008761" calls="1"/>
+      </init_static>
+    </static>
     <PDE>
       <mechanic>
         <header>
           <region name="mech" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt">
-                <coef value="CoefFunctionOpt"/>
-              </bilinearForm>
-              <bilinearForm integrator="LinElastInt" complex="no" BOp="StrainOperator3D" region="mech">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -58,8 +85,9 @@
               </bilinearForm>
             </matrixBiLinearForms>
             <rhsLinearForms>
-              <linearForm integrator="NodalForceInt" region="">
-                <entities name="load" size="2" region="no_region"/>
+              <linearForm integrator="NodalForceInt">
+                <entities name="bottom_right" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -1]"/>
                 <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
               </linearForm>
             </rhsLinearForms>
@@ -69,18 +97,32 @@
           <regionList>
             <region name="mech"/>
           </regionList>
-          <property name="MechanicStiffnessTensor" value="1.3461538e+00 5.7692308e-01 5.7692308e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
-5.7692308e-01 1.3461538e+00 5.7692308e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
-5.7692308e-01 5.7692308e-01 1.3461538e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 
-0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01 0.0000000e+00 0.0000000e+00 
-0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01 0.0000000e+00 
-0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01
-"/>
-          <property name="Mechanic_Emodulus" value="1"/>
-          <property name="Mechanic_PoissonRation" value="0.3"/>
-          <property name="Rayleigh_Alpha" value="0.05"/>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(7872,0)"/>
+          <property name="Rayleigh_Alpha" value="0.050000000000000003"/>
           <property name="Rayleigh_Beta" value="0.002"/>
-          <property name="Density" value="7872"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.346154e+00  5.769231e-01  0.000000e+00
+                 5.769231e-01  1.346154e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -92,15 +134,10 @@
             </h1Nodal>
           </mechDisplacement>
         </feSpaces>
-        <summary>
-          <writeResults>
-            <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
-          </writeResults>
-        </summary>
         <feFunctions>
           <mechDisplacement/>
           <homDirichletBC>
-            <nodeList name="support" dofs="x y z"/>
+            <nodeList name="left" dofs="x y"/>
           </homDirichletBC>
           <inhomDirichletBC/>
         </feFunctions>
@@ -109,61 +146,38 @@
     <OLAS>
       <mechanic>
         <setup idbcHandling="elimination" staticCondensation="no">
-          <feFunctions totalNumEqns="675" totalNumFreeEqns="675" totalNumDirichlet="0">
-            <function id="0" name="mechDisplacement" numEqns="675" lastFreeEqn="675" numDirichlet="0">
+          <feFunctions totalNumEqns="60" totalNumFreeEqns="60" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="60" lastFreeEqn="60" numDirichlet="0">
               <usedInBlocks>
                 <block id="0"/>
               </usedInBlocks>
             </function>
           </feFunctions>
           <sbmBlocks>
-            <block id="0" size="675" lastFreeIndex="675"/>
+            <block id="0" size="60" lastFreeIndex="60"/>
           </sbmBlocks>
         </setup>
         <solver>
-          <cholmod>
-            <header>
-              <parameters>
-                <factorization>
-                  <nmethods default="0"/>
-                  <postorder default="1"/>
-                  <dbound default="0"/>
-                </factorization>
-                <supernodal>
-                  <method default="auto"/>
-                  <switch default="40"/>
-                </supernodal>
-                <output>
-                  <level default="3"/>
-                  <precise default="0"/>
-                </output>
-              </parameters>
-            </header>
+          <directLDL>
             <summary>
               <setup>
-                <timer label="setup_cholmod" wall-clock="0.995s" wall="0.995" cpu="5.79089" calls="982"/>
+                <timer id="27" label="setup_directLDL" wall-clock="0.000278s" wall="0.000278043" cpu="0.00028" calls="26"/>
               </setup>
               <solve>
-                <timer label="solve_cholmod" wall-clock="0s" wall="0" cpu="0.228257" calls="982"/>
+                <timer id="28" label="solve_directLDL" wall-clock="0.0002108s" wall="0.000210831" cpu="0.000212" calls="26"/>
               </solve>
             </summary>
-            <process>
-              <setup selected_factorization_method="1" ll_flop_count="4.2048e+06" nz_in_L="45747" nz_in_triA="12258" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
-                <method id="1" lnz="45747" fl="4.2048e+06"/>
-              </setup>
-              <solver/>
-            </process>
-          </cholmod>
+          </directLDL>
         </solver>
         <precond>
           <idPrecond>
             <summary>
-              <setup>
-                <timer wall-clock="0s" wall="0" cpu="0.003619" calls="982"/>
-              </setup>
-              <precond>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
-              </precond>
+              <precond_Id_setup>
+                <timer id="29" wall-clock="7.584e-06s" wall="7.584e-06" cpu="4e-06" calls="26"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="30" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
             </summary>
           </idPrecond>
         </precond>
@@ -171,85 +185,105 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
+      <graph nnz="832">
+        <timer id="23" wall-clock="0.0003854s" wall="0.000385375" cpu="0.000396" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="24" wall-clock="1.837e-05s" wall="1.8375e-05" cpu="2.4e-05" calls="1" sub="true" parent="23"/>
+        </finalize>
+        <sort>
+          <timer id="25" wall-clock="1.725e-05s" wall="1.725e-05" cpu="1.8e-05" calls="1" sub="true" parent="23"/>
+        </sort>
+        <rows number="60" min="8" max="18" mean="13.867" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="26" wall-clock="0.0001415s" wall="0.000141459" cpu="0.00014" calls="1" sub="true" parent="23"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="2.301s" wall="2.301" cpu="10.8527" calls="1964"/>
+          <timer id="18" wall-clock="0.001137s" wall="0.00113725" cpu="0.001969" calls="52"/>
+          <matrices>
+            <timer id="19" wall-clock="0.001075s" wall="0.00107454" cpu="0.001905" calls="26" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="3.266e-05s" wall="3.2665e-05" cpu="3.5e-05" calls="26" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
-    <header>
-      <graph_setup>
-        <timer wall-clock="0.009s" wall="0.009" cpu="0.031715" calls="1"/>
-      </graph_setup>
-    </header>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="22" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/daniel/code/cfstest/TESTSUIT/Optimization/Technical/grad_check_unstruct/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/grad_check_unstruct/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" filtered="yes" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
-        <constraint type="volume" name="volume" linear="no" filtered="yes" bound_value="0.5" bound="upperBound" design="default"/>
+        <constraint type="volume" name="volume" linear="no" access="filtered" bound_value="0.5" bound="upperBound" design="default"/>
       </constraints>
-      <designSpace pamping="0" regular="no" localElementCache="disabled">
-        <gradient_chain_rule>
-          <timer label="gradient_chain_rule" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
-        </gradient_chain_rule>
-        <filters use_mat_filt="yes"/>
+      <designSpace pamping="0" regular="yes" localElementCache="disabled">
+        <setup_design>
+          <timer id="17" wall-clock="8.292e-05s" wall="8.2916e-05" cpu="8.2e-05" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="1.2" contribution="linear" design="density" elems="25" avg_radius="0.24" avg_neighbors="3.2"/>
+          <timer id="21" wall-clock="3.379e-05s" wall="3.3791e-05" cpu="3.4e-05" calls="1"/>
+        </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="3"/>
         </transferFunctions>
-        <designVariables optimizationVariables="981" modelVariables="981" modelElements="981">
-          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="1e-09"/>
+        <designVariables opt_vars="25" field_elems="25" field_fe_elemes="25">
+          <design type="density" upperBound="1" lowerBound="0.1" physicalLowerBound="0.001"/>
         </designVariables>
         <regions>
-          <region name="mech" elements="981" bimaterial="-"/>
+          <region name="mech" elements="25" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
       <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
-      <filters periodic="no">
-        <filter type="radius" value="0.1" contribution="linear" design="allDesigns" avg_radius="0.1" avg_neighbors="4.0469">
-          <timer wall-clock="0s" wall="0" cpu="0.000839" calls="1"/>
-        </filter>
-      </filters>
       <excitations>
         <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
       </excitations>
-      <gradientCheck/>
     </header>
     <commit mode="each_forward" stride="1"/>
+    <optimizer>
+      <gradientCheck>
+        <summary max_relative_error="2.7923e-06" relative_L2_error="2.2468e-07">
+          <gradientCheck>
+            <timer id="31" wall-clock="0.001413s" wall="0.00141333" cpu="0.001481" calls="29"/>
+          </gradientCheck>
+        </summary>
+        <header type="gradientCheck" h="1e-06" order="first"/>
+        <scaling active="no"/>
+        <process>
+          <gradientCheck total="25">
+            <costGradient actual_order="first" id="25" grad="-0.75772" fd_grad="-0.75772" diff="8.1068e-07" rel_error="-1.0699e-06" factor="1"/>
+          </gradientCheck>
+        </process>
+      </gradientCheck>
+    </optimizer>
     <summary>
-      <calcUKU>
-        <timer label="calc_U1KU2" wall-clock="0.006s" wall="0.006" cpu="0.025993" calls="1" sub="true"/>
-      </calcUKU>
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+        <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+        <timer id="33" wall-clock="0s" wall="0" cpu="0" calls="0"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+        <timer id="34" wall-clock="4.679e-05s" wall="4.6791e-05" cpu="4.7e-05" calls="1"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+        <timer id="35" wall-clock="0s" wall="0" cpu="0" calls="0"/>
       </eval_grad_constraints>
+      <functions>
+        <compliance min="75.207" max="75.207" oscillations="0"/>
+        <volume min="0.5" max="0.5" oscillations="0"/>
+      </functions>
     </summary>
-    <optimizer>
-      <summary max_relative_error="9.8035e-05" relative_L2_error="2.7926e-07">
-        <gradientCheck>
-          <timer wall-clock="0.064s" wall="0.064" cpu="0.322231" calls="984"/>
-        </gradientCheck>
-      </summary>
-      <header type="gradientCheck" h="1e-06" order="first"/>
-      <process>
-        <gradientCheck total="981">
-          <costGradient actual_order="first" id="981" grad="-0.0051735" fd_grad="-0.0051736" diff="-2.4627e-08" rel_error="4.7602e-06" factor="1"/>
-        </gradientCheck>
-      </process>
-    </optimizer>
     <process>
-      <iteration number="0" duration="5.149" compliance="9.790659933" volume="0.5"/>
+      <iteration number="0" duration="0.080945" compliance="75.2066327412634" volume="0.5"/>
     </process>
   </optimization>
 </cfsInfo>
