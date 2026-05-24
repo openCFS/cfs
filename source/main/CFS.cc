@@ -1,8 +1,3 @@
-// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
-// vim:fenc=utf-8:ft=cpp:et:sw=2:ts=2:sts=2
-// kate: space-indent on; indent-width 2; encoding utf-8;
-// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include <iomanip>
 #include <fstream>
 #include <boost/version.hpp>
