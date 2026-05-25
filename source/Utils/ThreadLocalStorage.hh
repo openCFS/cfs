@@ -301,7 +301,11 @@ public:
   //! assignment operator to implicitly convert a stl map into the TLS
   TLMap<K,V>& operator=(const std::map<K,V>&  serialObjToCopy){
 #ifdef USE_OPENMP
+#if _OPENMP >= 202011 // = OpenMP 5.1
+#pragma omp masked
+#else
 #pragma omp master
+#endif
     {
     this->tlsContainer_.Resize(this->numSlots_);
     for(UInt i=0;i<this->numSlots_;i++){
@@ -326,7 +330,11 @@ public:
     // we will have a problem. Still, in our current setup this
     //should not happen and if, the master will also be here...
 #ifdef USE_OPENMP
+#if _OPENMP >= 202011 // = OpenMP 5.1
+#pragma omp masked
+#else
 #pragma omp master
+#endif
     {
     this->tlsContainer_.Clear();
     this->isCleared_ = true;
@@ -362,7 +370,11 @@ public:
   TLMap<K,V*>& operator=(const std::map<K,V*>&  serialObjToCopy){
 #ifdef USE_OPENMP
     //complete assignments should only occur from serial regions...
+#if _OPENMP >= 202011 // = OpenMP 5.1
+#pragma omp masked // should default to master
+#else
 #pragma omp master
+#endif
     {
     this->tlsContainer_.Resize(this->numSlots_);
     for(UInt i=0;i<this->numSlots_;i++){
@@ -387,7 +399,11 @@ public:
     // we will have a problem. Still, in our current setup this
     //should not happen and if, the master will also be here...
 #ifdef USE_OPENMP
+#if _OPENMP >= 202011 // = OpenMP 5.1
+#pragma omp masked
+#else
 #pragma omp master
+#endif
     {
     for(UInt i=0;i<this->numSlots_;i++){
       typename TLMapBase<K,V*>::tl_iterator mIter = this->tlsContainer_[i].begin();
