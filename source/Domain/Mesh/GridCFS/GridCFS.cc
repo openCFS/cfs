@@ -901,14 +901,13 @@ void GridCFS::MapFaces()
     std::map<RegionIdType, StdVector<Elem*> >::iterator regionElemIt, regionElemEnd;
     std::map<RegionIdType, StdVector<UInt> >::iterator regionNodeIt;
     std::set<UInt>::iterator setIt, setEnd;
-    UInt region = 0;
 
     regionElemIt = volRegionElems.begin();
     regionElemEnd = volRegionElems.end();
     regionNodeIt = volRegionNodes.begin();
 
     for( ; regionElemIt != regionElemEnd; 
-        regionElemIt++, regionNodeIt++, region++) {
+        regionElemIt++, regionNodeIt++) {
       StdVector<UInt> elemNodes;
       regionElemIt->second.Trim();
       volElems_.Push_back(regionElemIt->second);
@@ -956,7 +955,7 @@ void GridCFS::MapFaces()
     regionElemEnd = surfRegionElems.end();
     regionNodeIt = surfRegionNodes.begin();
 
-    for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++, region++)
+    for( ; regionElemIt != regionElemEnd; regionElemIt++, regionNodeIt++)
     {
       RegionIdType region = regionElemIt->first;
       regionElemIt->second.Trim();
