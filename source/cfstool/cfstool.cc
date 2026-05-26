@@ -955,24 +955,24 @@ namespace CFSTool {
       rel.msg = msg;
     }
 
-    void Print(L2DiffMode mode, double tolerance, const std::string& where) const 
+    /** gives summary information, customized by where string. 
+     * @param print_not_tested if false, no INFO for the other of abs vs rel is printed */
+    void Print(L2DiffMode mode, double tolerance, const std::string& where, bool print_not_tested = true) const 
     {
       if(mode == L2DiffMode::RELDIFF) {
         std::cout << (rel.value <= tolerance ? "OK: " : "ERROR: ");
         std::cout << "Maximal rel diff " << where << " is " << rel.value;
         std::cout << (rel.value <= tolerance ? " <= " : " > ") << tolerance;
         std::cout << " at " << rel.msg << std::endl;
-
-        std::cout << "INFO: Maximal abs diff " << where << " is " << abs.value;
-        std::cout << " at " << abs.msg << std::endl;
+        if(print_not_tested) 
+          std::cout << "INFO: Maximal abs diff " << where << " is " << abs.value << " at " << abs.msg << std::endl;
       } else {
         std::cout << (abs.value <= tolerance ? "OK: " : "ERROR: ");
         std::cout << "Maximal abs diff " << where << " is " << abs.value;
         std::cout << (abs.value <= tolerance ? " <= " : " > ") << tolerance;
         std::cout << " at " << abs.msg << std::endl;
-
-        std::cout << "INFO: Maximal rel diff " << where << " is " << rel.value;
-        std::cout << " at " << rel.msg << std::endl;
+        if(print_not_tested) 
+          std::cout << "INFO: Maximal rel diff " << where << " is " << rel.value << " at " << rel.msg << std::endl;
       }
     }
     Max& Get(L2DiffMode mode) { return (mode == L2DiffMode::RELDIFF ? rel : abs); }
@@ -1022,11 +1022,11 @@ namespace CFSTool {
     else if(mode == L2DiffMode::RELDIFF && refL2 == 0.0) 
     {
       if(diffL2 == 0.0) 
-        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> OK\n";
+        std::cout << "OK: L2-Norm: test=" << testL2 << " ref=" << refL2 << std::endl;
       else {
-        std::cout << "  L2-Norm: test=" << testL2 << " ref=" << refL2 << " -> ERROR\n";
+        std::cout << "ERROR: L2-Norm: test=" << testL2 << " ref=" << refL2 << std::endl;
         peak.rel.value = std::numeric_limits<double>::max();
-        peak.rel.msg = "reference data is zero but test data is not";
+        peak.rel.msg = "reference data is zero but test data is not " + location;
       }
     }
     else 
@@ -1523,8 +1523,16 @@ int main(int argc, char** argv)
       // has the proper mode Max but not necessarily for the other
       CFSTool::Peak worst = meshPeak.Get(mode).value > histPeak.Get(mode).value ? meshPeak : histPeak;
       std::cout << "\nSummary of total data check:\n.............................\n";
-      worst.Print(mode, tolerance, "overall");
+      worst.Print(mode, tolerance, "overall", false); // print only OK/ERROR, not the info
+
+      std::string other = (mode == CFSTool::L2DiffMode::ABSDIFF) ? "relL2diff" : "absL2diff";
+      CFSTool::Max otherMax = worst.Get((mode == CFSTool::L2DiffMode::ABSDIFF) ? CFSTool::L2DiffMode::RELDIFF : CFSTool::L2DiffMode::ABSDIFF);
+      
+      std::cout << "INFO: Maximal " << other << " for the worst case is " << otherMax.value << " at " << otherMax.msg << "\n";
+
       std::cout << "\n<DartMeasurement name=\"" << param_mode << "\" type=\"numeric/double\">"<< worst.Get(mode).value <<"</DartMeasurement>\n";
+      std::cout << "<DartMeasurement name=\"" << other << "\" type=\"numeric/double\">"<< otherMax.value <<"</DartMeasurement>\n";
+
       if (worst.Get(mode).value < tolerance) 
         exit(EXIT_SUCCESS);
       else 
