@@ -82,7 +82,7 @@ generate_packing_script_install_dir()
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
 
-dump_depencency_variables()
+# dump_dependencycd _variables()
 
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
