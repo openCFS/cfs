@@ -18,7 +18,7 @@ set(PACKAGE_VER "4.4.0")
 set(CGNS_VER ${PACKAGE_VER}) # for Dependencies.cc
 set(PACKAGE_FILE "v${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "9779e1478c4be7c89f096a22bc0c0bef")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/CGNS/CGNS/archive/refs/tags/${PACKAGE_FILE}")
