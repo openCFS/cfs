@@ -539,11 +539,14 @@ namespace CoupledField
   void SimOutputHDF5::OpenFile(bool truncate)
   {
     LOG_DBG(h5Out) << "OF truncate=" << truncate;
-    // create main file and obtain main group
+    // write HDF5 1.8 compatible format (earliest=low bound, V18=high bound) to stay readable by 1.8+ tools
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_libver_bounds(fapl, H5F_LIBVER_EARLIEST, H5F_LIBVER_V18);
     if (truncate)
-      mainFile_ = H5Fcreate(currFileName_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+      mainFile_ = H5Fcreate(currFileName_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     else
-      mainFile_ = H5Fopen(currFileName_.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+      mainFile_ = H5Fopen(currFileName_.c_str(), H5F_ACC_RDWR, fapl);
+    H5Pclose(fapl);
     
     if (mainFile_ < 0)
       throw Exception("Could not open/create hdf5 file '" + currFileName_ + "'");
@@ -1019,7 +1022,11 @@ namespace CoupledField
     string fn = fileName_ + "_ms" + std::to_string(currMS_) + "_step" + std::to_string(currStep_) + ".cfs";
     std::string fullPath = (dirName_ / fn).string(); // std::filesystem operator magic
 
-    currStepFile_ = H5Fcreate(fullPath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    // same format bounds as main file
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_libver_bounds(fapl, H5F_LIBVER_V18, H5F_LIBVER_V18);
+    currStepFile_ = H5Fcreate(fullPath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+    H5Pclose(fapl);
 
     // Write reference to external file to main file
     WriteAttribute( currMeshStepGroup_, "ExtHDF5FileName", fn );

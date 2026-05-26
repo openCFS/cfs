@@ -109,7 +109,7 @@ namespace CoupledField {
     if(mainFile_ < 0) 
       throw Exception("Could not open HDF5 file '" + fileName_ +  "' for reading");
 
-    mainRoot_ = H5Gopen(mainFile_, "/", H5P_DEFAULT);
+    mainRoot_ = H5Gopen2(mainFile_, "/", H5P_DEFAULT);
     if(mainRoot_ < 0) 
       throw Exception("Could not open main root for reading");
 
