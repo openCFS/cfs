@@ -539,9 +539,9 @@ namespace CoupledField
   void SimOutputHDF5::OpenFile(bool truncate)
   {
     LOG_DBG(h5Out) << "OF truncate=" << truncate;
-    // write HDF5 1.8 compatible format (earliest=low bound, V18=high bound) to stay readable by 1.8+ tools
+    // write HDF5 1.10 compatible format (earliest=low bound, V110=high bound) to stay readable by 1.10+ tools
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_libver_bounds(fapl, H5F_LIBVER_EARLIEST, H5F_LIBVER_V18);
+    H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_V110);
     if (truncate)
       mainFile_ = H5Fcreate(currFileName_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     else
@@ -1024,7 +1024,7 @@ namespace CoupledField
 
     // same format bounds as main file
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_libver_bounds(fapl, H5F_LIBVER_V18, H5F_LIBVER_V18);
+    H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_V110);
     currStepFile_ = H5Fcreate(fullPath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     H5Pclose(fapl);
 
