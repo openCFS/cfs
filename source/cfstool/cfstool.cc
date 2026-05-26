@@ -1500,7 +1500,7 @@ int main(int argc, char** argv)
       if (num_files != 2)
         throw Exception("Please provide 'reference_file' and 'file_under_test', detected files: " + std::to_string(num_files) +
                         " file1='" + file1 + "' file2='" + file2 + "'");
-      std::cout << "Check L2-difference of dataets: Mode = " << param_mode << std::endl ;
+      std::cout << "Check L2-difference of files with mode = " << param_mode << std::endl ;
 
       std::cout << "\n\nChecking for mesh results:\n..........................\n";
       CFSTool::Peak meshPeak = CFSTool::CheckL2(file1,file2,false,mode,tolerance);
