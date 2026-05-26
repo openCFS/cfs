@@ -639,8 +639,8 @@ cfsdeps:msvc2022:
   # get build ID from file
   - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
   # save links as variables
-  - CDASH_BUILD_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
-  - CDASH_TEST_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
+  - CDASH_BUILD_URL=$( echo "https://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
+  - CDASH_TEST_URL=$( echo "https://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
   # output to annotations
   # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
   - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
@@ -974,7 +974,7 @@ windows:msvc2022:
   script:
   - export DEBUG_SECTION_TITLE='cmake test or install'
   - !reference [.linux-debug-start_collapsed, script]
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.31/cmake-3.31.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.31.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
@@ -1448,10 +1448,10 @@ cdash:report:
   after_script: []
   before_script: []
   script:
-    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
+    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on https://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
   environment:
     name: CDash/$CI_COMMIT_REF_SLUG
-    url: http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
+    url: https://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
   dependencies: []
 

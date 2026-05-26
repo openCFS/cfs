@@ -12,11 +12,11 @@
 .windwos_output_cdash_links:
   script:
     # assumes one is in the build directory
-    - cat "Testing/*/Done.xml" # debug
+    - Get-Content (Resolve-Path "Testing/*/Done.xml") # debug
     # get the build ID from the Done.xml file
     - $BUILD_ID=(Select-Xml -Path "Testing/*/Done.xml" -XPath "//buildId" | Select-Object -ExpandProperty Node)."#text"
-    - $CDASH_BUILD_URL="http://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
-    - $CDASH_TEST_URL="http://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
+    - $CDASH_BUILD_URL="https://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
+    - $CDASH_TEST_URL="https://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
     - echo "$BUILD_ID" # debug
     # build up annotations JSON file, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
     - $Tlink=@{}; $Tlink.Add( "label", "CDash Tests" ); $Tlink.Add( "url", $CDASH_TEST_URL )
@@ -201,6 +201,7 @@
 .script_windows-test_config-dashboard: &script_windows-test_config-dashboard
     # debug output
     - echo "TEST_CONFIG_OPTIONS=$TEST_CONFIG_OPTIONS"
+    - ctest --version
     # configure first
     - cmake -DCFS_TESTSUITE=ON -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS $env:CI_PROJECT_DIR\Testsuite
     # now start dashboard
