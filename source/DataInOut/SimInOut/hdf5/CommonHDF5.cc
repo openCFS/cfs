@@ -298,7 +298,8 @@ template <typename TYPE>
 void ReadArray(hid_t loc, const std::string& name, StdVector<TYPE>& data)
 {
   data.Resize(GetNumberOfEntries(loc, name));
-  ReadDataSet(loc, name, data.GetPointer());
+  if (data.GetSize() > 0) // properly handle empty but existing dataset
+    ReadDataSet(loc, name, data.GetPointer());
 }
 
 template void ReadArray<int>(hid_t loc, const std::string& name, StdVector<int>& data);
