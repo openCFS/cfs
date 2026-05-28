@@ -220,12 +220,13 @@ endif()
 
 # Subdirectory for normal test suite
 if(TESTSUITE_CFS)
-  message(STATUS "Testsuite will be testing: ${CFS_EXECUTABLE}")
+  message(STATUS "Testsuite includes TESTSUIT tests using CFS binaries in ${CFS_BINARY_DIR}")
   add_subdirectory("TESTSUIT")
 endif()
 
 # Subdirectory for pypthon doctest, matviz visualization test suite and basecell
 if(TESTSUITE_PYTHON)
+  message(STATUS "Testsuite includes PYTHON tests and uses ${Python_EXECUTABLE}")
   add_subdirectory("PYTHON")
 endif()
 

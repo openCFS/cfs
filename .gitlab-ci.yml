@@ -374,11 +374,11 @@ ubuntu:24.04:
     IMAGE: "ubuntu"
     TAG: "24.04"
 
-ubuntu:20.04:
+ubuntu:22.04:
   extends: .platform
   variables:
     IMAGE: "ubuntu"
-    TAG: "20.04"
+    TAG: "22.04"
 
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
