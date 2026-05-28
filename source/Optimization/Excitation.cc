@@ -476,7 +476,6 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt);// when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
-  assert((int) excitations.GetSize() >= ctxt->sequence); // at least one excitation per sequence
   for(unsigned int i = context_base; i < excitations.GetSize(); i++)
     excitations[i].sequence = ctxt->sequence;
 }

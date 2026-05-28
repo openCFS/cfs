@@ -227,7 +227,7 @@ PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
 /** cfs.get_num_jacobian_nonzeros() returns the total nnz of the constraint jacobian (sparse interface) */
 PyObject* opt_get_num_jacobian_nonzeros(PyObject *self, PyObject *args)
 {
-  return python->CheckPyOpt() ? PyLong_FromLong(python->GetPyOpt()->GetNumberOfJacobianNonZeros()) : NULL;
+  return python->CheckPyOpt() ? PyLong_FromUnsignedLong(python->GetPyOpt()->GetNumberOfJacobianNonZeros()) : NULL;
 }
 
 /** cfs.get_constraint_sparsity(rows, cols) fills two 1D arrays of size nnz with the (constraint, var) indices */

@@ -297,7 +297,7 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
   grad.Export(obj[1]);
 }
 
-int PythonOptimizer::GetNumberOfJacobianNonZeros()
+unsigned int PythonOptimizer::GetNumberOfJacobianNonZeros()
 {
   return optimization->constraints.view->CalcNumberOfJacobianNonZeros();
 }
@@ -311,7 +311,7 @@ void PythonOptimizer::GetConstraintSparsity(PyObject *args)
   Vector<double>& cols = data[1];
 
   assert(rows.GetSize() == cols.GetSize());
-  assert(rows.GetSize() == optimization->constraints.view->CalcNumberOfJacobianNonZeros());
+  assert(rows.GetSize() == GetNumberOfJacobianNonZeros());
 
   // (constraint, design variable) index pairs in packed order; same order as the values below.
   // doubles here, the python side casts them to int for the scipy.sparse matrix.

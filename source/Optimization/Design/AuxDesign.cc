@@ -38,6 +38,7 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
     de.SetLowerBound(slack_->Get("lower")->As<double>());
     de.SetUpperBound(slack_->Get("upper")->As<double>());
     de.SetDesign(slack_->Get("initial")->As<double>());
+    de.SetIndex(0);  // We need to set the index to some value, because default is std::numeric_limits<unsigned int>::max()
     // we need to PostInit!
     aux_design_.Push_back(de);
   }

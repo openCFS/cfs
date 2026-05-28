@@ -44,6 +44,8 @@ public:
   /** write gradient out to the vector, appending with shape gradient
    * Sparse and dense! */
   void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) override;
+  // Helper with additional mapping control for getting the gradient without redoing the mapping
+  void WriteGradientToExternMap(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling, bool map);
 
   /** same as in DesignSpace, setting elements to zero, but also aux elements */
   void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT) override;
@@ -212,8 +214,8 @@ public:
     /** if >= 0 this is the relative bound for the first and last element */
     double clamp = -1.0;
 
-    /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
-    double max = 1.0; // fixme an make it smart
+    /** in case we have a symmetry where we induce a shape and mirror it value goes to 2*sym_plane - value. */
+    double sym_plane = 0.0;
 
     /** in case of 3D bloch optimization we need cubical symmetry and there the two dofs of a center node need to be the same.
      * In the slave case fixed, initial, lower, upper must not be given. */
@@ -471,7 +473,7 @@ private:
 
     /** @param elem the virtual element
      * @param shape the source shape. When mapping the original or the induced one otherwise
-     * @param reciprocal if the value is shape.max - base->value */
+     * @param reciprocal if the value is 2*shape.sym_plane - base->value */
     void AddSymmetryReference(ShapeMapVariable* elem, ShapeParam* shape, bool reciprocal);
 
     /** pure convenience */
@@ -491,7 +493,7 @@ private:
 
       ShapeMapVariable* elem  = NULL;  // the virtual element from opt_shape_param_
       ShapeParam*      shape = NULL;  // the original shape (when only map) or the induced shape
-      bool             reciprocal = false; // copy the original value or shape.max - val, also for gradient!
+      bool             reciprocal = false; // copy the original value or 2*shape.sym_plane - val, also for gradient!
     };
 
     /** This is the mappings we have */

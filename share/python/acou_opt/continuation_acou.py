@@ -5,12 +5,14 @@ import math
 import pathlib
 import subprocess
 from cfs_utils import open_xml, replace, xpath
-from typing import Optional, List
+from typing import Optional, List, Union
+
+from optools_param import apply_step
 
 DETA = 0.3  # distance from eta = 0.5
 
 
-def get_name(name: str | os.PathLike, value: float, final: bool = False):
+def get_name(name: Union[str, os.PathLike], value: float, final: bool = False):
     if final:
         # final has only one z to make it top
         return f"z{name}"
@@ -24,72 +26,51 @@ def get_name(name: str | os.PathLike, value: float, final: bool = False):
 
 
 def relative_paths(xml):
-    mesh_path = xpath(xml, "//cfs:mesh/@fileName")
-    # if path is given relative from home, there is probably a reason, else replace
-    if not mesh_path.startswith("~"):
-        replace(xml, "//cfs:mesh/@fileName", f"../{mesh_path}")  
+    try:
+        mesh_path = xpath(xml, "//cfs:mesh/@fileName")
+        # if path is given relative from home, there is probably a reason, else replace
+        if not mesh_path.startswith("~"):
+            replace(xml, "//cfs:mesh/@fileName", f"../{mesh_path}")
+    except RuntimeError:
+        # no mesh defined
+        pass
     mat_path = xpath(xml, "//cfs:materialData/@file")
     # if path is given relative from home, there is probably a reason, else replace
     if not mat_path.startswith("~"):
         replace(xml, "//cfs:materialData/@file", f"../{mat_path}")
 
 
-def cont_robust(name: str | os.PathLike,
+def cont_robust(executable: str,
+                name: Union[str, os.PathLike],
                 folder: str,
                 cfs_threads: str,
+                mesh: Optional[str],
+                param: Optional[str],
                 ersatz: Optional[str],
                 steps: List[float]):
     print(f"STEPS = {steps}")
     detas = exp_steps(1e-3, DETA, len(steps))
     print(f"ETAS = {detas}")
 
+    # switch cfs to relative paths
+    if folder:
+        if ersatz:
+            ersatz = f"../{ersatz}"
+        if mesh:
+            mesh = f"../{mesh}"
+
     densities = ""
     for istep, (step, deta) in enumerate(zip(steps, detas)):
-        xml = open_xml(f"{name}.xml")
-        # switch to absolute paths
-        relative_paths(xml)
-        search_mode = True
-        # test for robust
-        if search_mode:
-            try:
-                replace(xml, "//cfs:filter[@robust_excitation=0]//cfs:density/@beta", step)
-                # replace(xml, "//cfs:filter[@robust_excitation=0]//cfs:density/@eta", 0.5 - deta)
+        if param:
+            xml = open_xml(param)
+        else:
+            xml = open_xml(f"{name}.xml")
+        # switch xml to relative paths
+        if folder:
+            relative_paths(xml)
 
-                replace(xml, "//cfs:filter[@robust_excitation=1]//cfs:density/@beta", step)
-                # replace(xml, "//cfs:filter[@robust_excitation=1]//cfs:density/@eta", 0.5 + deta)
-
-                replace(xml, "//cfs:filter[@robust_excitation=2]//cfs:density/@beta", step)
-                # replace(xml, "//cfs:filter[@robust_excitation=2]//cfs:density/@eta", 0.5)
-                print("Detected mode ROBUST.")
-                search_mode = False
-            except RuntimeError:
-                pass
-        # test for shapemap
-        if search_mode:
-            try:
-                replace(xml, "//cfs:shapeMap/@beta", step)
-                print("Detected mode SHAPEMAP.")
-                search_mode = False
-            except RuntimeError:
-                pass
-        # test for shapemap
-        if search_mode:
-            try:
-                replace(xml, "//cfs:featureMapping/@transition", step)
-                print("Detected mode FEATUREMAP.")
-                search_mode = False
-            except RuntimeError:
-                pass
-        # else: normal simp mode
-        if search_mode:
-            try:
-                replace(xml, "//cfs:filter//cfs:density/@beta", step)
-                print("Detected mode SIMP.")
-                search_mode = False
-            except RuntimeError:
-                pass
-        # handle no mode found
-        if search_mode:
+        if not apply_step(xml, step):
+            # handle beta not found
             raise ImportError("Could not determine the continuation mode, "
                               "please verify if your input xml file is supported.")
 
@@ -101,12 +82,15 @@ def cont_robust(name: str | os.PathLike,
         # store name of density file
         densities += f"{file}.density.xml "
 
-        cmd = ["cfs", "-t", cfs_threads, file]
+        cmd = [executable, "-t", cfs_threads, file]
         if istep != 0:
             density = f"{get_name(name, steps[istep - 1])}.density.xml"
             cmd += ["-x", density]
         elif ersatz:
             cmd += ["-x", ersatz]
+
+        if mesh:
+            cmd += ["-m", mesh]
 
         subprocess.run(cmd, cwd=folder, check=True)
 
@@ -131,12 +115,18 @@ if __name__ == "__main__":
                         help="Run the continuation in subfolder.")
     parser.add_argument("-t", default=1, type=int,
                         help="Threads to use for cfs simulations.")
+    parser.add_argument("-m", "--mesh", type=str,
+                        help="Name of the mesh file.")
+    parser.add_argument("-p", "--param", type=str,
+                        help="Name of XML parameter file, defaults to {name}.xml")
     parser.add_argument("-x", "--ersatz", type=str,
                         help="Name of ersatz material density file.")
     parser.add_argument('--factor', nargs=3, type=float, required=True,
                         help="Give START STOP NUM for exponential series. "
                         "For robust the values are mapped to eta."
                         "If NUM = 1 the START value is used for a single simulation.")
+    parser.add_argument("-e", "--executable", type=str, default="cfs",
+                        help="Path to cfs executable, defaults to cfs")
 
     args = parser.parse_args()
     path = pathlib.Path(args.name)
@@ -144,7 +134,7 @@ if __name__ == "__main__":
     # set folder
     folder = "."
     if args.folder and isinstance(args.folder, bool):
-        folder = f"./z{path.with_suffix("")}"
+        folder = f"./z{path.with_suffix('')}"
     if isinstance(args.folder, str):
         folder = args.folder
     os.makedirs(folder, exist_ok=True)
@@ -153,8 +143,11 @@ if __name__ == "__main__":
     start, stop, num = args.factor
     steps = exp_steps(start, stop, int(num))
 
-    cont_robust(path.with_suffix(""),
+    cont_robust(args.executable,
+                path.with_suffix(""),
                 folder,
                 str(args.t),
+                args.mesh,
+                args.param,
                 args.ersatz,
                 steps)

@@ -65,7 +65,7 @@ public:
    * is static and queried once: get the nnz, then fill the (row, col) index arrays; per iteration fill
    * the packed value array. The python side assembles a scipy.sparse matrix from (vals, (rows, cols)).
    * @see ConditionContainer::VirtualView::CalcNumberOfJacobianNonZeros */
-  int GetNumberOfJacobianNonZeros();
+  unsigned int GetNumberOfJacobianNonZeros();
 
   /** fills two 1D arrays of size nnz: rows[k] = constraint index, cols[k] = design variable index */
   void GetConstraintSparsity(PyObject* args);

@@ -1662,9 +1662,9 @@ void ConditionContainer::VirtualView::Done()
   }
 }
 
-int ConditionContainer::VirtualView::CalcNumberOfJacobianNonZeros()
+unsigned int ConditionContainer::VirtualView::CalcNumberOfJacobianNonZeros()
 {
-  int nnz = 0;
+  unsigned int nnz = 0;
   for(int c = 0; c < GetNumberOfActiveConstraints(); c++)
     nnz += Get(c)->GetSparsityPatternSize();
   Done(); // reset a potential slope constraint back to global mode, like EvalGradConstraints()

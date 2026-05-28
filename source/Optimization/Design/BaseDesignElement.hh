@@ -195,6 +195,9 @@ public:
   /** Set the upper bound of the design variable */
   void SetUpperBound(const double v) { upper_ = v; }
 
+  /** Set the index of the design variable */
+  void SetIndex(const unsigned int i) {index_ = i; }
+
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints)
   {

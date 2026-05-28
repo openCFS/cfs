@@ -19,7 +19,10 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     </documentation>
 
     <fileFormats>
-        <!--create_mesh_acou.py -lin 0.02 -labh 0.05 -lout 0.02 -win 0.025 -wabh 0.025 -wout 0.025 .o robust_tracking.mesh 10-->
+        <!--create_mesh_acou.py -lin 0.02 -labh 0.05 -lout 0.02 -win 0.025 -wabh 0.025 -wout 0.025 -o robust_tracking.mesh 10-->
+        <input>
+            <hdf5 fileName="robust_tracking.h5ref"/>
+        </input>
         <output>
             <hdf5 />
             <info />
@@ -84,7 +87,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             <output><acoustic name="L_out" value="1"/></output>
         </constraint>
 
-        <optimizer type="snopt" maxIterations="10">
+        <optimizer type="snopt" maxIterations="30">
             <snopt>
                 <option type="integer" name="verify_level" value="-1" />
             </snopt>

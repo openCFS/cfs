@@ -79,27 +79,27 @@ def enrich_lbm2d(mesh, type):
   nyy = ny+1 
 
   if type == 'pipe_bend':
-    mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
-    mesh.ne.append(('outlet', list(range(int((ny - 1) * nx + 0.7 * nx - eps), int((ny - 1) * nx + 0.9 * nx + eps)))))
+    mesh["inlet"] = list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))
+    mesh["outlet"] = list(range(int((ny - 1) * nx + 0.7 * nx - eps), int((ny - 1) * nx + 0.9 * nx + eps)))
   elif type == 'two_inlet_one_outlet':
-    mesh.ne.append(('inlet', list(range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx))))
-    mesh.ne.append(('inlet', list(range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx))))
-    mesh.ne.append(('outlet', list(range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx))))
+    mesh.ne["inlet"] = list(range(int((0.25 - 1. / 16) * nx * ny + eps), int((0.25 + 1. / 16) * nx * ny + nx + eps), nx))
+    mesh.ne["inlet"] += list(range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx))
+    mesh.ne["outlet"] = list(range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx))
   elif type == 'two_inlet_two_outlet':
     inletLength = 0.15 * ny
-    mesh.ne.append(('inlet',list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx)) ))
-    mesh.ne.append(('inlet',list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx)) ))
-    mesh.ne.append(('outlet',list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx)) ))
+    mesh.ne["inlet"] = list(range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx))
+    mesh.ne["inlet"] += list(range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx))
+    mesh.ne["outlet"] = list(range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx))
+    mesh.ne["outlet"] += list(range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx))
   elif type == "pipe":
-    mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))
-    mesh.ne.append(('outlet',list(range(2*nx-1,nx*ny-1,nx))))
+    mesh.ne["inlet"] = list(range(nx,nx*(ny-1),nx))
+    mesh.ne["outlet"] = list(range(2*nx-1,nx*ny-1,nx))
   elif type == "diffuser":
-    mesh.ne.append(('inlet',list(range(nx,nx*(ny-1),nx))))
-    mesh.ne.append(('outlet',list(range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx))))
+    mesh.ne["inlet"] = list(range(nx,nx*(ny-1),nx))
+    mesh.ne["outlet"] = list(range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx))
   elif type == "low_in_high_out":
-    mesh.ne.append(('inlet', list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))))
-    mesh.ne.append(('outlet', list(range(int(0.7 * nx * ny - 1 + eps), int(0.9 * nx * ny - 1 + eps), nx))))
+    mesh.ne["inlet"] = list(range(int(0.1 * nx * ny + eps), int(0.3 * nx * ny + nx + eps), nx))
+    mesh.ne["outlet"] = list(range(int(0.7 * nx * ny - 1 + eps), int(0.9 * nx * ny - 1 + eps), nx))
   else:
     print("unkwnon lbm2d type '" + type + "'")
     sys.exit(-1)
@@ -178,10 +178,10 @@ def enrich_solar_heater_2d(mesh, chimney):
   inlet_nodes.sort()
 
   mesh.elements.extend(surf)
-  mesh.ne.append(('inlet', inlet))
-  mesh.ne.append(('outlet', outlet))
-  mesh.bc.append(('inlet_nodes', list(dict.fromkeys(inlet_nodes))))
-  mesh.bc.append(("outlet_nodes", list(dict.fromkeys(outlet_nodes))))
+  mesh.ne["inlet"] = inlet
+  mesh.ne["outlet"] = outlet
+  mesh.bc["inlet_nodes"] = list(dict.fromkeys(inlet_nodes))
+  mesh.bc["outlet_nodes"] = list(dict.fromkeys(outlet_nodes))
   return mesh
 
 # create a lvm 2d solar heater with chimney
@@ -265,10 +265,10 @@ def enrich_solar_heater_2d_old(mesh, chimney = .1):
 
   mesh.elements.extend(surf)
 
-  mesh.ne.append(('inlet', inlet))
-  mesh.ne.append(('outlet', outlet))
-  mesh.bc.append(('inlet_nodes', list(dict.fromkeys(inlet_nodes))))
-  mesh.bc.append(("outlet_nodes", list(dict.fromkeys(outlet_nodes))))
+  mesh.ne["inlet"] = inlet
+  mesh.ne["outlet"] = outlet
+  mesh.bc["inlet_nodes"] = list(dict.fromkeys(inlet_nodes))
+  mesh.bc["outlet_nodes"] = list(dict.fromkeys(outlet_nodes))
   return mesh
 
 
@@ -294,29 +294,25 @@ def enrich_lbm3d(mesh, type):
   dy = may/ny 
   dz = maz/nz 
 
-  side = (("heat_bottom", []))
-  mesh.bc.append(side)
+  mesh.bc["heat_bottom"] = []
   for z in range(1, nnz-1):
-    for x in range(1,nnx-1):
-      side[1].append((z*nny+1)*nnx+x)
+    for x in range(1, nnx-1):
+      mesh.bc["heat_bottom"].append((z*nny+1)*nnx+x)
 
-  side = (("heat_top", []))
-  mesh.bc.append(side)
+  mesh.bc["heat_top"] = []
   for z in range(1, nnz-1):
-    for x in range(1,nnx-1):
-      side[1].append((z*nny+ny-1)*nnx+x)
+    for x in range(1, nnx-1):
+      mesh.bc["heat_top"].append((z*nny+ny-1)*nnx+x)
 
-  side = (("heat_back", []))
-  mesh.bc.append(side)
+  mesh.bc["heat_back"] = []
   for y in range(1,nny-1):
-    for x in range(nnx*nnz + 1 , nnx*nnz + nnx-1,1):
-      side[1].append(x+nnx*y)
+    for x in range(nnx*nnz + 1, nnx*nnz + nnx-1, 1):
+      mesh.bc["heat_back"].append(x+nnx*y)
 
-  side = (("heat_front", []))
-  mesh.bc.append(side)
+  mesh.bc["heat_front"] = []
   for y in range(1,nny-1):
-    for x in range(nnx*nny*(nnz-2) + 1 , nnx*nny*(nnz-2) + nnx-1,1):
-      side[1].append(x+nnx*y)
+    for x in range(nnx*nny*(nnz-2) + 1 , nnx*nny*(nnz-2) + nnx-1, 1):
+      mesh.bc["heat_front"].append(x+nnx*y)
 
   if type == 'pipe_bend':
     area = 0.04
@@ -324,18 +320,18 @@ def enrich_lbm3d(mesh, type):
     dist_wall = 0.04
     x_wall = int(np.sqrt(dist_wall / (dx * dx))+eps) #find out distance from wall
     for i in range(nx*ny*nz-(x_wall+in_x)*nx*ny,nx*ny*nz-x_wall*nx*ny,nx*ny):
-      mesh.ne.append(('inlet',list(range(i+x_wall*nx,i+(x_wall+in_x)*nx,nx))))
+      mesh.ne["inlet"] = list(range(i+x_wall*nx, i+(x_wall+in_x)*nx, nx))
     for i in range(0,in_x*nx*ny,nx*ny):
-      mesh.ne.append(('outlet', list(range((x_wall+1)*nx*ny-in_x-x_wall+i,(x_wall+1)*nx*ny-x_wall+i,1))))
+      mesh.ne["outlet"] = list(range((x_wall+1)*nx*ny-in_x-x_wall+i, (x_wall+1)*nx*ny-x_wall+i, 1))
   elif type == 'pipe':
     for i in range (1,nz-1):
-      mesh.ne.append(('inlet', list(range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx))))
-      mesh.ne.append(('outlet', list(range(int(i*nx*ny + 2*nx-1),int(i*nx*ny + 2*nx-1+nx*(ny-2)),nx))))
+      mesh.ne["inlet"] = list(range(i*nx*ny+nx, (i+1)*nx*ny-nx, nx))
+      mesh.ne["outlet"] = list(range(int(i*nx*ny + 2*nx-1), int(i*nx*ny + 2*nx-1+nx*(ny-2)), nx))
   elif type == 'diffuser':
     for i in range (1,nz-1):
-      mesh.ne.append(('inlet', list(range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx))))
+      mesh.ne["inlet"] = list(range(i*nx*ny+nx, (i+1)*nx*ny-nx, nx))
     for i in range (int(0.3*nz),int(0.7*nz)):
-      mesh.ne.append(('outlet', list(range(int(i*nx*ny + 0.3*nx*ny + nx-1),int(i*nx*ny + 0.7*nx*ny+ nx-1),nx))))
+      mesh.ne["outlet"] = list(range(int(i*nx*ny + 0.3*nx*ny + nx-1), int(i*nx*ny + 0.7*nx*ny + nx-1), nx))
   elif type == 'distributor':
     center_x = nx / 2.0
     center_y = ny / 2.0
@@ -344,13 +340,13 @@ def enrich_lbm3d(mesh, type):
     width_y = 0.1 * ny
     width_z = 0.1 * nz
     for i in range(int(round(center_z-width_z/2.0)),int(round(center_z+width_z/2.0))):
-      mesh.ne.append(('outlet',list(range(int(i*nx*nz-center_x+2.0*width_x),int(i*nx*nz-center_x+3.0*width_x),1)))) # top face
-      mesh.ne.append(('outlet',list(range(int((i-1)*nx*nz+center_x+2.0*width_x),int((i-1)*nx*nz+center_x+3.0*width_x),1)))) # bottom face
+      mesh.ne["outlet"] = list(range(int(i*nx*nz-center_x+2.0*width_x), int(i*nx*nz-center_x+3.0*width_x), 1))  # top face
+      mesh.ne["outlet"].append(list(range(int((i-1)*nx*nz+center_x+2.0*width_x), int((i-1)*nx*nz+center_x+3.0*width_x), 1)))  # bottom face
     for i in range(int(center_z-int(width_z)),int(center_z+int(width_z))):
-      mesh.ne.append(('inlet',list(range(int(i*nx*ny+nx*int(center_y-width_y)),int(i*nx*ny+nx*int(center_y+width_y)),nx)))) #left face
+      mesh.ne["inlet"] = list(range(int(i*nx*ny+nx*int(center_y-width_y)), int(i*nx*ny+nx*int(center_y+width_y)), nx))  # left face
     for i in range(int(round(center_y-width_y/2.0)),int(round(center_y+width_y/2.0)),1):
-      mesh.ne.append(('outlet',list(range(int(i*nx+center_x+2.0*width_x),int(i*nx+center_x+3.0*width_x),1)))) #back face
-      mesh.ne.append(('outlet',list(range(int(nx*ny*(nz-1)+i*nx+center_x+2.0*width_x),int(nx*ny*(nz-1)+i*nx+center_x+3.0*width_x),1)))) #front face
+      mesh.ne["outlet"] = list(range(int(i*nx+center_x+2.0*width_x), int(i*nx+center_x+3.0*width_x), 1))  # back face
+      mesh.ne["outlet"].append(list(range(int(nx*ny*(nz-1)+i*nx+center_x+2.0*width_x), int(nx*ny*(nz-1)+i*nx+center_x+3.0*width_x), 1)))  # front face
 
   return mesh
 
@@ -358,6 +354,13 @@ def enrich_lbm3d(mesh, type):
 def print_list(list):
   s = ''
   for n, v in list: 
+    s += ' ' + n + '='
+    s += str(v if type(v) is int else len(v))
+  return s
+
+def print_dict(dict: dict):
+  s = ''
+  for n, v in dict.items():
     s += ' ' + n + '='
     s += str(v if type(v) is int else len(v))
   return s
@@ -467,6 +470,6 @@ if __name__ == "__main__":
   
   print('regions:' + print_list(mesh.count_regions()))
   if len(mesh.ne) > 0:
-    print('named elements:' + print_list(mesh.ne))
-  print('named nodes:' + print_list(mesh.bc))
+    print('named elements:' + print_dict(mesh.ne))
+  print('named nodes:' + print_dict(mesh.bc))
   print("created file '" + file + "' with " + str(len(mesh.elements)) + " elements")
