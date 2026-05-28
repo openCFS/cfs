@@ -389,7 +389,7 @@ def calc_barycenter(mesh):
   return .5 * (max + min)        
         
 ## creates a 2D mesh 
-def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False, silent=False):
+def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False, silent=False, namedsets=True):
 
   assert x_res is not None
   if width is None: # e.g. for the PythonMesher the external parameters might be None
@@ -473,7 +473,7 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
         mesh.elements.append(e)
 
   # add named nodes for boundary conitions  
-  if row_major:
+  if row_major and namedsets:
     mesh.bc["bottom"] = list(range(0, nx + 1))
     mesh.bc["top"] = list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))
     mesh.bc["left"] = list(range(0, (nx + 1) * ny + 1, nx + 1))
@@ -482,7 +482,7 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
     mesh.bc["bottom_right"] = [nx]
     mesh.bc["top_left"] = [(nx+1)*ny]
     mesh.bc["top_right"] = [(nx+1)*(ny+1)-1]
-  else:
+  elif namedsets:
     mesh.bc["bottom"] = list(range(0, (ny + 1) * nx + 1, ny + 1))
     mesh.bc["top"] = list(range(ny, (ny + 1) * (nx + 1), ny + 1))
     mesh.bc["left"] = list(range(0, ny + 1))
@@ -1143,7 +1143,7 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
   # extract boundary force nodes from region_force if available
   elif region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
-    mesh.bc[region_support} = reg_support_nodes[:] - 1
+    mesh.bc[region_support] = reg_support_nodes[:] - 1
   else:
     #array of boundary regions must be given, e.g. ['support','load1','load2']
     for bcreg in bcregions:
