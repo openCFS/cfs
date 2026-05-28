@@ -2763,6 +2763,14 @@ namespace CoupledField {
       
       // abort if max number of iterations is reached?
       nonLinNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::INSERT);
+
+      // stagnation detection for nonlinear iteration
+      if ( nonLinNode->Has("useStagnationDetection") )
+        nonLinNode->GetValue("useStagnationDetection", useStagnationDetection_, ParamNode::PASS );
+      if ( nonLinNode->Has("stagnationWindowSize") )
+        nonLinNode->GetValue("stagnationWindowSize", stagnationWindowSize_, ParamNode::PASS );
+      if ( nonLinNode->Has("stagnationTolerance") )
+        nonLinNode->GetValue("stagnationTolerance", stagnationTolerance_, ParamNode::PASS );
       
       LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
       LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;

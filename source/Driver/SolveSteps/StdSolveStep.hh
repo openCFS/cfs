@@ -281,6 +281,10 @@ namespace CoupledField
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 
+    bool useStagnationDetection_ = false; //!< enable stagnation detection for nonlinear iteration
+    UInt stagnationWindowSize_ = 5; //!< number of iterations used to inspect stagnation
+    Double stagnationTolerance_ = 0.1; //!< relative improvement threshold for stagnation
+
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 

@@ -358,6 +358,36 @@
       <xsd:element name="resStopCrit" type="DT_PosFloat" minOccurs="0"/>
       <xsd:element name="maxNumIters" type="xsd:positiveInteger" minOccurs="0"/>
       <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="useStagnationDetection" type="DT_CFSBool" default="no" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Enable stagnation detection for nonlinear iterations.
+            If enabled, monitors improvement in residual over a window of iterations.
+            When improvement becomes too small, iteration stops with warning
+            and proceeds to next time step. Can be understood as a safety measure if termination criteria are
+            too restrictive. Default: no. Currently only implemented in the EBHysteresisModel.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="stagnationWindowSize" type="xsd:positiveInteger" default="5" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Number of recent iterations inspected for stagnation detection.
+            Stagnation is detected when the best improvement in this window falls below stagnation tolerance
+            and the incremental error is small enough. Default: 5.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="stagnationTolerance" type="DT_PosFloat" default="0.1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Relative improvement threshold for stagnation detection.
+            Improvement = (residualErr_prev - residualErr) / (residualErr_prev + 1e-15).
+            When max improvement is smaller than tolerance in the window, stagnation is detected.
+            Default: 0.1 (i.e., 10% improvement per iteration).
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional" default="newton"/>
