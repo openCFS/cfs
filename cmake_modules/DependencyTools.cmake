@@ -451,6 +451,7 @@ macro(create_external_cmake_patched)
     # in case the mirrors have different file names we always store to the same
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF # cmake projects should use the new (CMP0135) default
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
     CMAKE_ARGS ${DEPS_ARGS}
     BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
@@ -489,6 +490,7 @@ macro(create_external_cmake)
     # in case the mirrors have different file names we always store to the same
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF # cmake projects should use the new (CMP0135) default
     CMAKE_ARGS ${DEPS_ARGS}
     BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
