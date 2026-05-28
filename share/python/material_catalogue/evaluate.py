@@ -477,11 +477,8 @@ def force(dim, mesh, R, region):
   # for i in range(len(mesh.nodes)):
   #  f[2*i+1,0] = -1./(51.*51.)
   # boundary force
-  for i in range(len(mesh.bc)):
-    if mesh.bc[i][0] == region:
-      for j in range(len(mesh.bc[i][1])):
-        index = mesh.bc[i][1][j]
-        f[2 * index + 1, 0] = -1 / 51.
+  for index in mesh.bc[region]:
+    f[2 * index + 1, 0] = -1 / 51.
   return R * f
 
   

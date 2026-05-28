@@ -47,8 +47,8 @@ def add_robot_boundary_conditions(mesh):
     elif abs(coord[1] + 0.) < delta_y and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
       
-  mesh.bc.append(('force1', force1))
-  mesh.bc.append(('support', support))
+  mesh.bc["force1"] = force1
+  mesh.bc["support"] = support
   return mesh
 
 def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset = 0., forces = [], force2 = [],supports = []):
@@ -98,12 +98,11 @@ def create_mesh_for_lufo_bracket(meshfile, all_nodes = [], elements = [], offset
     for support in supps:
       support -= offset
 
-  mesh.bc = []
+  mesh.bc = {}
   for i in range(len(forces)):
-    mesh.bc.append(('force'+str(i+1), forces[i]))
-  #mesh.bc.append(('force2', force2))
+    mesh.bc["force"+str(i+1)] = forces[i]
   for i in range(len(supports)):
-    mesh.bc.append(('support'+str(i+1), supports[i]))
+    mesh.bc["support"+str(i+1)] = supports[i]
   mesh = mesh_tool.convert_to_sparse_mesh(mesh)    
   return mesh
 
@@ -267,12 +266,12 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
             support2.append(e.nodes[j])    
           elif sp3 == True and abs(coord[1] - upper_bound) < dy:
             support3.append(e.nodes[j])
-  mesh.bc.append(('force1', force1))
-  mesh.bc.append(('force2', force2))
-  mesh.bc.append(('force3', force3))
-  mesh.bc.append(('support', support))
-  mesh.bc.append(('support2', support2))
-  mesh.bc.append(('support3', support3))
+  mesh.bc["force1"] = force1
+  mesh.bc["force2"] = force2
+  mesh.bc["force3"] = force3
+  mesh.bc["support"] = support
+  mesh.bc["support2"] = support2
+  mesh.bc["support3"] = support3
 
   if len(elements) == 0:
     write_ansys_mesh(mesh, meshfile+".mesh")     
@@ -316,8 +315,8 @@ def add_robot_boundary_conditions(mesh):
     elif abs(coord[1] + 0.) < delta_y and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
       
-  mesh.bc.append(('force1', force1))
-  mesh.bc.append(('support', support))
+  mesh.bc["force1"] = force1
+  mesh.bc["support"] = support
   return mesh
             
 def add_apod6_boundary_conditions(mesh):
@@ -374,12 +373,12 @@ def add_apod6_boundary_conditions(mesh):
     elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
       support.append(i)
           
-  mesh.bc.append(('force1', force1))
-  mesh.bc.append(('force2', force2))
-  mesh.bc.append(('force3', force3))
-  mesh.bc.append(('support', support))
-  mesh.bc.append(('support2', support2))
-  mesh.bc.append(('support3', support3))
+  mesh.bc["force1"] = force1
+  mesh.bc["force2"] = force2
+  mesh.bc["force3"] = force3
+  mesh.bc["support"] = support
+  mesh.bc["support2"] = support2
+  mesh.bc["support3"] = support3
   return mesh
 
 
@@ -428,24 +427,24 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
-  for n in mesh.bc[0][1]:
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,n+1,0,5000./len(mesh.bc[0][1])))
+  for n in mesh.bc["force1"]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,n+1,0,5000./len(mesh.bc["force1"])))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
     # write forces2
-  for n in mesh.bc[1][1]:
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc[1][1])))
+  for n in mesh.bc["force2"]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc["force2"])))
 
       # write forces3
-  for n in mesh.bc[2][1]:
-    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc[2][1])))
+  for n in mesh.bc["force3"]:
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,n+1,0,5000./len(mesh.bc["force3"])))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-  for n in mesh.bc[3][1]:
+  for n in mesh.bc["support"]:
     out.write('SPC%13d%8d  13     \n'%(1,n+1))
-  for n in mesh.bc[4][1]:
+  for n in mesh.bc["support2"]:
     out.write('SPC%13d%8d  2     \n'%(1,n+1))
-  for n in mesh.bc[5][1]:
+  for n in mesh.bc["support3"]:
     out.write('SPC%13d%8d  2     \n'%(1,n+1))
     #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
 
@@ -556,24 +555,24 @@ def create_optistruct_mesh_from_cfs(meshfile,h5file):
       out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,3,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
       #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
-  for bc in mesh.bc[0][1]:
+  for bc in mesh.bc["force1"]:
     out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,bc[i]+1,0,5000./len(bc)))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
   # write forces2
-  for bc in mesh.bc[1][1]:
+  for bc in mesh.bc["force2"]:
     out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,bc[i]+1,0,5000./len(bc)))
 
   # write forces3
-  for bc in mesh.bc[2][1]:
+  for bc in mesh.bc["force3"]:
     out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,bc[i]+1,0,5000./len(bc)))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-  for bc in mesh.bc[3][1]:
+  for bc in mesh.bc["support"]:
     out.write('SPC%13d%8d  13     \n'%(1,bc[i]+1))
-  for bc in mesh.bc[4][1]:
+  for bc in mesh.bc["support2"]:
     out.write('SPC%13d%8d  2     \n'%(1,bc[i]+1))
-  for bc in mesh.bc[5][1]:
+  for bc in mesh.bc["support3"]:
     out.write('SPC%13d%8d  2     \n'%(1,bc[i]+1))
     #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
 
@@ -925,8 +924,8 @@ def add_bc_for_box_varel(mesh,bounds,pfem=None):
     print("load:",len(load))
     print("support:",len(support))
 
-    mesh.bc.append(("load", load))
-    mesh.bc.append(("support", support))
+    mesh.bc["load"] = load
+    mesh.bc["support"] = support
   else:
     assert(pfem)
     for e in mesh.elements:
@@ -1266,25 +1265,16 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
   #write elements
   out.write('$EndNodes \n')
   out.write('$Elements \n')
-  out.write(str(len(mesh.elements)+len(mesh.bc[0][1]) + len(mesh.bc[1][1]) + len(mesh.bc[2][1]))+ '\n') #+ len(mesh.bc[3][1]) + len(mesh.bc[4][1]) + len(mesh.bc[5][1]) + len(mesh.bc[6][1]))+ '\n')
+  out.write(str(len(mesh.elements)+len(mesh.bc["force1"]) + len(mesh.bc["force2"]) + len(mesh.bc["force3"]))+ '\n') #+ len(mesh.bc[3][1]) + len(mesh.bc[4][1]) + len(mesh.bc[5][1]) + len(mesh.bc[6][1]))+ '\n')
   # 1D boundary elements support, forces
   count = 0
-  for bc in mesh.bc:
-    if bc[0] == 'force1':
-      id = 5
-    elif bc[0] == 'force2':
-      id = 6
-    elif bc[0] == 'force3':
-      id = 9
-    elif bc[0] == 'support':
-      id = 7
-    elif bc[0] == 'support2':
-      id = 8
-    elif bc[0] == 'support3':
-      id = 10
-    else:
+  name2id = {"force1": 5, "force2": 6, "force3": 9, "support": 7, "support2": 8, "support3": 10}
+  for n, bc in mesh.bc.items():
+    try:
+      id = name2id[n]
+    except KeyError:
       print('Warning mesh.bc type not handled!')
-    for node in bc[1]:
+    for node in bc:
       out.write(str(count+1) + ' ' +str(15) + ' 2 0 ' + str(id) + ' ' + str(node + 1)+' \n')
       count +=1
   # write 3D elements
@@ -1397,14 +1387,14 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       ll = (nx + 1) * y + x  # lowerleft
       e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))
       mesh.elements.append(e)
-  mesh.bc.append(("south", list(range(0, nx + 1))))
-  mesh.bc.append(("north", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
-  mesh.bc.append(("west", list(range(0, (nx + 1) * ny + 1, nx + 1))))
-  mesh.bc.append(("east", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-  mesh.bc.append(("south_west", [0]))
-  mesh.bc.append(("south_east", [nx]))
-  mesh.bc.append(("north_west", [(nx + 1) * ny]))
-  mesh.bc.append(("north_east", [(nx + 1) * (ny + 1) - 1]))
+  mesh.bc["south"] = list(range(0, nx + 1))
+  mesh.bc["north"] = list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))
+  mesh.bc["west"] = list(range(0, (nx + 1) * ny + 1, nx + 1))
+  mesh.bc["east"] = list(range(nx, (nx + 1) * (ny + 1), nx + 1))
+  mesh.bc["south_west"] = [0]
+  mesh.bc["south_east"] = [nx]
+  mesh.bc["north_west"] = [(nx + 1) * ny]
+  mesh.bc["north_east"] = [(nx + 1) * (ny + 1) - 1]
 
 
 

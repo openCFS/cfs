@@ -67,10 +67,10 @@ def generate_cross(param, nx=128, ny=128, sparse=True):
         right = range(npy1*npx-1, (npy1+npy2-1)*npx, npx)
         bottom = range(npx1-1, npx1+npx2-1)
         up = range(npx*(npy-1)+npx1-1, npx*(npy-1)+npx1+npx2-1)
-    mesh.bc.append(("left", left))
-    mesh.bc.append(("right", right))
-    mesh.bc.append(("bottom", bottom))
-    mesh.bc.append(("up", up))
+    mesh.bc["left"] = left
+    mesh.bc["right"] = right
+    mesh.bc["bottom"] = bottom
+    mesh.bc["up"] = up
     
     # elements
     num2DElements = nx*ny
@@ -167,10 +167,10 @@ def generate_sheared_cross(param, nx=128, ny=128, sparse=True):
         right = range(npy1*npx-1, (npy1+npy2-1)*npx, npx)
         bottom = range(npx1-1, npx1+npx2-1)
         up = range(npx*(npy-1)+npx1-1, npx*(npy-1)+npx1+npx2-1)
-    mesh.bc.append(("left", left))
-    mesh.bc.append(("right", right))
-    mesh.bc.append(("bottom", bottom))
-    mesh.bc.append(("up", up))
+    mesh.bc["left"] = left
+    mesh.bc["right"] = right
+    mesh.bc["bottom"] = bottom
+    mesh.bc["up"] = up
     
     # elements
     num2DElements = nx*ny
