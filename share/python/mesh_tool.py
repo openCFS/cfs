@@ -136,9 +136,9 @@ class Mesh:
            
    self.elements = []  # list of Element
    # list of boundary conditon nodes
-   self.bc = []  # list of tupel (name, <list of zero based nodes>)
+   self.bc = {}  # list of tupel (name, <list of zero based nodes>)
    # list of named element (save element in gd)
-   self.ne = []  # list of tupel (name, <list of zero based elements>)
+   self.ne = {}  # list of tupel (name, <list of zero based elements>)
    self.nx = nx
    self.ny = ny
    self.nz = nz
@@ -474,23 +474,23 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
 
   # add named nodes for boundary conitions  
   if row_major:
-    mesh.bc.append(("bottom", list(range(0, nx + 1))))
-    mesh.bc.append(("top", list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))))
-    mesh.bc.append(("left", list(range(0, (nx + 1) * ny + 1, nx + 1))))
-    mesh.bc.append(("right", list(range(nx, (nx + 1) * (ny + 1), nx + 1))))
-    mesh.bc.append(("bottom_left", [0]))
-    mesh.bc.append(("bottom_right", [nx]))
-    mesh.bc.append(("top_left", [(nx+1)*ny]))
-    mesh.bc.append(("top_right", [(nx+1)*(ny+1)-1]))
+    mesh.bc["bottom"] = list(range(0, nx + 1))
+    mesh.bc["top"] = list(range((nx + 1) * ny, (nx + 1) * (ny + 1)))
+    mesh.bc["left"] = list(range(0, (nx + 1) * ny + 1, nx + 1))
+    mesh.bc["right"] = list(range(nx, (nx + 1) * (ny + 1), nx + 1))
+    mesh.bc["bottom_left"] = [0]
+    mesh.bc["bottom_right"] = [nx]
+    mesh.bc["top_left"] = [(nx+1)*ny]
+    mesh.bc["top_right"] = [(nx+1)*(ny+1)-1]
   else:
-    mesh.bc.append(("bottom", list(range(0, (ny + 1) * nx + 1, ny + 1))))
-    mesh.bc.append(("top", list(range(ny, (ny + 1) * (nx + 1), ny + 1))))
-    mesh.bc.append(("left", list(range(0, ny + 1))))
-    mesh.bc.append(("right", list(range((ny + 1) * nx, (ny + 1) * (nx + 1)))))
-    mesh.bc.append(("bottom_left", [0]))
-    mesh.bc.append(("bottom_right", [(ny+1)*nx]))
-    mesh.bc.append(("top_left", [ny]))
-    mesh.bc.append(("top_right", [(ny+1)*(nx+1)-1]))
+    mesh.bc["bottom"] = list(range(0, (ny + 1) * nx + 1, ny + 1))
+    mesh.bc["top"] = list(range(ny, (ny + 1) * (nx + 1), ny + 1))
+    mesh.bc["left"] = list(range(0, ny + 1))
+    mesh.bc["right"] = list(range((ny + 1) * nx, (ny + 1) * (nx + 1)))
+    mesh.bc["bottom_left"] = [0]
+    mesh.bc["bottom_right"] = [(ny+1)*nx]
+    mesh.bc["top_left"] = [ny]
+    mesh.bc["top_right"] = [(ny+1)*(nx+1)-1]
 
   if not silent:
     print('width=' + str(width) + ' height=' + str(height) + ' dx=' + str(mesh.dx) + ' dy=' + str(mesh.dy))
@@ -641,48 +641,46 @@ def create_3d_mesh(x_res, y_res = None, z_res = None, width = 1.0, height = None
           mesh.elements.append(e)
 
   # naming faces of nodes of cube
-  mesh.bc.append(("left", list(range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx))))
-  mesh.bc.append(("right", list(range(nx, (nnx * nny * nnz) + 1, nnx))))
+  mesh.bc["left"], list(range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx))
+  mesh.bc["right"], list(range(nx, (nnx * nny * nnz) + 1, nnx))
 
-  side = (("bottom", []))
-  mesh.bc.append(side)
+  mesh.bc["bottom"] = []
   for z in range(0, nnz):
     for x in range(0, nnx):
-      side[1].append((z * nny) * nnx + x)
+       mesh.bc["bottom"].append((z * nny) * nnx + x)
 
-  side = (("top", []))
-  mesh.bc.append(side)
+  mesh.bc["top"] = []
   for z in range(0, nnz):
     for x in range(0, nnx):
-      side[1].append((z * nny + ny) * nnx + x)
+      mesh.bc["top"].append((z * nny + ny) * nnx + x)
 
   # back and front as it appears with paraview
-  mesh.bc.append(("back", list(range(0, (nx + 1) * (ny + 1)))))
-  mesh.bc.append(("front", list(range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1)))))
+  mesh.bc["back"] = list(range(0, (nx + 1) * (ny + 1)))
+  mesh.bc["front"] = list(range(nz * (nx + 1) * (ny + 1), (nz + 1) * (nx + 1) * (ny + 1)))
 
   # naming cube corners
-  mesh.bc.append(("left_bottom_back", [0]))
-  mesh.bc.append(("right_bottom_back", [nx]))
-  mesh.bc.append(("left_top_back", [nnx * ny]))
-  mesh.bc.append(("right_top_back", [nnx * nny - 1]))
-  mesh.bc.append(("left_bottom_front", [nnx * nny * nz]))
-  mesh.bc.append(("right_bottom_front", [nnx * nny * nz + nx]))
-  mesh.bc.append(("left_top_front", [nnx * nny * nz + nnx * ny]))
-  mesh.bc.append(("right_top_front", [nnx * nny * nnz - 1]))
+  mesh.bc["left_bottom_back"] = [0]
+  mesh.bc["right_bottom_back"] = [nx]
+  mesh.bc["left_top_back"] = [nnx * ny]
+  mesh.bc["right_top_back"] = [nnx * nny - 1]
+  mesh.bc["left_bottom_front"] = [nnx * nny * nz]
+  mesh.bc["right_bottom_front"] = [nnx * nny * nz + nx]
+  mesh.bc["left_top_front"] = [nnx * nny * nz + nnx * ny]
+  mesh.bc["right_top_front"] = [nnx * nny * nnz - 1]
 
   # naming cube edges
-  mesh.bc.append(("bottom_back",list(range(nnx))))
-  mesh.bc.append(("bottom_front",list(range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx))))
-  mesh.bc.append(("bottom_left",list(range(0,nnx*nny*nnz-nnx-1,nnx*nny))))
-  mesh.bc.append(("bottom_right",list(range(nnx-1,nnx*nny*nnz-1-1,nnx*nny))))
-  mesh.bc.append(("top_back",list(range(nnx*nny-nnx,nnx*nny))))
-  mesh.bc.append(("top_front",list(range(nnx*nny*nnz-nnx,nnx*nny*nnz))))
-  mesh.bc.append(("top_left",list(range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny))))
-  mesh.bc.append(("top_right",list(range(nnx*nny-1,nnx*nny*nnz,nnx*nny))))
-  mesh.bc.append(("back_left",list(range(0,nnx*nny-nnx+1,nnx))))
-  mesh.bc.append(("back_right",list(range(nnx-1,nnx*nny,nnx))))
-  mesh.bc.append(("front_left",list(range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx))))
-  mesh.bc.append(("front_right",list(range(nnx * nny * nz + nx,nnx * nny * nnz,nnx))))
+  mesh.bc["bottom_back"] = list(range(nnx))
+  mesh.bc["bottom_front"] = list(range(nnx*nny*(nnz-1),nnx*nny*(nnz-1)+nnx))
+  mesh.bc["bottom_left"] = list(range(0,nnx*nny*nnz-nnx-1,nnx*nny))
+  mesh.bc["bottom_right"] = list(range(nnx-1,nnx*nny*nnz-1-1,nnx*nny))
+  mesh.bc["top_back"] = list(range(nnx*nny-nnx,nnx*nny))
+  mesh.bc["top_front"] = list(range(nnx*nny*nnz-nnx,nnx*nny*nnz))
+  mesh.bc["top_left"] = list(range(nnx*nny-nnx,nnx*nny*nnz,nnx*nny))
+  mesh.bc["top_right"] = list(range(nnx*nny-1,nnx*nny*nnz,nnx*nny))
+  mesh.bc["back_left"] = list(range(0,nnx*nny-nnx+1,nnx))
+  mesh.bc["back_right"] = list(range(nnx-1,nnx*nny,nnx))
+  mesh.bc["front_left"] = list(range(nnx * nny * nz,nnx * nny * nz + nnx * ny+1,nnx))
+  mesh.bc["front_right"] = list(range(nnx * nny * nz + nx,nnx * nny * nnz,nnx))
 
   return mesh
 
@@ -768,14 +766,14 @@ def add_nodes_for_periodic_bc(mesh,min_diam_x=1e-3,min_diam_y=1e-3,min_diam_z=1e
 
   print("left_c: ", left_c, " right_c: ", right_c, " bottom_c:", bottom_c, " top_c: ", top_c, " back_c: ", back_c, " front_c: ",front_c)
 
-  mesh.bc = []
+  mesh.bc = {}
   #add boundary nodes
-  mesh.bc.append(('top', top))
-  mesh.bc.append(('bottom', bottom))
-  mesh.bc.append(('left', left))
-  mesh.bc.append(('right', right))
-  mesh.bc.append(('front', front))
-  mesh.bc.append(('back', back))
+  mesh.bc["top"] = top
+  mesh.bc["bottom"] = bottom
+  mesh.bc["left"] = left
+  mesh.bc["right"] = right
+  mesh.bc["front"] = front
+  mesh.bc["back"] = back
 
   return mesh
 
@@ -805,24 +803,24 @@ def name_bb_faces(mesh,bounds):
     elif np.isclose(node[2],zmax,1e-4):
       top.append(i)
 
-  mesh.bc.append(("top",top))
-  mesh.bc.append(("bottom",bottom))
-  mesh.bc.append(("left",left))
-  mesh.bc.append(("right",right))
-  mesh.bc.append(("front",front))
-  mesh.bc.append(("back",back))
+  mesh.bc["top"] = top
+  mesh.bc["bottom"] = bottom
+  mesh.bc["left"] = left
+  mesh.bc["right"] = right
+  mesh.bc["front"] = front
+  mesh.bc["back"] = back
 
   return mesh
 
 # count prefined bc name and if pairs do not match, print  
 def validate_periodicity(mesh):
 #   assert(mesh.nz > 1)
-  countLeft = len([x for x in mesh.bc if x[0] == 'left'][0][1]);
-  countRight = len([x for x in mesh.bc if x[0] == 'right'][0][1]);
-  countFront = len([x for x in mesh.bc if x[0] == 'front'][0][1]);
-  countBack = len([x for x in mesh.bc if x[0] == 'back'][0][1]);
-  countTop = len([x for x in mesh.bc if x[0] == 'top'][0][1]);
-  countBottom = len([x for x in mesh.bc if x[0] == 'bottom'][0][1]);
+  countLeft = len(mesh.bc["left"]);
+  countRight = len(mesh.bc["right"]);
+  countFront = len(mesh.bc["front"]);
+  countBack = len(mesh.bc["back"]);
+  countTop = len(mesh.bc["top"]);
+  countBottom = len(mesh.bc["bottom"]);
 
   if countLeft != countRight:
     print("left: ", countLeft, " right: ", countRight)
@@ -900,15 +898,15 @@ def convert_to_sparse_mesh(dense):
      el.nodes = newnodes
 
   # finally handle the boundary conditions
-  sparse.bc = []
-  for bc in dense.bc:
-    dnn = bc[1]  # dense nodes
+  sparse.bc = {}
+  for n, bc in dense.bc.items():
+    dnn = bc  # dense nodes
     nodes = []
     for n in dnn:
 #       print('old number '+str(dnn[n]) + ' new number '+str(map[dnn[n]]))
       if map[n] != -1:
         nodes.append(map[n])
-    sparse.bc.append((bc[0], nodes))
+    sparse.bc[n] = nodes
     
     
     
@@ -956,12 +954,12 @@ def write_ansys_mesh(mesh, filename, scale = 1):
   out.write('Num2DElements ' + str(num_2d) + '\n')
   out.write('Num1DElements ' + str(num_1d) + '\n')
   bcn = 0
-  for bc in mesh.bc:
-    bcn += len(bc[1])
+  for bc in mesh.bc.values():
+    bcn += len(bc)
   out.write('NumNodeBC ' + str(bcn) + '\n')
   nen = 0
-  for ne in mesh.ne:
-    nen += len(ne[1])
+  for ne in mesh.ne.values():
+    nen += len(ne)
   out.write('NumSaveNodes 0\n')
   out.write('NumSaveElements ' + str(nen) + '\n')
   out.write('Num 2d-line      : ' + str(num_1d) + '\n')
@@ -1007,21 +1005,21 @@ def write_ansys_mesh(mesh, filename, scale = 1):
 
   out.write('\n[Node BC]\n')
   out.write('#NodeNr Level\n')
-  for bc in mesh.bc:
-    for v in bc[1]:
+  for n, bc in mesh.bc.items():
+    for v in bc:
       if v >= len(mesh.nodes):
-        print(bc[0], v, ' larger', len(mesh.nodes)-1)
+        print(n, v, ' larger', len(mesh.nodes)-1)
       assert(v >= 0)
       assert(v < len(mesh.nodes))
-      out.write(str(v + 1) + " " + bc[0] + "\n") # bc[1][n]+1 is node number and bc[0] label
+      out.write(str(v + 1) + " " + n + "\n") # bc[1][n]+1 is node number and bc[0] label
 
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
   out.write('#ElemNr Level\n')
-  for ne in mesh.ne:
-    for n in ne[1]:
-      out.write(str(n + 1) + " " + ne[0] + "\n")
+  for name, ne in mesh.ne.items():
+    for n in ne:
+      out.write(str(n + 1) + " " + name + "\n")
 
   out.write("\n \n")
   out.close()
@@ -1059,7 +1057,7 @@ def call_cfs_input_reader(mesh):
     cfs.add_elements(total, cfs_type, npd)
 
   # named nodes
-  for name, nodes in mesh.bc:
+  for name, nodes in mesh.bc.items():
     if len(nodes) > 0:
       npn = np.array(nodes, dtype=np.uintc) # unsigned int 
       npn += 1 # make 1-based
@@ -1067,7 +1065,7 @@ def call_cfs_input_reader(mesh):
       cfs.add_named_nodes(name, npn)
 
   # named elements
-  for name, elems in mesh.ne:
+  for name, elems in mesh.ne.items():
     if len(elems) > 0:
       npe = np.array(elems, dtype=np.uintc) # unsigned int 
       npe += 1 # make 1-based
@@ -1141,16 +1139,16 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
   # extract boundary force nodes from region_force if available
   if region_force != None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
-    mesh.bc.append((region_force, reg_force_nodes[:] - 1))
+    mesh.bc[region_force] = reg_force_nodes[:] - 1
   # extract boundary force nodes from region_force if available
   elif region_support != None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
-    mesh.bc.append((region_support, reg_support_nodes[:] - 1))
+    mesh.bc[region_support} = reg_support_nodes[:] - 1
   else:
     #array of boundary regions must be given, e.g. ['support','load1','load2']
     for bcreg in bcregions:
       bc_nodes = hdf5_file['Mesh/Groups/' + str(bcreg) + '/Nodes']
-      mesh.bc.append((bcregions[i], bc_nodes[:] - 1))
+      mesh.bc[bcreg] = bc_nodes[:] - 1
   # insert nodes, usually nodes is a numpy array - transform it later
   for node in all_nodes:
     mesh.nodes.append(node)
@@ -1309,7 +1307,7 @@ def create_mesh_from_gmsh(meshfile,regionnumbers=None,surfaceBCnumbers=[]):
         e.type = Ansys.HEXA8
       mesh.elements.append(e)
   for idx, bcnum in enumerate(surfaceBCnumbers):
-    mesh.bc.append((str(bcnum), list(set(bcs[idx]))))
+    mesh.bc[str(bcnum)] = list(set(bcs[idx]))
 
 ## Manually add simple boundary conditions
   load = []

@@ -158,8 +158,8 @@ def parse_abaqus(input):
         if not line.startswith('*'):
           nr = int(line.split(',')[0])
           nodes.append(abaqus_nr_to_idx[nr])         
-    mesh.bc.append((name, nodes))
-  mesh.bc.append(('ref', ref))  
+    mesh.bc[name] = nodes
+  mesh.bc["ref"] = ref 
   # print mesh.nodes
   # print idx_to_abaqus_nr
   return mesh
