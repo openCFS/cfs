@@ -115,10 +115,11 @@ namespace CoupledField
       if (pseudo_time_stepping_ == 1) {
 
         Double residualErrPrev = 1e15;
-        const UInt windowSize = 5;
+        const UInt windowSize = stagnationWindowSize_;
         std::vector<Double> improvementHistory;
-        const Double stagnationTol = 0.1;//0.05
+        const Double stagnationTol = stagnationTolerance_;
 
+        bool useStagnationDetection = useStagnationDetection_;
         while (true){
           iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
           stageSol_temp = stageSol;
@@ -222,18 +223,25 @@ namespace CoupledField
           residualErr = actRHS.NormL2();
           residualErr = std::abs(residualErr)/residualErr0;
 
-          Double improvement = (residualErrPrev - residualErr)
-                             / (residualErrPrev + 1e-15);
-          improvementHistory.push_back(improvement);
-          if (improvementHistory.size() > windowSize) {
-              improvementHistory.erase(improvementHistory.begin());
-          }
-          Double maxImprovement = *std::max_element(
-              improvementHistory.begin(),
-              improvementHistory.end()
-          );
-          residualErrPrev = residualErr;
+          Double maxImprovement = 1.0; // default: "not stagnating"
 
+          if (useStagnationDetection) {
+              Double improvement = (residualErrPrev - residualErr)
+                                    / (residualErrPrev + 1e-15);
+
+                improvementHistory.push_back(improvement);
+
+                if (improvementHistory.size() > windowSize) {
+                    improvementHistory.erase(improvementHistory.begin());
+                }
+
+                maxImprovement = *std::max_element(
+                    improvementHistory.begin(),
+                    improvementHistory.end()
+                );
+          }
+
+          residualErrPrev = residualErr;
           LOG_DBG3(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
           LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
           LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
@@ -311,6 +319,12 @@ namespace CoupledField
       // REAL TIME STEPPING (START)
       // ###############################################################
       if (pseudo_time_stepping_ == 0) {
+        Double residualErrPrev = 1e15;
+        const UInt windowSize = stagnationWindowSize_;
+        std::vector<Double> improvementHistory;
+        const Double stagnationTol = stagnationTolerance_;
+        bool useStagnationDetection = useStagnationDetection_;
+
         while (true){
           iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
           stageSol_temp = stageSol;
@@ -394,6 +408,26 @@ namespace CoupledField
           //residualErr = std::abs(residualErr)/(residualErr0*nr_unknowns);
           residualErr = std::abs(residualErr)/(residualErr0);
 
+          Double maxImprovement = 1.0; // default: "not stagnating"
+
+          if (useStagnationDetection) {
+              Double improvement = (residualErrPrev - residualErr)
+                                    / (residualErrPrev + 1e-15);
+
+                improvementHistory.push_back(improvement);
+
+                if (improvementHistory.size() > windowSize) {
+                    improvementHistory.erase(improvementHistory.begin());
+                }
+
+                maxImprovement = *std::max_element(
+                    improvementHistory.begin(),
+                    improvementHistory.end()
+                );
+          }
+
+          residualErrPrev = residualErr;
+
           // calculate incremental error ========================================
           solIncrL2Norm = solInc.NormL2();
           stageSolL2Norm  = stageSol.NormL2();
@@ -406,8 +440,17 @@ namespace CoupledField
           OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
 
           // boolean variable, holds condition if another iteration step is necessary
-          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-          if ( performOneMoreStep == 0){
+          bool residualOk    = (residualErr    <= residualStopCrit_);
+          bool incrementalOk = (incrementalErr <= incStopCrit_);
+          
+          bool stagnating = (maxImprovement < stagnationTol)
+                          && (improvementHistory.size() == windowSize)
+                          && (incrementalErr <= incStopCrit_);
+
+          performOneMoreStep = !( (residualOk && incrementalOk) || stagnating );
+
+          // normal convergence
+          if ( performOneMoreStep == 0 && !stagnating ) {
             // now that we have reached our convergence threshold for this timestep, let's save the states in our model
             std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
             for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
@@ -416,6 +459,26 @@ namespace CoupledField
               it->second->UpdateHistoryValues(); 
               it->second->AllowUpdates(false);
             } 
+            break;
+          }
+
+          // stagnation: warning + continue with next time step
+          if ( stagnating ) {
+            std::cout << "\n***********************************************************************\n"
+                      << " WARNING: Stagnation detected in PDE '" << pdename_
+                      << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                      << "' at iteration '" << iterationCounter
+                      << "'.\n ==> incremental error: " << incrementalErr
+                      << "\n ==> residual error: "    << residualErr
+                      << "\n ==> max improvement over last " << windowSize << " iterations: " 
+                      << maxImprovement
+                      << "\n continuing with next time step..."
+                      << "\n***********************************************************************\n";
+            std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+            for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+              it->second->UpdateHistoryValues(); 
+              it->second->AllowUpdates(false);
+            }
             break;
           }
           
@@ -476,20 +539,16 @@ namespace CoupledField
     Double Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a);
     Double Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
     
-    /*
+    //for the case that there is no sign change in the line search interval (0,1], we fall back to an inexact (i.e., heuristic) line search method.
+    //sign change is crucial bc otherwise there might be no root, a double root or an even number of roots in (0,1]
+    //behvior of Brent's method is simply not defined if there is no sign change (see also https://en.wikipedia.org/wiki/Brent's_method)
     if (Fa * Fb >= 0.0) {
-        std::cout << "WARNING: No sign change in line search interval "
-                  << "(Fa=" << Fa << ", Fb=" << Fb << ")"
-                  << " - falling back to minEnergyHeavy\n";
-        Double etaFallback = 1.0;
-        LineSearchHeavy(solIncrement, stageSol, etaFallback);
-        gamma = etaFallback;
+        std::cout << "WARNING: No sign change of the energy functional in the interval [" << a << ", " << b
+                  << "] - falling back to InexactLineSearch\n";
+        gamma = InexactLineSearch(solIncrement, stageSol); //note that Inexact is computationally more expensive
     } else {
         gamma = BrentMethod(solIncrement, stageSol, a, b);
     }
-        */
-    gamma = BrentMethod(solIncrement, stageSol, a, b);
-    
     return gamma;
   }
 
@@ -499,16 +558,13 @@ namespace CoupledField
     Double b = 1.0; //top interval of eta
     Double gamma = 0.0;
 
-    Double Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a);
-    Double Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
+    Double Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a, Linform_nm1);
+    Double Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
     
     if (Fa * Fb >= 0.0) {
-        std::cout << "WARNING: No sign change in line search interval "
-                  << "(Fa=" << Fa << ", Fb=" << Fb << ")"
-                  << " - falling back to minEnergyHeavy\n";
-        Double etaFallback = 1.0;
-        LineSearchHeavy(solIncrement, stageSol, etaFallback);
-        gamma = etaFallback;
+        std::cout << "WARNING: No sign change of the energy functional in the interval [" << a << ", " << b
+                  << "] - falling back to InexactLineSearch\n";
+        gamma = InexactLineSearch(solIncrement, stageSol, Linform_nm1);
     } else {
         gamma = BrentMethod(solIncrement, stageSol, a, b, Linform_nm1);
     }
@@ -530,6 +586,7 @@ namespace CoupledField
     stageSol = stageSol_temp;
     return EnergyDerivative;
   }
+
   double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta, SBM_Vector& Linform_nm1){
     
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
@@ -545,8 +602,6 @@ namespace CoupledField
     stageSol = stageSol_temp;
     return EnergyDerivative;
   }
-
-
 
   double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& stageSol)   {
 
@@ -626,99 +681,121 @@ namespace CoupledField
     return gamma;
   }
 
+  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol, SBM_Vector& Linform_nm1)  {
+    
+    double gamma = 1.0;
+    std::vector<Double> gamma_trial = {1, 0.5, 0.25, 0.125, 0.1};
+    std::vector<Double> Energy;
 
+    for (UInt idx = 0; idx < gamma_trial.size(); idx++) {
+        Energy.push_back(GetLineSearchDerivativeFunctionValue(
+            solIncrement, stageSol, gamma_trial[idx], Linform_nm1));
+    }
+
+    int closest_index = 0;
+    Double min_distance = std::abs(Energy[0]);
+    for (int idx = 1; idx < (int)Energy.size(); ++idx) {
+        Double distance = std::abs(Energy[idx]);
+        if (distance < min_distance) {
+            min_distance = distance;
+            closest_index = idx;
+        }
+    }
+    gamma = gamma_trial[closest_index];
+
+    return gamma;
+}
 
 double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b)
 {
-    const double tol = lineSearchTolerance_;
-    const int maxIter = static_cast<int>(lineSearchMaxIter_);
 
-    auto F = [&](double x) -> double {
-        return GetLineSearchDerivativeFunctionValue(
-            solIncrement, stageSol, x);
-    };
+    //Brent's method finds the root of the 1D function E'(eta) = r(theta_k + eta*eta_phi)^T * delta_eta, see also
+    //DOI: 10.1109/TMAG.2024.3387354 and https://en.wikipedia.org/wiki/Brent's_method for Brent's method
+    //or https://apps.dtic.mil/sti/tr/pdf/AD0726170.pdf
 
-    double fa = F(a);
-    double fb = F(b);
+    const double tolInterval  = lineSearchTolerance_;   //lineSearchTolerance_ = 1e-3 default, for |b-a|
+    const double tolFunction  = 1e-10;                  //for |f(b)| and |f(s)|    
+    const int    maxIter = static_cast<int>(lineSearchMaxIter_);
+    const double eps     = std::numeric_limits<double>::epsilon(); //previously min (10e-308) was used instead of epsilon (2.2x10e-16)
 
-    std::cout << "Fa=" << fa
-              << " Fb=" << fb
-              << " -> " << ((fa * fb > 0.0) ? "no root in [a,b]" : "ok")
-              << std::endl;
+    //evaluation of the function at the interval endpoints
+    double fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a);
+    double fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
 
-    if (fa * fb >= 0.0) {
-        throw std::runtime_error(
-            "BrentMethod: root is not bracketed.");
-    }
+    //std::cout << "Fa=" << fa<< " Fb=" << fb<< " -> " << ((fa * fb > 0.0) ? "no root in [a,b]" : "ok")<< std::endl;
 
-    if (abs(fa) < abs(fb)) {
+    //Initial swap: b should always be the best current approximation of root (i.e., |f(b)| <= |f(a)|)
+    if (std::abs(fa) < std::abs(fb)) {
         std::swap(a, b);
         std::swap(fa, fb);
     }
 
-    double c = a;
+    double c  = a; //c... "oldest" of the three points
     double fc = fa;
-
-    double d = c;
-
-    bool mflag = true;
-
-    double s = b;
-    double fs = fb;
-
-    const double eps = std::numeric_limits<double>::epsilon();
+    double d  = c; // d is the previous value of c, used to check if the step is a bisection step or an interpolation step
+    bool mflag = true; //mflag: true if last step was bisection, false if interpolation (=IQI)
+    double s  = 0.0; //new candidate point
+    double fs = 0.0;
 
     for (int iter = 0; iter < maxIter; ++iter) {
 
-        if (std::abs(fb) <= tol) {
+        //convergence check on b: function value small enough
+        if (std::abs(fb) <= tolFunction) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (function tolerance on b)" << std::endl;
             return b;
         }
 
-        if (std::abs(b - a) <= 2.0 * eps * std::abs(b) + tol) {
+        //convergence check on interval: interval small enough
+        if (std::abs(b - a) <= 2.0 * eps * std::abs(b) + tolInterval) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (interval tolerance)" << std::endl;
             return b;
         }
 
-        if (fa != fc && fb != fc) {
-            s =
-                  a * fb * fc / ((fa - fb) * (fa - fc))
+        //interpolation step (IQI): only if function values at a,b,c are distinct enough to avoid
+        //division small numbers or zero
+        if (std::abs(fa - fc) > eps && std::abs(fb - fc) > eps) {
+            s =   a * fb * fc / ((fa - fb) * (fa - fc))
                 + b * fa * fc / ((fb - fa) * (fb - fc))
                 + c * fa * fb / ((fc - fa) * (fc - fb));
-        }
-        else {
-            s = b - fb * (b - a) / (fb - fa);
+        } else {
+            s = b - fb * (b - a) / (fb - fa); //secant method
         }
 
         double lower = std::min((3.0 * a + b) / 4.0, b);
         double upper = std::max((3.0 * a + b) / 4.0, b);
 
-        bool condition1 = (s < lower || s > upper);
-        bool condition2 = (mflag && std::abs(s - b) >= std::abs(b - c) / 2.0);
-        bool condition3 = (!mflag && std::abs(s - b) >= std::abs(c - d) / 2.0);
-        bool condition4 = (mflag && std::abs(b - c) < tol);
-        bool condition5 = (!mflag && std::abs(c - d) < tol);
+        bool cond1 = (s < lower || s > upper);
+        bool cond2 = ( mflag && std::abs(s - b) >= std::abs(b - c) / 2.0);
+        bool cond3 = (!mflag && std::abs(s - b) >= std::abs(c - d) / 2.0);
+        bool cond4 = ( mflag && std::abs(b - c) < tolInterval);
+        bool cond5 = (!mflag && std::abs(c - d) < tolInterval);
 
-        if (condition1 || condition2 || condition3 ||
-            condition4 || condition5)
-        {
-            s = 0.5 * (a + b);
+        //bisection if any condition holds, guarantees sufficient intervall reduction
+        if (cond1 || cond2 || cond3 || cond4 || cond5) {
+            s = 0.5 * (a + b); // bisection method
             mflag = true;
-        }
-        else {
+        } else {
             mflag = false;
         }
 
-        fs = F(s);
+        fs = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, s); //function at new candidate point s
 
-        d = c;
-        c = b;
+        if (std::abs(fs) <= tolFunction) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (function tolerance on s)" << std::endl;
+            return s;
+        }
+
+        d  = c; //update d before overwriting c
+        c  = b;
         fc = fb;
 
+        //Update bracket: replace the endpoint that has the same sign as s,
+        //preserving the sign change in [a,b].
         if (fa * fs < 0.0) {
-            b = s;
+            b  = s;
             fb = fs;
-        }
-        else {
-            a = s;
+        } else {
+            a  = s;
             fa = fs;
         }
 
@@ -727,97 +804,114 @@ double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, 
             std::swap(fa, fb);
         }
     }
-    return b;
+    //std::cout << "Brent reached maximum iterations (" << maxIter<< ") without convergence. Returning best of b/s."<< std::endl;
+    //per wikipedia "output b or s": return the point with smaller |f|.
+    return (std::abs(fb) <= std::abs(fs)) ? b : s;
+
 }
-  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b, SBM_Vector& Linform_nm1){
 
-    double Fa, Fb, Fc;
-    double c;
-    double tolerance = lineSearchTolerance_;
-    double max_iter = lineSearchMaxIter_;
-    double iter_counter = 0;
-    double prev_step = 0;
-    double tol_act = 0;
-    double eps = std::numeric_limits<Double>::min();
-    double new_step = 0;
-    double cb = 0;
-    double t1 = 0;
-    double t2 = 0;
-    double p = 0;
-    double q = 0;
+double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b, SBM_Vector& Linform_nm1)  {
 
-    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
+    //Brent's method finds the root of the 1D function E'(eta) = r(theta_k + eta*eta_phi)^T * delta_eta, see also
+    //DOI: 10.1109/TMAG.2024.3387354 and https://en.wikipedia.org/wiki/Brent's_method for Brent's method
+    //or https://apps.dtic.mil/sti/tr/pdf/AD0726170.pdf
 
-    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a, Linform_nm1);
-    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
-    c = a; 
-    Fc = Fa;
+    const double tolInterval  = lineSearchTolerance_;   //lineSearchTolerance_ = 1e-3 default, for |b-a|
+    const double tolFunction  = 1e-10;                  //for |f(b)| and |f(s)|    
+    const int    maxIter = static_cast<int>(lineSearchMaxIter_);
+    const double eps     = std::numeric_limits<double>::epsilon(); //previously min (10e-308) was used instead of epsilon (2.2x10e-16)
 
-    while(iter_counter < max_iter){
-        iter_counter  = iter_counter + 1;
+    //evaluation of the function at the interval endpoints
+    double fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a, Linform_nm1);
+    double fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
 
-        prev_step = b - a;
+    //std::cout << "Fa=" << fa<< " Fb=" << fb<< " -> " << ((fa * fb > 0.0) ? "no root in [a,b]" : "ok")<< std::endl;
 
-        if (std::abs(Fc) < std::abs(Fb)){ // swap for b to be best approximation
-            a = b ;
-            b = c ;
-            c = a ;
-            Fa = Fb ;
-            Fb = Fc ;
-            Fc = Fa ;
-        }
+    //Initial swap: b should always be the best current approximation of root (i.e., |f(b)| <= |f(a)|)
+    if (std::abs(fa) < std::abs(fb)) {
+        std::swap(a, b);
+        std::swap(fa, fb);
+    }
 
-        tol_act =  2*eps*std::abs(b) + tolerance/2 ;
-        new_step = (c-b)/2 ;
+    double c  = a; //c... "oldest" of the three points
+    double fc = fa;
+    double d  = c; // d is the previous value of c, used to check if the step is a bisection step or an interpolation step
+    bool mflag = true; //mflag: true if last step was bisection, false if interpolation (=IQI)
+    double s  = 0.0; //new candidate point
+    double fs = 0.0;
 
-        if ((std::abs(new_step) <= tol_act) || (std::abs(Fb) < eps)){
+    for (int iter = 0; iter < maxIter; ++iter) {
+
+        //convergence check on b: function value small enough
+        if (std::abs(fb) <= tolFunction) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (function tolerance on b)" << std::endl;
             return b;
         }
-        if ((std::abs(prev_step) >= tol_act) && ((std::abs(Fa-Fb))<eps)){
-            cb = c - b;
-            if (std::abs(a-c) < eps){ // linear interpolation, only two points available
-                t1 = Fb/Fa;
-                p = cb*t1;
-                q = 1.0 - t1;
-            }else { // three points, do quadratic inverse  interpolation
-                a = Fa/Fc;
-                t1 = Fb/Fc;
-                t2 = Fb/Fa;
-                p = t2*( cb*q*(q-t1) - (b-a)*(t1-1.0) );
-                q = (q-1.0)*(t1-1.0)*(t2-1.0);
-            }
 
-            if (p > 0){
-                q = -q;
-            }else {
-                p = -p;
-            }
-
-            if ((p < ( 0.75*cb*q-std::abs(tol_act*q)/2.0 )) && (p < abs(prev_step*q/2.0))){
-                new_step = p/q;
-            }
+        //convergence check on interval: interval small enough
+        if (std::abs(b - a) <= 2.0 * eps * std::abs(b) + tolInterval) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (interval tolerance)" << std::endl;
+            return b;
         }
 
-        // step must be at least as large as tolerance
-        if (std::abs(new_step) < tol_act){
-            if (new_step > 0){
-                new_step = tol_act ;
-            } else{
-                new_step = -tol_act ;
-            }
+        //interpolation step (IQI): only if function values at a,b,c are distinct enough to avoid
+        //division small numbers or zero
+        if (std::abs(fa - fc) > eps && std::abs(fb - fc) > eps) {
+            s =   a * fb * fc / ((fa - fb) * (fa - fc))
+                + b * fa * fc / ((fb - fa) * (fb - fc))
+                + c * fa * fb / ((fc - fa) * (fc - fb));
+        } else {
+            s = b - fb * (b - a) / (fb - fa); //secant method
         }
 
-        a = b;
-        Fa = Fb;
-        b = b + new_step;
-        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
-        if (( Fb > 0.0 && Fc > 0.0 ) || ( Fb < 0.0 && Fc < 0.0 )){
-            c = a;
-            Fc = Fa;        
+        double lower = std::min((3.0 * a + b) / 4.0, b);
+        double upper = std::max((3.0 * a + b) / 4.0, b);
+
+        bool cond1 = (s < lower || s > upper);
+        bool cond2 = ( mflag && std::abs(s - b) >= std::abs(b - c) / 2.0);
+        bool cond3 = (!mflag && std::abs(s - b) >= std::abs(c - d) / 2.0);
+        bool cond4 = ( mflag && std::abs(b - c) < tolInterval);
+        bool cond5 = (!mflag && std::abs(c - d) < tolInterval);
+
+        //bisection if any condition holds, guarantees sufficient intervall reduction
+        if (cond1 || cond2 || cond3 || cond4 || cond5) {
+            s = 0.5 * (a + b); // bisection method
+            mflag = true;
+        } else {
+            mflag = false;
+        }
+
+        fs = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, s, Linform_nm1); //function at new candidate point s
+
+        if (std::abs(fs) <= tolFunction) {
+            //std::cout << "Brent converged after " << (iter + 1)<< " iterations (function tolerance on s)" << std::endl;
+            return s;
+        }
+
+        d  = c; //update d before overwriting c
+        c  = b;
+        fc = fb;
+
+        //Update bracket: replace the endpoint that has the same sign as s,
+        //preserving the sign change in [a,b].
+        if (fa * fs < 0.0) {
+            b  = s;
+            fb = fs;
+        } else {
+            a  = s;
+            fa = fs;
+        }
+
+        if (std::abs(fa) < std::abs(fb)) {
+            std::swap(a, b);
+            std::swap(fa, fb);
         }
     }
-    return b;
-  }
+    //std::cout << "Brent reached maximum iterations (" << maxIter<< ") without convergence. Returning best of b/s."<< std::endl;
+    //per wikipedia "output b or s": return the point with smaller |f|.
+    return (std::abs(fb) <= std::abs(fs)) ? b : s;
+
+}
 
   void SolveStepEB::LineSearchHeavy(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch) {
 
