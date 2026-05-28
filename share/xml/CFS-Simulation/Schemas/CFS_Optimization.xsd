@@ -181,6 +181,7 @@
                               <xsd:element name="rhsValues" type="DT_BcInhomVector" />
                               <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
                               <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull" />
+                              <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                               <xsd:element name="transform">
                                 <xsd:complexType>
                                   <xsd:attribute name="excitation" type="DT_Excitation" use="required" />
