@@ -1080,7 +1080,7 @@ stable_ser:gcc9min:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1092,7 +1092,7 @@ unstable_ser:gcc9min:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     # is built without opnemp  
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
@@ -1147,7 +1147,7 @@ stable_ser:gcc14-musl:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1159,7 +1159,7 @@ stable_par:gcc14-musl:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1171,7 +1171,7 @@ stable_par:intel:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1183,7 +1183,7 @@ unstable_ser:intel:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1288,7 +1288,7 @@ broken_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     # is built without opnemp  
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
@@ -1355,7 +1355,7 @@ unstable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1366,7 +1366,7 @@ unstable_par:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1377,7 +1377,7 @@ broken_ser:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1388,7 +1388,7 @@ broken_ser:intel:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
