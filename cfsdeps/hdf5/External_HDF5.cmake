@@ -9,7 +9,7 @@ set(PACKAGE_NAME "hdf5")
 set(PACKAGE_VER "1.14.6")
 set(PACKAGE_FILE "hdf5-${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "63426c8e24086634eaf9179a8c5fe9e5")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 #https://support.hdfgroup.org/releases/hdf5/v1_14/v1_14_6/downloads/hdf5-1.14.6.tar.gz
 set(PACKAGE_MIRRORS "https://support.hdfgroup.org/releases/hdf5/v1_14/v1_14_6/downloads/${PACKAGE_FILE}")
