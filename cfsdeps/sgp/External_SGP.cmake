@@ -7,14 +7,14 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "sgp")
-set(PACKAGE_VER "cfs-2026-05")
+set(PACKAGE_VER "cfs-260530")
 set(SGP_VER ${PACKAGE_VER}) # for Dependencies.cc
 # the branch is still not on the master but now a fork of the master by Fabian based on Ngoc's branch
 set(PACKAGE_FILE "sgp-cfs-3drot-${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "20ec12781be36f5ecfbe3d88b0d117d7")
+set(PACKAGE_MD5 "078ad97643ddd88cb0cd44e2d4574deb")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-# https://gitlab.com/openCFS/sgp-cfs-3drot/-/archive/cfs-2026-05/sgp-cfs-3drot-cfs-2026-05.tar.gz
+# https://gitlab.com/openCFS/sgp-cfs-3drot/-/archive/cfs-260530/sgp-cfs-3drot-cfs-260530.tar.gz
 set(PACKAGE_MIRRORS "https://gitlab.com/openCFS/sgp-cfs-3drot/-/archive/${PACKAGE_VER}/${PACKAGE_FILE}") 
 
 # OpenMP
