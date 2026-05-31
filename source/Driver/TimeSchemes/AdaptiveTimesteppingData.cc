@@ -188,6 +188,34 @@ Double AdaptiveTimesteppingData::pidController(bool* accepted,
     return h_next;
 }
 
+double AdaptiveTimesteppingData::lteStabilityFactor(double est) const
+{
+    if (prevPrevError_ <= 0.0 || prevError_ <= 0.0 || est <= 0.0)
+        return 1.0;
+
+    const double e0 = prevPrevError_;
+    const double e1 = prevError_;
+    const double e2 = est;
+
+    const double r1 = e1 / e0;   // trend: step n-2 → n-1
+    const double r2 = e2 / e1;   // trend: step n-1 → n
+
+    // Growing: LTE monotonically increasing over all 3 steps
+    if (r1 > 1.0 && r2 > 1.0) {
+        double growth = std::max(r1, r2);
+        return std::max(0.1, 1.0 / growth);
+    }
+
+    // Oscillating: direction flipped AND amplitude swing is large
+    const double ampThreshold = 2.0;
+    double hi = std::max({e0, e1, e2});
+    double lo = std::min({e0, e1, e2});
+    if ((r2 > 1.0) != (r1 > 1.0) && hi / lo > ampThreshold)
+        return 0.5;
+
+    return 1.0;
+}
+
 AdaptiveTimesteppingData::StepResult
 AdaptiveTimesteppingData::computeNextStep(
         double h, double h_prev, double est, double dtMin, double dtMax)
@@ -210,18 +238,13 @@ AdaptiveTimesteppingData::computeNextStep(
     }
     consecutiveNaN_ = 0;
 
-    // 2. Growing-error detection — LTE increases as dt shrinks → ill-conditioned.
-    // Revert to h_prev (the last accepted step) and force-accept that instead.
+    // 2. Growing-error detection — LTE increases as dt shrinks → force-accept current step.
+    // Reverting to h_prev would re-run from a polluted initial guess at the larger dt
+    // that already failed, producing even larger errors.
     if (prevRetryError_ > 0.0 && est > prevRetryError_) {
         std::cout << " [Adaptive] Growing LTE on retry (" << prevRetryError_
-                  << " → " << est << ") — reverting to previous dt and force-accepting.\n";
+                  << " → " << est << ") — force-accepting current step at dt=" << h << ".\n";
         mark_saturated();
-        if (h_prev > 0.0) {
-            revertToPrevDt_ = true;
-            return {h_prev, false};  // reject; TransientDriver retries with h_prev
-        }
-        // h_prev unavailable (warm-up) — fall back to force-accept at current h
-        prevRetryError_        = est;
         toleranceNotReachable_ = true;
         return {std::max(h, dtMin), true};
     }
@@ -240,6 +263,15 @@ AdaptiveTimesteppingData::computeNextStep(
     if      (controllerType_ == 0) h_next = iController(&accepted,  est, h);
     else if (controllerType_ == 1) h_next = piController(&accepted, est, h);
     else                           h_next = pidController(&accepted, est, h);
+
+    // 4b. LTE stability damping — pulls h_next toward h when LTE trend is unstable.
+    // Applies symmetrically to growth and shrinkage, for all controller types.
+    double sf = lteStabilityFactor(est);
+    if (sf < 1.0) {
+        h_next = h * (1.0 + (h_next / h - 1.0) * sf);
+        std::cout << " [Adaptive] LTE unstable (sf=" << sf
+                  << ") — damping step change to dt=" << h_next << "\n";
+    }
 
     // 5. BDF2 stability cap — upper bound on growth ratio.
     if (h_next / h > maxRatio)

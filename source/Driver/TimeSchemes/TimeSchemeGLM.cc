@@ -468,15 +468,10 @@ namespace CoupledField{
             if (!skipAdaptiveControl) {
               bool accepted = ComputeAdaptiveStepSize();
               if (!accepted) {
-                if (atd->revertToPrevDt_)
-                  std::cout << " [Adaptive] Re-running with previous dt= "
-                            << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt")
-                            << " (force-accept on next attempt).\n";
-                else
-                  std::cout << " [Adaptive] Step REJECTED: LocalError= "
-                            << atd->getControllingError()
-                            << " > tol, retrying with dt= "
-                            << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+                std::cout << " [Adaptive] Step REJECTED: LocalError= "
+                          << atd->getControllingError()
+                          << " > tol, retrying with dt= "
+                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
                 reset_dt();
                 return;
               }
@@ -513,14 +508,9 @@ namespace CoupledField{
           if (!skipAdaptiveControl) {
             bool accepted = ComputeAdaptiveStepSize();
             if (!accepted) {
-              if (atd->revertToPrevDt_)
-                std::cout << " [Adaptive] Re-running with previous dt= "
-                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt")
-                          << " (force-accept on next attempt).\n";
-              else
-                std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
-                          << " > tol, retrying with dt= "
-                          << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
+              std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
+                        << " > tol, retrying with dt= "
+                        << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
               reset_dt();
               return;
             }
@@ -816,16 +806,6 @@ namespace CoupledField{
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
   {
     auto* atd = domain_->GetAdaptiveData().get();
-
-    // Reverted step after growing-LTE saturation: skip LTE check and force-accept.
-    if (atd->revertToPrevDt_) {
-        atd->revertToPrevDt_        = false;
-        atd->toleranceNotReachable_ = true;
-        atd->stepRejected_          = false;
-        atd->totalAcceptedSteps_++;
-        mathparser_->SetValue(MathParser::GLOB_HANDLER, "dt", curScheme_->dtCurrent_);
-        return true;
-    }
 
     auto r = atd->computeNextStep(
         curScheme_->dtCurrent_,

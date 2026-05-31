@@ -28,7 +28,6 @@ public:
     bool   stepRejected_          = false;
     bool   toleranceNotReachable_ = false;
     double prevRetryError_        = 0.0;  // LTE from previous retry; 0 = first attempt
-    bool   revertToPrevDt_       = false; // retry with h_prev after growing-LTE saturation
     int    consecutiveNaN_       = 0;     // consecutive NaN-solution steps; abort after threshold
 
     // Multi-field LTE: each field registers via FinishStepLTE(); FinishStep() makes one consistent decision.
@@ -82,6 +81,10 @@ public:
 
     //! H312 PID controller (Söderlind 2005, eq. 38) — for non-smooth/noisy problems
     Double pidController(bool* accepted, Double local_error_, Double dtCurrent_);
+
+    //! 3-step LTE stability factor: 1=stable (full controller freedom), <1=damp step change.
+    //! Detects monotone LTE growth and large oscillations; applies to all controllers.
+    double lteStabilityFactor(double est) const;
 };
 
 } // namespace CoupledField

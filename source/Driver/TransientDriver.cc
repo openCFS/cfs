@@ -207,6 +207,13 @@ namespace CoupledField {
   
  
    
+
+    if (atData_ && atData_->controllerType_ != 2) {
+        const std::string& pn = ptPDE_->GetName();
+        if (pn.rfind("magnetic", 0) == 0)
+            EXCEPTION("Adaptive timestepping on magnetic PDEs requires controller=\"PID\".");
+    }
+
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
@@ -250,8 +257,6 @@ namespace CoupledField {
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt",   dt_ );
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );
       // Reset per-step adaptive state each attempt.
-      // revertToPrevDt_ is intentionally NOT cleared here — it must survive
-      // the retry so ComputeAdaptiveStepSize can force-accept the reverted step.
       if (atData_) {
         atData_->stepRejected_          = false;
         atData_->toleranceNotReachable_ = false;
