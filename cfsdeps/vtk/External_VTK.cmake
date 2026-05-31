@@ -44,11 +44,16 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # don't set compiler flags, we need to change
-set_deps_args_default(OFF) 
+set_deps_args_default(OFF)
 
 # VTK 7.1 does not compile with msvc as C++17 -> set back to C++14
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   string(REPLACE "c++17" "c++14" _CXX_FLAGS ${CFSDEPS_CXX_FLAGS})
+# VTK 7.1 makes trouble on mist recent fedora with gcc 16
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+  message(STATUS "VTK 7.1 on GNU > 16 does not compile with c++17, setting to 14")
+  string(REPLACE "c++17" "" _CXX_FLAGS ${CFSDEPS_CXX_FLAGS})
+  set(DEPS_ARGS ${DEPS_ARGS} -DCMAKE_CXX_STANDARD=14)
 else()
   set(_CXX_FLAGS ${CFSDEPS_CXX_FLAGS})
 endif()

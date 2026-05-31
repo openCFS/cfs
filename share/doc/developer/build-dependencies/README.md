@@ -21,4 +21,6 @@ Once an instruction breaks,
  1. replace the symlink with the last working version (and update symlinks for even older versions, if present)
  2. create a new instruction for the latest version
 
-Instructions can be tested locally by using our [docker config](/share/docker/README.md). 
+Instructions can be tested locally by using our [docker config](/share/docker/README.md).
+Instructions are also tested in the _platform_ stage of the [CI pipeline](../../../../.gitlab-ci.yml).
+When old instructions are removed from there, keep the last working copy as markdown file: In case the last tested version symlinks to the `*_latest.md`, one needs to create the file to ensure it is not changed when updating the latest version.

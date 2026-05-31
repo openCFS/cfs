@@ -11,12 +11,11 @@ Intel MKL can be installed via the official [Intel oneAPI repository](https://ww
 
 First, make sure we have the dependencies for the instructions
 ```shell
-apt-get install -y wget gnupg apt-transport-https ca-certificates
+apt-get install -y wget apt-transport-https ca-certificates
 ```
-Then get the PGP-key and add it
+Then get the PGP-key and add it to the trusted keys
 ```shell
-wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB -O /etc/apt/trusted.gpg.d/oneapi-archive-keyring.asc
 ```
 Add the repo and update
 ```shell

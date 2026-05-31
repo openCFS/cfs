@@ -150,7 +150,7 @@ namespace CoupledField {
     std::string line;
     std::stringstream sstr;
     
-    for(UInt lineNum=1; it != end; it++, lineNum++) {
+    for(; it != end; it++) {
       line = *it;
       
       // strip whitespaces

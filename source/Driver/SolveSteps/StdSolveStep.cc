@@ -914,9 +914,7 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
     std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
     std::map<FEMatrixType,Integer>::iterator matIt;
-    
-    UInt pos = 0;
-    
+
     bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 ); 
     bool storeInitialIterGlmVec = ( couplingIter_ == 0 );
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
@@ -931,7 +929,7 @@ namespace CoupledField {
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
       stageSol.Resize(feFunctions_.size());
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+      for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
         FeFctIdType fncId = fncIt->second->GetFctId();
 
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fncId);
@@ -979,7 +977,7 @@ namespace CoupledField {
             
             if(matIt->second < 0)
               continue;
-            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
               FeFctIdType fncId = fncIt->second->GetFctId();
               fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fncId));
             }
@@ -1078,7 +1076,7 @@ namespace CoupledField {
             //std::cout << "Matrix: " << matIt->first << std::endl;
             if(matIt->second < 0)
               continue;
-            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
               FeFctIdType fncId = fncIt->second->GetFctId();
               fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(fncId));
             }
@@ -1142,10 +1140,9 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
     limitFeFctIt = feFunctions_.find(solutionLimit_);
     if (limitFeFctIt != feFunctions_.end() ) {
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+      for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
         FeFctIdType fncId = fncIt->second->GetFctId();
-        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
-          //const SingleVector * subv = solVec_.GetPointer(pos);
+        if (fncIt == limitFeFctIt) {
           Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(fncId)));
           for (UInt j=0; j < dsubVec.GetSize(); j++) {
             if (dsubVec[j] >= maxValidValue_) {
@@ -1164,9 +1161,9 @@ namespace CoupledField {
     }
     
     //update stage — two-phase: collect all field LTEs first, then decide + update GLM
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStepLTE();
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
   }
 

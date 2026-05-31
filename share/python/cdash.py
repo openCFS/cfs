@@ -8,8 +8,8 @@ import datetime
 import argparse
 
 today = datetime.datetime.today()
-#url = 'http://am-ko.mi.uni-erlangen.de/cdash/api/v1/testSummary.php?date=2024-09-16&name=Coupledfield_LinFlowMechSmooth_CompressedChamber2D&project=1&export=csv'
-server = 'http://am-ko.mi.uni-erlangen.de/cdash/api/v1/testSummary.php?'
+#url = 'https://am-ko.mi.uni-erlangen.de/cdash/api/v1/testSummary.php?date=2024-09-16&name=Coupledfield_LinFlowMechSmooth_CompressedChamber2D&project=1&export=csv'
+server = 'https://am-ko.mi.uni-erlangen.de/cdash/api/v1/testSummary.php?'
 url = server + 'project=1'
       
 txt =  'searches the openCFS cdash server for a specific test case and reports when it failed'

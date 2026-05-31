@@ -663,8 +663,7 @@ namespace CoupledField {
     StdVector<std::string> regionNames;
     ptGrid_->GetRegionNames(regionNames);
 
-    UInt i, j, k,n;
-    k = 0;
+    UInt i, j, n;
     for (i=0; i<surfsubdoms.GetSize(); i++) {
       subdoms.Push_back(surfsubdoms[i]);
     }
@@ -741,7 +740,7 @@ namespace CoupledField {
       (*output) << std::setw(10) << numEntities << std::endl;
       (*output) << names[i] << std::endl;
 
-      for ( j = 0; j < numEntities; j++, k++ ) {  
+      for ( j = 0; j < numEntities; j++ ) {  
         (*output) << std::setw(10) << entityTypeCodes[i];
         (*output) << std::setw(10) << entities[i][j];
         (*output) << std::setw(10) << 0;

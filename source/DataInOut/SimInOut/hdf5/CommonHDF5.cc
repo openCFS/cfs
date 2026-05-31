@@ -76,9 +76,8 @@ H5G_info_t GetInfo(hid_t group_id)
 }
 
 //-----------------------------------------------------------------------------
-// FileInfo() is a callback function for H5Giterate().
-// By comment we prevent warnings for unused loc_id
-herr_t FileInfo(hid_t /* loc_id */, const char* name, void* opdata)
+// FileInfo() is a callback function for H5Literate2().
+herr_t FileInfo(hid_t /* loc_id */, const char* name, const H5L_info2_t* /*info*/, void* opdata)
 {
   StdVector<std::string>* names = reinterpret_cast<StdVector<std::string>*>(opdata);
   assert(names != nullptr);
@@ -92,7 +91,7 @@ StdVector<std::string> ParseGroup(hid_t loc_id, const std::string& name)
 {
   StdVector<std::string> result;
 
-  H5Giterate(loc_id, name.c_str(), nullptr, FileInfo, &result);
+  H5Literate2(loc_id, H5_INDEX_NAME, H5_ITER_NATIVE, nullptr, FileInfo, &result);
 
   return result;
 }
@@ -164,11 +163,13 @@ void ReadAttribute<std::string>(hid_t loc_id, const std::string& objName, const 
     hid_t file_type2 = H5Aget_type(attr_id);
     hid_t mem_type = H5Tcopy(file_type2);
     H5Tclose(file_type2);
+    hid_t scalar_space = H5Screate(H5S_SCALAR);
     err = H5Aread(attr_id, mem_type, &vl_buf);
-    H5Tclose(mem_type);
     if (err >= 0 && vl_buf != nullptr)
       data = std::string(vl_buf);
-    H5free_memory(vl_buf);
+    H5Treclaim(mem_type, scalar_space, H5P_DEFAULT, &vl_buf);
+    H5Sclose(scalar_space);
+    H5Tclose(mem_type);
   } else {
     // Fixed-length string (written by H5LTset_attribute_string)
     hid_t file_type2 = H5Aget_type(attr_id);
@@ -178,6 +179,7 @@ void ReadAttribute<std::string>(hid_t loc_id, const std::string& objName, const 
     hid_t mem_type = H5Tcopy(H5T_C_S1);
     H5Tset_size(mem_type, size);
     H5Tset_strpad(mem_type, H5T_STR_NULLTERM);
+    H5Tset_cset(mem_type, H5T_CSET_ASCII);
 
     std::vector<char> buf(size + 1, '\0');
     err = H5Aread(attr_id, mem_type, buf.data());
@@ -262,12 +264,21 @@ template <>
 void ReadDataSet<std::string>(hid_t loc, const std::string& name, std::string* out)
 {
   assert(out != nullptr);
+  hid_t dset = H5Dopen2(loc, name.c_str(), H5P_DEFAULT);
+  if (dset < 0)
+    throw Exception("cannot open string dataset " + name);
+  hid_t dtype = H5Dget_type(dset);
+  hid_t space = H5Dget_space(dset);
   char* buffer = nullptr;
-  if (H5LTread_dataset_string(loc, name.c_str(), reinterpret_cast<char*>(&buffer)) < 0)
+  herr_t err = H5Dread(dset, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, &buffer);
+  if (err >= 0 && buffer != nullptr)
+    *out = std::string(buffer);
+  H5Treclaim(dtype, space, H5P_DEFAULT, &buffer);
+  H5Sclose(space);
+  H5Tclose(dtype);
+  H5Dclose(dset);
+  if (err < 0)
     throw Exception("cannot read string dataset " + name);
-  
-  *out = std::string(buffer); // convert to string and copy
-  free(buffer);
 }
 
 template <typename TYPE>
@@ -298,7 +309,8 @@ template <typename TYPE>
 void ReadArray(hid_t loc, const std::string& name, StdVector<TYPE>& data)
 {
   data.Resize(GetNumberOfEntries(loc, name));
-  ReadDataSet(loc, name, data.GetPointer());
+  if (data.GetSize() > 0) // properly handle empty but existing dataset
+    ReadDataSet(loc, name, data.GetPointer());
 }
 
 template void ReadArray<int>(hid_t loc, const std::string& name, StdVector<int>& data);
@@ -309,17 +321,23 @@ template <>
 void ReadArray<std::string>(hid_t loc, const std::string& name, StdVector<std::string>& data)
 {
   const unsigned int n = GetNumberOfEntries(loc, name);
-  // We use RAII instead of char** buffer = new char*[n] as suggested in h5 documentation
+  hid_t dset = H5Dopen2(loc, name.c_str(), H5P_DEFAULT);
+  if (dset < 0)
+    throw Exception("cannot open string array dataset " + name);
+  hid_t dtype = H5Dget_type(dset);
+  hid_t space = H5Dget_space(dset);
   StdVector<char*> buffer(n);
-  if (H5LTread_dataset_string(loc, name.c_str(), reinterpret_cast<char*>(buffer.GetPointer())) < 0)
-    throw Exception("cannot read string array dataset " + name);
-
+  herr_t err = H5Dread(dset, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer.GetPointer());
   data.Resize(n);
-  for (unsigned int i = 0; i < n; i++)
-  {
-    data[i] = std::string(buffer[i]);
-    free(buffer[i]);
-  }
+  if (err >= 0)
+    for (unsigned int i = 0; i < n; i++)
+      data[i] = std::string(buffer[i]);
+  H5Treclaim(dtype, space, H5P_DEFAULT, buffer.GetPointer());
+  H5Sclose(space);
+  H5Tclose(dtype);
+  H5Dclose(dset);
+  if (err < 0)
+    throw Exception("cannot read string array dataset " + name);
 }
 
 
@@ -394,6 +412,7 @@ void WriteAttribute<std::string>(
   // H5LTset_attribute_string would crash CFSReader but cfs's ReadAttribute() reads both
   hid_t strtype = H5Tcopy(H5T_C_S1);
   H5Tset_size(strtype, H5T_VARIABLE);
+  H5Tset_cset(strtype, H5T_CSET_ASCII);
 
   hid_t obj_id = H5Oopen(loc_id, objName.c_str(), H5P_DEFAULT);
   if (obj_id < 0) {
@@ -471,6 +490,7 @@ void WriteStringArray(hid_t loc, const std::string& name, const StdVector<std::s
 {
   hid_t strtype = H5Tcopy(H5T_C_S1);
   H5Tset_size(strtype, H5T_VARIABLE);
+  H5Tset_cset(strtype, H5T_CSET_ASCII);
 
   hsize_t dims[1] = {data.size()};
   hid_t space = H5Screate_simple(1, dims, nullptr);
@@ -535,7 +555,7 @@ void ExtendAndWriteSlab(hid_t dset, StdVector<hsize_t> currRows, StdVector<hsize
   offset.Init(0);
   offset[0] = currRows[0];
 
-  H5Dextend(dset, newDims.GetPointer());
+  H5Dset_extent(dset, newDims.GetPointer());
   hid_t fileSpace = H5Dget_space(dset);
   H5Sselect_hyperslab(fileSpace, H5S_SELECT_SET, offset.GetPointer(), nullptr, count.GetPointer(), nullptr);
   hid_t memSpace = H5Screate_simple(rank, count.GetPointer(), nullptr);

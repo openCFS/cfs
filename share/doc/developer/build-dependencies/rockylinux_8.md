@@ -37,8 +37,9 @@ repo_gpgcheck=1
 gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 EOF
 ```
-then copy it to the correct place and import the GPG key
+then copy it to the correct place and import the GPG key (and make sure we have a CA-chain)
 ```shell
+yum install -y ca-certificates
 mv /tmp/oneAPI.repo /etc/yum.repos.d
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 ```

@@ -125,8 +125,8 @@ include("TestMacros.cmake")
 # Set file name for configured version of CFS++ standard test macro (there is a .in version)
 # * cfstool for comparisson of h5 files (default)
 # * compare_info_xml.py for comparison of special info.xml stuff (eigenfrequencies) via parameter "info.xml"
-set(CFS_STANDARD_TEST "${CFS_BINARY_DIR}/testsuite/StandardTest.cmake")
-set(PYTHON_TEST "${CFS_BINARY_DIR}/testsuite/PythonTest.cmake")
+set(CFS_STANDARD_TEST "${CMAKE_BINARY_DIR}/testsuite/StandardTest.cmake")
+set(PYTHON_TEST "${CMAKE_BINARY_DIR}/testsuite/PythonTest.cmake")
 
 # Define path to info.xml compare script (for eigenvalue and other stuff)
 set(COMPARE_INFO_XML "${CMAKE_CURRENT_SOURCE_DIR}/compare_info_xml.py")
@@ -185,6 +185,17 @@ if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES
     endforeach()
   endif()
   mark_as_advanced(PythonModules_DIR)
+
+  # Find h5diff from hdf5-tools — used by Python-script tests to compare
+  # .h5 result against .h5ref reference.  Independent of cfstool so the CI
+  # pipeline (which does not build cfstool) can still run these tests.
+  find_program(H5DIFF_EXECUTABLE NAMES h5diff)
+  if(TESTSUITE_PYTHON AND NOT H5DIFF_EXECUTABLE)
+    message(WARNING "h5diff not found — Python HDF5 comparison tests will fail. "
+                    "Install hdf5-tools (apt: hdf5-tools, conda: hdf5).")
+  else()
+    message(STATUS "using ${H5DIFF_EXECUTABLE} for Python HDF5 comparison tests")
+  endif()
 endif()
 
 #-------------------------------------------------------------------------------

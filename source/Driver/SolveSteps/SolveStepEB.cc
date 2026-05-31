@@ -67,11 +67,9 @@ namespace CoupledField
     std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
     std::map<FEMatrixType,Integer>::iterator matIt;
     
-    UInt pos = 0;
-    
     for(UInt i=0;i<numStages;i++){
       stageSol.Resize(feFunctions_.size());
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
         FeFctIdType fncId = fncIt->second->GetFctId();
 
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fncId);
@@ -281,10 +279,9 @@ namespace CoupledField
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
     limitFeFctIt = feFunctions_.find(solutionLimit_);
     if (limitFeFctIt != feFunctions_.end() ) {
-      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+      for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
         FeFctIdType fncId = fncIt->second->GetFctId();
-        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
-          //const SingleVector * subv = solVec_.GetPointer(pos);
+        if (fncIt == limitFeFctIt) {
           Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(fncId)));
           for (UInt j=0; j < dsubVec.GetSize(); j++) {
             if (dsubVec[j] >= maxValidValue_) {
@@ -303,7 +300,7 @@ namespace CoupledField
     }
     
     //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+    for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
       /*
        * here we finally compute the new solution vector
        *  solution_new = solution_old + stage_solutions

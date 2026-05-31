@@ -7,12 +7,15 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "sgp")
-set(PACKAGE_VER "23.7.12")
+set(PACKAGE_VER "cfs-260530")
 set(SGP_VER ${PACKAGE_VER}) # for Dependencies.cc
-# this is currently a branch from Ngoc, the next version might be already from the master (-> mirror)
-set(PACKAGE_FILE "sgp-cfs-debug-3drot-${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "186e68b457f21ee786c9dcf7fa1a36f5")
-set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+# the branch is still not on the master but now a fork of the master by Fabian based on Ngoc's branch
+set(PACKAGE_FILE "sgp-cfs-3drot-${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "078ad97643ddd88cb0cd44e2d4574deb")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+# https://gitlab.com/openCFS/sgp-cfs-3drot/-/archive/cfs-260530/sgp-cfs-3drot-cfs-260530.tar.gz
+set(PACKAGE_MIRRORS "https://gitlab.com/openCFS/sgp-cfs-3drot/-/archive/${PACKAGE_VER}/${PACKAGE_FILE}") 
 
 # OpenMP
 if(USE_OPENMP)
@@ -21,8 +24,6 @@ else()
   set(DEPS_ID "NO_OPENMP")
 endif()
 
-# replace when we can download a tagged version from master by a next revision
-set(PACKAGE_MIRRORS "${CFS_FAU_MIRROR}/sources/sgp/${PACKAGE_FILE}") 
 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()

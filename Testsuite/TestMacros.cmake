@@ -196,6 +196,86 @@ MACRO(DIFF_TEST_RESULTS_CFSTOOL EPSILON)
 ENDMACRO(DIFF_TEST_RESULTS_CFSTOOL)
 
 #-------------------------------------------------------------------------------
+# Compare result .h5 against .h5ref using h5diff (from hdf5-tools).
+#
+# Tolerance variables (set via -D in the calling test's CMakeLists.txt):
+#
+#   EPSILON   relative tolerance, mapped to h5diff -p.
+#             A pair (a, b) is equal if  |a - b| / |b|  <=  EPSILON.
+#             Same semantic as cfstool's --eps in relL2diff mode, so the
+#             convention carries over from existing CFS tests.
+#             Use for FP arithmetic output (postprocessing, IFFTs, etc.).
+#
+#   ABSTOL    absolute tolerance, mapped to h5diff -d.
+#             A pair (a, b) is equal if  |a - b|  <=  ABSTOL.
+#             Useful as a floor next to EPSILON when reference values can
+#             be zero (relative comparison breaks down at 0).
+#
+#   When both EPSILON and ABSTOL are set, h5diff treats a pair as equal if
+#   *either* criterion holds — the standard "absolute OR relative" rule.
+#   When neither is set, comparison is bit-exact (correct for deterministic
+#   geometry-only outputs like the extrudeMesh tests).
+#
+#   H5DIFF_OBJ   optional Object within the HDF5 file to restrict comparison
+#                 to, e.g. "/Mesh". Empty = compare the whole file.
+#-------------------------------------------------------------------------------
+MACRO(DIFF_TEST_RESULTS_H5DIFF)
+  set(h5_res "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}/results_hdf5/${TEST_FILE_BASENAME}.h5")
+  if(NOT EXISTS "${h5_res}")
+    message(FATAL_ERROR "Python test produced no '${h5_res}' — nothing to diff.")
+  endif()
+  if(NOT H5DIFF_EXECUTABLE)
+    message(FATAL_ERROR "h5diff not found. Install hdf5-tools and reconfigure.")
+  endif()
+
+  set(H5DIFF_ARGS "")
+
+  # /FileInfo holds the write timestamp, creator, and version of the writing
+  # tool — never useful to compare and the Date dataset will always differ
+  # between the .h5ref (written once) and a fresh test result (written today).
+  list(APPEND H5DIFF_ARGS "--exclude-path" "/FileInfo")
+
+  # Additional user-supplied exclusions (semicolon-separated list).
+  foreach(p ${H5DIFF_EXCLUDE})
+    list(APPEND H5DIFF_ARGS "--exclude-path" "${p}")
+  endforeach()
+
+  if(EPSILON)
+    list(APPEND H5DIFF_ARGS "-p" "${EPSILON}")
+  endif()
+  if(ABSTOL)
+    list(APPEND H5DIFF_ARGS "-d" "${ABSTOL}")
+  endif()
+  list(APPEND H5DIFF_ARGS "${H5REF_FILE}" "${h5_res}")
+  if(H5DIFF_OBJ)
+    string(REGEX REPLACE "^\"|\"$" "" H5DIFF_OBJ "${H5DIFF_OBJ}")
+    list(APPEND H5DIFF_ARGS "${H5DIFF_OBJ}")
+  endif()
+
+  message(STATUS "Running: ${H5DIFF_EXECUTABLE} ${H5DIFF_ARGS} in ${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}.")
+  execute_process(
+    COMMAND "${H5DIFF_EXECUTABLE}" ${H5DIFF_ARGS}
+    WORKING_DIRECTORY "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}"
+    OUTPUT_VARIABLE H5DIFF_OUTPUT
+    ERROR_VARIABLE  H5DIFF_ERROR
+    RESULT_VARIABLE H5DIFF_RETVAL
+  )
+
+  if(NOT H5DIFF_RETVAL EQUAL 0)
+    message("executed: ${H5DIFF_EXECUTABLE} ${H5DIFF_ARGS}")
+    message("${H5DIFF_OUTPUT}")
+    if(H5DIFF_ERROR)
+      message("${H5DIFF_ERROR}")
+    endif()
+    message(FATAL_ERROR
+      "h5diff: results for '${TEST_NAME}' differ from reference "
+      "(exit ${H5DIFF_RETVAL}).")
+  else()
+    message(STATUS "h5diff: results for '${TEST_NAME}' match reference.")
+  endif()
+ENDMACRO(DIFF_TEST_RESULTS_H5DIFF)
+
+#-------------------------------------------------------------------------------
 # Run compare_info_xml.py which searches for special stuff to compare in info.xml
 # SKIP_NOISE: optional
 # LAST: optional see Optimization/MultiSequence/eigen_stiffness for an example. 
@@ -281,6 +361,31 @@ MACRO(RUN_AND_TEST_PYTHON EPSILON NO_COMPARE)
     endif()
   endif()
   
+  if(PYTHON_ARGS)
+    COPY_TEST_FILES("${TEST_FILE_LIST}" "OFF")
+    separate_arguments(NO_QUOTES UNIX_COMMAND "${PYTHON_ARGS}")
+    separate_arguments(ARGS_LIST UNIX_COMMAND "${NO_QUOTES}")
+    EXECUTE_PROCESS(
+      # create the hdf5_results folder
+      COMMAND ${CMAKE_COMMAND} -E make_directory "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}/results_hdf5"
+      # important to have to quotation marks around the variable
+      COMMAND ${Python_EXECUTABLE} ${ARGS_LIST}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      ERROR_VARIABLE PYTHON_ERROR
+      RESULT_VARIABLE PYTHON_RETVAL
+    )
+    if(NOT PYTHON_RETVAL EQUAL 0)
+      message("CMD ${Python_EXECUTABLE} ${ARGS_LIST}")
+      message(WARNING "PYTHON_RETVAL: ${PYTHON_RETVAL}")
+      message(WARNING "PYTHON_ERROR: ${PYTHON_ERROR}")
+      message(FATAL_ERROR "Python test failed for ${TEST_NAME}.")
+    endif()
+    if(TEST_H5DIFF) # set in the testcase via -DTEST_H5DIFF:BOOL=ON
+      DIFF_TEST_RESULTS_H5DIFF()
+    else()
+      message(STATUS "skip h5diff on request by -DTEST_H5DIFF=OFF")
+    endif()
+  endif()
 ENDMACRO(RUN_AND_TEST_PYTHON)
 
 MACRO(RUN_AND_TEST_MATVIZ)

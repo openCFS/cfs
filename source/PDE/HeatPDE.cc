@@ -756,18 +756,18 @@ void HeatPDE::DefineIntegrators() {
 
       if( dim_ == 2) {
         if(isComplex_) {
-          linSUPG = new BUIntegrator<Complex> ( bOperator,Complex(1.0), factor, updatedGeo_ );
+          linSUPG = new BUIntegrator<Complex> ( bOperator,Complex(1.0), newCoef, updatedGeo_ );
         } else {
-          linSUPG = new BUIntegrator<Double> ( bOperator,1.0, factor, updatedGeo_ );
+          linSUPG = new BUIntegrator<Double> ( bOperator,1.0, newCoef, updatedGeo_ );
         }
       } else  {
         if(isComplex_) {
-          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), factor, updatedGeo_ );
+          linSUPG = new BUIntegrator<Complex> ( bOperator, Complex(1.0), newCoef, updatedGeo_ );
         } else {
-          linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, factor, updatedGeo_ );
+          linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
         }
       }
-      lin->SetName("ElectricPowerDensityIntSUPG");
+      linSUPG->SetName("ElectricPowerDensityIntSUPG");
       LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
       ctxSUPG->SetEntities( ent[i] );
       ctxSUPG->SetFeFunction(myFct);
@@ -869,7 +869,7 @@ void HeatPDE::DefineIntegrators() {
           linSUPG = new BUIntegrator<Double> ( bOperator, 1.0, newCoef, updatedGeo_ );
         }
       }
-      linSUPG->SetName("HeatFluxIntSUGP");
+      linSUPG->SetName("HeatFluxIntSUPG");
       LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
       ctxSUPG->SetEntities( ent[i] );
       ctxSUPG->SetFeFunction(myFct);
@@ -1474,13 +1474,11 @@ void HeatPDE::ThermalRadiationBC(){
     EntityIterator entit = ent[i]->GetIterator();
     entit.Begin();
     RegionIdType volRegion = (mySpace->GetVolElem(entit.GetElem()))->regionId;
-
     // Now single call instead of per-element traversal
     PtrCoefFct factor = nullptr;
     StabilisationType stabilisation = GetStabilisation(volRegion, factor);
     if (stabilisation == StabilisationType::SUPG)
       EXCEPTION("SUPG is not implemented for the thermalRadiation boundary condition.");
-
 	  //========================================================================================
 	  // First part of thermal radiation boundary condition  4 * \epsilon \sigma * (T_{k-1})^3 \int_{\Gamma} T' T_k dS
 	  //========================================================================================
@@ -1656,13 +1654,17 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
       LinearForm *linSUPG = NULL;
       BaseBOperator *bOperator = NULL;
-      if( dim_ == 2) {
-        bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+      if( isComplex_ || newCoef->IsComplex() ) {
+        if(dim_ == 2)
+          bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+        else
+          bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
       } else {
-        bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
+        if(dim_ == 2)
+          bOperator = new ConvectiveOperator<FeH1,2,1>();
+        else
+          bOperator = new ConvectiveOperator<FeH1,3,1>();
       }
-      //PtrCoefFct factorNewV = CoefFunction::Generate(mp_, , "5");
-      //bOperator->SetCoefFunction(factorNewV);
       bOperator->SetCoefFunction(convecVelCoef_->GetRegionCoef(volReg));
       if(isComplex_) {
           //pure complex case (harmonic simulation)

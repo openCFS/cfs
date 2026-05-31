@@ -34,7 +34,7 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2025.05
+  BUILD_ENVIRONMENT_TAG: 2026.05
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
@@ -368,6 +368,12 @@ ubuntu:rolling:
     entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] 
 
 # older LTS releases ...
+ubuntu:24.04:
+  extends: .platform
+  variables:
+    IMAGE: "ubuntu"
+    TAG: "24.04"
+
 ubuntu:20.04:
   extends: .platform
   variables:
@@ -383,11 +389,11 @@ debian:latest:
     TAG: "latest"
 
 # older releases ... https://www.debian.org/releases/
-debian:11: # (bullseye)
+debian:12: # (bookworm)
   extends: .platform
   variables:
     IMAGE: "debian"
-    TAG: "11"
+    TAG: "12"
 
 # RHEL derivatives
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
@@ -403,6 +409,13 @@ rhel:9:
   variables:
     IMAGE: "rockylinux"
     TAG: "9"
+
+# almalinux 10, see https://hub.docker.com/_/almalinux
+rhel:10:
+  extends: .platform
+  variables:
+    IMAGE: "almalinux"
+    TAG: "10"
 
 #######################################################################
 # cfsdeps stage
@@ -639,8 +652,8 @@ cfsdeps:msvc2022:
   # get build ID from file
   - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
   # save links as variables
-  - CDASH_BUILD_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
-  - CDASH_TEST_URL=$( echo "http://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
+  - CDASH_BUILD_URL=$( echo "https://am-ko.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
+  - CDASH_TEST_URL=$( echo "https://am-ko.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
   # output to annotations
   # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
   - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
@@ -974,7 +987,7 @@ windows:msvc2022:
   script:
   - export DEBUG_SECTION_TITLE='cmake test or install'
   - !reference [.linux-debug-start_collapsed, script]
-  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
+  - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.31/cmake-3.31.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.31.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
@@ -1209,7 +1222,7 @@ unstable_ser:msvc2022:windows:
     - windows:msvc2022
 
 python:linux:
-  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu24.04:$BUILD_ENVIRONMENT_TAG
   extends: .ctest_default
   tags:
     - saas-linux-small-amd64
@@ -1243,6 +1256,7 @@ python:linux:
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
+    - ctest -D ExperimentalSubmit --group $CDASH_TRACK || echo "submit fail?" # intermediate submit
     - ctest -D ExperimentalTest -R PYTHON --group $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
@@ -1447,10 +1461,10 @@ cdash:report:
   after_script: []
   before_script: []
   script:
-    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
+    - echo "see failed tests for '${CI_COMMIT_REF_SLUG}' on https://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercombine=and&filtercombine=and&filtercombine=and&filtercombine=and&filtercount=2&showfilters=1&filtercombine=and&field1=buildname&compare1=65&value1=${CI_COMMIT_REF_SLUG}&field2=status&compare2=61&value2=Failed"
   environment:
     name: CDash/$CI_COMMIT_REF_SLUG
-    url: http://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
+    url: https://am-ko.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
   dependencies: []
 

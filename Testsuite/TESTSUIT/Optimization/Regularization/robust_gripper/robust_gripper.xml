@@ -81,14 +81,6 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
        </storeResults>
       </mechanic>
     </pdeList>
-    
-    <linearSystems>
-      <system>
-        <solverList>
-          <pardiso />
-        </solverList>
-      </system>
-    </linearSystems>
   </sequenceStep>
   
   <!--  <loadErsatzMaterial file="test.warm.density.xml" set="last"/>-->

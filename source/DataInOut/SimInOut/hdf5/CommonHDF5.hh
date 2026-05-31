@@ -23,8 +23,10 @@ namespace CoupledField
 /** for auto compression: below this size we enforce contiguous data */
 const hsize_t HDF5_COMPRESSION_THRESHOLD = 64*1024; 
 
-/** we have only time series for growing datasets. Have 64 KB chunks. Note that normal data has 1 exact chunk for compression */
-const hsize_t HDF5_GROWING_CHUNK_SIZE = 64*1024;
+/** we have only time series for growing datasets where data is actually very small.
+ * Too large chunk sizes waste space when we have many results which becomes relevant for small files (e.g. test cases).
+ * Note that normal data has 1 exact chunk, as a chunk is the unit for compression */
+const hsize_t HDF5_GROWING_CHUNK_SIZE = 1*1024;
 
 /** Wrapper for H5 c-api H5Lget_name_by_idx */
 std::string GetObjNameByIdx(hid_t loc, hsize_t idx);
