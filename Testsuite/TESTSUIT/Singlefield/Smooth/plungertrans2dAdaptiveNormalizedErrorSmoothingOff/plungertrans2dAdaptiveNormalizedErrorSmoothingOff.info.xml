@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="22" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="21" infoRejectCounter="0">
   <summary>
-    <timer id="0" wall-clock="0.2478s" wall="0.247822" cpu="0.179875" calls="1"/>
+    <timer id="0" wall-clock="0.1716s" wall="0.171645" cpu="0.128373" calls="1"/>
     <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="237" peak="241"/>
+    <memory final="235" peak="240"/>
   </summary>
   <header id="">
-    <environment started="15-May-26 21:41:23" host="rk1" estimatedEnd="2026-May-15 21:41:23" remainingTime="0.022563" timePerStep="0.0012535"/>
+    <environment started="31-May-26 15:07:37" host="rk1" estimatedEnd="2026-May-31 15:07:37" remainingTime="0.017044" timePerStep="0.00094688"/>
     <progOpts problem="plungertrans2dAdaptiveNormalizedErrorSmoothingOff" parameterFile="/home/dorninger/cfs/Testsuite/TESTSUIT/Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorSmoothingOff/plungertrans2dAdaptiveNormalizedErrorSmoothingOff.xml" schemaPath="/home/dorninger/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.05" name="Kaum Konvergenz" build="RELEASE" git_commit="f109c9c4e2886ca2f6a14defa903e3de30d65f61-modified" git_branch="adaptiveTimestepping" compiled="May 14 2026" exe="/home/dorninger/cfs/build/bin/cfs"/>
+      <cfs version="26.05" name="Kaum Konvergenz" build="RELEASE" git_commit="2c9faa06edfde952299fdf37ab2e154b1f54e3e3-modified" git_branch="adaptiveTimestepping" compiled="May 21 2026" exe="/home/dorninger/cfs/build/bin/cfs"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain nx="5" ny="3" nz="1">
@@ -19,15 +19,15 @@
       </coordinateSystems>
       <grids>
         <grid gridId="default" dimensions="2" elements="31" nodes="24">
-          <timer id="4" wall-clock="0.002403s" wall="0.00240302" cpu="0.002405" calls="2"/>
+          <timer id="4" wall-clock="0.001532s" wall="0.00153178" cpu="0.001533" calls="2"/>
           <readMesh>
-            <timer id="5" wall-clock="0.0008976s" wall="0.000897571" cpu="0.000897" calls="1" sub="true" parent="4"/>
+            <timer id="5" wall-clock="0.0006134s" wall="0.000613374" cpu="0.000613" calls="1" sub="true" parent="4"/>
           </readMesh>
           <finishInit>
-            <timer id="6" wall-clock="0.0001777s" wall="0.000177744" cpu="0.000177" calls="1" sub="true" parent="4"/>
+            <timer id="6" wall-clock="9.56e-05s" wall="9.5602e-05" cpu="9.6e-05" calls="1" sub="true" parent="4"/>
           </finishInit>
           <userDefined>
-            <timer id="7" wall-clock="1.91e-06s" wall="1.91e-06" cpu="1e-06" calls="1" sub="true" parent="6"/>
+            <timer id="7" wall-clock="1.75e-06s" wall="1.75e-06" cpu="2e-06" calls="1" sub="true" parent="6"/>
           </userDefined>
           <mapFacesEdges>
             <timer id="14" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
@@ -43,22 +43,22 @@
       </regions>
       <namedNodes/>
       <namedElements/>
-      <globalMathParser dt="8.1806e-05" f="0" nx="5" ny="3" nz="1" step="17" t="0.001084" t0="0"/>
+      <globalMathParser dt="8.5186e-05" f="0" nx="5" ny="3" nz="1" step="16" t="0.001052" t0="0"/>
     </domain>
     <results>
-      <timer id="29" wall-clock="0.02134s" wall="0.0213376" cpu="0.021332" calls="170"/>
+      <timer id="29" wall-clock="0.01491s" wall="0.0149099" cpu="0.014891" calls="160"/>
     </results>
   </header>
   <output>
     <hdf5>
-      <timer id="2" wall-clock="0.001627s" wall="0.00162665" cpu="0.001626" calls="1"/>
+      <timer id="2" wall-clock="0.0005347s" wall="0.000534712" cpu="0.000535" calls="1"/>
     </hdf5>
   </output>
   <sequenceStep sequence="1">
     <transient totalAdaptiveRetries="0">
       <header unit="s"/>
       <init_transient>
-        <timer id="16" wall-clock="0.02731s" wall="0.027313" cpu="0.011727" calls="1"/>
+        <timer id="16" wall-clock="0.04829s" wall="0.0482869" cpu="0.009317" calls="1"/>
       </init_transient>
     </transient>
     <PDE>
@@ -140,10 +140,10 @@
           <directLU>
             <summary>
               <setup>
-                <timer id="25" label="setup_directLU" wall-clock="0.0002526s" wall="0.000252587" cpu="0.000252" calls="14"/>
+                <timer id="25" label="setup_directLU" wall-clock="0.0002181s" wall="0.000218144" cpu="0.000217" calls="14"/>
               </setup>
               <solve>
-                <timer id="26" label="solve_directLU" wall-clock="0.0002268s" wall="0.000226826" cpu="0.000218" calls="17"/>
+                <timer id="26" label="solve_directLU" wall-clock="0.0002015s" wall="0.000201474" cpu="0.000192" calls="16"/>
               </solve>
             </summary>
           </directLU>
@@ -152,7 +152,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer id="27" wall-clock="1.148e-05s" wall="1.148e-05" cpu="2e-05" calls="14"/>
+                <timer id="27" wall-clock="1.036e-05s" wall="1.036e-05" cpu="1.1e-05" calls="14"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer id="28" wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -165,28 +165,28 @@
         </process>
       </smooth>
       <graph nnz="22">
-        <timer id="21" wall-clock="0.0005773s" wall="0.000577343" cpu="0.000426" calls="2" sub="true" parent="16"/>
+        <timer id="21" wall-clock="0.0005268s" wall="0.000526762" cpu="0.000494" calls="2" sub="true" parent="16"/>
         <finalize>
-          <timer id="22" wall-clock="1.408e-05s" wall="1.4081e-05" cpu="1.4e-05" calls="2" sub="true" parent="21"/>
+          <timer id="22" wall-clock="2.315e-05s" wall="2.315e-05" cpu="2.3e-05" calls="2" sub="true" parent="21"/>
         </finalize>
         <sort>
-          <timer id="23" wall-clock="1.188e-05s" wall="1.188e-05" cpu="1.1e-05" calls="2" sub="true" parent="21"/>
+          <timer id="23" wall-clock="5.79e-06s" wall="5.79e-06" cpu="5e-06" calls="2" sub="true" parent="21"/>
         </sort>
         <rows number="26" min="0" max="3" mean="0.84615" estimated_row_size="100"/>
         <reorder type="Metis">
-          <timer id="24" wall-clock="9.255e-05s" wall="9.2552e-05" cpu="9.3e-05" calls="1" sub="true" parent="21"/>
+          <timer id="24" wall-clock="8.283e-05s" wall="8.2832e-05" cpu="8.3e-05" calls="1" sub="true" parent="21"/>
         </reorder>
       </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer id="17" wall-clock="0.003985s" wall="0.00398511" cpu="0.002071" calls="34"/>
+          <timer id="17" wall-clock="0.00596s" wall="0.00596028" cpu="0.001708" calls="32"/>
           <matrices>
-            <timer id="18" wall-clock="0.003926s" wall="0.00392572" cpu="0.002005" calls="17" sub="true" parent="17"/>
+            <timer id="18" wall-clock="0.005908s" wall="0.0059083" cpu="0.001656" calls="16" sub="true" parent="17"/>
           </matrices>
           <rhs>
-            <timer id="19" wall-clock="1.271e-05s" wall="1.271e-05" cpu="1.2e-05" calls="17" sub="true" parent="17"/>
+            <timer id="19" wall-clock="1.073e-05s" wall="1.073e-05" cpu="1.2e-05" calls="16" sub="true" parent="17"/>
           </rhs>
         </assemble>
       </summary>

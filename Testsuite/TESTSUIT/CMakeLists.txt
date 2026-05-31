@@ -185,7 +185,6 @@ ADD_SUBDIRECTORY(Singlefield/AcousticMixed/channel3d_sfem_abc)
 #-------------------------------------------------------------------------------
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2d)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveMaxlocalError)
-ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveMaxlocalErrorSmoothingOn)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorSmoothingOff)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorSmoothingOn)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2dAdaptiveNormalizedErrorRelTol)
