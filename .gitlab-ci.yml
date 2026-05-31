@@ -1051,7 +1051,7 @@ windows:msvc2022:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} -DTESTSUITE_H5DIFF=OFF ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
@@ -1065,7 +1065,7 @@ windows:msvc2022:
     # show variables for debug
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} -DTESTSUITE_H5DIFF=OFF ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config

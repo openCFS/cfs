@@ -144,16 +144,23 @@ set(COMPARE_IMAGES "${CMAKE_CURRENT_SOURCE_DIR}/compare_images.py")
 include(CMakeDependentOption)
 # Enables tests of Python scripts e.g. via doctest
 cmake_dependent_option(TESTSUITE_PYTHON "testing of python modules" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
-mark_as_advanced(TESTSUITE_PYTHON)
 
 # option to use tests which need 'compare_info_xml.py'
-#set(TESTSUITE_INFO_XML ON CACHE BOOL "Include tests which need 'compare_info_xml.py'")
 cmake_dependent_option(TESTSUITE_INFO_XML "Include tests which need 'compare_info_xml.py'" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
-mark_as_advanced(TESTSUITE_INFO_XML)
+
+# option to use tests which need 'h5diff'
+cmake_dependent_option(TESTSUITE_H5DIFF "Include tests which need 'h5diff'" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
 
 # Enables tests of Python scripts e.g. via doctest
 cmake_dependent_option(TESTSUITE_CFS "testing of CFS (the usual tests in TESTSUITE)" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
-mark_as_advanced(TESTSUITE_CFS)
+
+# mark those options as advanced if the testsuite is included (e.g. within the CFS project)
+if(NOT ${PROJECT_NAME} MATCHES TESTSUITE)
+  mark_as_advanced(TESTSUITE_PYTHON)
+  mark_as_advanced(TESTSUITE_INFO_XML)
+  mark_as_advanced(TESTSUITE_H5DIFF)
+  mark_as_advanced(TESTSUITE_CFS)
+endif()
 
 # check for python
 if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES "build" )
@@ -186,16 +193,6 @@ if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES
   endif()
   mark_as_advanced(PythonModules_DIR)
 
-  # Find h5diff from hdf5-tools — used by Python-script tests to compare
-  # .h5 result against .h5ref reference.  Independent of cfstool so the CI
-  # pipeline (which does not build cfstool) can still run these tests.
-  find_program(H5DIFF_EXECUTABLE NAMES h5diff)
-  if(TESTSUITE_PYTHON AND NOT H5DIFF_EXECUTABLE)
-    message(WARNING "h5diff not found — Python HDF5 comparison tests will fail. "
-                    "Install hdf5-tools (apt: hdf5-tools, conda: hdf5).")
-  else()
-    message(STATUS "using ${H5DIFF_EXECUTABLE} for Python HDF5 comparison tests")
-  endif()
 endif()
 
 #-------------------------------------------------------------------------------
@@ -224,10 +221,19 @@ if(TESTSUITE_CFS)
   add_subdirectory("TESTSUIT")
 endif()
 
-# Subdirectory for pypthon doctest, matviz visualization test suite and basecell
+# Subdirectory for tests that test python stuff idependently of CFS (e.g. pypthon doctest, matviz visualization test suite and basecell)
 if(TESTSUITE_PYTHON)
   message(STATUS "Testsuite includes PYTHON tests and uses ${Python_EXECUTABLE}")
   add_subdirectory("PYTHON")
+endif()
+
+# check for the h5diff feature
+if(TESTSUITE_H5DIFF)
+  find_program(H5DIFF_EXECUTABLE NAMES h5diff)
+  message(STATUS "Testsuite includes h5diff-based-tests and uses ${H5DIFF_EXECUTABLE}")
+  if(${H5DIFF_EXECUTABLE} MATCHES "NOTFOUND") 
+    message(WARNING "h5diff not found - Python HDF5 comparison tests will fail. Install hdf5-tools (apt, dnf: hdf5-tools, conda: hdf5).")
+  endif()
 endif()
 
 # Configure CFS++ standard test macro.
