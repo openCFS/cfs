@@ -17,6 +17,9 @@ set(UPDATE_TYPE "git")
 # probably not necessary
 find_package(Git)
 set(CTEST_GIT_COMMAND ${GIT_EXECUTABLE})
+if(${GIT_EXECUTABLE} MATCHES "NOTFOUND")
+  message(WARNING "'Git' not found - CTest Update will not work")
+endif()
 
 # set a build name
 if(DEFINED ENV{CI_JOB_NAME}) # we are in a pipeline

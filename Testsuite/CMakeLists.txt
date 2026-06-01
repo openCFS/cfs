@@ -9,6 +9,11 @@ cmake_minimum_required(VERSION 3.16)
 # check if we run from within cfs (i.e. testsuite is included)
 if(NOT PROJECT_NAME) # we are in standalone mode
   message(STATUS "Configuring Testsuite in standalone mode")
+  # output some information if we are on a CI server
+  if(DEFINED ENV{CI_SERVER})
+    message("GitLab CI pipeline: $ENV{CI_PIPELINE_URL}")
+    message("GitLab CI job: $ENV{CI_JOB_URL}")
+  endif()
   set(CMAKE_MAKE_PROGRAM "none") # we do not need any
   project(TESTSUITE NONE)
   set(CFS_INSTALL_DIR "${CMAKE_BINARY_DIR}" CACHE PATH "location of cfs installation to test")
