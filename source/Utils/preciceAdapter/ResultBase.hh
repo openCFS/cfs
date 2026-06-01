@@ -2,6 +2,7 @@
 #define RESULT_BASE_HH
 
 #include "General/Environment.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "boost/shared_ptr.hpp"
 #include <vector>
 #include <map>
@@ -20,6 +21,7 @@ struct ResultConfig {
     std::string precicename;   // e.g., "Temperature"
     std::string cfsname;       // e.g., "heatTemperature"
     SolutionType solutiontype; // e.g., SolutionType::HEAT_TEMPERATURE
+    ResultInfo::EntityUnknownType definedOn; // Canonical location (NODE/ELEMENT/SURF_ELEM/...)
     std::string meshName;      // Mesh name where the result is defined
     int quantitydim;           // Dimension of the quantity (scalar, vector, etc.)
 };

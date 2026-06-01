@@ -71,6 +71,14 @@ namespace CoupledField {
       return feFct_;
     }
 
+    /** Maps a SolutionType to its canonical EntityUnknownType (definedOn).
+     * This function returns the standard entity type where a given solution is defined.
+     * For unmapped types, returns ResultInfo::FREE as a fallback.
+     * @param solType the solution type
+     * @return the EntityUnknownType where this solution is typically defined
+     */
+    ResultInfo::EntityUnknownType MapSolTypeToDefinedOn(SolutionType solType);
+
     // =======================================================================
     // D A T A    M E M B E R S 
     // =======================================================================

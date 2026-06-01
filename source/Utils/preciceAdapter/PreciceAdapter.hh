@@ -138,6 +138,7 @@ namespace CoupledField
         std::vector<double> flatElemCoords_;
         std::vector<int> preciceElemNumsVec_;
         bool needElemMesh_;
+        bool elementMeshUsesSurfaceElems_;
 
         ParticipantConfig activeParticipantConfig_;
 

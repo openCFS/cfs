@@ -90,7 +90,10 @@ void CoefFunctionGridElemDefaultPrecice<DATA_TYPE>::GetVector(Vector<DATA_TYPE>&
 
   // handle this with the preciceAdapter_
   elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
-  CoefMat[0] = elemSol[0];
+  UInt nComp = std::min(static_cast<UInt>(elemSol.GetSize()), this->dimDof_);
+  for (UInt i = 0; i < nComp; ++i) {
+    CoefMat[i] = elemSol[i];
+  }
 }
 
 template<typename DATA_TYPE>

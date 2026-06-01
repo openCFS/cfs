@@ -95,6 +95,9 @@
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"
 
+#include "General/Environment.hh"
+#include "Domain/Results/ResultInfo.hh"
+
 
 namespace CoupledField{
     
@@ -103,22 +106,57 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        Global::ComplexPart format, 
                                        PtrParamNode infoNode, 
                                        PtrParamNode configNode,
-									   shared_ptr<RegionList> regions,
-									   ResultInfo::EntryType type
-									   ){
+									                     shared_ptr<RegionList> regions,
+                                       ResultInfo::EntryType type,
+                                       const std::string& resName){
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
 
-  
   // verify the solution type (nodal/element data)
 
   // parse the quantity and check if it is known
   // for external grids we assume nodal results
   std::string definedOnString = "node";
+
+  std::string resultName = resName;
+  if(resultName.empty() && configNode->Has("name")) {
+    resultName = configNode->Get("name")->As<std::string>();
+  }
+
+  // check if a manual definition is supplied (overriding the internal mapping)
   if (configNode->Has("defaultGrid")) {
     configNode->Get("defaultGrid")->GetValue("definedOn",definedOnString);
   }
-  
+  // Todo mapping of result name to definedOn if not supplied in the XML
+  else if (!resultName.empty()) {
+    // Try to map the result name to a solution type and then to a definedOn
+    SolutionType solType = SolutionTypeEnum.TryParse(resultName, NO_SOLUTION_TYPE);
+    if (solType != NO_SOLUTION_TYPE) {
+      ResultInfo::EntityUnknownType resInfo = shared_ptr<ResultInfo>()->MapSolTypeToDefinedOn(solType);
+      
+      if(resInfo != ResultInfo::FREE) {
+        // Map the EntityUnknownType to definedOnString
+        switch (resInfo) {
+          case ResultInfo::NODE:
+          case ResultInfo::NODELIST:
+            definedOnString = "node";
+            break;
+          case ResultInfo::ELEMENT:
+          case ResultInfo::SURF_ELEM:
+            definedOnString = "element";
+            break;
+          default:
+            // For unmapped types, we can either throw an exception or default to "node"
+            WARN("Result type " << resultName << " mapped to free entity. Defaulting to nodal interpolation.");
+            definedOnString = "node";
+        }
+      } else {
+        WARN("Result type " << resultName << " could not be mapped to a known entity. Defaulting to nodal interpolation.");
+        definedOnString = "node";
+      }
+    }
+  }
+
   if (definedOnString=="node") {
     if(configNode->Has("defaultGrid")) {
       std::string dependString;
@@ -137,18 +175,18 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
       else {
         if (format == Global::COMPLEX) {
           ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-                configNode->Get("defaultGrid"), tmpNode, regions,type));
+                configNode->Get("defaultGrid"), tmpNode, regions, type));
         }
         else {
           if(ptDomain->GetPreciceAdapter()->IsPreciceDummy())
           {
             ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+                      configNode->Get("defaultGrid"), tmpNode, regions, type));
           }else{
             // precice case
             // EXCEPTION("CoefFunctionGridNodalDefaultPrecice currently disabled");
             ret.reset(new CoefFunctionGridNodalDefaultPrecice<Double>(ptDomain,
-                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+                      configNode->Get("defaultGrid"), tmpNode, regions, type));
           }
         }
       }
@@ -181,17 +219,17 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
       else {
         if (format == Global::COMPLEX) {
           ret.reset(new CoefFunctionGridElemDefault<Complex>(ptDomain,
-                configNode->Get("defaultGrid"), tmpNode, regions,type));
+                configNode->Get("defaultGrid"), tmpNode, regions, type));
         }
         else {
           if(ptDomain->GetPreciceAdapter()->IsPreciceDummy())
           {
             ret.reset(new CoefFunctionGridElemDefault<Double>(ptDomain,
-                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+                      configNode->Get("defaultGrid"), tmpNode, regions, type));
           }else{
             // precice case
             ret.reset(new CoefFunctionGridElemDefaultPrecice<Double>(ptDomain,
-                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+                      configNode->Get("defaultGrid"), tmpNode, regions, type));
           }
           
         }

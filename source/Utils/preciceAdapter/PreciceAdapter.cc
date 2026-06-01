@@ -8,6 +8,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/Domain.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "TransientDriverPrecice.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -19,6 +20,64 @@
 
 namespace CoupledField
 {
+
+    namespace {
+
+    static ResultInfo::EntityUnknownType mapSolutionTypeToDefinedOn(SolutionType solType)
+    {
+        ResultInfo info;
+        return info.MapSolTypeToDefinedOn(solType);
+    }
+
+    static ResultType mapDefinedOnToResultType(ResultInfo::EntityUnknownType definedOn)
+    {
+        switch (definedOn) {
+        case ResultInfo::NODE:
+            return ResultType::NODE;
+        case ResultInfo::EDGE:
+        case ResultInfo::FACE:
+        case ResultInfo::ELEMENT:
+        case ResultInfo::SURF_ELEM:
+            // The adapter stores all non-nodal fields in element-style containers.
+            return ResultType::ELEMENT;
+        default:
+            {
+                std::string defOn;
+                ResultInfo::Enum2String(definedOn, defOn);
+                EXCEPTION("PreciceAdapter: Unsupported definedOn type '" << defOn
+                          << "' for data exchange. Only nodal and element/surface-element fields are supported.");
+            }
+        }
+    }
+
+    static bool tryGetDefinedOnFromRegisteredResult(
+        Domain* domain,
+        const std::string& cfsResultName,
+        ResultInfo::EntityUnknownType& definedOn)
+    {
+        if (!domain || !domain->GetResultHandler()) {
+            return false;
+        }
+
+        auto* resultContextsPtr = domain->GetResultHandler()->GetResultContexts();
+        if (!resultContextsPtr) {
+            return false;
+        }
+
+        for (const auto& entry : *resultContextsPtr) {
+            const shared_ptr<BaseResult>& baseResult = entry.first;
+            if (!baseResult || !baseResult->GetResultInfo()) {
+                continue;
+            }
+            if (baseResult->GetResultInfo()->resultName == cfsResultName) {
+                definedOn = baseResult->GetResultInfo()->definedOn;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    } // namespace
 
     // Define / declare logging stream
     DEFINE_LOG(preciceAdapter, "preciceAdapter")
@@ -110,15 +169,9 @@ namespace CoupledField
             for (const auto &pc : participants) {
                 if (pc.name == participantName_) {
                     activeParticipantConfig_ = pc; // Store the relevant configuration
-                    // now let's check if there is a _elem mesh in the provide meshes
-                    for (const auto &mesh : pc.provideMeshes) {
-                        // Check if mesh.name ends with "_elem"
-                        if (mesh.name.size() >= 5 &&
-                            mesh.name.substr(mesh.name.size() - 5) == "_elem") {
-                            needElemMesh_ = true;
-                            break;
-                        }
-                    }
+                    // Mesh usage is resolved later from ResultInfo::MapSolTypeToDefinedOn.
+                    needElemMesh_ = false;
+                    participantElemMeshName_.clear();
                     LOG_DBG(preciceAdapter) << "Loaded configuration for participant: " << pc.name;
                     found = true;
                     break;
@@ -137,10 +190,13 @@ namespace CoupledField
         static const std::unordered_map<std::string, std::tuple<std::string, SolutionType>> conversionMap = {
             {"Temperature", {"heatTemperature", SolutionType::HEAT_TEMPERATURE}},
             {"Displacement", {"mechDisplacement", SolutionType::MECH_DISPLACEMENT}},
+            {"Force", {"mechForce", SolutionType::MECH_FORCE}},
+            {"Stress", {"mechNormalStress", SolutionType::MECH_NORMAL_STRESS}},
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
             {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},
-            {"Pressure", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}},
+            {"Pressure", {"fluidMechPressure", SolutionType::FLUIDMECH_PRESSURE}},
+            {"Velocity", {"fluidMechVelocity", SolutionType::FLUIDMECH_VELOCITY}},
             {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
         };
 
@@ -174,6 +230,11 @@ namespace CoupledField
                   << "' with config file '" << configFileName_ << "'" << "\n";
 
         // Create the relevant data structures for storing data of the participant (read-data and write-data)
+        bool hasElementBasedExchange = false;
+        bool hasNodeBasedExchange = false;
+        bool elementOnParticipantMesh = false;
+        std::string detectedElementMeshName;
+
         for (const auto &entry : activeParticipantConfig_.writeData) {
             ResultConfig config;
             config.precicename = entry.name;
@@ -181,9 +242,42 @@ namespace CoupledField
             config.cfsname = tempName;
             config.solutiontype = tempSolutionType;
             config.meshName = entry.mesh;
-            config.quantitydim = (needElemMesh_) ?
-                participant_->getDataDimensions(participantMeshName_ + "_elem", config.precicename) :
-                participant_->getDataDimensions(participantMeshName_, config.precicename);
+            config.quantitydim = participant_->getDataDimensions(config.meshName, config.precicename);
+
+            ResultInfo::EntityUnknownType mappedDefinedOn = mapSolutionTypeToDefinedOn(config.solutiontype);
+            ResultType mappedType = mapDefinedOnToResultType(mappedDefinedOn);
+
+            if (mappedType == ResultType::NODE) {
+                hasNodeBasedExchange = true;
+            }
+
+            if (mappedType == ResultType::ELEMENT) {
+                hasElementBasedExchange = true;
+                if (config.meshName == participantMeshName_) {
+                    elementOnParticipantMesh = true;
+                } else if (detectedElementMeshName.empty()) {
+                    detectedElementMeshName = config.meshName;
+                } else if (detectedElementMeshName != config.meshName) {
+                    EXCEPTION("PreciceAdapter: multiple element meshes are currently not supported (found '"
+                              << detectedElementMeshName << "' and '" << config.meshName << "').");
+                }
+            }
+
+            // Sanity check: if a result with this name is already registered in openCFS,
+            // compare its definedOn against the canonical SolutionType mapping.
+            ResultInfo::EntityUnknownType declaredDefinedOn;
+            if (tryGetDefinedOnFromRegisteredResult(domain_, config.cfsname, declaredDefinedOn)) {
+                ResultType declaredType = mapDefinedOnToResultType(declaredDefinedOn);
+                if (declaredType != mappedType) {
+                    std::string mappedDefOn;
+                    std::string declaredDefOn;
+                    ResultInfo::Enum2String(mappedDefinedOn, mappedDefOn);
+                    ResultInfo::Enum2String(declaredDefinedOn, declaredDefOn);
+                    EXCEPTION("PreciceAdapter: Inconsistent definition for result '" << config.cfsname
+                              << "'. SolutionType maps to definedOn='" << mappedDefOn
+                              << "' but registered result uses definedOn='" << declaredDefOn << "'.");
+                }
+            }
 
             std::cout << "PreciceAdapter: Preparing to register write-data entry: " << config.precicename
                       << " on mesh: " << config.meshName
@@ -191,9 +285,7 @@ namespace CoupledField
 
             std::cout << "CFSName is: " << config.cfsname << "\n";
 
-            // Decide whether to create a node- or element-based result.
-            // For example, if you decide based on the mesh name:
-            if (config.meshName.find("_elem") != std::string::npos) {
+            if (mappedType == ResultType::ELEMENT) {
                 runtimeWriteResults_.push_back(std::make_unique<ElementResult>(config));
                 // Allocate flat data based on the number of CFS elements.
                 runtimeWriteResults_.back()->allocateData(cfsElemNumsVec_.size());
@@ -212,7 +304,41 @@ namespace CoupledField
             config.cfsname = tempName;
             config.solutiontype = tempSolutionType;
             config.meshName = entry.mesh;
-            config.quantitydim = participant_->getDataDimensions(participantMeshName_, config.precicename);
+            config.quantitydim = participant_->getDataDimensions(config.meshName, config.precicename);
+
+            ResultInfo::EntityUnknownType mappedDefinedOn = mapSolutionTypeToDefinedOn(config.solutiontype);
+            ResultType mappedType = mapDefinedOnToResultType(mappedDefinedOn);
+
+            if (mappedType == ResultType::NODE) {
+                hasNodeBasedExchange = true;
+            }
+
+            if (mappedType == ResultType::ELEMENT) {
+                hasElementBasedExchange = true;
+                if (config.meshName == participantMeshName_) {
+                    elementOnParticipantMesh = true;
+                } else if (detectedElementMeshName.empty()) {
+                    detectedElementMeshName = config.meshName;
+                } else if (detectedElementMeshName != config.meshName) {
+                    EXCEPTION("PreciceAdapter: multiple element meshes are currently not supported (found '"
+                              << detectedElementMeshName << "' and '" << config.meshName << "').");
+                }
+            }
+
+            // Sanity check against existing openCFS result definitions, if available.
+            ResultInfo::EntityUnknownType declaredDefinedOn;
+            if (tryGetDefinedOnFromRegisteredResult(domain_, config.cfsname, declaredDefinedOn)) {
+                ResultType declaredType = mapDefinedOnToResultType(declaredDefinedOn);
+                if (declaredType != mappedType) {
+                    std::string mappedDefOn;
+                    std::string declaredDefOn;
+                    ResultInfo::Enum2String(mappedDefinedOn, mappedDefOn);
+                    ResultInfo::Enum2String(declaredDefinedOn, declaredDefOn);
+                    EXCEPTION("PreciceAdapter: Inconsistent definition for result '" << config.cfsname
+                              << "'. SolutionType maps to definedOn='" << mappedDefOn
+                              << "' but registered result uses definedOn='" << declaredDefOn << "'.");
+                }
+            }
 
             std::cout << "PreciceAdapter: Preparing to register read-data entry: " << config.precicename
                       << " on mesh: " << config.meshName
@@ -220,7 +346,7 @@ namespace CoupledField
 
             std::cout << "CFSName is: " << config.cfsname << "\n";
 
-            if (config.meshName.find("_elem") != std::string::npos) {
+            if (mappedType == ResultType::ELEMENT) {
                 runtimeReadResults_.push_back(std::make_unique<ElementResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsElemNumsVec_.size());
             } else {
@@ -231,18 +357,38 @@ namespace CoupledField
             }
         }
 
+        if (elementOnParticipantMesh && hasNodeBasedExchange) {
+            EXCEPTION("PreciceAdapter: participant mesh '" << participantMeshName_
+                      << "' is used for both nodal and element/surface-element exchange. "
+                      << "Please use a dedicated element mesh for element-based data in this case.");
+        }
+        if (elementOnParticipantMesh && !detectedElementMeshName.empty()) {
+            EXCEPTION("PreciceAdapter: mixed element/surface-element meshes are currently not supported for participant '"
+                      << participantName_ << "' (participant mesh '" << participantMeshName_
+                      << "' and dedicated mesh '" << detectedElementMeshName << "').");
+        }
+
+        needElemMesh_ = !detectedElementMeshName.empty();
+        if (needElemMesh_) {
+            participantElemMeshName_ = detectedElementMeshName;
+        }
+
         // this is not a joke! we need this because precice's setMeshVertices method changes
         // the last argument! by doing this, we have our original node number vector from cfs
         // and the adapted one from precice
-        preciceNodeNumsVec_ = cfsNodeNumsVec_;
-        participant_->setMeshVertices(participantMeshName_, flatCoords_, preciceNodeNumsVec_);
+        if (elementOnParticipantMesh) {
+            preciceNodeNumsVec_ = cfsElemNumsVec_;
+            participant_->setMeshVertices(participantMeshName_, flatElemCoords_, preciceNodeNumsVec_);
+            preciceElemNumsVec_ = preciceNodeNumsVec_;
+        } else {
+            preciceNodeNumsVec_ = cfsNodeNumsVec_;
+            participant_->setMeshVertices(participantMeshName_, flatCoords_, preciceNodeNumsVec_);
+        }
 
-        // Similarly, register the element mesh with preCICE.
-        // Derive the element mesh name by appending "_elem" to the participant mesh name.
-        // but only if the "node mesh name"+"_elem" is specified in the precice config
+        // Register the element/surface-element mesh if needed.
+        // The mesh name is taken from preCICE read/write-data entries.
         if(needElemMesh_)
         {
-            participantElemMeshName_ = participantMeshName_ + "_elem";
             preciceElemNumsVec_ = cfsElemNumsVec_;
             participant_->setMeshVertices(participantElemMeshName_, flatElemCoords_, preciceElemNumsVec_);
         }
@@ -430,7 +576,8 @@ namespace CoupledField
                                     << " on mesh: " << result->getConfig().meshName;
 
             // Depending on whether the result is node- or element-based, call participant_->readData
-            if (result->getResultType() == ResultType::ELEMENT) {
+            if (result->getResultType() == ResultType::ELEMENT ||
+                mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                 // Resize flat data based on number of elements
                 result->allocateData(cfsElemNumsVec_.size());
                 participant_->readData(result->getConfig().meshName,
@@ -470,7 +617,8 @@ namespace CoupledField
             // Loop over our runtime read results to see if one matches.
             for (const auto &result : runtimeReadResults_) {
                 if (result->getConfig().cfsname == cfsResultName) {
-                    if (result->getResultType() == ResultType::ELEMENT) {
+                    if (result->getResultType() == ResultType::ELEMENT ||
+                        mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                         Result<Double>& actSol = static_cast<Result<Double>&>(*baseResult);
                         EntityIterator it = actSol.GetEntityList()->GetIterator();
                         Vector<Double>& vec = actSol.GetVector();
@@ -660,11 +808,13 @@ namespace CoupledField
 
     Vector<Double> PreciceAdapter::GetElemResult(SolutionType solType, int elemNum)
     {
+        std::string solTypeName = SolutionTypeEnum.ToString(solType);
+        bool hasMatchingSolutionType = false;
         for (const auto &result : runtimeReadResults_) {
-            std::cout << "solutiontype: " << result->getConfig().solutiontype << "\n";
-            std::cout <<  "resulttype: " << static_cast<int>(result->getResultType()) << "\n";
             if (result->getConfig().solutiontype == solType) {
-                if (result->getResultType() == ResultType::ELEMENT) {
+                hasMatchingSolutionType = true;
+                if (result->getResultType() == ResultType::ELEMENT ||
+                    mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                     ElementResult* er = dynamic_cast<ElementResult*>(result.get());
                     if (er) {
                         const auto& mapRef = er->getElementResultMap();
@@ -672,15 +822,30 @@ namespace CoupledField
                         if (it != mapRef.end()) {
                             return it->second;
                         }
+                        EXCEPTION("PreciceAdapter: result '" << result->getConfig().cfsname
+                                  << "' exists for solution type '" << solTypeName << "' (" << solType << ")"
+                                  << " but element " << elemNum << " has no received value. "
+                                  << "Received values for " << mapRef.size() << " coupling elements. "
+                                  << "Please check that the requesting region matches the preCICE coupling interface region.");
                     }
+                    EXCEPTION("PreciceAdapter: internal error while accessing element result for solution type '"
+                              << solTypeName << "' (" << solType << ")"
+                              << " (dynamic cast to ElementResult failed).");
                 }
             }
         }
-        EXCEPTION("PreciceAdapter: no result with solution type " << solType << " found");
+        if (hasMatchingSolutionType) {
+            EXCEPTION("PreciceAdapter: solution type '" << solTypeName << "' (" << solType << ")"
+                      << " is registered as non-element result. "
+                      << "GetElemResult() was called with incompatible result type.");
+        }
+        EXCEPTION("PreciceAdapter: no result with solution type '" << solTypeName
+                  << "' (" << solType << ") found");
     }
 
     Vector<Double> PreciceAdapter::GetNodeResult(SolutionType solType, int nodeNum)
     {
+        std::string solTypeName = SolutionTypeEnum.ToString(solType);
         for (const auto &result : runtimeReadResults_) {
             if (result->getConfig().solutiontype == solType) {
                 if (result->getResultType() == ResultType::NODE) {
@@ -695,7 +860,8 @@ namespace CoupledField
                 }
             }
         }
-        EXCEPTION("PreciceAdapter: no result with solution type " << solType << " found");
+        EXCEPTION("PreciceAdapter: no result with solution type '" << solTypeName
+                  << "' (" << solType << ") found");
     }
 
     void PreciceAdapter::finalize()
