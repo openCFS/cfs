@@ -78,7 +78,7 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
 
   assert(rhsCoefs_->GetDimType() != CoefFunction::NO_DIM);
 
-	// Declare necessary variables
+  // Declare necessary variables
   const Elem* ptElem = ent.GetElem();
   // Use work buffers instead of local variables to avoid per-call allocations
   Matrix<Double>& bMat = work_bMat_;
