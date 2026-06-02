@@ -127,10 +127,28 @@
   <xsd:complexType name="DT_PreciceCoupling">
       <xsd:sequence>
           <xsd:element name="participantName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="participantMeshName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="participantMeshList" type="DT_PreciceParticipantMeshList" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                List of preCICE participant meshes with direct region assignment.
+                Each participantMeshName entry binds one preCICE mesh name to one CFS region.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <xsd:element name="precice_configFile" type="DT_PreciceFile" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="sequenceStep" type="xsd:int" minOccurs="1" maxOccurs="1"/>
       </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PreciceParticipantMeshList">
+    <xsd:sequence>
+      <xsd:element name="participantMeshName" type="DT_PreciceParticipantMesh" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_PreciceParticipantMesh">
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="region" type="xsd:string" use="required"/>
   </xsd:complexType>
 
   <xsd:complexType name="DT_PreciceName">

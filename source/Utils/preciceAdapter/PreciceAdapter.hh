@@ -6,6 +6,8 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <set>
 #include <boost/shared_ptr.hpp>
 #include "def_use_precice.hh"
 #ifdef USE_PRECICE
@@ -104,6 +106,23 @@ namespace CoupledField
 
         void RegisterExternalResults();
 
+                                struct CouplingMeshData {
+                                        std::vector<int> cfsNodeNums;
+                                        std::vector<double> flatNodeCoords;
+                                        std::vector<int> preciceNodeNums;
+
+                                        std::vector<int> cfsElemNums;
+                                        std::vector<double> flatElemCoords;
+                                        std::vector<int> preciceElemNums;
+
+                                        bool needsNodeData = false;
+                                        bool needsElemData = false;
+                                        std::vector<std::string> regionNames;
+                                };
+
+                                const CouplingMeshData& getMeshData(const std::string& meshName) const;
+                                CouplingMeshData& getMeshData(const std::string& meshName);
+
 
         /**
          * Convert the result name specified in precice's config to openCFS result name
@@ -141,6 +160,8 @@ namespace CoupledField
         bool elementMeshUsesSurfaceElems_;
 
         ParticipantConfig activeParticipantConfig_;
+        std::map<std::string, CouplingMeshData> meshDataByName_;
+        std::vector<std::string> defaultCouplingRegions_;
 
         // runtime containers
         std::vector<std::unique_ptr<ResultBase>> runtimeReadResults_;
