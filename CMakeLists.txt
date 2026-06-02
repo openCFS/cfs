@@ -1,6 +1,5 @@
-# cmake 3.16 is required for essential options of the new FindPython.cmake 
-# once set to 3.24, remove if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24") in DependencyTools.cmake
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
+# configuration for openCFS
+cmake_minimum_required(VERSION 3.24.0...4.3.0 FATAL_ERROR)
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
 # Include global definitions for openCFS development server (host name, etc.)

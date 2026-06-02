@@ -34,7 +34,7 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2026.05
+  BUILD_ENVIRONMENT_TAG: 2026.06
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
@@ -374,11 +374,11 @@ ubuntu:24.04:
     IMAGE: "ubuntu"
     TAG: "24.04"
 
-ubuntu:20.04:
+ubuntu:22.04:
   extends: .platform
   variables:
     IMAGE: "ubuntu"
-    TAG: "20.04"
+    TAG: "22.04"
 
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
@@ -580,7 +580,7 @@ cfsdeps:clang:
     <<: *cfsdeps-variables
     IMAGE: rhel8-llvm
 
-cfsdeps:gcc14-musl:
+cfsdeps:gcc15-musl:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
@@ -668,8 +668,8 @@ cfsdeps:msvc2022:
   tags:
     - saas-linux-small-amd64
   variables:
-    # using the Unix Makefile generator (every Linux but gcc14-musl), this variable builds cfs parallel.
-    # the cfsdeps will be build in sequence but automatically with the availabe number of cores.
+    # using the Unix Makefile generator (every Linux but alpine/musl), this variable builds cfs parallel.
+    # the cfsdeps will be build in sequence but automatically with the available number of cores.
     # currently (04.2025) all gitlab runners seem to run with 2 threads
     CMAKE_BUILD_PARALLEL_LEVEL: 2
   cache: !reference [.cache_linux_build-job, cache ]
@@ -830,7 +830,7 @@ linux:gcc9:
       optional: true
 
 # this is the official release build
-linux:gcc14-musl:
+linux:gcc15-musl:
   extends: .default_build_job
   variables:
     IMAGE: alpine
@@ -841,7 +841,7 @@ linux:gcc14-musl:
     CMAKE_GENERATOR: Ninja
   <<: [ *release_build_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc14-musl
+    - job: cfsdeps:gcc15-musl
       optional: true
 
 linux:gcc9min:
@@ -1080,7 +1080,7 @@ stable_ser:gcc9min:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1092,7 +1092,7 @@ unstable_ser:gcc9min:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     # is built without opnemp  
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
@@ -1142,36 +1142,36 @@ stable_par_opt:gcc9closed:linux:
   needs:
     - linux:gcc9closed
 
-stable_ser:gcc14-musl:linux:
+stable_ser:gcc15-musl:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
 
-stable_par:gcc14-musl:linux:
+stable_par:gcc15-musl:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
 
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1183,7 +1183,7 @@ unstable_ser:intel:linux:
     - saas-linux-small-amd64
   stage: test
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1288,21 +1288,21 @@ broken_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     # is built without opnemp  
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
     - linux:gcc9min
 
-all_par:gcc14-musl:linux:
+all_par:gcc15-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu24.04
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
 
 unstable_par:gcc9max:linux:
   extends: .test_extra
@@ -1355,40 +1355,40 @@ unstable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:intel
 
-unstable_par:gcc14-musl:linux:
+unstable_par:gcc15-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
 
-broken_ser:gcc14-musl:linux:
+broken_ser:gcc15-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
 
 broken_ser:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: ubuntu22.04
+    IMAGE: ubuntu24.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1495,7 +1495,7 @@ pages:
     # only for release pipelines in our namespace
     - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
   dependencies:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
     - doxygen
   script:
     - mkdir -p public # create public dir
@@ -1534,7 +1534,7 @@ pages:
   after_script: []
   before_script: []
   needs:
-    - linux:gcc14-musl
+    - linux:gcc15-musl
     - windows:msvc2022
 
 repack-release: # publish release packages (when a tag is pushed)
