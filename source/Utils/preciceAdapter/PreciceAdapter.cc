@@ -869,8 +869,22 @@ namespace CoupledField
         ri->resultName = result->getConfig().cfsname;
         ri->resultType = result->getConfig().solutiontype;
         ri->definedOn  = definedOnType;
-        ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
-        ri->dofNames = "";
+        if (result->getConfig().quantitydim <= 1) {
+            ri->entryType = ResultInfo::SCALAR;
+            ri->dofNames = "";
+        } else {
+            ri->entryType = ResultInfo::VECTOR;
+            if (result->getConfig().quantitydim == 2 || result->getConfig().quantitydim == 3) {
+                // preCICE coupling is Cartesian in current adapter usage
+                ri->SetVectorDOFs(result->getConfig().quantitydim, false);
+            } else {
+                // Generic fallback for uncommon vector dimensions.
+                ri->dofNames.Clear();
+                for (int i = 0; i < result->getConfig().quantitydim; ++i) {
+                    ri->dofNames.Push_back("comp" + std::to_string(i));
+                }
+            }
+        }
         sol->SetResultInfo(ri);
 
         StdVector<std::string> outDest;

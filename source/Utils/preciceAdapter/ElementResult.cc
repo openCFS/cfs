@@ -1,6 +1,9 @@
 #include "ElementResult.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
+#include <cmath>
+#include <limits>
+
 namespace CoupledField {
 DEFINE_LOG(preciceAdapterElemRes, "preciceAdapterElemRes")
 
@@ -11,14 +14,77 @@ ElementResult::ElementResult(const ResultConfig& config)
 void ElementResult::readData(const std::vector<int>& elemIndices, double deltaT) {
     elementResultMap_.clear();
     size_t numElems = elemIndices.size();
+    double minVal = std::numeric_limits<double>::infinity();
+    double maxVal = -std::numeric_limits<double>::infinity();
+    double maxAbs = 0.0;
+    int nonFiniteCount = 0;
+    int hugeCount = 0;
+    const double hugeThreshold = 1.0e20;
+    int firstHugeElem = -1;
+    std::vector<double> firstHugeVals(config_.quantitydim, 0.0);
+
     for (size_t i = 0; i < numElems; ++i) {
         Vector<double> result;
         result.Resize(config_.quantitydim);
         for (int k = 0; k < config_.quantitydim; ++k) {
-            result[k] = flatData_[i * config_.quantitydim + k];
+            const double v = flatData_[i * config_.quantitydim + k];
+            result[k] = v;
+
+            if (!std::isfinite(v)) {
+                ++nonFiniteCount;
+                continue;
+            }
+
+            if (v < minVal) {
+                minVal = v;
+            }
+            if (v > maxVal) {
+                maxVal = v;
+            }
+
+            const double absV = std::fabs(v);
+            if (absV > maxAbs) {
+                maxAbs = absV;
+            }
+            if (absV > hugeThreshold) {
+                ++hugeCount;
+                if (firstHugeElem < 0) {
+                    firstHugeElem = elemIndices[i];
+                    for (int kk = 0; kk < config_.quantitydim; ++kk) {
+                        firstHugeVals[kk] = result[kk];
+                    }
+                }
+            }
         }
         elementResultMap_[elemIndices[i]] = result;
         LOG_DBG(preciceAdapterElemRes) << "Read result "<< config_.cfsname<< " for element "<< elemIndices[i]<< ": " << result.ToString();
+    }
+
+    if (!std::isfinite(minVal)) {
+        minVal = 0.0;
+    }
+    if (!std::isfinite(maxVal)) {
+        maxVal = 0.0;
+    }
+
+    std::cout << "PreciceAdapter(ElementResult) read stats: mesh='" << config_.meshName
+              << "', data='" << config_.precicename
+              << "', cfs='" << config_.cfsname
+              << "', elems=" << elemIndices.size()
+              << ", min=" << minVal
+              << ", max=" << maxVal
+              << ", maxAbs=" << maxAbs
+              << ", nonFinite=" << nonFiniteCount
+              << ", huge(>|" << hugeThreshold << "|)=" << hugeCount
+              << "\n";
+
+    if (firstHugeElem >= 0) {
+        std::cout << "PreciceAdapter(ElementResult) first huge elem " << firstHugeElem
+                  << " values:";
+        for (int k = 0; k < config_.quantitydim; ++k) {
+            std::cout << " " << firstHugeVals[k];
+        }
+        std::cout << "\n";
     }
 }
 
