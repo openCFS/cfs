@@ -123,6 +123,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             			<logging> true </logging>
             			<stopCrit> 7 </stopCrit>
             			<m0> 4 </m0>
+                  <precision> double </precision>
 						<eigenValues>
 							<customContour>
 								<segment>

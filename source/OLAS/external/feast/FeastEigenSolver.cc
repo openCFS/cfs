@@ -76,6 +76,10 @@ void FeastEigenSolver::Setup(const BaseMatrix & A, bool isHermitian){
     if (stochasticEstimate_) fpm_[13] = 2; // use stochastic estimate for number of eigenvalues
     fpm_[26] = 1; // Extended Eigensolver routines check input matrices
     fpm_[27] = 1; // check b for positive definiteness
+
+    if(xml_->Has("precision")) 
+      precision_ = xml_->Get("precision")->As<string>() == "double" ? 0 : 1; // 0 = double, 1 = single (legacy default)
+    fpm_[41] = precision_; // FEAST fpm(42): 0 = double, 1 = single precision inner solver
     // possible settings for future implementations
     // elliptical search contour => fpm18, fpm19
     // integration type => fpm16
@@ -356,8 +360,8 @@ void FeastEigenSolver::CalcEigenValues(BaseVector& sol, BaseVector& err, Double 
     ToInfo();
 }
 
-// actually solve the problem
-void FeastEigenSolver::DoCalculation(BaseVector& sol, BaseVector& err) {
+// actually solve the problem for a random seed
+void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
     assert(a_ != NULL);
     assert(a_->GetStructureType() == BaseMatrix::SPARSE_MATRIX);
     if (a_->GetStructureType() != BaseMatrix::SPARSE_MATRIX) {
@@ -937,6 +941,30 @@ void FeastEigenSolver::DoCalculation(BaseVector& sol, BaseVector& err) {
     }
 }
 
+// FEAST can fail intermittently with info=-3 (reduced eigenproblem: B not positive
+// definite) from an unlucky random initial subspace. Re-running CalculationAttempt
+// draws a fresh subspace (if FEAST re-seeds), so retry a few times before giving up.
+void FeastEigenSolver::DoCalculation(BaseVector& sol, BaseVector& err) {
+  const int feastMaxAttempts = 3;
+  for(int feastAttempt = 1; feastAttempt <= feastMaxAttempts; feastAttempt++) 
+  {
+    std::cout << ">> FEAST: solve attempt " << feastAttempt << " of " << feastMaxAttempts << std::endl;
+    CalculationAttempt(sol, err);
+    if(info_ == 0) {
+      if(feastAttempt > 1)
+        std::cout << ">> FEAST: SUCCEEDED on attempt " << feastAttempt << " of " << feastMaxAttempts << std::endl;
+      return;
+    }
+    if(info_ == -3 && feastAttempt < feastMaxAttempts) {
+      std::cout << ">> FEAST: info=-3 (reduced system / B not positive definite, retry with another random subspace" << std::endl;
+      continue;
+    }
+    if(info_ == -3)
+      std::cout << ">> FEAST: still info=-3 after " << feastMaxAttempts << " attempts -> giving up " << std::endl;
+    return;
+  }
+}
+
 void FeastEigenSolver::Setup(const BaseMatrix& stiffMat, unsigned int numFreq, double freqShift, bool sort)
 {
   numFreq_ = numFreq;
@@ -1101,6 +1129,7 @@ void FeastEigenSolver::ToInfo()
     setup->Get("N_estimated")->SetValue(m_);
   }
 
+  eigenInfo_->Get("innerSolverPrecision")->SetValue(precision_ == 0 ? "double" : "single");
   // contour information
   // setup tags
   PtrParamNode contour = eigenInfo_->Get("contour",ParamNode::APPEND);
