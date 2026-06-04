@@ -115,12 +115,8 @@ namespace CoupledField
     orderedElems_.Clear();
   }
 
-  void GridCFS::CreateUserDefinedNodesElems() 
+  void GridCFS::CreateUserDefinedNodesElems(const PtrParamNode& param) 
   {
-     // if no param object is present, just leave
-    if(!param_) 
-      return;
-
     userDefinedTimer_->Start();
 
     // we handle in this overly full method nodes and elements almost similar. First nodeList, then elemList
@@ -130,9 +126,9 @@ namespace CoupledField
       ParamNodeList entities;
 
       if(isNode)
-        listEntity = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
+        listEntity = param->Get("nodeList", ParamNode::PASS);
       else
-        listEntity = param_->Get("domain")->Get("elemList", ParamNode::PASS);
+        listEntity = param->Get("elemList", ParamNode::PASS);
 
       if (listEntity) 
       { // is there nodeList or elemList in domain?
@@ -157,26 +153,34 @@ namespace CoupledField
             AddNamedNodes(name,nodesInRegion);
           }
 
+          StdVector<unsigned int> found_entities;
+
           // traverse all entities and either test by condition or check against given bounds
-          bool isTest = entity->Has("test");
-          if(isTest || entity->Has("bounds"))
-            CreateUserDefinedTraverse(name, isNode, isTest ? entity->Get("test") : entity->Get("bounds"));
+          if(entity->Has("test") || entity->Has("bounds"))
+            SelectByTraversal(name, isNode, entity->GetOneOf("test", "bounds"), found_entities);
 
           // check if node is defined by virtual coordinate
           if(entity->Has("coord"))
-            CreateUserDefinedByCoord(name, isNode, entity->Get("coord"));
+            SelectByCoord(name, isNode, entity->Get("coord"), found_entities);
 
           // check if entity is defined by parametric virtual coordinates
-          bool isList = entity->Has("list");
-           if(isList || entity->Has("expression"))
-            CreateUserDefinedBySearch(name, isNode, isList ? entity->Get("list") : entity->Get("expression"));
+          if(entity->Has("list") || entity->Has("expression"))
+           SelectBySearch(name, isNode, entity->GetOneOf("list", "expression"), found_entities);
+
+          if(found_entities.GetSize() > 0)
+          {
+            if(isNode)
+              AddNamedNodes(name, found_entities);
+            else
+              AddNamedElems(name, found_entities);
+          }
         } // end of loop over nodeList/elemList
       } // end of listEntity exists
     } // end of isNode and !isNode
     userDefinedTimer_->Stop();
   }
 
-  void GridCFS::CreateUserDefinedByCoord(const std::string& name, bool isNode, const PtrParamNode& coordNode )
+  void GridCFS::SelectByCoord(const std::string& name, bool isNode, const PtrParamNode& coordNode, StdVector<unsigned int>& found_entities)
   {
     // we could handle this as a special case of CreateUserDefinedBySearch but that is already overly complex
 
@@ -216,18 +220,13 @@ namespace CoupledField
     cosy->Local2GlobalCoord(globCoord, locCoord); // in the default case copy from locCoord to globCoord
 
     // find the closes node/element for the single given coordinate
-    StdVector<unsigned int> entityNum(1);
-    entityNum[0] = FindNearestEntity(isNode, globCoord);
-
-    if(isNode)
-      AddNamedNodes(name, entityNum);
-    else
-      AddNamedElems(name, entityNum);
-
-    LOG_DBG(gridcfs) << "CUDBC: name=" << name << " isNode=" << isNode << " locCoord=" << locCoord.ToString() << " globCoord=" << globCoord.ToString() << " -> " << entityNum[0];
+    found_entities.Resize(1);
+      found_entities[0] = FindNearestEntity(isNode, globCoord);
+      
+    LOG_DBG(gridcfs) << "CUDBC: name=" << name << " isNode=" << isNode << " locCoord=" << locCoord.ToString() << " globCoord=" << globCoord.ToString() << " -> " << found_entities[0];
   }
 
-  void GridCFS::CreateUserDefinedBySearch(const std::string& name, bool isNode, const PtrParamNode& pn )
+  void GridCFS::SelectBySearch(const std::string& name, bool isNode, const PtrParamNode& pn, StdVector<unsigned int>& found_entities)
   {
     // an expression has up to 3 sample elements where one can be the auxiliary variable 'u'.
     // we can have up to three eval but variables can only be from sample. 
@@ -339,8 +338,8 @@ namespace CoupledField
 
     // now we loop over the full space - unused samples have only one value
     // we search for virtual coordinates and find the neared entity - here we collect them uniquely 
-    boost::unordered_flat_set<unsigned int> found_entities;
-    found_entities.reserve(1000); // try to avoid rehashing - if too small it just costs a little
+    boost::unordered_flat_set<unsigned int> found_set;
+    found_set.reserve(1000); // try to avoid rehashing - if too small it just costs a little
     for(double v_0 : samples[0].values)
     {
       samples[0].var = v_0; // this address is registered for all handles
@@ -365,29 +364,23 @@ namespace CoupledField
           unsigned int node = FindNearestEntity(isNode, globCoord); 
           LOG_DBG(gridcfs) << "CUDBS: name=" << name << " isNode=" << isNode << " search coord=" << globCoord.ToString() << " -> " 
                             << node << " " << (isNode ? coords_[node-1].ToString() : orderedElems_[node-1]->extended->barycenter.ToString());
-          found_entities.insert(node);
+          found_set.insert(node);
         }
       }        
     }
 
     // make a defined ordering to allow for stable test cases
-    StdVector<unsigned int> sorted_entities;
-    sorted_entities.Reserve(found_entities.size());
-    for(unsigned int v : found_entities)
-      sorted_entities.Push_back(v);
-    std::sort(sorted_entities.begin(), sorted_entities.end());
-
-    if(isNode)
-      AddNamedNodes(name, sorted_entities);
-    else
-      AddNamedElems(name, sorted_entities);
+    found_entities.Reserve(found_set.size());
+    for(unsigned int v : found_set)
+      found_entities.Push_back(v);
+    std::sort(found_entities.begin(), found_entities.end());
 
     for(Expression& eval : evals)
       parser->ReleaseHandle(eval.handle);
 
-    LOG_DBG(gridcfs)  << "CUDBS: name=" << name << " isNode=" << isNode << " expressions=" << evals.GetSize() << " found=" << sorted_entities.GetSize() << " entities=" << sorted_entities.GetSize();
-    LOG_DBG(gridcfs) << "CUDBS: name=" << name << " entities=" << sorted_entities.ToString();    
-    for(auto n : sorted_entities)
+    LOG_DBG(gridcfs)  << "CUDBS: name=" << name << " isNode=" << isNode << " expressions=" << evals.GetSize() << " found=" << found_entities.GetSize() << " entities=" << found_entities.GetSize();
+    LOG_DBG(gridcfs) << "CUDBS: name=" << name << " entities=" << found_entities.ToString();    
+    for(auto n : found_entities)
       if(!isNode)
       {
         LOG_DBG(gridcfs) << "CUDBS: name=" << name << " elem=" << n << " coord=" << orderedElems_[n-1]->extended->barycenter.ToString();
@@ -395,7 +388,7 @@ namespace CoupledField
   }
 
 
-  unsigned int GridCFS::CreateUserDefinedTraverse(const std::string& name, bool isNode, const PtrParamNode& pn)
+  void GridCFS::SelectByTraversal(const std::string& name, bool isNode, const PtrParamNode& pn, StdVector<unsigned int>& found_entities)
   {
     const CoordSystem* cosy = domain->GetCoordSystem(pn->Get("coordSysId")->As<string>()); // usually the DefaultCoordSystem
 
@@ -470,8 +463,6 @@ namespace CoupledField
     cosy->Local2GlobalCoord(max_glob, max_loc);
 
     // traverse all nodes 
-    StdVector<unsigned int> found_entities;
-
     unsigned int n = isNode ? coords_.GetSize() : orderedElems_.GetSize();
 
     for(unsigned int idx = 0; idx < n; idx++)
@@ -500,18 +491,9 @@ namespace CoupledField
     }
     parser->ReleaseHandle(handle);
     
-    if(found_entities.GetSize() > 0)
-    {
-      if(isNode)
-        AddNamedNodes(name, found_entities);
-      else
-        AddNamedElems(name, found_entities);
-    }
-
+    
     LOG_DBG(gridcfs) << "CUDBT: name=" << name << " isNode=" << isNode << " found=" << found_entities.GetSize()
                      << " given=" << given.ToString() << " min_loc=" << min_loc.ToString() << " max_loc=" << max_loc.ToString();
-
-    return found_entities.GetSize();                     
   }
 
   void GridCFS::CreateKDTree(bool isNode)
@@ -986,7 +968,7 @@ void GridCFS::MapFaces()
       }
     }
 
-    // in case of internalMesh the region is already marked as regular
+    // in case of RegularMesh the region is already marked as regular
     // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++) {
       regionData[i].regular = (regionData[i].regular || CheckForRegularRegion(i));
@@ -1001,10 +983,14 @@ void GridCFS::MapFaces()
 
     // make named nodes from lines
     makeNameNodesFromLines();
-    
-    // Select nodes / elements according to the users specification in the
-    // parameter file
-    CreateUserDefinedNodesElems();
+
+    // there might be user defined geometry in a regular mesh description - needs to be done late
+    for(auto pn : pendingDefinedNodesElemsLists)
+      CreateUserDefinedNodesElems(pn);
+
+    // Select nodes / elements according to the users specification in the parameter file
+    if(param_)
+      CreateUserDefinedNodesElems(param_->Get("domain"));
     
     // In the end, trim all vectors, i.e. delete any non-used memory from its
     // capacity.
@@ -2364,7 +2350,7 @@ void GridCFS::MapFaces()
   }
 
 
-  void GridCFS::SetElemData(UInt ielem, Elem::FEType type, RegionIdType region, const UInt* connect)
+  Elem* GridCFS::SetElemData(UInt ielem, Elem::FEType type, RegionIdType region, const UInt* connect)
   {
     assert(type != Elem::ET_UNDEF);
     
@@ -2377,6 +2363,8 @@ void GridCFS::MapFaces()
 
     UInt idx=ielem-1;
     Elem* el = orderedElems_[idx];
+    bool firstSet = (el->type == Elem::ET_UNDEF); // the almost only case (exception regular inner regions)
+    assert(firstSet || (el->type == type)); // if not first set, don't change type or handle the increment/decrement correctly
     el->type = type;
     el->regionId = region;
     UInt d = 2;
@@ -2384,8 +2372,9 @@ void GridCFS::MapFaces()
 
     // set isQuadratic information
     isQuadratic_ |= (Elem::shapes[type].order == 2); 
-    
-    numElemTypes_[type]++;
+
+    if(firstSet)
+      numElemTypes_[type]++;
 
     switch(type)
     {
@@ -2424,13 +2413,13 @@ void GridCFS::MapFaces()
     if(region != NO_REGION_ID)
     {
       const std::string& regionName = region_.ToString(region);
-      const auto it = entityDim_.find(regionName);
-      if(it == entityDim_.end()) 
-        entityDim_[regionName] = Elem::shapes[type].dim;
-      else 
-        if(it->second != Elem::shapes[type].dim) // sanity check
-          EXCEPTION("Region '" << regionName << "' contains elements of different dimensions!");
+      // either set in map<std::string, UInt> dim for key regionName or validate existing
+      auto [it, inserted] = entityDim_.try_emplace(regionName, Elem::shapes[type].dim);
+      if(!inserted && it->second != Elem::shapes[type].dim) // sanity check
+        EXCEPTION("Region '" << regionName << "' contains elements of different dimensions!");
     } 
+
+    return el;
   }
 
   void GridCFS::GetElemData(const UInt ielem,

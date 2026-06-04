@@ -594,16 +594,13 @@
 
   <!-- ******************************************************************** -->
   <!-- Data type for specifying either a single entity or a list of   -->
-  <!-- entitiies (nodes, elements), which can either be selected by a -->
+  <!-- entities (nodes, elements), which can either be selected by a -->
   <!-- pair of coordinates or by a parametric description -->
   <!--  ********************************************************************  -->
-  <xsd:complexType name="DT_DomainEntSelect">
-    <xsd:choice minOccurs="0" maxOccurs="1">
-      <xsd:element name="allNodesInRegion">
-        <xsd:complexType>
-          <xsd:attribute name="regName" type="xsd:token" use="required"/>
-        </xsd:complexType>
-      </xsd:element>
+  <!-- shared selection alternatives (without allNodesInRegion), reusable by the -->
+  <!-- domain (DT_DomainEntSelect) and the regular mesh (DT_RegularSubRegion) -->
+  <xsd:group name="DT_EntSelectChoice">
+    <xsd:choice>
       <!-- pair of coordinates -->
       <xsd:element name="coord">
         <xsd:annotation>
@@ -740,6 +737,24 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:choice>
+  </xsd:group>
+
+  <!-- single-entity / list selection used in the domain: the shared choices plus allNodesInRegion -->
+  <xsd:complexType name="DT_DomainEntSelect">
+    <xsd:choice minOccurs="0" maxOccurs="1">
+      <xsd:element name="allNodesInRegion">
+        <xsd:complexType>
+          <xsd:attribute name="regName" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:group ref="DT_EntSelectChoice"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- like DT_DomainEntSelect but without allNodesInRegion; used for the regular mesh subRegion -->
+  <xsd:complexType name="DT_RegularSubRegion">
+    <xsd:group ref="DT_EntSelectChoice" minOccurs="0" maxOccurs="1"/>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
 
 
@@ -886,31 +901,35 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_VariableList">
+      <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Add fixed variables for the following mathParser expression.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="var" minOccurs="0" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="name" type="xsd:token" use="required"/>
+          <xsd:attribute name="value" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+</xsd:complexType>
+
   <!-- ******************************************************************** -->
   <!--   Data type for domain section -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_Domain">
     <xsd:sequence>
       <!-- Variable list -->
-      <xsd:element name="variableList" minOccurs="0" maxOccurs="1">
-        <xsd:complexType>
-          <xsd:sequence>
-            <xsd:element name="var" minOccurs="0" maxOccurs="unbounded">
-              <xsd:complexType>
-                <xsd:attribute name="name" type="xsd:token" use="required"/>
-                <xsd:attribute name="value" type="xsd:token" use="required"/>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element>
+      <xsd:element name="variableList" type="DT_VariableList" minOccurs="0" maxOccurs="1"/>
 
       <!-- Region list -->
       <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="region" type="DT_DomainRegion" minOccurs="1" 
-              maxOccurs="unbounded"/>
+            <xsd:element name="region" type="DT_DomainRegion" minOccurs="1" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
@@ -919,8 +938,7 @@
       <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="surfRegion" type="DT_DomainSurface"
-            minOccurs="0" maxOccurs="unbounded"/>
+            <xsd:element name="surfRegion" type="DT_DomainSurface" minOccurs="0" maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>

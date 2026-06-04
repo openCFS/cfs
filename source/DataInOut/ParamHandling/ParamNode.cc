@@ -325,6 +325,21 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   return result;
 }
 
+
+PtrParamNode ParamNode::GetOneOf(const std::string& first, const std::string& second)
+{
+  const bool hasFirst = Has(first);
+  const bool hasSecond = Has(second);
+
+  if(!hasFirst && !hasSecond)
+    return PtrParamNode();
+
+  if(hasFirst && hasSecond)
+    throw Exception("has element '" + first + "' and '" + second + "' concurrently.");
+
+  return hasFirst ? Get(first) : Get(second);
+}
+
 PtrParamNode ParamNode::GetRoot() {
   PtrParamNode parent_locked = parent_.lock();
   if( parent_locked ) {

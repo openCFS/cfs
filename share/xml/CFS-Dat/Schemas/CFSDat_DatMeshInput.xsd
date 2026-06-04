@@ -12,8 +12,10 @@
   </xsd:annotation>
   
   <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_FileFormats.xsd"/>
-  
-  
+  <!-- CFS_FileFormats' DT_InputRegular/subRegion uses DT_RegularSubRegion, defined in CFS_Domain -->
+  <xsd:include schemaLocation="../../CFS-Simulation/Schemas/CFS_Domain.xsd"/>
+
+
   <xsd:include schemaLocation="CFSDat_BaseFilter.xsd"/>
   <xsd:include schemaLocation="CFSDat_GridType.xsd"/>
   <xsd:include schemaLocation="CFSDat_TimeType.xsd"/>

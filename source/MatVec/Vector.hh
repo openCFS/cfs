@@ -196,6 +196,9 @@ template <typename T>
     //! the result of \f$x + \alpha v\f$.
     void Add(T a, const SingleVector &vec);
 
+    /** add the constant to all entries of the vector */
+    void Add(T a);
+
     //! Override SingleVector functions
     //    virtual void Add(Double a,const SingleVector &vec);
     //    virtual void Add(Complex a,const SingleVector &vec);

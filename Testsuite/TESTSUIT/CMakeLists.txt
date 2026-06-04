@@ -1056,6 +1056,8 @@ add_subdirectory(Technical/CoefFunctionGridElem)
 add_subdirectory(Technical/CoefFunctionGridElemFromSurf)
 add_subdirectory(Technical/Pyra2ndOrder)
 add_subdirectory(Technical/xmlTimeIntegration)
+add_subdirectory(Technical/RegularMesh2D)
+add_subdirectory(Technical/RegularMesh3D_external)
 #-------------------------------------------------------------------------------
 # CFSdat
 #-------------------------------------------------------------------------------

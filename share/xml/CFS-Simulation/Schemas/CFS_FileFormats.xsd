@@ -64,7 +64,7 @@
     <xsd:attribute name="gridId" type="xsd:token" default="default">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          CFS++  can   internally  handle  a   number  of  meshes   which  are
+          openCFS can  internally  handle  a   number  of  meshes   which  are
           distinguished by  this attribute. Per default all  meshes and inputs
           will be  read into  a mesh with  gridId="default". If more  than one
           mesh is required one can vary  the gridId, e.g. to get a second mesh
@@ -90,7 +90,7 @@
       <xsd:element name="cgns" type="DT_InputCGNS"/>
       <xsd:element name="unv" type="DT_InputUNV"/>
       <xsd:element name="cdb" type="DT_InputCDB"/>
-      <xsd:element name="internal" type="DT_InputInternal"/>
+      <xsd:element name="regular" type="DT_InputRegular"/>
       <xsd:element name="ensight" type="DT_InputEnsight"/>
       <xsd:element name="python" type="DT_InputPython"/>
     </xsd:choice>
@@ -421,19 +421,118 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!--   Definition of Internal data input type -->
+  <!--   Definition of internal regular mesh generator  -->
   <!-- ******************************************************************** -->
 
-  <!-- Data type for specification of input file format -->
-  <xsd:complexType name="DT_InputInternal">
+  <!-- root element for an external regular mesh description. Load via -m on command line 
+       or the 'fileName' attribute 'regular'. -->
+  <xsd:element name="cfsMeshDescription">
+    <xsd:annotation>
+      <xsd:documentation>Root element for an external regular mesh description.</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="regular" minOccurs="1" maxOccurs="1" type="DT_InputRegular" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+
+
+  <!-- xml description of a regular mesh. To be input in problem.xml or as external xml file -->
+  <xsd:complexType name="DT_InputRegular">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Internal mesh is generated from input in xml-format.
+        Parameters for the on-the-fly regular mesh generator (rectangular/box domain).
+        The discretization is by linear rectangles/hexahedron elements. 
       </xsd:documentation>
     </xsd:annotation>
-
     <xsd:complexContent>
-      <xsd:extension base="DT_InputBasic"> </xsd:extension>
+      <xsd:extension base="DT_InputBasic"> 
+        <xsd:sequence>
+          <xsd:element name="box" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Axis-aligned bounding box of the generated mesh in m. Default min=0.0 and max=1.0. 
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="xMin" type="xsd:token" use="optional" default="0.0"/>
+              <xsd:attribute name="xMax" type="xsd:token" use="optional" default="1.0"/>
+              <xsd:attribute name="yMin" type="xsd:token" use="optional" default="0.0"/>
+              <xsd:attribute name="yMax" type="xsd:token" use="optional" default="1.0"/>
+              <xsd:attribute name="zMin" type="xsd:token" use="optional" default="0.0"/>
+              <xsd:attribute name="zMax" type="xsd:token" use="optional" default="1.0"/>
+            </xsd:complexType>
+          </xsd:element>
+        
+          <xsd:element name="elements" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Number of elements per axis. nx is required; ny and nz default to unit elements (squares/cubes).
+                Implicitly defines the spacing. If it is already given, the parameters must be consistent.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="nx" type="xsd:positiveInteger" use="required"/>
+              <xsd:attribute name="ny" type="xsd:positiveInteger" use="optional"/>
+              <xsd:attribute name="nz" type="xsd:positiveInteger" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <xsd:element name="spacing" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Target element edge length per axis. hx is required; hy and hz default to hx (uniform spacing).
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="hx" type="xsd:token" use="required"/>
+              <xsd:attribute name="hy" type="xsd:token" use="optional"/>
+              <xsd:attribute name="hz" type="xsd:token" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- we can optionally define own regions by overwriting the main regular@region --> 
+          <xsd:element name="subRegion" type="DT_RegularSubRegion" minOccurs="0" maxOccurs="unbounded">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Override the default region for a selected set of elements, chosen like a domain
+                entity selection (bounds/test/coord/list/expression) but without allNodesInRegion.
+                The 'name' attribute is the sub-region's region name.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <!-- exactly same is in domain/elemList und nodeList. 
+           Here for convenience to define a full mesh in compat form, especially when read from external .xml input -->
+          <xsd:element name="elemList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="elems" type="DT_DomainElems" minOccurs="0"
+                  maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="nodes" type="DT_DomainNodes" minOccurs="0" maxOccurs="unbounded"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="geometryType" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="plane"/>
+              <xsd:enumeration value="3d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="region" type="xsd:token" use="required">
+          <xsd:annotation><xsd:documentation>Region name of the mesh - can be partially overwritten by 'subRegion' descriptions.</xsd:documentation></xsd:annotation>
+        </xsd:attribute>  
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 

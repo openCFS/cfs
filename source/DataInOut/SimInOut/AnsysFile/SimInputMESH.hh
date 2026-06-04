@@ -11,7 +11,7 @@ namespace CoupledField
    * or via our own create_mesh.py or mesh_tool.py.
    * 
    * It seems that his mesh format a native openCFS format and does not follow
-   * any standard, yet it is quite nice and easiy to read and write format. */
+   * any standard, yet it is quite nice and easy to read and write format. */
   class SimInputMESH: public SimInput 
   {
   public:

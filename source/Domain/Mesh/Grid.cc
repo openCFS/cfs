@@ -360,7 +360,9 @@ namespace CoupledField
   
   UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
   {
+    LOG_DBG(grid) << "SEB: r=" << reg << " u=" << updated << " #rd=" << regionData.GetSize();
     RegionData& rd = regionData[reg];
+    LOG_DBG(grid) << "SEB: rd.id=" << rd.id << " rd.name=" << rd.name << " rd.type=" << rd.type;
 
     if(rd.barycenters)
       return 0;

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation 
+  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>cfs xml mesh description for external xml file (3D)</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-07-06</date>
+    <references>no</references>
+    <isVerified>no</isVerified>
+    <description>
+      This is a variant of the RegularMesh2D test. See there for the description.
+      
+      * we test a 3D mesh
+      * the mesh description is in an external file
+      
+      The external file is here loaded via 'fileName' but it would also work 
+      on the command line via 'cfs -m regular_mesh.xml problem' without 'input' in the problem file.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <!-- the description is loaded from the external file. cfs -m would also be possible -->
+      <regular geometryType="3d" region="base" fileName="regular_mesh.xml" />
+    </input> 
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <variableList>
+      <!-- A little tricky: The e is also available for the external regular_mesh.xml -->
+      <var name="e" value="1e-3" />
+    </variableList>
+    <regionList>
+      <region name="base" material="99lines"/>
+      <region name="half" material="99lines"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="base" />
+          <region name="half" />
+        </regionList>
+        <bcsAndLoads>
+          <temperature name="left" value="0"/>
+          <heatSource name="base" value="-.5"/>
+          <heatSource name="half" value="2"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <regionList>
+              <region name="base"/>
+              <region name="half"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>
