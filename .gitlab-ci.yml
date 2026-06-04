@@ -60,6 +60,11 @@ variables:
   # since branch and MR pipelines show a different behavior without this option, we set it (see https://docs.gitlab.com/ee/ci/yaml/#ruleschanges)
   COMPARE_CHANGES_TO: $CI_DEFAULT_BRANCH # if one does merge requests to a different branch than the default this needs to be changed
 
+  # Force MKL onto a CPU-independent, reproducible (within MKL version) code path even on AMD and super power AVX515 Xenon
+  # see https://www.sidefx.com/docs/houdini/model/mkl.html#setting-the-mkl_cbwr-environment-variable
+  # CBWR=Conditional Bit-Wise Reproducibility. "AUTO" would be default but breaks some tests (e.g. ipopt)
+  MKL_CBWR: "COMPATIBLE"
+
 # stages in the pipeline run in succession
 stages:
   - check
@@ -1025,6 +1030,12 @@ windows:msvc2022:
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
     - !reference [.cmake_test_or_install,script]
+    # allow to uncollapse runner CPU model data. See also the logs of the tests on cdash
+    - export DEBUG_SECTION_TITLE='Hardware and Environment Details'
+    - !reference [.linux-debug-start_collapsed, script]
+    - lscpu
+    - echo "MKL_CBWR=${MKL_CBWR:-unset} MKL_NUM_THREADS=${MKL_NUM_THREADS:-unset}"
+    - !reference [.linux-debug-end, script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/

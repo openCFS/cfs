@@ -57,6 +57,9 @@ MACRO(CFS_STANDARD_TEST)
   # Generate test names
   GENERATE_TEST_NAME_AND_FILE("${CURRENT_TEST_DIR}")
 
+  # emit the CPU model as a CDash measurement (Linux only)
+  emit_cpu_dart()
+
   # Determine which files need to be copied to TESTSUITE_BIN_DIR
   DETERMINE_TEST_FILE_LIST()
 
