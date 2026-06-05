@@ -13,4 +13,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 # Test case broken on gcc7 and windows builds (see issue #95)
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
+#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

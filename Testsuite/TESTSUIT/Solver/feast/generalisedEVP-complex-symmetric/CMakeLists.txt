@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
 )
 
 # test often/sometimes segfaults on Windows and fails on musl
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
+#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

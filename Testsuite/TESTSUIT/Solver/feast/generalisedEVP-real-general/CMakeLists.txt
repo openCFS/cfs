@@ -12,8 +12,9 @@ ADD_TEST(${TEST_NAME}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-# This test is broken on Windows (MSVC2019-ifort2021)
-# due to EXCEPTION "no volume elements in grid found, maybe dimension mismatch with analysis"
+
+# breaks only on Windows
+# Exception "no volume elements in grid found, maybe dimension mismatch with analysis"
 if(WIN32)
   set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
 endif()

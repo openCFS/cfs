@@ -13,6 +13,6 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# fails for all compilers with openmp and is stable serial
+# fails for all compilers with openmp and is stable serial - known in implementation
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "slow")

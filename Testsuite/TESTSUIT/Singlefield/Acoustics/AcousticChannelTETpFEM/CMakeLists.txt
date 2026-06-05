@@ -13,6 +13,6 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# fails for classic intel compiler with openmp and is stable serial
+# fails rarely and only for gcc15 musl parallel
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "slow")

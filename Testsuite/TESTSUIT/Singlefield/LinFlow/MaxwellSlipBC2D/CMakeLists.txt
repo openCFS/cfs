@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
   -DCFSTOOL_MODE=absL2diff
   -P ${CFS_STANDARD_TEST}
 )
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken") # the test fails sporadically on serial and parallel runs in serveral build configs
+#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken") # the test fails sporadically on serial and parallel runs in serveral build configs

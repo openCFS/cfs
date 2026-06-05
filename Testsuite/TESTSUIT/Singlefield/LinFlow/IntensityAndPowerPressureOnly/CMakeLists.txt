@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
 )
 
 # This test fails on gcc12/13 even serial
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
+# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

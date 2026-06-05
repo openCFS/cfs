@@ -13,9 +13,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# This test fails sporadically in parallel runs on Linux, on Windows (MSVC2019,ifort2021) it only passes in 1/3 times -> broken
-if(WIN32)
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
-else()
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
-endif()
+## set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

@@ -13,4 +13,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
+# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

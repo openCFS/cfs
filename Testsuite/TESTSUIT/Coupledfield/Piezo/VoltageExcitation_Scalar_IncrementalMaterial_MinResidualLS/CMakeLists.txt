@@ -13,6 +13,6 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# fails sometimes for gcc7 max parallel and almost any time with gcc12/13 - even serial
+# from time to time the simulation cannot converge with intel (also serial)
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "slow")

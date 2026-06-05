@@ -13,4 +13,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 # this test fails sporadically, hence, we set it to unstable
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
+# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

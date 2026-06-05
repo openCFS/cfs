@@ -14,6 +14,6 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# this test also fails for serial testing --> broken
+# mostly passes gcc9, other systems fail
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
 

@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
 )
 
 # fails for gcc10 with openmp and is stable serial
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
+# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
