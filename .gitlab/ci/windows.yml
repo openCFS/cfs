@@ -184,7 +184,9 @@
     - cd build
     - ls # debug
     # extract CFS
-    - cmake -E tar xvf "CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
+    - *powershell-debug-start_collapsed
+    - cmake -E tar xvf "CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract (folded)
+    - *powershell-debug-end
     - mv CFS-$CI_COMMIT_SHA-win64/* .
     # clean up to save space
     - rm "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"

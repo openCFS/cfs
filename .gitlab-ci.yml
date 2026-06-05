@@ -1025,7 +1025,10 @@ windows:msvc2022:
     - cd build # descend in build
     - ls # debug
     # install CFS
+    - export DEBUG_SECTION_TITLE='Extract CFS'
+    - !reference [.linux-debug-start_collapsed, script]
     - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
+    - !reference [.linux-debug-end, script]
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
