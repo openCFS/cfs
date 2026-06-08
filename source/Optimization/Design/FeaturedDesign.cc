@@ -187,7 +187,8 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 
   // MapFeatureGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
-  if(f->IsObjective() || !Function::IsLocal(f->GetType())) // don't map local functions
+  LOG_DBG(fd) << "WGTE: fobj=" << f->IsObjective() <<" flocal=" << Function::IsLocal(f->GetType());
+  if((f->IsObjective() || !Function::IsLocal(f->GetType())) && f->GetType() != Function::Type::SLACK) // dont map slack, don't map local functions
     MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
