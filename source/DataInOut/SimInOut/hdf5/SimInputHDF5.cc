@@ -105,7 +105,10 @@ namespace CoupledField {
     if (!fs::exists(fileName_))
       throw Exception("Input file does not exist: " + fileName_);
 
-    mainFile_ = H5Fopen( fileName_.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT );
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_file_locking(fapl, false, true); // use_file_locking=false, ignore_when_disabled=true
+    mainFile_ = H5Fopen(fileName_.c_str(), H5F_ACC_RDONLY, fapl);
+    H5Pclose(fapl);
     if(mainFile_ < 0) 
       throw Exception("Could not open HDF5 file '" + fileName_ +  "' for reading");
 
@@ -391,7 +394,10 @@ namespace CoupledField {
       std::string extFileString = ReadAttribute<std::string>(stepGroup, ".", "ExtHDF5FileName");
       std::string pathsep = fs::path("/").string();
       std::string extFileNameComplete = baseDir_ + pathsep + extFileString;
-      extFile = H5Fopen( extFileNameComplete.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT );
+      hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+      H5Pset_file_locking(fapl, false, true); // use_file_locking=false, ignore_when_disabled=true
+      extFile = H5Fopen(extFileNameComplete.c_str(), H5F_ACC_RDONLY, fapl);
+      H5Pclose(fapl);
       if(extFile < 0) EXCEPTION("Could not open external file '" << extFileString
         << "' for result '" << result->GetResultInfo()->resultName
         << "' in multisequence step " << sequenceStep
@@ -1072,6 +1078,8 @@ namespace CoupledField {
   // ------------------------------------------------------------------------
   
   void SimInputHDF5::DB_Init() {
+    if(dbRoot_ > 0) 
+      H5Gclose(dbRoot_); // don't orphan a previously-opened handle on re-init
     dbRoot_ = OpenGroup(mainRoot_, "DataBase");
   }
 

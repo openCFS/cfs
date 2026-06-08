@@ -539,15 +539,17 @@ namespace CoupledField
   void SimOutputHDF5::OpenFile(bool truncate)
   {
     LOG_DBG(h5Out) << "OF truncate=" << truncate;
-    // write HDF5 1.10 compatible format (earliest=low bound, V110=high bound) to stay readable by 1.10+ tools
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    // the file locking is enabled as default in the lib-build. Here we disable manually
+    // this can be overridden with HDF5_USE_FILE_LOCKING=TRUE
+    H5Pset_file_locking(fapl, false, true); // use_file_locking=false, ignore_when_disabled=true
     H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_V110);
     if (truncate)
       mainFile_ = H5Fcreate(currFileName_.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     else
       mainFile_ = H5Fopen(currFileName_.c_str(), H5F_ACC_RDWR, fapl);
     H5Pclose(fapl);
-    
+  
     if (mainFile_ < 0)
       throw Exception("Could not open/create hdf5 file '" + currFileName_ + "'");
 
@@ -1024,6 +1026,7 @@ namespace CoupledField
 
     // same format bounds as main file
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_file_locking(fapl, false, true); // use_file_locking=false, ignore_when_disabled=true
     H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_V110);
     currStepFile_ = H5Fcreate(fullPath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     H5Pclose(fapl);
