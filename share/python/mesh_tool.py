@@ -389,7 +389,7 @@ def calc_barycenter(mesh):
   return .5 * (max + min)        
         
 ## creates a 2D mesh 
-def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False, silent=False, namedsets=True):
+def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False, silent=False, namedsets=True, center=False):
 
   assert x_res is not None
   if width is None: # e.g. for the PythonMesher the external parameters might be None
@@ -412,11 +412,17 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
   mesh.dx = round(width / nx,15) # usually we round with 14 digits, but then the base shall be finer!
   mesh.dy = round(height / ny,15)
 
+  offset = (0, 0)
+  if center:
+    offset = (-width / 2, -height / 2)
+
   # set nodes
   for y in range(ny+1):
     for x in range(nx+1):
       #print('x',x,'y',y,mesh.nodeindex(x, y))
-      mesh.nodes[mesh.node_idx(x, y)] = [round(x * mesh.dx,14), round(y * mesh.dy,14)] # nodeindex is row_major sensitive
+      posx = x * mesh.dx + offset[0]
+      posy = y * mesh.dy + offset[1]
+      mesh.nodes[mesh.node_idx(x, y)] = [round(posx, 14), round(posy, 14)] # nodeindex is row_major sensitive
 
   # create volume (2d) elements
   for l1 in range(ny if row_major else nx):
