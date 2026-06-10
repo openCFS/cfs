@@ -2691,6 +2691,19 @@ namespace CoupledField{
       //std::cout << "ADD" << std::endl;
       coef[i]->SetFeFunction( feFunctions_[formulation_], formulation_);
 
+      if (complexFluidFormulation_) {
+        // for inhom. fluid we need a 1/rho factor
+        std::string volRegName = ent[i]->GetName();
+    	  RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        PtrCoefFct density = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+
+        PtrCoefFct tmp2 = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                                  CoefXprBinOp(mp_, coef[i], density, 
+                                                  CoefXpr::OP_DIV ) );
+        coef[i].reset(tmp2);
+      }
+      
+
       if ( !approxSourceWithDeltaFnc_ && coef[i]->GetInverseType() == CoefFunction::INVSOURCE )  {
     	  std::cout << "Add BUIntegrator SRC" << std::endl;
     	  // check type of entitylist
