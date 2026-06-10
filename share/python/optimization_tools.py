@@ -7,6 +7,7 @@ import numpy.linalg
 import math
 import os
 import sys
+import warnings
 try:
   import scipy.io
 except (ImportError, ValueError) as ex:
@@ -129,7 +130,11 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None,
           self.dim = (int(att['x']), int(att['y']), int(att['z']))    
       elif tag == self.elem:
         if att['type'] == self.dt:
-          self.values.append(float(att[self.att]))  # als int or original string could be of interest 
+          val = float(att[self.att])
+          if val < 0:
+            warnings.warn("Sensity < 0, clipping it to = 0.")
+            val = 0
+          self.values.append(val)  # als int or original string could be of interest 
           if self.start_id is None:
             self.start_id = int(att["nr"])
           self.end_id = int(att["nr"])
