@@ -213,7 +213,7 @@ public:
     double clamp = -1.0;
 
     /** in case we have a symmetry where we induce a shape and mirror it value goes to max - value. Max is the node value */
-    double max = 1.0; // fixme an make it smart
+    double max = 0.0; // fixme an make it smart
 
     /** in case of 3D bloch optimization we need cubical symmetry and there the two dofs of a center node need to be the same.
      * In the slave case fixed, initial, lower, upper must not be given. */
