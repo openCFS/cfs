@@ -39,9 +39,6 @@ private:
   UInt numElems_;
   Double MaxE_;
 
-  //current index
-  UInt idx_;
-
   Double Ps_;
   Double a_;
   Double alpha_;
@@ -68,7 +65,6 @@ private:
   MathParser* mp_;
 
   Vector<Integer> isFirstTime_;
-  bool isFirstTimeFinished_;
 
   UInt timeStep_;
 
@@ -76,9 +72,6 @@ private:
   double isMH_;
 
   std::string varHandle_;
-
-  Vector<Double> currentDirection_;
-  std::map<UInt,Vector<Double>> initialDirection_;
 };
 } //end of namespace
 

@@ -143,6 +143,7 @@ MACRO(RUN_TEST_SIMULATION)
     COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${TEST_FILE_BASENAME}"
     WORKING_DIRECTORY "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}"
     ERROR_VARIABLE CFS_ERROR
+    ECHO_ERROR_VARIABLE          # also stream cfs stderr (warnings!) to the test log, not only capture it for the crash message
     RESULT_VARIABLE CFS_RETVAL)
   IF(NOT CFS_RETVAL EQUAL 0)
     MESSAGE("ERROR: RV=${CFS_RETVAL} : ${CFS_ERROR}")

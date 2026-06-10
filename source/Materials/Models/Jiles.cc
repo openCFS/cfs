@@ -11,15 +11,17 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "General/Environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
 
 namespace CoupledField {
 
 DEFINE_LOG(ja, "Jiles")
 
 Jiles::Jiles() : Model(),
-numElems_{0}, MaxE_{0},  idx_{0},
+numElems_{0}, MaxE_{0},
 Ps_{0}, a_{0}, alpha_{0}, k_{0},c_{0},
-mp_{nullptr}, isFirstTimeFinished_{0},
+mp_{nullptr},
 timeStep_{0}, globalIter_{0},
 isMH_{false}
 {}
@@ -52,6 +54,13 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
   } else {
     varHandle_="step";
   }
+
+  // JilesAtherton keeps shared per-timestep history (RampUp/saveValues operate on all elements)
+  // transient JA can have wrong numerical results when in parallel, the PrismHyst_MH can be forced to serial
+  // TODO: JA need a refactoring to be truly thread-save
+  if(isMH_ != 1.0 && CFS_NUM_THREADS > 1)
+    WARN("Material model 'JilesAthertonModel' is not thread-safe for transient analysis");
+    
   Ps_ = ParameterMap["Ps"];
   alpha_ = ParameterMap["alpha"];
   a_ = ParameterMap["a"];
@@ -100,13 +109,6 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
   isFirstTime_.Resize(numElems_);
   isFirstTime_.Init(1);
 
-  isFirstTimeFinished_ = false;
-
-  currentDirection_.Resize(3);
-  currentDirection_.Init(0);
-
-  initialDirection_.clear();
-
   timeStep_ = 1;
 
   mp_ = domain->GetMathParser();
@@ -115,98 +117,76 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
 
 Double Jiles::ComputeMaterialParameter(Vector<Double> EVec, const Integer ElemNum) {
 
-  if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-    //if there is a new iteration, save the values from the previous iteration
-    LOG_DBG3(ja) << "Trigger new iteration"<< std::endl;
-    for(UInt i = 0; i <numElems_; i++){
-      LOG_DBG3(ja) << "Overwritting for idx_: " << i << std::endl;
-      E0it_[i]=E1_[i];
-      P0it_[i]=P1_[i];
-      Pi0it_[i]=Pi1_[i];
-      Pa0it_[i]=Pa1_[i];
-    }
-  }
+  // JilesAtherton is a serial model: the per-iteration / per-timestep bookkeeping
+  // (globalIter_ swap, saveValues, first-time RampUp init) mutates shared,
+  // all-element state, and the per-element math reads/writes the same shared
+  // vectors. It also has lazy init (within first run) - TODO: refactor it
+  // 
+  // With the critical below we fix double free and the PrismHist_MH runs, other
+  // JA tests can produce wrong numerical results when assembled in parallel.
+  const UInt idx = ElemNum2Idx_[ElemNum-1];
+  const Double E = EVec.NormL2();
 
-  idx_=ElemNum2Idx_[ElemNum-1];
+  Double epsilon;
+  const Double epsilon0 = 8.854187e-12;
 
-  saveValues(false);
-
-  Double E, P;
-
-  E = EVec.NormL2();
-  if(E == 0){
-    return 4.028353e-07;
-  }
-
-  currentDirection_ = EVec;
-  currentDirection_.ScalarDiv(E);
-
-  if (!isFirstTimeFinished_ && (isFirstTime_[idx_])) {
-
-    //Register intial direction
-    initialDirection_[idx_]=currentDirection_;
-
-    //Evaluate the anhysteretic curve to give a better starting point for P
-    P0_[idx_] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
-
-    //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
-    RampUp(512, E, idx_);
-
-    //Set first time for element to false
-    isFirstTime_[idx_] = 0;
-
-    // if last idx_ is reached, do a double check control
-    if (idx_==numElems_-1){
-      // Double checking if each element is initalized once. eg each element has its index.
-      for(UInt i = 0; i < isFirstTime_.GetSize();i++){
-        if(isFirstTime_[i]){
-          EXCEPTION("This should not happen!");
-        }
+  #pragma omp critical (jiles_transition)
+  {
+    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      //if there is a new iteration, save the values from the previous iteration
+      LOG_DBG3(ja) << "Trigger new iteration"<< std::endl;
+      for(UInt i = 0; i <numElems_; i++){
+        LOG_DBG3(ja) << "Overwritting for idx_: " << i << std::endl;
+        E0it_[i]=E1_[i];
+        P0it_[i]=P1_[i];
+        Pi0it_[i]=Pi1_[i];
+        Pa0it_[i]=Pa1_[i];
       }
-      isFirstTimeFinished_=true;
+    }
+
+    // advance the timestep (global E0_=E1_ swap + reset inside saveValues)
+    saveValues(false);
+
+    if(E == 0){
+      epsilon = 4.028353e-07;
+    } else {
+      if (isFirstTime_[idx]) {
+
+        //Evaluate the anhysteretic curve to give a better starting point for P
+        P0_[idx] = Ps_ * (cosh(E / a_) / sinh(E / a_) - a_ / E);
+
+        //Ramp up, in case signal doesnt start at 0, to provide stable JA-solution.
+        RampUp(512, E, idx);
+
+        // Set first time for element to false. Each element initializes itself exactly once
+        // note that with parallel assembly the order of element evaluation is not deterministic
+        isFirstTime_[idx] = 0;
+      }
+
+      //if timestep == 0 -> new iteration, reset the values, only for multiharmonic
+      if(timeStep_==0){
+        E0_[idx]=E0it_[idx];
+        P0_[idx]=P0it_[idx];
+        Pi0_[idx]=Pi0it_[idx];
+        Pa0_[idx]=Pa0it_[idx];
+      }
+
+      Double P = Evaluate(E, idx);
+      epsilon = epsilon0 + P / E;
     }
   }
-
-  //Check if direction has changed
-//  double innerProduct = 0;
-//  innerProduct = currentDirection_.Inner(initialDirection_[idx_]);
-//  if (abs(innerProduct)<0.95){
-//    EXCEPTION("Dependend Vector rotates to much. This should not occur. This is a scalar hysteresis model.");
-//  }
-
-
-  //if timestep == 0 -> new iteration, reset the values, only for multiharmonic
-
-  if(timeStep_==0){
-    E0_[idx_]=E0it_[idx_];
-    P0_[idx_]=P0it_[idx_];
-    Pi0_[idx_]=Pi0it_[idx_];
-    Pa0_[idx_]=Pa0it_[idx_];
-  }
-
-  P = Evaluate(E, idx_);
-//  std::cout << "P = " << P << std::endl;
-  Double epsilon, epsilon0;
-  epsilon0 = 8.854187e-12;
-
-//  if(E == 0 ){
-//    epsilon = 4.028353e-07;
-//  } else{
-//    epsilon = epsilon0 + P / E;
-//  }
-  epsilon = epsilon0 + P / E;
 
   if(std::isinf(epsilon) || std::isnan(epsilon) ){
-    std::cout << "E0: "<< E0_[idx_] << std::endl;
-    std::cout << "E1: "<< E1_[idx_]<< std::endl;
-    std::cout << "dE: " <<  E1_[idx_] - E0_[idx_] << std::endl;
-    std::cout << "P0: "<< P0_[idx_] << std::endl;
-    std::cout << "P1: "<< P1_[idx_]<< std::endl;
-    std::cout << "Pa0: "<< Pa0_[idx_] << std::endl;
-    std::cout << "Pa1: "<< Pa1_[idx_]<< std::endl;
-    std::cout << "Pi0: "<< Pi0_[idx_] << std::endl;
-    std::cout << "Pi1: "<< Pi1_[idx_]<< std::endl;
+    std::cout << "E0: "<< E0_[idx] << std::endl;
+    std::cout << "E1: "<< E1_[idx]<< std::endl;
+    std::cout << "dE: " <<  E1_[idx] - E0_[idx] << std::endl;
+    std::cout << "P0: "<< P0_[idx] << std::endl;
+    std::cout << "P1: "<< P1_[idx]<< std::endl;
+    std::cout << "Pa0: "<< Pa0_[idx] << std::endl;
+    std::cout << "Pa1: "<< Pa1_[idx]<< std::endl;
+    std::cout << "Pi0: "<< Pi0_[idx] << std::endl;
+    std::cout << "Pi1: "<< Pi1_[idx]<< std::endl;
 
     EXCEPTION("Epsilon is inifite or NaN...")
   }
