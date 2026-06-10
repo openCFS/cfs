@@ -103,6 +103,9 @@ namespace CoupledField {
     //! Current time step size (updated each step when adaptive is on)
     Double dt_;
 
+    //! Adaptive only: physical end time of the last accepted step; each attempt solves at t = stepStartTime_ + dt_.
+    Double stepStartTime_;
+
     // =======================================================================
     //  Adaptive timestepping related data
     // =======================================================================

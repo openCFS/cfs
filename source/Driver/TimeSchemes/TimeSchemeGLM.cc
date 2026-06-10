@@ -739,7 +739,8 @@ namespace CoupledField{
     }
 
     // BDF2 reconstruction coefficients: y_{n+1} = (h2/a0)*ẏ + (1+w)/a0*y_n - w²/(1+2w)*y_{n-1}
-    const Double w_r  = (h2 > 0.0 && h1 > 0.0) ? h1 / h2 : 1.0;
+    // w = h2/h1 (step ratio), consistent with Bdf2::ComputeCoefficients.
+    const Double w_r  = (h2 > 0.0 && h1 > 0.0) ? h2 / h1 : 1.0;
     const Double a0_r = (1.0 + 2.0*w_r) / (1.0 + w_r);
 
     double l2_norm = 0.0;

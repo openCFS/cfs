@@ -924,11 +924,6 @@ namespace CoupledField{
 
    void AcousticMixedPDE::InitTimeStepping()  {
 
-    if (GetDomain()->GetAdaptiveData())
-      EXCEPTION("AcousticMixedPDE: adaptive timestepping is not supported "
-                "(variable-step BDF2 is incompatible with acoustic wave simulation). "
-                "Please remove <adaptiveTimeStepping> from XML.");
-
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 

@@ -333,7 +333,7 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
 
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
-   w_ = dtPrev1_/dtCurrent_; // For constant Timestep w_=1 -> reverts to non adaptive BDF2
+   w_ = dtCurrent_/dtPrev1_; // step ratio h_{n+1}/h_n; w_=1 for constant dt -> non adaptive BDF2
   double a0 = (1.0 + 2.0*w_) / (1.0 + w_);
 
   switch(solDerivOrder){

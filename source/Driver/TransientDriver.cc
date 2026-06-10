@@ -61,6 +61,7 @@ namespace CoupledField {
     endStep_ = 0;
     adaptiveEnabeled_ = false;
     dt_ = 0.0;
+    stepStartTime_ = 0.0;
     sigma_ = 1.2;
     isRestarted_ = false;
     prevLTEerror_ = 0.0;
@@ -238,6 +239,8 @@ namespace CoupledField {
     Double startDt = (adaptiveEnabeled_ && atData_->startFromDtMin_ && atData_->dtMin_ > 0.0)
                      ? atData_->dtMin_ : firstdt_;
     dt_      = startDt;
+    // End of the last completed step; pre-restart steps are assumed uniform (firstdt_).
+    stepStartTime_ = firstdt_ * restartStep_ + initialTime_;
     actTime_ = startDt * startStep + initialTime_;
     actTimeStep_ = startStep;
     int retryCount = 0;
@@ -251,6 +254,10 @@ namespace CoupledField {
       if( actTimeStep_ == startStep+1) {
         timer_->Start();
       }
+
+      // Adaptive: each attempt (incl. retries with reduced dt_) solves at the true end of its step.
+      if (adaptiveEnabeled_)
+        actTime_ = stepStartTime_ + dt_;
 
       // Set current value of timestep and time step size in the mathParser
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "t",    actTime_ );
@@ -314,37 +321,31 @@ namespace CoupledField {
       }
 
       if (adaptiveEnabeled_) {
-        // Save dt before adaptTimestep() overwrites dt_ with h_next
-        Double dt_used = dt_;
-        actTime_ += dt_used;
-
         bool accepted = adaptTimestep(retryCount);  // updates dt_ to h_next
         if (!accepted) {
           retryCount++;
-          actTime_ -= dt_used;  // undo with the same dt that was added
-          continue;             // redo this step with reduced dt_
+          continue;  // redo this step; loop top recomputes actTime_ with the reduced dt_
         }
         totalRetryCount_ += retryCount;
         info_->Get("totalAdaptiveRetries")->SetValue(totalRetryCount_);
         retryCount = 0;
         atData_->prevRetryError_ = 0.0;
 
-        // t_n: physical time of the just-accepted state (start of this step).
-        // Results are stored at t_n; the restart file also uses t_n.
-        Double t_n = actTime_ - dt_used;
+        // actTime_ is the physical end of the accepted step; results and restart use it.
+        stepStartTime_ = actTime_;
 
         // Write results only for accepted steps
-        resHandler->BeginStep( actTimeStep_, t_n );
-        ptPDE_->WriteResultsInFile(actTimeStep_, t_n );
+        resHandler->BeginStep( actTimeStep_, actTime_ );
+        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
         resHandler->FinishStep( );
 
         // write out re-start only in the last step
         if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
           if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)
-           simState_->WriteStep( actTimeStep_, t_n );
+           simState_->WriteStep( actTimeStep_, actTime_ );
         }
 
-        if (t_n >= simulationENDTime_)
+        if (actTime_ >= simulationENDTime_)
         {
           simulationEndTimeReached_ = true;
         }else
