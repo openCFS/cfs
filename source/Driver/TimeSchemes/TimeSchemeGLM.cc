@@ -242,6 +242,9 @@ namespace CoupledField{
         {
           curScheme_->adaptiveBDF2 = true;
           adaptiveStepCount_ = 0;
+          // Re-seed dt history with the actual first adaptive dt (Init() seeded firstdt_,
+          // which is wrong when StartAtmin makes the first step use dtMin).
+          curScheme_->initialized_ = false;
         }else
         {
           EXCEPTION("Adaptive timestepping is only implemented for BDF2. Hint: select desired time scheme via <integrationScheme>");
@@ -425,6 +428,26 @@ namespace CoupledField{
     domain_->GetAdaptiveData()->registerFieldLTE(curScheme_->local_error_);
   }
 
+  bool TimeSchemeGLM::WarmUpHold(AdaptiveTimesteppingData* atd) {
+    if (!atd->warmUpEnabled_ || !atd->inWarmUpPhase_) return false;
+    if (!atd->is_error_finite(atd->localError_)) {
+      std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
+      atd->localError_         = 0.0;
+      curScheme_->local_error_ = 0.0;
+      return true;
+    }
+    double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
+    if (ratio <= atd->warmUpLTETarget_) {
+      // Error history is maintained by adaptTimestep() for every accepted step — no seeding here.
+      atd->inWarmUpPhase_ = false;
+      std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
+      return true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
+    }
+    std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
+              << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
+    return true;
+  }
+
   void TimeSchemeGLM::FinishStep(){
     if (curScheme_->adaptiveBDF2) {
       if (adaptiveStepCount_ >= 2) {
@@ -442,28 +465,7 @@ namespace CoupledField{
 
           if (!atd->stepDecisionMade_) {
             // First field to reach here makes the single step-size decision.
-            bool skipAdaptiveControl = false;
-            if (atd->warmUpEnabled_ && atd->inWarmUpPhase_) {
-              if (!atd->is_error_finite(atd->localError_)) {
-                std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
-                atd->localError_ = 0.0;
-                curScheme_->local_error_ = 0.0;
-                skipAdaptiveControl = true;
-              } else {
-                double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
-                if (ratio <= atd->warmUpLTETarget_) {
-                  atd->inWarmUpPhase_   = false;
-                  atd->prevPrevError_   = atd->prevError_;
-                  atd->prevError_       = atd->localError_;
-                  std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
-                  skipAdaptiveControl = true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
-                } else {
-                  std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
-                            << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
-                  skipAdaptiveControl = true;
-                }
-              }
-            }
+            bool skipAdaptiveControl = WarmUpHold(atd);
             atd->stepDecisionMade_ = true;
             if (!skipAdaptiveControl) {
               bool accepted = ComputeAdaptiveStepSize();
@@ -483,28 +485,7 @@ namespace CoupledField{
         } else {
           // ── Single-field path (FinishStepLTE not called) ─────────────
           LTELocalErrorEstimation();
-          bool skipAdaptiveControl = false;
-          if (atd->warmUpEnabled_ && atd->inWarmUpPhase_) {
-            if (!atd->is_error_finite(atd->localError_)) {
-              std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
-              atd->localError_         = 0.0;
-              curScheme_->local_error_ = 0.0;
-              skipAdaptiveControl = true;
-            } else {
-              double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
-              if (ratio <= atd->warmUpLTETarget_) {
-                atd->inWarmUpPhase_   = false;
-                atd->prevPrevError_   = atd->prevError_;
-                atd->prevError_       = atd->localError_;
-                std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
-                skipAdaptiveControl = true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
-              } else {
-                std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
-                          << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
-                skipAdaptiveControl = true;
-              }
-            }
-          }
+          bool skipAdaptiveControl = WarmUpHold(atd);
           if (!skipAdaptiveControl) {
             bool accepted = ComputeAdaptiveStepSize();
             if (!accepted) {

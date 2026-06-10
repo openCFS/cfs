@@ -26,6 +26,8 @@
 
 namespace CoupledField{
 
+class AdaptiveTimesteppingData;
+
 
 //see below for description
 class TimeSchemeGLM : public BaseTimeScheme{
@@ -221,6 +223,9 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     void LTELocalErrorEstimation();
     bool ComputeAdaptiveStepSize();
+
+    //! Warm-up phase handling; returns true while adaptive control must be skipped (dt held fixed).
+    bool WarmUpHold(AdaptiveTimesteppingData* atd);
 
 
     ///just export the scheme to a file

@@ -100,9 +100,11 @@ namespace CoupledField
 
   void MagBasePDE::InitTimeStepping()
   {
+    // Verified 2026-06-10: const-dt BDF2 + NonLinType::INCREMENTAL diverges and Newton
+    // stalls on step 1 — scheme-level incompatibility, independent of adaptive control.
     if (GetDomain()->GetAdaptiveData() && (nonLin_ || isHysteresis_))
-      EXCEPTION("Adaptive BDF2 is not supported for nonlinear magnetic problems "
-                "(NonLinType::INCREMENTAL + BDF2 is not yet implemented). "
+      EXCEPTION("Adaptive timestepping is not supported for nonlinear magnetic problems: "
+                "BDF2 with incremental nonlinearity diverges (only Trapezoidal works). "
                 "Remove <adaptiveTimeStepping> from your XML, or use a linear material "
                 "(remove <nonLinList> and use constant permeability in the material file).");
 

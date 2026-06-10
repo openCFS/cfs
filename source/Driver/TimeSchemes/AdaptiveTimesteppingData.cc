@@ -130,8 +130,10 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
     Double sigma       = sigma_;
     Double prev_error_ = prevError_;
     double k = 3; // For BDF2
+    // Söderlind PI.3.4 gains (kI=0.3/k, kP=0.4/k); the earlier 0.6 retune compensated
+    // the since-fixed inverted step-ratio in Bdf2::ComputeCoefficients.
     Double alpha = 0.3/k ;
-    Double beta  = 0.6/k;
+    Double beta  = 0.4/k;
 
     if (est == 0.0) {
       h_next = F_U * h;
@@ -223,7 +225,7 @@ AdaptiveTimesteppingData::computeNextStep(
     const double maxRatio = 1.0 + std::sqrt(2.0);
 
     // 1. NaN/Inf guard — Newton solver diverged; solution vector is NaN.
-    // Retrying cannot recover once NaN is in the history. Abort after 3 consecutive occurrences.
+    // GLM history is still clean here, so reject and retry at dtMin. Abort after 3 in a row.
     if (!is_error_finite(est)) {
         consecutiveNaN_++;
         if (consecutiveNaN_ >= 3)
@@ -231,10 +233,9 @@ AdaptiveTimesteppingData::computeNextStep(
                       << consecutiveNaN_ << " consecutive steps. "
                       "The solution has diverged — loosen tolerances or raise deltaTmin.");
         std::cout << " [Adaptive] LTE is NaN/Inf (diverged solve " << consecutiveNaN_
-                  << "/3) — force-accepting.\n";
-        toleranceNotReachable_ = true;
+                  << "/3) — rejecting, retrying at dtMin.\n";
         mark_saturated();
-        return {dtMin, true};
+        return {dtMin, false};
     }
     consecutiveNaN_ = 0;
 
