@@ -46,8 +46,11 @@ def cont_robust(name: str | os.PathLike,
     densities = ""
     for istep, (step, deta) in enumerate(zip(steps, detas)):
         xml = open_xml(f"{name}.xml")
-        # switch to absolute paths
-        relative_paths(xml)
+        # switch to relative paths
+        if folder:
+            relative_paths(xml)
+            if ersatz:
+                ersatz = f"../{ersatz}"
         search_mode = True
         # test for robust
         if search_mode:
