@@ -121,6 +121,11 @@ namespace CoupledField {
         LOG_DBG(trans_driverprecice) << "checkpointing timestep " << actTimeStep_;
         checkpointStep = actTimeStep_;
         checkpointTime = actTime_;
+        // Write the current (last converged) state to HDF5 under checkpointStep
+        // so CheckpointingToTimestep() can restore it if coupling iterations
+        // do not converge.  This must happen before any solving for this time
+        // window so subsequent iterations do not overwrite it.
+        simState_->WriteStep(checkpointStep, checkpointTime);
       }
 
 
@@ -160,21 +165,10 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
 
-      // writing results in output-file(s)
-
-      resHandler->BeginStep( actTimeStep_, actTime_ );
-      // Mark PreCICE read results as updated so ResultHandler writes them
-      // even though they have no functor (data was filled by RegisterTimeStepReadData)
-      preciceAdapter_->MarkReadResultsUpdated();
-      ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
-      resHandler->FinishStep( );
-      
-      // only if precice is activated and used
+      // only if precice is activated and used — must happen before Advance()
+      // so preCICE has the displacement data for convergence checking
       preciceAdapter_->RegisterTimeStepWriteData();
 
-      // write out re-start only in the last step
-      simState_->WriteStep( actTimeStep_, actTime_ );
-        
       // leave loop, if simulation should be aborted
       if ( abortSimulation_ ) {
         break;
@@ -185,7 +179,13 @@ namespace CoupledField {
 
       if(preciceAdapter_->RequiresReadingCheckpoint()){ // iteration did not converge
         // ==========================================
-        // back rollback to checkpoint state
+        // Rollback to checkpoint state.
+        // NOTE: output writes are intentionally skipped here so the HDF5
+        // checkpoint is not overwritten with an unconverged iteration state.
+        // If WriteStep ran before Advance(), CheckpointingToTimestep() would
+        // read back the current iteration's result instead of the true
+        // checkpoint, causing the solid to accumulate displacement across
+        // iterations and preventing IQN-ILS convergence.
         this->CheckpointingToTimestep(checkpointStep);
         actTimeStep_ = checkpointStep;
         actTime_ = checkpointTime;
@@ -193,15 +193,25 @@ namespace CoupledField {
         // when using precice, we need direct access to the solvestep
         preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 
-        //ptPDE_->WriteGeneralPDEdefines();
         ptPDE_->GetSolveStep()->SetStartStep( checkpointStep );
         ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
-        
-        //just initialize some variables
+
         ptPDE_->GetSolveStep()->InitTimeStepping();
         // ==========================================
       }
-      else{ // iteration converged
+      else{ // iteration converged — now safe to write output and advance time
+        // writing results in output-file(s)
+        resHandler->BeginStep( actTimeStep_, actTime_ );
+        // Mark PreCICE read results as updated so ResultHandler writes them
+        // even though they have no functor (data was filled by RegisterTimeStepReadData)
+        preciceAdapter_->MarkReadResultsUpdated();
+        ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
+        resHandler->FinishStep( );
+
+        // write restart checkpoint only after convergence so the HDF5 state
+        // always reflects the last converged time step
+        simState_->WriteStep( actTimeStep_, actTime_ );
+
         actTimeStep_ += 1;
         actTime_ += cfs_dt;
       }

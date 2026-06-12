@@ -122,7 +122,8 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMa
     solAv[0] += nodeSol[0];
   }
   solAv[0] /= DATA_TYPE(nodes.GetSize());
-  CoefMat = solAv[0];
+  DATA_TYPE factor = this->hasConstantFactor_ ? this->constantFactor_ : DATA_TYPE(1);
+  CoefMat = factor * solAv[0];
 
   // Vector<DATA_TYPE> elemSol;
   // Vector<DATA_TYPE> ptSol(1);
