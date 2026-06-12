@@ -288,7 +288,7 @@
   <xsd:complexType name="DT_InputHDF5">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Read the native CFS++ HDF5 file format. This format has the most complete
+        Read the native openCFS HDF5 file format. This format has the most complete
         set of supported features (mesh, data, restart info, etc.). HDF5 files
         can be generated using the ANSYS mkhdf5 extension, cplreader and cfstool.
       </xsd:documentation>

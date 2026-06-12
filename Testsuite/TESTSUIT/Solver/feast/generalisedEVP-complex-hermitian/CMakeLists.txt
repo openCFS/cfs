@@ -14,5 +14,5 @@ ADD_TEST(${TEST_NAME}
 )
 
 if(WIN32) # test seems to segfault in parallel funs on winwos with new OpenMP flags
-  set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
+  # set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
 endif()

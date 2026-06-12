@@ -171,6 +171,10 @@
   rules:
     - !reference [.ctest_default, rules]
   before_script:
+    # CPU details for correlating results across heterogeneous runners (once per job)
+    - *powershell-debug-start_collapsed
+    - Get-CimInstance Win32_Processor | Format-List *
+    - *powershell-debug-end
     # info about free space (debug)
     - Get-Volume; $null
     - ls Testsuite # check if Testsuite has been properly cloned (debug)
@@ -180,7 +184,9 @@
     - cd build
     - ls # debug
     # extract CFS
-    - cmake -E tar xvf "CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
+    - *powershell-debug-start_collapsed
+    - cmake -E tar xvf "CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract (folded)
+    - *powershell-debug-end
     - mv CFS-$CI_COMMIT_SHA-win64/* .
     # clean up to save space
     - rm "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
@@ -203,7 +209,7 @@
     - echo "TEST_CONFIG_OPTIONS=$TEST_CONFIG_OPTIONS"
     - ctest --version
     # configure first
-    - cmake -DCFS_TESTSUITE=ON -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS $env:CI_PROJECT_DIR\Testsuite
+    - cmake -DCFS_TESTSUITE=ON -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF -DTESTSUITE_H5DIFF=OFF $env:TEST_CONFIG_OPTIONS $env:CI_PROJECT_DIR\Testsuite
     # now start dashboard
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash

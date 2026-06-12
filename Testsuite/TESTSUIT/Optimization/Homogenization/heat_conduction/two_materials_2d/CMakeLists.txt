@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
 )
 
 # this test fails sporadically in parallel runs, hence, we set it to unstable
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
+# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

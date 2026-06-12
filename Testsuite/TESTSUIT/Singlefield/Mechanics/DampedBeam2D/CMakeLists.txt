@@ -13,6 +13,6 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# we set it to broken since it failed on a gcc12 single core run
+# fails exclusively and consistently for gcc15 musl parallel
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
 

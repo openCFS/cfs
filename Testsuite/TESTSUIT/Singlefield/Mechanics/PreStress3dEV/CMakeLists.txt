@@ -14,4 +14,4 @@ ADD_TEST(${TEST_NAME}
 )
 
 # this test also fails for serial testing --> broken
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")
+#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

@@ -1594,6 +1594,19 @@
               <xsd:documentation>error trace double precision stopping criteria eps=10^(-stopCrit)</xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element name="precision" minOccurs="0" default="single">
+            <xsd:annotation>
+              <xsd:documentation>
+                Precision of the inner linear solver, check the logging. Historically set to single.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="double"/>
+                <xsd:enumeration value="single"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
           <xsd:element name="Ne" type="xsd:nonNegativeInteger" minOccurs="0" default="8">
             <xsd:annotation>
               <xsd:documentation>The number of contour points (see the description of FEAST algorithm). Must be one of {3,4,5,6,8,10,12,16,20,24,32,40,48}.</xsd:documentation>

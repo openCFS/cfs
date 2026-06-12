@@ -120,7 +120,8 @@ namespace CoupledField {
     //! Write file meta information
     void WriteFileInfoHeader(); 
     
-    //! Create/Open the file
+    /** Create/Open the file
+     * @param truncate for warmstart */
     void OpenFile(bool truncate);
     
     //! Close the file

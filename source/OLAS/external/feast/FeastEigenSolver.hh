@@ -77,8 +77,11 @@ namespace CoupledField {
     std::string FeastInfo(Integer info);
 
   private:
-    /** actually solve problem */
+    /** solve the problem, retrying CalculationAttempt on intermittent FEAST info=-3 */
     void DoCalculation(BaseVector& sol, BaseVector& err);
+
+    /** one FEAST solve attempt as we have a random seed */
+    void CalculationAttempt(BaseVector& sol, BaseVector& err);
 
     /** print setup information */
     void ToInfo();
@@ -137,6 +140,9 @@ namespace CoupledField {
 
     /** subspace dimension n >= m0_ >= m_ */
     int m0_ = -1;
+
+    /** precision of the inner linear solver. 0 = double, 1 = single (legacy default) */
+    int precision_ = 1;
 
     /** the last result value -> MKL manual page 1635 */
     int info_ = -1;

@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <string>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -14,7 +15,6 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ColoredConsole.hh"
-#include "Forms/Operators/BaseBOperator.hh"
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"
@@ -246,30 +246,24 @@ namespace CFSTool {
 
       if(numNodes > SOFT_NODE_LIMIT) 
       {
-        WARN("Number of nodes " << numNodes << 
-             " exceeds soft limit " << SOFT_NODE_LIMIT << ".");
+        WARN("Number of nodes " << numNodes << " exceeds soft limit " << SOFT_NODE_LIMIT << ".");
       }
 
       if(numElems > SOFT_ELEM_LIMIT) 
       {
-        WARN("Number of elements " << numElems << 
-             " exceeds soft limit " << SOFT_ELEM_LIMIT << ".");
+        WARN("Number of elements " << numElems << " exceeds soft limit " << SOFT_ELEM_LIMIT << ".");
       }
 
       if(numNodes > HARD_NODE_LIMIT) 
       {
         delete ptGrid_ref;
-        EXCEPTION("Number of nodes " << numNodes << 
-                  " exceeds hard limit " << HARD_NODE_LIMIT << "." <<
-                  msg);
+        EXCEPTION("Number of nodes " << numNodes << " exceeds hard limit " << HARD_NODE_LIMIT << "." << msg);
       }
 
       if(numElems > HARD_ELEM_LIMIT) 
       {
         delete ptGrid_ref;
-        EXCEPTION("Number of elements " << numElems << 
-                  " exceeds hard limit " << HARD_ELEM_LIMIT << "." << 
-                  msg);
+        EXCEPTION("Number of elements " << numElems << " exceeds hard limit " << HARD_ELEM_LIMIT << "." << msg);
       }
 
     }
@@ -926,11 +920,223 @@ namespace CFSTool {
     delete ptGrid;
   } //calcAverage
 
-  Double CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, Double & maxL2, Double & maxL2rel, std::string& maxDiffInfo) {
-      // initialize the diff values
-      maxL2 = 0.0;
-      maxL2rel = 0.0;
-      std::string infoStringRel;
+
+  enum class L2DiffMode 
+  {
+    ABSDIFF = 0, // absL2diff
+    RELDIFF      // relL2diff
+  };
+
+  /** here we keep the current maximum for a diff mode. Does not not need to be violated */
+  struct Max
+  {
+    double value = 0.0; // either the abs diff or rel diff value
+    std::string msg;    // an nice message about the source of the peak
+  };
+
+  /** we keep abs and rel diff concurrently, independet on the cfstool mode absL2diff or relL2dff */
+  struct Peak
+  {
+    /** set abs.value and rel.value to maximum value */
+    void SetError(const std::string& msg) { 
+      abs.value = std::numeric_limits<double>::max(); 
+      rel.value = std::numeric_limits<double>::max(); 
+      abs.msg = msg;
+      rel.msg = msg;
+    }
+
+    /** gives summary information, customized by where string. 
+     * @param print_not_tested if false, no INFO for the other of abs vs rel is printed */
+    void Print(L2DiffMode mode, double tolerance, const std::string& where, bool print_not_tested = true) const 
+    {
+      if(mode == L2DiffMode::RELDIFF) {
+        std::cout << (rel.value <= tolerance ? "OK: " : "ERROR: ");
+        std::cout << "Maximal rel diff " << where << " is " << rel.value;
+        std::cout << (rel.value <= tolerance ? " <= " : " > ") << tolerance;
+        std::cout << " at " << rel.msg << std::endl;
+        if(print_not_tested) 
+          std::cout << "INFO: Maximal abs diff " << where << " is " << abs.value << " at " << abs.msg << std::endl;
+      } else {
+        std::cout << (abs.value <= tolerance ? "OK: " : "ERROR: ");
+        std::cout << "Maximal abs diff " << where << " is " << abs.value;
+        std::cout << (abs.value <= tolerance ? " <= " : " > ") << tolerance;
+        std::cout << " at " << abs.msg << std::endl;
+        if(print_not_tested) 
+          std::cout << "INFO: Maximal rel diff " << where << " is " << rel.value << " at " << rel.msg << std::endl;
+      }
+    }
+    Max& Get(L2DiffMode mode) { return (mode == L2DiffMode::RELDIFF ? rel : abs); }
+
+    Max abs;
+    Max rel;
+  };  
+
+   /** checks a single result for abs or rel difference w.r.t tolerance
+    * maxL2_step/maxL2rel_step check the maximal value within the multi sequence step
+    * infoStringRel_step is set when we update maxL2_step/maxL2rel_step, depending on mode */
+  template<typename T>
+  static void CheckL2Result(L2DiffMode mode, double tolerance,
+      Vector<T>& inVec_fut, Vector<T>& inVec_ref,
+      bool isHistory, UInt actMsStep, UInt actStepNum, Double actStepVal,
+      const std::string& resultName, const std::string& entityName, UInt numDofs, Peak& peak)
+  {
+    Vector<T> diffVec;
+    diffVec.Resize(inVec_fut.GetSize());
+    diffVec = inVec_fut - inVec_ref;
+    double diffL2 = diffVec.NormL2();
+    double refL2  = inVec_ref.NormL2(); // reference data norm
+    double testL2 = inVec_fut.NormL2(); // test data norm
+
+    // location is used for msg of peaks and errors, shall be a hint for h5info.py --extract
+    // /Results/Mesh/MultiStep_2/Step_18/elecPotential/Vol or 
+    // /Results/History/MultiStep_2/Step_18/mechDispacement -> Vol for
+    // /Results/History/MultiStep_1/mechDisplacement/Nodes/400/Real
+    std::stringstream ss; 
+    if(isHistory) 
+      ss << "/Results/History/MultiStep_" << actMsStep << "/Step_" << actStepNum << "/" << resultName << " -> " << entityName;
+    else
+      ss << "/Results/Mesh/MultiStep_" << actMsStep << "/Step_" << actStepNum << "/" << resultName << "/" << entityName;
+    std::string location = ss.str();
+
+    // /Mesh/MultiStep_2/Step_18/elecPotential/Vol step_val=9, 27x1 entries (complex)    
+    std::cout << "\n" << location << ", " << numDofs << "x" << (inVec_fut.GetSize() / numDofs) << " entries";
+    std::cout << (std::is_same_v<T, double> ? " (real)\n" : " (complex)\n");
+
+    if(inVec_fut.GetSize() != inVec_ref.GetSize()) 
+      std::cout << "  WARNING: incompatible test_size=" << inVec_fut.GetSize() << " ref_size=" << inVec_ref.GetSize() << std::endl;
+
+    // filter NaN data
+    if(inVec_fut.ContainsNaN() && inVec_ref.ContainsNaN()) 
+      std::cout << "  WARNING: search for NaN gave test=" << inVec_fut.ContainsNaN() << " ref=" << inVec_ref.ContainsNaN() << "\n";
+
+    if(inVec_fut.ContainsNaN() && !inVec_ref.ContainsNaN()) {
+      std::cout << "  ERROR: search for NaN gave test=" << inVec_fut.ContainsNaN() << " ref=" << inVec_ref.ContainsNaN() << "\n";
+      peak.SetError("NaN encountered in test data " + location);
+      return; // in case had warnings before
+    } 
+
+    // filter rel case with ref is zero
+    if(mode == L2DiffMode::RELDIFF && refL2 == 0.0 && diffL2 != 0.0) 
+    {
+      std::cout << "ERROR: L2-Norm: test=" << testL2 << " ref=" << refL2 << std::endl;
+      peak.rel.value = std::numeric_limits<double>::max();
+      peak.rel.msg = "reference data is zero but test data is not " + location;
+      return;
+    }
+
+    if(diffL2 == 0.0) 
+    {
+      std::cout << "OK: Identical" << (inVec_ref.GetSize() <= 3 ? " data=" + inVec_ref.ToString(TS_PLAIN) : "") << std::endl;
+      return;
+    }
+    // this is the pretty normal case
+    // OK: L2-Norm: test=7.29023e-09 ref=7.29023e-09 (abs_diff=1.09477e-21) rel_diff=1.50169e-13 <= 1e-06
+    double rel = diffL2 / refL2; // division by zero checked above
+    bool ok = (mode == L2DiffMode::RELDIFF ? rel : diffL2) <= tolerance;
+    std::cout << (ok ? "OK:" : "ERROR:");
+    if(diffL2 == 0.0) 
+      std::cout << " Identical" << (inVec_ref.GetSize() <= 3 ? " data=" + inVec_ref.ToString(TS_PLAIN) : "") << std::endl;
+    else
+    {
+      std::cout << " L2-Norm: test=" << testL2 << " ref=" << refL2 << " ";
+      if(mode == L2DiffMode::RELDIFF) 
+        std::cout << "(info: abs_diff=" << diffL2 << ") rel_diff=" << rel;
+      else 
+        std::cout << "(info: rel_diff=" << rel << ") abs_diff=" << diffL2;
+      std::cout << (ok ? " <= " : " > ") << tolerance << std::endl;
+
+      // for max 3 values (e.g. single 3d coordinate) we print all values - ok, peak and error case
+      if(inVec_ref.GetSize() <= 3)
+        std::cout << "  Values: test=" << inVec_fut.ToString(TS_PLAIN) << " ref=" << inVec_ref.ToString(TS_PLAIN) << "\n";
+    }
+
+    // when we are not ok or when any peak is larger, print verbose
+    if(!ok || rel > peak.rel.value || diffL2 > peak.abs.value)
+    {
+      // print info, why we print verbose
+      if(peak.rel.value == 0.0 && peak.abs.value == 0.0) 
+        std::cout << "  INFO: First dataset\n";
+      else 
+      {
+        if(mode == L2DiffMode::RELDIFF) {
+          if(rel > peak.rel.value && rel <= tolerance)
+            std::cout << "  INFO: New rel peak value within tolerance: previous rel_diff=" << peak.rel.value << " new=" << rel << " <= " << tolerance << std::endl;
+          if(rel > peak.rel.value && rel > tolerance)
+            std::cout << "  ERROR: New rel peak value exceeds tolerance: previous rel_diff=" << peak.rel.value << " new=" << rel << " > " << tolerance << std::endl;
+          if(diffL2 > peak.abs.value)
+            std::cout << "  INFO: New unconstrained abs peak value: previous abs_diff=" << peak.abs.value << " new=" << diffL2 << std::endl;
+        } 
+        if(mode == L2DiffMode::ABSDIFF) {          
+          if(rel > peak.rel.value)
+            std::cout << "  INFO: New unconstrained rel peak value: previous rel_diff=" << peak.rel.value << " new=" << rel << std::endl;
+          if(diffL2 > peak.abs.value && diffL2 <= tolerance)
+            std::cout << "  INFO: New abs peak value within tolerance: previous abs_diff=" << peak.abs.value << " new=" << diffL2 << " <= " << tolerance << std::endl;
+          if(diffL2 > peak.abs.value && diffL2 > tolerance)
+            std::cout << "  ERROR: New abs peak value exceeds tolerance: previous abs_diff=" << peak.abs.value << " new=" << diffL2 << " > " << tolerance << std::endl;
+        }
+      }
+
+      // we verbose for abs and rel, only at least one is a new peak  
+      if(diffL2 > peak.abs.value) {
+        peak.abs.value = diffL2;
+        peak.abs.msg = location; 
+      }
+      if(rel > peak.rel.value) {
+        peak.rel.value = rel;
+        peak.rel.msg = location;  
+      }
+      
+      // common verbose data information for new valid peak or error case  
+      if(inVec_ref.GetSize() > 3)
+      {
+        T futMin, futMax, refMin, refMax;
+        inVec_fut.MinMax(futMin, futMax);
+        inVec_ref.MinMax(refMin, refMax);
+        std::cout << "  Test: min=" << futMin << " avg=" << inVec_fut.Avg() << " max=" << futMax << std::endl;
+        std::cout << "  Ref:  min=" << refMin << " avg=" << inVec_ref.Avg() << " max=" << refMax << std::endl;
+        // we print zero values only if not both are zero
+        unsigned int test_nonzeros = inVec_fut.CountNonZero();
+        unsigned int ref_nonzeros = inVec_ref.CountNonZero();
+        if(test_nonzeros != ref_nonzeros)
+          std::cout << "  Different number of zeros: test=" << (inVec_fut.GetSize() - test_nonzeros) 
+                    << " ref=" << (inVec_ref.GetSize() - ref_nonzeros) << "\n";
+
+        // print index and sample data for word rel and abs diff by entry (component only of if dof > 1)            
+        std::pair<double, unsigned int> worst_rel = std::make_pair(0.0, 0); // value, index
+        std::pair<double, unsigned int> worst_abs = std::make_pair(0.0, 0); 
+        for(unsigned int i = 0; i < diffVec.GetSize(); i++) 
+        {
+          double cmp_rel = std::abs(diffVec[i]) / (std::abs(inVec_ref[i]) + 1e-300); // avoid division by zero
+          double cmp_abs = std::abs(diffVec[i]);
+
+          if(cmp_rel > worst_rel.first) { 
+            worst_rel.first = cmp_rel; worst_rel.second = i; }
+          if(cmp_abs > worst_abs.first) {
+            worst_abs.first = cmp_abs; worst_abs.second = i; }
+        }
+        if(worst_rel.second == worst_abs.second)
+          std::cout << "  entry with largest abs and rel difference:" << " dataset_index=" << worst_rel.second
+                    << " test=" << inVec_fut[worst_rel.second] << " ref=" << inVec_ref[worst_rel.second] << "\n";
+        else {
+          std::cout << "  entry with largest rel difference:" << " dataset_index=" << worst_rel.second
+                    << " test=" << inVec_fut[worst_rel.second] << " ref=" << inVec_ref[worst_rel.second] << "\n";
+          std::cout << "  entry with largest abs difference:" << " dataset_index=" << worst_abs.second
+                    << " test=" << inVec_fut[worst_abs.second] << " ref=" << inVec_ref[worst_abs.second] << "\n";
+        }
+      }
+    }
+  }
+
+
+
+   
+  /** independent on the mode we always compute abs and rel diff - but need the info for tolerance
+    * @return the maximal abs and rel peak, independent of within tolerance */
+  Peak CheckL2( const std::string& inFile_ref, const std::string& inFile_fut, bool isHistory, L2DiffMode mode, double tolerance) 
+  {
+      // rel and abs maximal difference (within tolerance or error) over the full file
+      Peak totalPeak;
+      std::string type = isHistory ? "history" : "mesh"; 
       // obtain input reader for inFiles
       StdVector< shared_ptr<SimInput> > inputs(2);
       inputs[0] = GetInputReader( inFile_ref, param, info );
@@ -965,44 +1171,45 @@ namespace CFSTool {
       // read in mesh of reference file
       input_ref->InitModule();
       UInt dim = input_ref->GetDim();
-      Grid * ptGrid_ref = new GridCFS(dim, param, info);
-      input_ref->ReadMesh(ptGrid_ref);
-      ptGrid_ref->FinishInit();
+      GridCFS ref_grid(dim, param, info);
+      input_ref->ReadMesh(&ref_grid);
+      ref_grid.FinishInit();
 
       // read in mesh of file under test
       input_fut->InitModule();
-      Grid * ptGrid_fut = new GridCFS(dim, param, info);
-      input_fut->ReadMesh(ptGrid_fut);
-      ptGrid_fut->FinishInit();
+      GridCFS fut_grid(dim, param, info);
+      input_fut->ReadMesh(&fut_grid);
+      fut_grid.FinishInit();
+      
+      // TODO: this shall be an exception
+      if(ref_grid.GetNumNodes() != fut_grid.GetNumNodes() || ref_grid.GetNumElems() != fut_grid.GetNumElems()) 
+        std::cout << "WARNING: Mesh mismatch: ref has " << ref_grid.GetNumNodes() << " nodes / " << ref_grid.GetNumElems() << " elems, but test has "
+                  << fut_grid.GetNumNodes() << " nodes / " << fut_grid.GetNumElems() << " elems" << std::endl;
 
       // obtain number of Sequence Steps and get analysis types
       std::map<UInt, BasePDE::AnalysisType> types;
       std::map<UInt, UInt> numSteps;
       input_fut->GetNumMultiSequenceSteps( types, numSteps, isHistory );
 
-      std::cout << "Found " << types.size() << " sequence step(s) in '" << inFile_fut << "'\n";
       std::map<UInt, BasePDE::AnalysisType> types_ref;
       std::map<UInt, UInt> numSteps_ref;
       input_ref->GetNumMultiSequenceSteps( types_ref, numSteps_ref, isHistory );
-      std::cout << "Found " << types_ref.size() << " sequence step(s) in '" << inFile_ref << "'\n";
 
-      if(types.size() != types_ref.size()){
-          std::cout << "Reference file '" << inFile_ref << "' and file under test '" << inFile_fut
-                  << "' have different number of sequence steps!\n";
-          exit(EXIT_FAILURE);
+      if(types.size() > 0 || types_ref.size() > 0) {
+        std::cout << "Found " << types.size() << " sequence step(s) in '" << inFile_fut << "'\n";
+        std::cout << "Found " << types_ref.size() << " sequence step(s) in '" << inFile_ref << "'\n";
       }
 
-      // iterate over all Sequence Steps
+      if(types.size() != types_ref.size()) {
+        std::cout << "Reference file '" << inFile_ref << "' and test file '" << inFile_fut << "' have different number of sequence steps!\n";
+        exit(EXIT_FAILURE);
+      }
 
+      // iterate over all Sequence Steps (usually only one)
       std::map<UInt,UInt>::iterator it;
       for( it = numSteps_ref.begin(); it != numSteps_ref.end(); it++ ) {
-          Double maxL2_sequence = 0; // maximum L2 difference in sequence step
-          Double maxL2rel_sequence = 0;
-          std::string infoStringRel_sequence;
+          Peak sequencePeak; // peak over all steps within current sequence step
           UInt actMsStep = it->first;
-          std::cout << std::endl;
-          std::cout << "Sequence step " << actMsStep << std::endl;
-          std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
 
           // get resulttypes
           StdVector<shared_ptr<ResultInfo> > infos, infos_ref;
@@ -1016,12 +1223,15 @@ namespace CFSTool {
           std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps;
           std::map<shared_ptr<ResultInfo>, std::map<UInt, Double> > resultSteps_ref;
 
-          if( infos.GetSize() > 0 ){
-              std::cout << "Checking the following results:\n";
-          }
+          std::cout << std::endl;
+          std::cout << (isHistory ? "History" : "Mesh") << " sequence step " << actMsStep << "\n.......................\n";
+                        
+          if(infos.GetSize() > 0) 
+            std::cout << "Checking the following " << type << " results:\n";
+         
           // iterate over all result types of input_ref
           for( UInt iRes=0, numRes=infos_ref.GetSize(); iRes < numRes; ++iRes) {
-              std::cout << "+ " << infos_ref[iRes]->resultName;
+              std::cout << infos_ref[iRes]->resultName;
               // find the corresponding result in the file to be tested
               Integer testRes = -1;
               for ( UInt j=0, n=infos.GetSize(); j<n; ++j ) {
@@ -1036,23 +1246,18 @@ namespace CFSTool {
                   }
               }
               if ( testRes == -1 ) {
-                  EXCEPTION("Result '" << infos_ref[iRes]->resultName
-                          << "' is missing in file '" << inFile_fut << "'.");
+                  EXCEPTION("Result '" << infos_ref[iRes]->resultName << "' is missing in file '" << inFile_fut << "'.");
               }
 
               // get stepvalues of reference file
               shared_ptr<ResultInfo> actRes_ref = infos_ref[iRes];
-              input_ref->GetStepValues( actMsStep, actRes_ref,
-                      resultSteps_ref[actRes_ref], isHistory);
-              stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),
-                      resultSteps_ref[actRes_ref].end() );
+              input_ref->GetStepValues( actMsStep, actRes_ref, resultSteps_ref[actRes_ref], isHistory);
+              stepVals_ref.insert( resultSteps_ref[actRes_ref].begin(),  resultSteps_ref[actRes_ref].end() );
 
               // get stepvalues of file under test
               shared_ptr<ResultInfo> actRes = infos[testRes];
-              input_fut->GetStepValues( actMsStep, actRes,
-                      resultSteps[actRes], isHistory);
-              stepVals.insert( resultSteps[actRes].begin(),
-                      resultSteps[actRes].end() );
+              input_fut->GetStepValues( actMsStep, actRes, resultSteps[actRes], isHistory);
+              stepVals.insert( resultSteps[actRes].begin(),  resultSteps[actRes].end() );
 
               // Loop over all step values in both sets and compare them. Thus we can see
               // differences e.g. in eigenfrequency analysis
@@ -1061,22 +1266,17 @@ namespace CFSTool {
               svIt_ref = stepVals_ref.begin();
               for( ; svIt_ref != stepVals_ref.end(); ++svIt_ref, ++svIt_fut ) {
                   if( svIt_fut->first != svIt_ref->first ) {
-                      EXCEPTION( "Encountered different result steps for result " <<
-                              infos[testRes]->resultName );
+                      EXCEPTION( "Encountered different result steps for result " << infos[testRes]->resultName );
                   } else {
-
                       Double val_fut = svIt_fut->second;
                       Double val_ref = svIt_ref->second;
                       Double relDiff = std::abs(std::abs(val_fut-val_ref))/std::abs(val_fut);
                       if ( relDiff > 1e-4 ) {
-                          EXCEPTION("Time / Frequency values of step " << svIt_ref->first << " differ by "
-                                  << relDiff*100.0 << " %:\n"
-                                  << "\treference value: " << val_ref <<" s / Hz\n\tcompared value:  " << val_fut
-                                  << " s / Hz" << std::endl );
+                          EXCEPTION("For step " << svIt_ref->first << " the step values differs by " << relDiff*100.0 << "%: "
+                                  << "ref=" << val_ref << " test=" << val_fut);
                       }
                   }
               }
-
 
               // iterate over all regions
               StdVector<shared_ptr<EntityList> > regions;
@@ -1112,136 +1312,68 @@ namespace CFSTool {
               std::cout << ")\n";
           }
           // now check mesh results
-          //Vector<Double> maxResVec_ref;
-          //maxResVec_ref.Resize( inResults_ref.GetSize() );
 
-          // iterate over all time/frequency steps
-          for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) {
-              Double maxL2_step = 0.0;//, maxL2rel
-              Double maxL2rel_step = 0.0;
-              std::string infoStringRel_step;
+          // iterate over all steps within the current multi-sequence
+          for( UInt iStep = 0; iStep < numSteps_ref[actMsStep]; iStep++ ) 
+          {
               UInt actStepNum = iStep+1;
               Double actStepVal = stepVals[actStepNum];
-              std::cout << "\n";
-              std::cout << "\tStep nr " << actStepNum << " val " << actStepVal << " s / Hz/ iteration\n";
-              std::cout << "\t=======================================================================\n";
               // iterate over all results
-              for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
-                  // check if result exists: no idea why this is necessary, but it definitely is (ftoth, 2018/02/10)
-                  if( resultSteps[inResults_fut[iRes]->GetResultInfo()].find(actStepNum)
-                     == resultSteps[inResults_fut[iRes]->GetResultInfo()].end() ) {
-                      continue;
-                  }
-                  // obtain both result objects for current step
-                  input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
-                  input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
-                  std::cout << "\n";
-                  std::cout << "\t\tComparing result " << inResults_fut[iRes]->GetResultInfo()->resultName << " on " << inResults_fut[iRes]->GetEntityList()->GetName() << "\n";
-                  std::cout << "\t\t--------------------------------------------------------------------\n";
-                  Double diffL2, refL2;
-                  std::string infoStringRel_result;
-                  // cast result objects, get vector and calculate difference vector
-                  if( types[actMsStep] == BasePDE::STATIC || types[actMsStep] == BasePDE::TRANSIENT ) {
-                      Vector<Double> & inVec_fut = dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
-                      Vector<Double> & inVec_ref = dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
-                      Vector<Double> diffVec;// = dynamic_cast<Result<Double>& >(*outResults[iRes]).GetVector();
+              for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) 
+              {
+                const shared_ptr<ResultInfo>& resInfo = inResults_fut[iRes]->GetResultInfo();
+                if(resultSteps.count(resInfo) == 0 || resultSteps[resInfo].count(actStepNum) == 0) 
+                  continue;
+                // obtain both result objects for current step
+                input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
+                input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
+                // cast result objects, get vector and calculate difference vector
+                const std::string& resultName = inResults_fut[iRes]->GetResultInfo()->resultName;
+                const std::string& entityName = inResults_fut[iRes]->GetEntityList()->GetName();
+                UInt numDofs = inResults_fut[iRes]->GetResultInfo()->dofNames.GetSize();
+                if (numDofs == 0) numDofs = 1;
+                
+                // double case
+                if( types[actMsStep] == BasePDE::STATIC || types[actMsStep] == BasePDE::TRANSIENT ) 
+                {
+                    Vector<Double>& inVec_fut = dynamic_cast<Result<Double>& >(*inResults_fut[iRes]).GetVector();
+                    Vector<Double>& inVec_ref = dynamic_cast<Result<Double>& >(*inResults_ref[iRes]).GetVector();
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, isHistory, actMsStep, actStepNum, actStepVal,
+                                  resultName, entityName, numDofs, sequencePeak);
+                }
+                else  // complex case
+                {
+                    Vector<Complex>& inVec_fut = dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
+                    Vector<Complex>& inVec_ref = dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
+                    // normalize modes
+                    if (types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::BUCKLING|| types[actMsStep] == BasePDE::EIGENVALUE) {
+                      int i_ref = 0;
+                      Complex norm_ref = inVec_ref.MaxAbs(i_ref);
+                      Complex norm_fut = inVec_fut[i_ref];
+                      std::cout << "  MAC(test,ref) = " << inVec_fut.MAC(inVec_ref) << "\n";
+                      std::cout << "  Normalizing modes by "<< norm_fut << " (test), "<< norm_ref << " (ref)\n";
+                      inVec_fut.ScalarDiv(norm_fut);
+                      inVec_ref.ScalarDiv(norm_ref);
+                    }
+                    CheckL2Result(mode, tolerance, inVec_fut, inVec_ref, isHistory, actMsStep, actStepNum, actStepVal,
+                                  resultName, entityName, numDofs, sequencePeak);
+                }
+              } // end of loop over results of current step
+          } // end of loop overresult steps within current multi-sequence step
 
-                      diffVec.Resize( inVec_fut.GetSize() );
-
-                      // calculate difference
-                      diffVec = inVec_fut - inVec_ref;
-                      // calulate min & max, avg
-                      Double diffMin, diffMax, refMin, refMax, refAvg, diffAvg;
-                      diffVec.MinMax(diffMin, diffMax);
-                      inVec_ref.MinMax(refMin,refMax);
-                      diffAvg = diffVec.Avg();
-                      refAvg = inVec_ref.Avg();
-                      // calculate norms
-                      diffL2 = diffVec.NormL2();
-                      refL2 = inVec_ref.NormL2();
-
-
-                      std::cout << "\t\tMinimum: " << diffMin << " (difference), "<< refMin <<" (reference)\n";
-                      std::cout << "\t\tMaximum: " << diffMax << " (difference), "<< refMax <<" (reference)\n";
-                      std::cout << "\t\tAverage: " << diffAvg << " (difference), "<< refAvg <<" (reference)\n";
-                      //std::string    maxDiffResultName = inResults_fut[iRes]->GetResultInfo()->resultName;
-
-                  } else if(types[actMsStep] == BasePDE::EIGENVALUE || types[actMsStep] == BasePDE::BUCKLING ||  types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::HARMONIC || types[actMsStep] == BasePDE::MULTIHARMONIC || types[actMsStep] == BasePDE::HARMONIC25D) {
-                      Vector<Complex> & inVec_fut = dynamic_cast<Result<Complex>& >(*inResults_fut[iRes]).GetVector();
-                      Vector<Complex> & inVec_ref = dynamic_cast<Result<Complex>& >(*inResults_ref[iRes]).GetVector();
-                      Vector<Complex> diffVec;// dynamic_cast<Result<Complex>& >(*outResults[iRes]).GetVector();
-                      diffVec.Resize( inVec_fut.GetSize() );
-
-                      // normalize modes
-                      if (types[actMsStep] == BasePDE::EIGENFREQUENCY || types[actMsStep] == BasePDE::BUCKLING|| types[actMsStep] == BasePDE::EIGENVALUE) {
-                        // search for the position of the maximum absolute value in reference vector
-                        int i_ref = 0;
-                        Complex norm_ref = inVec_ref.MaxAbs(i_ref);
-                        // use this normalization element to scale the modes
-                        Complex norm_fut = inVec_fut[i_ref];
-                        std::cout << "\t\tMAC(fut,ref) = " << inVec_fut.MAC(inVec_ref) << "\n";
-                        std::cout << "\t\tNormalizing modes by "<< norm_fut << " (fut), "<< norm_ref << " (ref)\n";
-                        inVec_fut.ScalarDiv(norm_fut);
-                        inVec_ref.ScalarDiv(norm_ref);
-                      }
-                      // norm for reference
-                      refL2 = inVec_ref.NormL2();
-                      // the difference vector
-                      diffVec = inVec_fut - inVec_ref;
-                      // compute norms and metrics
-                      Complex diffMin, diffMax, refMin, refMax, diffAvg, refAvg;
-                      diffVec.MinMax(diffMin, diffMax);
-                      inVec_ref.MinMax(refMin,refMax);
-                      diffAvg = diffVec.Avg();
-                      refAvg = inVec_ref.Avg();
-                      diffL2 = diffVec.NormL2();
-                      // output
-                      std::cout << "\t\tMinimum: " << diffMin << " (difference), "<< refMin <<" (reference)\n";
-                      std::cout << "\t\tMaximum: " << diffMax << " (difference), "<< refMax <<" (reference)\n";
-                      std::cout << "\t\tAverage: " << diffAvg << " (difference), "<< refAvg <<" (reference)\n";
-                  }  else {
-                      EXCEPTION("not impl");
-                  } // switch: Analysitype
-                  // make sure NAN in result do not pass
-                  if ( !(std::isfinite(diffL2)) ) {
-                    std::cout << "WARNING: non-finite value encountered\n";
-                    // set the difference to the maximum possible such that the test will fail
-                    diffL2 = std::numeric_limits<Double>::max();
-                  }
-                  // output results
-                  Double relL2 = diffL2/refL2;
-                  std::cout << "\t\tL2-Norm: " << diffL2 << " (difference), "<< refL2 <<" (reference), " << relL2 <<" (relative)\n";
-
-                  if (diffL2 > maxL2_step) maxL2_step = diffL2;
-                  if (relL2 > maxL2rel_step) {
-                      maxL2rel_step = relL2;
-                      std::stringstream tmpstr;
-                      tmpstr << inResults_fut[iRes]->GetResultInfo()->resultName << " on " << inResults_fut[iRes]->GetEntityList()->GetName();
-                      infoStringRel_step = tmpstr.str();
-                  }
-              } // loop over results
-              std::cout << "\n\tL2-Norm: " << maxL2_step << " (difference), " << maxL2rel_step <<" (relative) @ "<<infoStringRel_step<<"\n";
-              if (maxL2_step > maxL2_sequence ) maxL2_sequence = maxL2_step;
-              if (maxL2rel_step > maxL2rel_sequence ) {
-                  maxL2rel_sequence = maxL2rel_step;
-                  std::stringstream tmpstr;
-                  tmpstr << "Step "<< actStepNum << " (=" << actStepVal << " s|Hz|iteration): " << infoStringRel_step;
-                  infoStringRel_sequence = tmpstr.str();
-              }
-          }// time step
-          std::cout << "\nL2-Norm: " << maxL2_sequence << " (difference), " << maxL2rel_sequence <<" (relative) @ " <<infoStringRel_sequence<<"\n";
-          if ( maxL2_sequence > maxL2 ) maxL2 = maxL2_sequence;
-          if ( maxL2rel_sequence > maxL2rel ) {
-              maxL2rel = maxL2rel_sequence;
-              std::stringstream tmpstr;
-              tmpstr << "MultiSequenceStep "<< actMsStep << ", " << infoStringRel_sequence;
-              infoStringRel = tmpstr.str();
+          // when we have more than one sequence step, we print a sequence step summary - otherwise it would be doubled right after
+          if(numSteps_ref.size() > 1) 
+          {
+            std::cout << "\nSummary for " << type << " sequence step " << actMsStep << ":\n.................................\n";
+            sequencePeak.Print(mode, tolerance, "for " + type + " sequence step " + std::to_string(actMsStep));
           }
-      } // sequence step
-      delete ptGrid_fut;
-      delete ptGrid_ref;
-      maxDiffInfo = infoStringRel;
-      return std::max(maxL2,maxL2rel);
+
+          if(sequencePeak.abs.value > totalPeak.abs.value)
+            totalPeak.abs = sequencePeak.abs; 
+          if(sequencePeak.rel.value > totalPeak.rel.value)
+            totalPeak.rel = sequencePeak.rel;
+      } // all multi-sequence steps
+      return totalPeak;
   } //CheckL2
 
 } //Namespace CFSTool
@@ -1266,12 +1398,7 @@ int main(int argc, char** argv)
     CFSTool::ParamsInit(argc, argv, param, logConf);
 
     // Switch this flag tc true for debugging
-    if (param->Get("forceSegFault")->As<bool>())
-    {
-      Exception::segfault_ = true;
-    } else {
-      Exception::segfault_ = false;
-    }
+    Exception::segfault_ =  param->Get("forceSegFault")->As<bool>();
 
     // Register callback function with exception class for warning
     Exception::SetCallbackWarn(CFSTool::PrintWarning);
@@ -1283,18 +1410,16 @@ int main(int argc, char** argv)
       return 0;
     }
 
-    std::cout << std::endl
-              << "============================================================"
-              << "===========" << std::endl;
-    std::cout << " CFSTOOL - File Conversions/Comparisons for openCFS" << std::endl << std::endl
-              << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-              << " (rev " << CFS_GIT_COMMIT << ")" << std::endl
-              << " compiled " << __DATE__
-              << " as " << CMAKE_BUILD_TYPE << std::endl;
-    std::cout << "============================================================"
-              << "==========="
-              << std::endl << std::endl;
-
+    std::cout << "\n......................................................................\n";
+    std::cout << "\n CFSTOOL - File Conversions/Comparisons for openCFS" << std::endl << std::endl
+              << " version " << CFS_VERSION << " - '" << CFS_NAME << "' compiled " << __DATE__ << " as " << CMAKE_BUILD_TYPE << std::endl;
+    std::cout << "\n......................................................................\n";
+    //  -m relL2diff --checkLimits false --eps 1e-6 mech.h5ref results_hdf5/mech.cfs
+    std::cout << "\nCommand line arguments: ";
+    for (int i = 1; i < argc; ++i)
+       std::cout << argv[i] << " ";
+    std::cout << std::endl << std::endl;
+    
     std::string param_mode = param->Get("mode")->As<std::string>();
 
     // get filenames from parameter
@@ -1339,7 +1464,9 @@ int main(int argc, char** argv)
         EXCEPTION( "Please provide a reference file and output File" );
       }
       CFSTool::calcAverage(file1, file3);
-    } else if (param_mode == "convert") {
+    } 
+    else if (param_mode == "convert") 
+    {
       if (file3 != "")
       {
         EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
@@ -1350,7 +1477,9 @@ int main(int argc, char** argv)
         EXCEPTION( "Please provide 'input_file' and 'output_file'" );
       }
       CFSTool::Convert( file1, file3 );
-    } else if (param_mode == "scalardiff") {
+    } 
+    else if (param_mode == "scalardiff") 
+    {
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
       {
@@ -1358,12 +1487,10 @@ int main(int argc, char** argv)
                     << " file1='" << file1 << "' file2='" << file2 << "'");
       }
       Double maxDiffMesh = 0.0, maxDiffHist = 0.0;
-      std::cout << "Checking for mesh results:\n"
-        << "==========================\n";
+      std::cout << "Checking for mesh results:\n==========================\n";
       maxDiffMesh = CFSTool::Diff( file1, file2, "", true, false, maxDiffResultName);
       std::cout << "<DartMeasurement name=\"scalardiff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
-      std::cout << "Checking for history results:\n"
-        << "=============================\n";
+      std::cout << "Checking for history results:\n=============================\n";
       maxDiffHist = CFSTool::Diff( file1, file2, "", true, true, maxDiffResultName );
       std::cout << "<DartMeasurement name=\"scalardiff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
@@ -1376,125 +1503,71 @@ int main(int argc, char** argv)
         std::cout << "  No differences larger than tolerance found.\n";
         exit(EXIT_SUCCESS);
       }
-    }  else if (param_mode == "L2diff") {
-        Double tolerance = param->Get("eps")->As<Double>();
-        if (num_files != 2)
-        {
-            EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
-                            << " file1='" << file1 << "' file2='" << file2 << "'");
-        }
-        std::cout << "Checking for mesh results:\n"
-        << "==========================\n";
-        Double maxDiffMesh,maxDiffMeshRel;
-        Double errMesh = CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName);
-        std::cout << "Maximum L2 norm = " << errMesh << " @ "<< maxDiffResultName << "\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
-        std::cout << "Checking for history results:\n"
-        << "==========================\n";
-        Double maxDiffHist,maxDiffHistRel;
-        Double errHist = CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName);
-        std::cout << "Maximum L2 norm = " << errHist << " @ "<< maxDiffResultName <<"\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
-        Double err = std::max(errMesh,errHist);
-        std::cout << "\n";
-        std::cout << "<DartMeasurement name=\"L2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-        if ( err < tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
-            exit(EXIT_SUCCESS);
-        } else {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-            exit(EXIT_FAILURE);
-        }
-    } else if (param_mode == "absL2diff"){
+    } 
+    else if (param_mode == "absL2diff" || param_mode == "relL2diff")
+    {
+      CFSTool::L2DiffMode mode = (param_mode == "absL2diff") ? CFSTool::L2DiffMode::ABSDIFF : CFSTool::L2DiffMode::RELDIFF;
       Double tolerance = param->Get("eps")->As<Double>();
       if (num_files != 2)
+        throw Exception("Please provide 'reference_file' and 'file_under_test', detected files: " + std::to_string(num_files) +
+                        " file1='" + file1 + "' file2='" + file2 + "'");
+      std::cout << "Check L2-difference of files with mode = " << param_mode << std::endl ;
+      std::cout << "<DartMeasurement name=\"mode\">"<< param_mode <<"</DartMeasurement>\n";
+
+      std::cout << "\nChecking for mesh results:\n..........................\n";
+      CFSTool::Peak meshPeak = CFSTool::CheckL2(file1,file2,false,mode,tolerance);
+      std::cout << "\nSummary for mesh results:\n.........................\n";
+      meshPeak.Print(mode, tolerance, "for mesh results");
+      // print numerical value for cdash of current mode
+      std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<< meshPeak.abs.value <<"</DartMeasurement>\n";
+      std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<< meshPeak.rel.value <<"</DartMeasurement>\n";
+      
+      std::cout << "\nChecking for history results:\n.............................\n";
+      CFSTool::Peak histPeak = CFSTool::CheckL2(file1,file2,true,mode,tolerance);
+      if(histPeak.Get(mode).value == 0.0) 
+        std::cout << "\nNo history results found or all history results are identical.\n";
+      else 
       {
-          EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
-                          << " file1='" << file1 << "' file2='" << file2 << "'");
+        std::cout << "\n\nSummary for history results:\n.............................\n";
+        histPeak.Print(mode, tolerance, "for history results");
+        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<< histPeak.abs.value <<"</DartMeasurement>\n";  
+        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<< histPeak.rel.value <<"</DartMeasurement>\n";  
       }
-      std::cout << "#####################################################\n";
-      std::cout << "#                   Mode = absL2diff                #\n";
-      std::cout << "#####################################################\n";
-      std::cout << "Checking for mesh results:\n"
-      << "==========================\n";
-      Double maxDiffMesh,maxDiffMeshRel;
-      CFSTool::CheckL2(file1,file2,false,maxDiffMesh,maxDiffMeshRel,maxDiffResultName);
-      std::cout << "Maximum L2 norm = " << maxDiffMesh << " @ "<< maxDiffResultName << "\n";
-      std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMesh<<"</DartMeasurement>\n";
-      std::cout << "Checking for history results:\n"
-      << "==========================\n";
-      Double maxDiffHist,maxDiffHistRel;
-      CFSTool::CheckL2(file1,file2,true,maxDiffHist,maxDiffHistRel,maxDiffResultName);
-      std::cout << "Maximum L2 norm = " << maxDiffHist << " @ "<< maxDiffResultName <<"\n";
-      std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<maxDiffHist<<"</DartMeasurement>\n";
-      Double err = std::max(maxDiffMesh,maxDiffHist);
-      std::cout << "\n";
-      std::cout << "<DartMeasurement name=\"absL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-      if ( err < tolerance ) {
-          std::cout << "========================================================\n";
-          std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
-          exit(EXIT_SUCCESS);
-      } else {
-          std::cout << "========================================================\n";
-          std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-          exit(EXIT_FAILURE);
-      }
-    } else if (param_mode == "relL2diff") {
-        Double tolerance = param->Get("eps")->As<Double>();
-        if (num_files != 2)
-        {
-            EXCEPTION( "Please provide 'reference_file' and 'file_under_test', detected files: " << num_files
-                            << " file1='" << file1 << "' file2='" << file2 << "'");
-        }
-        std::cout << "#####################################################\n";
-        std::cout << "#           Checking for mesh results ...           #\n";
-        std::cout << "#####################################################\n";
-        Double absDiff,maxDiffMeshRel;
-        CFSTool::CheckL2(file1,file2,false,absDiff,maxDiffMeshRel,maxDiffResultName);
-        std::cout << "\n";
-        std::cout << " -> Maximum relative L2 norm = " << maxDiffMeshRel << " @ "<< maxDiffResultName << "\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (mesh)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (mesh)\" type=\"numeric/double\">"<<maxDiffMeshRel<<"</DartMeasurement>\n";
-        std::cout << "\n";
-        std::cout << "#####################################################\n";
-        std::cout << "#           Checking for history results ...        #\n";
-        std::cout << "#####################################################\n";
-        Double maxDiffHistRel;
-        CFSTool::CheckL2(file1,file2,true,absDiff,maxDiffHistRel, maxDiffResultName);
-        std::cout << "\n";
-        std::cout << " -> Maximum relative L2 norm = " << maxDiffHistRel << " @ " << maxDiffResultName << "\n";
-        std::cout << "<DartMeasurement name=\"absL2diff (history)\" type=\"numeric/double\">"<<absDiff<<"</DartMeasurement>\n";
-        std::cout << "<DartMeasurement name=\"relL2diff (history)\" type=\"numeric/double\">"<<maxDiffHistRel<<"</DartMeasurement>\n";
-        std::cout << "\n";
-        Double err = std::max(maxDiffMeshRel,maxDiffHistRel);
-        std::cout << "<DartMeasurement name=\"relL2diff\" type=\"numeric/double\">"<<err<<"</DartMeasurement>\n";
-        if ( err < tolerance ) {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " < " << tolerance << "\n";
-            exit(EXIT_SUCCESS);
-        } else {
-            std::cout << "========================================================\n";
-            std::cout << "Maximum L2 norm = " << err << " > " << tolerance << "\n";
-            exit(EXIT_FAILURE);
-        }
-    } else if (param_mode == "meshdiff") {
+      // has the proper mode Max but not necessarily for the other
+      CFSTool::Peak worst = meshPeak.Get(mode).value > histPeak.Get(mode).value ? meshPeak : histPeak;
+      bool ok = worst.Get(mode).value <= tolerance;
+      std::cout << "\n...........................................................\n";
+      if(ok) 
+        std::cout << "The test passed with " << param_mode << " all differences are <= " << tolerance << "\n";
+      else 
+        std::cout << "The test failed with " << param_mode << " and tolerance " << tolerance << ":\n";
+      worst.Print(mode, tolerance, "overall", false); // print only OK/ERROR, not the info
+
+      std::string other = (mode == CFSTool::L2DiffMode::ABSDIFF) ? "relL2diff" : "absL2diff";
+      CFSTool::Max otherMax = worst.Get((mode == CFSTool::L2DiffMode::ABSDIFF) ? CFSTool::L2DiffMode::RELDIFF : CFSTool::L2DiffMode::ABSDIFF);
+      
+      std::cout << "INFO: Maximal " << other << " for the worst case is " << otherMax.value << " at " << otherMax.msg << "\n";
+      std::cout << "<DartMeasurement name=\"absL2diff\" type=\"numeric/double\">"<< worst.abs.value <<"</DartMeasurement>\n";
+      std::cout << "<DartMeasurement name=\"relL2diff\" type=\"numeric/double\">"<< worst.rel.value <<"</DartMeasurement>\n";
+      
+      if (ok) 
+        exit(EXIT_SUCCESS);
+      else 
+        exit(EXIT_FAILURE);
+    } 
+    else if (param_mode == "meshdiff") 
+    {
       if (num_files != 3)
       {
         EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( file1, file2, file3, \
-                     false, false, maxDiffResultName);
+      CFSTool::Diff( file1, file2, file3, false, false, maxDiffResultName);
     } else if (param_mode == "meshdiffnormed") {
       if (num_files != 3)
       {
         EXCEPTION( "Please provide 'reference_file', 'file_under_test' and 'out_file'" );
       }
-      CFSTool::Diff( file1, file2, file3, \
-                     true, false, maxDiffResultName);
+      CFSTool::Diff( file1, file2, file3, true, false, maxDiffResultName);
     } else if (param_mode == "wvt") {
 
       CFSTool::WVT wvt( param, info );
@@ -1505,7 +1578,7 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
     }
   } catch(std::exception& ex) {
-    std::cerr << "The following error occured during program execution:\n\n" << ex.what();
+    std::cerr << "\nThe following error occurred during program execution:\n" << ex.what();
 
     if (info != NULL)
     {

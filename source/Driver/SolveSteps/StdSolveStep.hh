@@ -229,8 +229,8 @@ namespace CoupledField
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
     StdPDE& PDE_;                   //!< reference to PDE
-    std::string pdename_;            //!< name of PDE 
-    bool isaxi_;                  //!< true: axisymmetric problem
+    std::string pdename_;           //!< name of PDE 
+    bool isaxi_ = false;            //!< true: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
 
     /** to summarize .info.xml output about nonlineariy */
@@ -239,14 +239,14 @@ namespace CoupledField
     //! Pointer to material data of PDE
     std::map<RegionIdType, BaseMaterial*> materialData_;  
 
-    Grid * ptgrid_;                  //!< pointer to grid object
-    AlgebraicSys* algsys_;             //!< pointer to algsys object
+    Grid* ptgrid_ = nullptr;            //!< pointer to grid object
+    AlgebraicSys* algsys_ = nullptr;    //!< pointer to algsys object
     ResultList results_;
-    Assemble * assemble_;            //!< pointer to assemble object
+    Assemble* assemble_ = nullptr;      //!< pointer to assemble object
 
     
     //! Pointer to solution strategy object
-    shared_ptr<SolStrategy> solStrat_;
+    shared_ptr<SolStrategy> solStrat_ = nullptr;
     
     //! factors for computingn effective system matrix for each feFunction
     std::map<FeFctIdType, std::map<FEMatrixType,Double> > matrix_factor_;   
@@ -254,29 +254,29 @@ namespace CoupledField
     //! factors for computingn effective system matrix for each feFunction
     std::map<FeFctIdType, std::map<FEMatrixType,Complex> > matrix_factor_Complex_;
 
-                                   //!< our solution
-    bool recalc_;               //!< flag indicating reassembling of system matrix
+                                        //!< our solution
+    bool recalc_ = false;               //!< flag indicating reassembling of system matrix
 
-    std::string lineSearch_;   //!< switch for lineSearch
-    bool nonLin_;           //!< flag for nonlinear calculations
-    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
-    bool isHyst_;           //!< flag for hystersis modeling
-    Double incStopCrit_;       //!< stopping criterion for incremental error
-    Double residualStopCrit_;  //!< stopping criterion for residual error
-    Double lastError_; // So it stops if residum gets bigger!
-    UInt consideredH_=1; // So it stops if residum gets bigger!
+    std::string lineSearch_;            //!< switch for lineSearch
+    bool nonLin_ = false;               //!< flag for nonlinear calculations
+    bool nonLinMaterial_ = false;       //!< flag for nonlinear material calculations
+    bool isHyst_ = false;               //!< flag for hystersis modeling
+    Double incStopCrit_ = 0.0;          //!< stopping criterion for incremental error
+    Double residualStopCrit_ = 0.0;     //!< stopping criterion for residual error
+    Double lastError_ = 0.0;            //!< So it stops if residuum gets bigger!
+    UInt consideredH_ = 1;              //!< So it stops if residuum gets bigger!
 
-    Double minValidValue_;     //! stopping if any value in the region exceeds value
-    Double maxValidValue_;     //! stopping if any value in the region exceeds value
-    SolutionType solutionLimit_; //! solution type for which a limit is set
-    RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+    Double minValidValue_ = 0.0;        //! stopping if any value in the region exceeds value
+    Double maxValidValue_ = 0.0;        //! stopping if any value in the region exceeds value
+    SolutionType solutionLimit_ = INVALID_SOLUTION_TYPE; //! solution type for which a limit is set
+    RegionIdType solutionLimitReg_ = NO_REGION_ID; //! region in which to check the min/max values for non convergence
 
-    UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
-    std::string nonLinMethod_; //!< method for handling the non-linearity
-    bool nonLinLogging_;    //!< log progress of non-linear iterations
-    UInt minLoggingToTerminal_;
-    bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
-    bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
+    UInt nonLinMaxIter_ = 0;             //!< maximal number of NL-iterations
+    std::string nonLinMethod_;           //!< method for handling the non-linearity
+    bool nonLinLogging_ = false;         //!< log progress of non-linear iterations
+    UInt minLoggingToTerminal_ = 0;
+    bool nonLinTotalFormulation_ = false;//!< flag for total or incremental NL formulation
+    bool abortOnMaxIter_ = true;         //!< flag for aborting simulation if maximum number of iterations is hit
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
@@ -292,7 +292,7 @@ namespace CoupledField
 
     //! Vector containing the rhs for the current stage based on the scheme
     //! Vector containing the rhs for the current stage based on the scheme
-    //! TODO: This can be obtimized if the time schemes write their rhs parts directly to the Algebraic system
+    //! TODO: This can be optimized if the time schemes write their rhs parts directly to the Algebraic system
     SBM_Vector stageRHS_;
 
     //! Map Storing FeSpaces for each solution type of PDE
@@ -304,8 +304,8 @@ namespace CoupledField
     shared_ptr<Timer> static_non_lin_step_timer_;
     shared_ptr<Timer> timerEvaluateNonlinearity_;
     std::ofstream logFile_;
-    unsigned int mHandle_;
-    MathParser* mParser_;
+    unsigned int mHandle_ = 0;
+    MathParser* mParser_ = nullptr;
 
     //! Bool to check if getRidOfZeros should be used
     // we assume that we should not perform GetRidOfZeros(), if this is not the case, this will be set afterwards

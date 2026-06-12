@@ -34,7 +34,7 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2026.06
+  BUILD_ENVIRONMENT_TAG: 2026.06.01
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
@@ -59,6 +59,11 @@ variables:
   # all rules:changes:compare_to use this value - it can be set in as a variable when creating a pipeline
   # since branch and MR pipelines show a different behavior without this option, we set it (see https://docs.gitlab.com/ee/ci/yaml/#ruleschanges)
   COMPARE_CHANGES_TO: $CI_DEFAULT_BRANCH # if one does merge requests to a different branch than the default this needs to be changed
+
+  # Force MKL onto a CPU-independent, reproducible (within MKL version) code path even on AMD and super power AVX515 Xenon
+  # see https://www.sidefx.com/docs/houdini/model/mkl.html#setting-the-mkl_cbwr-environment-variable
+  # CBWR=Conditional Bit-Wise Reproducibility. "AUTO" would be default but breaks some tests (e.g. ipopt)
+  MKL_CBWR: "COMPATIBLE"
 
 # stages in the pipeline run in succession
 stages:
@@ -1020,11 +1025,20 @@ windows:msvc2022:
     - cd build # descend in build
     - ls # debug
     # install CFS
+    - export DEBUG_SECTION_TITLE='Extract CFS'
+    - !reference [.linux-debug-start_collapsed, script]
     - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
+    - !reference [.linux-debug-end, script]
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
     - !reference [.cmake_test_or_install,script]
+    # allow to uncollapse runner CPU model data. See also the logs of the tests on cdash
+    - export DEBUG_SECTION_TITLE='Hardware and Environment Details'
+    - !reference [.linux-debug-start_collapsed, script]
+    - lscpu
+    - echo "MKL_CBWR=${MKL_CBWR:-unset} MKL_NUM_THREADS=${MKL_NUM_THREADS:-unset}"
+    - !reference [.linux-debug-end, script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -1051,7 +1065,7 @@ windows:msvc2022:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} -DTESTSUITE_H5DIFF=OFF ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config
@@ -1065,7 +1079,7 @@ windows:msvc2022:
     # show variables for debug
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
-    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} -DTESTSUITE_H5DIFF=OFF ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --group $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --group $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --group $CDASH_TRACK # show config

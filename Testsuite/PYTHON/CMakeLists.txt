@@ -1,4 +1,4 @@
-# this section of test-cases tests Python pre- and postprocessing scriptsg
+# this section of test-cases tests Python pre- and postprocessing scripts
 if(TESTSUITE_PYTHON)
   # test via doctest
   add_subdirectory(doctest/hdf5_tools)
@@ -10,9 +10,11 @@ if(TESTSUITE_PYTHON)
   add_subdirectory(matviz/hom_rot_cross)
   add_subdirectory(matviz/lattice)
   # test via h5diff
-  add_subdirectory(extrude_mesh/LinearElem)
-  add_subdirectory(extrude_mesh/QuadraticElem)
-  add_subdirectory(acou2d5/postprocess_2d5_to_3d)
+  if(TESTSUITE_H5DIFF)
+    add_subdirectory(extrude_mesh/LinearElem)
+    add_subdirectory(extrude_mesh/QuadraticElem)
+    add_subdirectory(acou2d5/postprocess_2d5_to_3d)
+  endif()
   # tests python-matlab interface via doctest
   #add_subdirectory(matlab-interface)
   

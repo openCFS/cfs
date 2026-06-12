@@ -14,5 +14,5 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# unstable for multi-threading
+# known in implementation to be unstable for multi-threading
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

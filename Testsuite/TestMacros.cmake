@@ -1,4 +1,27 @@
 #-------------------------------------------------------------------------------
+# Emit the CPU model name as a CDash measurement so it appears in the test
+# result table (next to Processors). Linux: lscpu. Windows: in-process registry
+# CPU_MODEL e.g. "Intel(R) Xeon(R) Platinum 8581C CPU @ 2.10GHz", "AMD EPYC 7F32 8-Core Processor"
+#-------------------------------------------------------------------------------
+macro(emit_cpu_dart)
+  set(CPU_MODEL "")
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    execute_process(
+      COMMAND sh -c "lscpu | sed -n 's/^Model name:[[:space:]]*//p'"
+      OUTPUT_VARIABLE CPU_MODEL OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    # the alternative is > 1 sec: powershell -NoProfile -Command "(Get-CimInstance Win32_Processor | Select-Object -First 1).Name"
+    cmake_host_system_information(RESULT CPU_MODEL
+      QUERY WINDOWS_REGISTRY "HKLM/HARDWARE/DESCRIPTION/System/CentralProcessor/0"
+      VALUE "ProcessorNameString")
+  endif()
+  if(CPU_MODEL)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E echo
+      "<DartMeasurement name=\"CPU\" type=\"text/string\">${CPU_MODEL}</DartMeasurement>")
+  endif()
+endmacro()
+
+#-------------------------------------------------------------------------------
 # Define a macro to generate the test name from the directory name given by
 # SRCDIR.
 #-------------------------------------------------------------------------------
