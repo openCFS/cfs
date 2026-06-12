@@ -132,7 +132,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
     // Try to map the result name to a solution type and then to a definedOn
     SolutionType solType = SolutionTypeEnum.TryParse(resultName, NO_SOLUTION_TYPE);
     if (solType != NO_SOLUTION_TYPE) {
-      ResultInfo::EntityUnknownType resInfo = shared_ptr<ResultInfo>()->MapSolTypeToDefinedOn(solType);
+      ResultInfo::EntityUnknownType resInfo = ResultInfo::MapSolTypeToDefinedOn(solType);
       
       if(resInfo != ResultInfo::FREE) {
         // Map the EntityUnknownType to definedOnString

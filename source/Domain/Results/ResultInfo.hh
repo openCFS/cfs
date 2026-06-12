@@ -77,7 +77,7 @@ namespace CoupledField {
      * @param solType the solution type
      * @return the EntityUnknownType where this solution is typically defined
      */
-    ResultInfo::EntityUnknownType MapSolTypeToDefinedOn(SolutionType solType);
+    static ResultInfo::EntityUnknownType MapSolTypeToDefinedOn(SolutionType solType);
 
     // =======================================================================
     // D A T A    M E M B E R S 

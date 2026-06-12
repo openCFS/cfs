@@ -25,12 +25,6 @@ namespace CoupledField
 
     namespace {
 
-    static ResultInfo::EntityUnknownType mapSolutionTypeToDefinedOn(SolutionType solType)
-    {
-        ResultInfo info;
-        return info.MapSolTypeToDefinedOn(solType);
-    }
-
     static ResultType mapDefinedOnToResultType(ResultInfo::EntityUnknownType definedOn)
     {
         switch (definedOn) {
@@ -293,7 +287,7 @@ namespace CoupledField
             config.meshName = entry.mesh;
             config.quantitydim = participant_->getDataDimensions(config.meshName, config.precicename);
 
-            ResultInfo::EntityUnknownType mappedDefinedOn = mapSolutionTypeToDefinedOn(config.solutiontype);
+            ResultInfo::EntityUnknownType mappedDefinedOn = ResultInfo::MapSolTypeToDefinedOn(config.solutiontype);
             ResultType mappedType = mapDefinedOnToResultType(mappedDefinedOn);
 
             // Sanity check: if a result with this name is already registered in openCFS,
@@ -338,7 +332,7 @@ namespace CoupledField
             config.meshName = entry.mesh;
             config.quantitydim = participant_->getDataDimensions(config.meshName, config.precicename);
 
-            ResultInfo::EntityUnknownType mappedDefinedOn = mapSolutionTypeToDefinedOn(config.solutiontype);
+            ResultInfo::EntityUnknownType mappedDefinedOn = ResultInfo::MapSolTypeToDefinedOn(config.solutiontype);
             ResultType mappedType = mapDefinedOnToResultType(mappedDefinedOn);
 
             // Sanity check against existing openCFS result definitions, if available.
@@ -420,7 +414,7 @@ namespace CoupledField
             for (const auto& entry : entries) {
                 usedMeshNames.insert(entry.mesh);
                 auto mapped = convertResultNamesToCFS(entry.name);
-                ResultType rt = mapDefinedOnToResultType(mapSolutionTypeToDefinedOn(std::get<1>(mapped)));
+                ResultType rt = mapDefinedOnToResultType(ResultInfo::MapSolTypeToDefinedOn(std::get<1>(mapped)));
                 CouplingMeshData& md = meshDataByName_[entry.mesh];
                 if (rt == ResultType::NODE) {
                     md.needsNodeData = true;
@@ -644,7 +638,7 @@ namespace CoupledField
 
             // Depending on whether the result is node- or element-based, call participant_->readData
             if (result->getResultType() == ResultType::ELEMENT ||
-                mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
+                ResultInfo::MapSolTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                 result->allocateData(md.cfsElemNums.size());
                 participant_->readData(result->getConfig().meshName,
                                         result->getConfig().precicename,
@@ -698,7 +692,7 @@ namespace CoupledField
                 }
 
                 if (result->getResultType() == ResultType::ELEMENT ||
-                    mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
+                    ResultInfo::MapSolTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                     ElementResult* elemResult = dynamic_cast<ElementResult*>(result.get());
                     if (!elemResult) {
                         EXCEPTION("Expected an ElementResult for element-based data.");
@@ -909,7 +903,7 @@ namespace CoupledField
             if (result->getConfig().solutiontype == solType) {
                 hasMatchingSolutionType = true;
                 if (result->getResultType() == ResultType::ELEMENT ||
-                    mapSolutionTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
+                    ResultInfo::MapSolTypeToDefinedOn(result->getConfig().solutiontype) == ResultInfo::SURF_ELEM) {
                     hasElementTypedMatch = true;
                     ElementResult* er = dynamic_cast<ElementResult*>(result.get());
                     if (er) {

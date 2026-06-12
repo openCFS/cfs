@@ -212,7 +212,7 @@ namespace CoupledField {
                                   sizeof(entryTypeTuples) / sizeof(EnumTuple),
                                   entryTypeTuples);
 
-  ResultInfo::EntityUnknownType ResultInfo::MapSolTypeToDefinedOn(SolutionType solType)
+  ResultInfo::EntityUnknownType ResultInfo::MapSolTypeToDefinedOn(SolutionType solType) // static
   {
     // Map each SolutionType to its canonical EntityUnknownType (definedOn)
     // Organized by physical domain and entity type
