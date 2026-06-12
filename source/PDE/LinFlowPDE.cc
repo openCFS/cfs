@@ -1829,7 +1829,7 @@ namespace CoupledField {
     pressure->dofNames = "";
     pressure->unit = MapSolTypeToUnit(pressure->resultType);
 
-    pressure->definedOn = ResultInfo::NODE;
+    pressure->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_PRESSURE);
     pressure->entryType = ResultInfo::SCALAR;
     feFunctions_[FLUIDMECH_PRESSURE]->SetResultInfo(pressure);
     results_.Push_back( pressure );
@@ -1844,7 +1844,7 @@ namespace CoupledField {
     velocity->dofNames = velDofNames;
     velocity->unit = MapSolTypeToUnit(velocity->resultType);
 
-    velocity->definedOn = ResultInfo::NODE;
+    velocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VELOCITY);
     velocity->entryType = ResultInfo::VECTOR;
     feFunctions_[FLUIDMECH_VELOCITY]->SetResultInfo(velocity);
     results_.Push_back( velocity );
@@ -1865,7 +1865,7 @@ namespace CoupledField {
       lagrangeMult->resultType = LAGRANGE_MULT;
       lagrangeMult->dofNames = velDofNames;
       lagrangeMult->unit = "";
-      lagrangeMult->definedOn = ResultInfo::NODE;
+      lagrangeMult->definedOn = ResultInfo::MapSolTypeToDefinedOn(LAGRANGE_MULT);
       lagrangeMult->entryType = ResultInfo::VECTOR;
       results_.Push_back( lagrangeMult );
       availResults_.insert( lagrangeMult );
@@ -1881,7 +1881,7 @@ namespace CoupledField {
       lagrangeMult_1->resultType = LAGRANGE_MULT_1;
       lagrangeMult_1->dofNames = "";
       lagrangeMult_1->unit = "";
-      lagrangeMult_1->definedOn = ResultInfo::NODE;
+      lagrangeMult_1->definedOn = ResultInfo::MapSolTypeToDefinedOn(LAGRANGE_MULT_1);
       lagrangeMult_1->entryType = ResultInfo::SCALAR;
       results_.Push_back( lagrangeMult_1 );
       availResults_.insert( lagrangeMult_1 );
@@ -1930,7 +1930,7 @@ namespace CoupledField {
       stress->dofNames = stressComponents;
       stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
       stress->entryType = ResultInfo::TENSOR;
-      stress->definedOn = ResultInfo::ELEMENT;
+      stress->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_STRESS);
       stress->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stress );
       shared_ptr<CoefFunctionFormBased> sigmaFunc;
@@ -1952,7 +1952,7 @@ namespace CoupledField {
       pressureZero->dofNames = "";
       pressureZero->unit = MapSolTypeToUnit(FLUIDMECH_ZERO_PRESSURE);
       pressureZero->entryType = ResultInfo::SCALAR;
-      pressureZero->definedOn = ResultInfo::NODE;
+      pressureZero->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_ZERO_PRESSURE);
       pressureZero->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
       availResults_.insert( pressureZero );
       PtrCoefFct constZero = CoefFunction::Generate( mp_, Global::REAL, "0.0");
@@ -1965,7 +1965,7 @@ namespace CoupledField {
       strain->dofNames = stressComponents;
       strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
       strain->entryType = ResultInfo::TENSOR;
-      strain->definedOn = ResultInfo::ELEMENT;
+      strain->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_STRAINRATE);
       strain->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( strain );
       shared_ptr<CoefFunctionFormBased> strainFunc; // Coef function for result evaluation
@@ -2000,7 +2000,7 @@ namespace CoupledField {
         meshVelocityElem->dofNames = dispDofNames;
         meshVelocityElem->unit =  MapSolTypeToUnit(FLUIDMECH_MESH_VELOCITY_ELEM);;
         meshVelocityElem->entryType = ResultInfo::VECTOR;
-        meshVelocityElem->definedOn = ResultInfo::ELEMENT;
+        meshVelocityElem->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_MESH_VELOCITY_ELEM);
         availResults_.insert( meshVelocityElem );
         DefineFieldResult( gridVelCoef_, meshVelocityElem );
 
@@ -2010,7 +2010,7 @@ namespace CoupledField {
         meshVelocity->dofNames = dispDofNames;
         meshVelocity->unit =  MapSolTypeToUnit(FLUIDMECH_MESH_VELOCITY);;
         meshVelocity->entryType = ResultInfo::VECTOR;
-        meshVelocity->definedOn = ResultInfo::NODE;
+        meshVelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_MESH_VELOCITY);
         availResults_.insert( meshVelocity );
         DefineFieldResult( gridVelCoef_, meshVelocity );
       }
@@ -2021,7 +2021,7 @@ namespace CoupledField {
       totalVelocityElem->dofNames = dispDofNames;
       totalVelocityElem->unit =  MapSolTypeToUnit(FLUIDMECH_TOTAL_VELOCITY_ELEM);;
       totalVelocityElem->entryType = ResultInfo::VECTOR;
-      totalVelocityElem->definedOn = ResultInfo::ELEMENT;
+      totalVelocityElem->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_TOTAL_VELOCITY_ELEM);
       availResults_.insert( totalVelocityElem );
       PtrCoefFct velocityFuncElem = this->GetCoefFct( FLUIDMECH_VELOCITY );
       PtrCoefFct totalVelCoefElem;
@@ -2046,7 +2046,7 @@ namespace CoupledField {
       stressVisc->dofNames = stressComponents;
       stressVisc->unit = MapSolTypeToUnit(FLUIDMECH_VISC_STRESS);
       stressVisc->entryType = ResultInfo::TENSOR;
-      stressVisc->definedOn = ResultInfo::ELEMENT;
+      stressVisc->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VISC_STRESS);
       stressVisc->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stressVisc );
       PtrCoefFct stressViscCoef;
@@ -2063,7 +2063,7 @@ namespace CoupledField {
         stressComp->dofNames = stressComponents;
         stressComp->unit = MapSolTypeToUnit(FLUIDMECH_COMP_STRESS);
         stressComp->entryType = ResultInfo::TENSOR;
-        stressComp->definedOn = ResultInfo::ELEMENT;
+        stressComp->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_COMP_STRESS);
         stressComp->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
         availResults_.insert( stressComp );
         shared_ptr<CoefFunctionFormBased> stressCompFunc;
@@ -2110,7 +2110,7 @@ namespace CoupledField {
       presTens->dofNames = stressComponents;
       presTens->unit = MapSolTypeToUnit(FLUIDMECH_PRES_TENS);
       presTens->entryType = ResultInfo::TENSOR;
-      presTens->definedOn = ResultInfo::ELEMENT;
+      presTens->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_PRES_TENS);
       presTens->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
       availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
@@ -2142,7 +2142,7 @@ namespace CoupledField {
       stressTotal->dofNames = stressComponents;
       stressTotal->unit = MapSolTypeToUnit(FLUIDMECH_TOTAL_STRESS);
       stressTotal->entryType = ResultInfo::TENSOR;
-      stressTotal->definedOn = ResultInfo::ELEMENT;
+      stressTotal->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_TOTAL_STRESS);
       availResults_.insert( stressTotal );
       PtrCoefFct stressTotalCoef;
       stressTotalCoef =
@@ -2159,7 +2159,7 @@ namespace CoupledField {
       surfaceTractionInfo->dofNames = dispDofNames;
       surfaceTractionInfo->unit = MapSolTypeToUnit(FLUIDMECH_SURFACE_TRACTION);
       surfaceTractionInfo->entryType = ResultInfo::VECTOR;
-      surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
+      surfaceTractionInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_SURFACE_TRACTION);
 
       surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
       DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
@@ -2172,7 +2172,7 @@ namespace CoupledField {
       reactionForceInfo->dofNames = dispDofNames;
       reactionForceInfo->unit = MapSolTypeToUnit(FLUIDMECH_FORCE);
       reactionForceInfo->entryType = ResultInfo::VECTOR;
-      reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+      reactionForceInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_FORCE);
       // Integrate surface traction
       shared_ptr<ResultFunctor> reactionForceFct;
       if(isComplex_)
@@ -2188,7 +2188,7 @@ namespace CoupledField {
       vdpd1->dofNames = "";
       vdpd1->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV);
       vdpd1->entryType = ResultInfo::SCALAR;
-      vdpd1->definedOn = ResultInfo::ELEMENT;
+      vdpd1->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV);
       vdpd1->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert(vdpd1);  
       shared_ptr<CoefFunctionFormBased> vdpd1Func;    
@@ -2208,7 +2208,7 @@ namespace CoupledField {
       vdpd2->dofNames = "";
       vdpd2->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN);
       vdpd2->entryType = ResultInfo::SCALAR;
-      vdpd2->definedOn = ResultInfo::ELEMENT;
+      vdpd2->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN);
       vdpd2->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( vdpd2 );
       shared_ptr<CoefFunctionFormBased> vdpd2Func;
@@ -2229,7 +2229,7 @@ namespace CoupledField {
       vdpd->dofNames = "";
       vdpd->unit =  MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER_DENS);
       vdpd->entryType = ResultInfo::SCALAR;
-      vdpd->definedOn = ResultInfo::ELEMENT;
+      vdpd->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VISCOUS_DISS_POWER_DENS);
       shared_ptr<CoefFunctionMulti> vdpdFunc(new CoefFunctionMulti(CoefFunction::SCALAR,dim_,1, isComplex_));
       vdpd->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       DefineFieldResult( vdpdFunc, vdpd );
@@ -2254,7 +2254,7 @@ namespace CoupledField {
       vdp->dofNames = "";
       vdp->unit = MapSolTypeToUnit(FLUIDMECH_VISCOUS_DISS_POWER);
       vdp->entryType = ResultInfo::SCALAR;
-      vdp->definedOn = ResultInfo::REGION;
+      vdp->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VISCOUS_DISS_POWER);
       // Integrate surface traction
       shared_ptr<ResultFunctor> vdpFct;
       if(isComplex_)
@@ -2273,7 +2273,7 @@ namespace CoupledField {
       intensitySimple->dofNames = dispDofNames;
       intensitySimple->unit = MapSolTypeToUnit(FLUIDMECH_INTENSITY_PRESSURE_ONLY);
       intensitySimple->entryType = ResultInfo::VECTOR;
-      intensitySimple->definedOn = ResultInfo::ELEMENT;
+      intensitySimple->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_INTENSITY_PRESSURE_ONLY);
       PtrCoefFct intensFctSimple;
       intensFctSimple = 
           CoefFunction::Generate( mp_, part,
@@ -2289,7 +2289,7 @@ namespace CoupledField {
       intensity->dofNames = dispDofNames;
       intensity->unit = MapSolTypeToUnit(FLUIDMECH_INTENSITY);
       intensity->entryType = ResultInfo::VECTOR;
-      intensity->definedOn = ResultInfo::ELEMENT;
+      intensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_INTENSITY);
       PtrCoefFct intensFct;
       PtrCoefFct velFnc = this->GetCoefFct( FLUIDMECH_VELOCITY );
       // define temporary function, without the -1 sign
@@ -2306,7 +2306,7 @@ namespace CoupledField {
       surfIntensitySimple->dofNames = dispDofNames;
       surfIntensitySimple->unit = MapSolTypeToUnit(FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY);
       surfIntensitySimple->entryType = ResultInfo::VECTOR;
-      surfIntensitySimple->definedOn = ResultInfo::SURF_ELEM;
+      surfIntensitySimple->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_SURFINTENSITY_PRESSURE_ONLY);
       shared_ptr<CoefFunctionSurf> sIntensSimple;
       sIntensSimple.reset(new CoefFunctionSurf(false, 1.0, surfIntensitySimple));
       DefineFieldResult(sIntensSimple, surfIntensitySimple);
@@ -2321,7 +2321,7 @@ namespace CoupledField {
       surfIntensity->dofNames = dispDofNames;
       surfIntensity->unit = MapSolTypeToUnit(FLUIDMECH_SURFINTENSITY);
       surfIntensity->entryType = ResultInfo::VECTOR;
-      surfIntensity->definedOn = ResultInfo::SURF_ELEM;
+      surfIntensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_SURFINTENSITY);
       shared_ptr<CoefFunctionSurf> sIntens;
       sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
       DefineFieldResult(sIntens, surfIntensity);
@@ -2336,7 +2336,7 @@ namespace CoupledField {
       intensNormalSimple->dofNames = "";
       intensNormalSimple->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY);
       intensNormalSimple->entryType = ResultInfo::SCALAR;
-      intensNormalSimple->definedOn = ResultInfo::SURF_ELEM;  
+      intensNormalSimple->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY);
       shared_ptr<CoefFunctionSurf> sNormIntensSimple;
       sNormIntensSimple.reset(new CoefFunctionSurf(true, 1.0, intensNormalSimple));
       DefineFieldResult( sNormIntensSimple, intensNormalSimple );
@@ -2351,7 +2351,7 @@ namespace CoupledField {
       intensNormal->dofNames = "";
       intensNormal->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_INTENSITY);
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::SURF_ELEM;  
+      intensNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_NORMAL_INTENSITY);
       shared_ptr<CoefFunctionSurf> sNormIntens;
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
@@ -2367,7 +2367,7 @@ namespace CoupledField {
       powerSimple->dofNames = "";
       powerSimple->unit = MapSolTypeToUnit(FLUIDMECH_POWER_PRESSURE_ONLY);
       powerSimple->entryType = ResultInfo::SCALAR;
-      powerSimple->definedOn = ResultInfo::SURF_REGION;
+      powerSimple->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_POWER_PRESSURE_ONLY);
       shared_ptr<ResultFunctor> powerFctSimple;
       if( isComplex_ ) {
         powerFctSimple.reset(new ResultFunctorIntegrate<Complex>(sNormIntensSimple, 
@@ -2389,7 +2389,7 @@ namespace CoupledField {
       power->dofNames = "";
       power->unit = MapSolTypeToUnit(FLUIDMECH_POWER);
       power->entryType = ResultInfo::SCALAR;
-      power->definedOn = ResultInfo::SURF_REGION;
+      power->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_POWER);
       shared_ptr<ResultFunctor> powerFct;
       if( isComplex_ ) {
         powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
@@ -2408,7 +2408,7 @@ namespace CoupledField {
       velNormal->dofNames = "";
       velNormal->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_VELOCITY);
       velNormal->entryType = ResultInfo::SCALAR;
-      velNormal->definedOn = ResultInfo::SURF_ELEM;
+      velNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_NORMAL_VELOCITY);
       shared_ptr<CoefFunctionSurf> velFncNormal;
       velFncNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
       DefineFieldResult(velFncNormal, velNormal);
@@ -2422,7 +2422,7 @@ namespace CoupledField {
       surfImpedance->dofNames = "";
       surfImpedance->unit = MapSolTypeToUnit(FLUIDMECH_SURFIMPEDANCE);
       surfImpedance->entryType = ResultInfo::SCALAR;
-      surfImpedance->definedOn = ResultInfo::SURF_ELEM;
+      surfImpedance->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_SURFIMPEDANCE);
       PtrCoefFct surfImpFct = CoefFunction::Generate(
           mp_, part, CoefXprBinOp(mp_, presFnc, velFncNormal, CoefXpr::OP_DIV));
       DefineFieldResult(surfImpFct, surfImpedance);
@@ -2434,7 +2434,7 @@ namespace CoupledField {
       impedance->dofNames = "";
       impedance->unit = MapSolTypeToUnit(FLUIDMECH_IMPEDANCE);
       impedance->entryType = ResultInfo::SCALAR;
-      impedance->definedOn = ResultInfo::SURF_REGION;
+      impedance->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_IMPEDANCE);
       // TODO area weighted average
       shared_ptr<ResultFunctor> impedanceFct;
       if( isComplex_ ) {
@@ -2538,7 +2538,7 @@ namespace CoupledField {
     flowvelocity->dofNames = dofNames;
     flowvelocity->unit = "m/s";
 
-    flowvelocity->definedOn = ResultInfo::NODE;
+    flowvelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY);
     flowvelocity->entryType = ResultInfo::VECTOR;
     results_.Push_back( flowvelocity );
     availResults_.insert( flowvelocity );

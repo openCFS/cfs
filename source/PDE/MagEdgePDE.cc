@@ -818,7 +818,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       currentInfo->resultType = COIL_CURRENT;
       currentInfo->dofNames = "";
       currentInfo->unit = "A";
-      currentInfo->definedOn = ResultInfo::COIL;
+      currentInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_CURRENT);
       currentInfo->entryType = ResultInfo::SCALAR;
 
       feFunctions_[COIL_CURRENT]->SetResultInfo(currentInfo);
@@ -836,7 +836,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     permeability->resultType = MAG_ELEM_PERMEABILITY;
     permeability->dofNames = "";
     permeability->unit = "Vs/Am";
-    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
     permeability->entryType = ResultInfo::SCALAR;
 
     if(analysistype_ == MULTIHARMONIC){
@@ -871,7 +871,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     velocity->dofNames = vecDofNames;
     velocity->unit = "m/s";
 
-    velocity->definedOn = ResultInfo::NODE;
+    velocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY);
     velocity->entryType = ResultInfo::VECTOR;
 
     VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
@@ -907,7 +907,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         iDot->resultType = COIL_CURRENT_DERIV1;
         iDot->dofNames = "";
         iDot->unit = "A/s";
-        iDot->definedOn = ResultInfo::COIL;
+        iDot->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_CURRENT_DERIV1);
         iDot->entryType = ResultInfo::SCALAR;
         availResults_.insert( iDot );
         DefineTimeDerivResult( COIL_CURRENT_DERIV1, 1, COIL_CURRENT );
@@ -928,7 +928,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     normFlux->dofNames = "";
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
-    normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_NORMAL_FLUX_DENSITY);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
@@ -941,7 +941,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     flux->dofNames = "";
     flux->unit = "Vs";
     flux->entryType = ResultInfo::SCALAR;
-    flux->definedOn = ResultInfo::SURF_REGION;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX);
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {
       fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens,
@@ -976,7 +976,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       eddy->resultType = MAG_EDDY_CURRENT_DENSITY;
       eddy->dofNames = vecComponents;
       eddy->unit = "A/m^2";
-      eddy->definedOn = ResultInfo::ELEMENT;
+      eddy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT_DENSITY);
       eddy->entryType = ResultInfo::VECTOR;
 
       if( isComplex_ ) {
@@ -991,7 +991,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       ec->resultType = MAG_EDDY_CURRENT;
       ec->dofNames = "";
       ec->unit = "A";
-      ec->definedOn = ResultInfo::SURF_REGION;
+      ec->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT);
       ec->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec );
 
@@ -1015,7 +1015,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       epd->resultType = MAG_EDDY_POWER_DENSITY;
       epd->dofNames = "";
       epd->unit = "W/m^3";
-      epd->definedOn = ResultInfo::ELEMENT;
+      epd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_POWER_DENSITY);
       epd->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionFormBased> epdFunctor;
       if( isComplex_ ) {
@@ -1031,7 +1031,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       ep->resultType = MAG_EDDY_POWER;
       ep->dofNames = "";
       ep->unit = "W";
-      ep->definedOn = ResultInfo::REGION;
+      ep->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_POWER);
       ep->entryType = ResultInfo::SCALAR;
       availResults_.insert( ep );
       shared_ptr<ResultFunctor> epFunctor;
@@ -1049,7 +1049,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       elecIntens->SetVectorDOFs(dim_, isaxi_);
       elecIntens->dofNames = vecComponents;
       elecIntens->unit = "V/m";
-      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
       elecIntens->entryType = ResultInfo::VECTOR;
 
       // assemble coefficient function E = - dA/dt
@@ -1066,7 +1066,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       psiDotRes->resultType = COIL_INDUCED_VOLTAGE;
       psiDotRes->dofNames = "";
       psiDotRes->unit = "V";
-      psiDotRes->definedOn = ResultInfo::COIL;
+      psiDotRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_INDUCED_VOLTAGE);
       psiDotRes->entryType = ResultInfo::SCALAR;
 
       availResults_.insert( psiDotRes );
@@ -1090,7 +1090,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     ccd->resultType = MAG_COIL_CURRENT_DENSITY;
     ccd->dofNames = vecComponents;
     ccd->unit = "A/m^2";
-    ccd->definedOn = ResultInfo::ELEMENT;
+    ccd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_COIL_CURRENT_DENSITY);
     ccd->entryType = ResultInfo::VECTOR;
     availResults_.insert( ccd );
     shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
@@ -1103,7 +1103,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     tcd->resultType = MAG_TOTAL_CURRENT_DENSITY;
     tcd->dofNames = vecComponents;
     tcd->unit = "A/m^2";
-    tcd->definedOn = ResultInfo::ELEMENT;
+    tcd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_TOTAL_CURRENT_DENSITY);
     tcd->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,
                                                                 isComplex_));
@@ -1116,7 +1116,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     reluc->resultType = MAG_ELEM_RELUCTIVITY;
     reluc->dofNames = "";
     reluc->unit = "Am/Vs";
-    reluc->definedOn = ResultInfo::ELEMENT;
+    reluc->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_RELUCTIVITY);
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
 
@@ -1126,7 +1126,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magIntens->SetVectorDOFs(dim_, isaxi_);
     magIntens->dofNames = vecComponents;
     magIntens->unit = "A/m";
-    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FIELD_INTENSITY);
     magIntens->entryType = ResultInfo::VECTOR;
 
     
@@ -1134,7 +1134,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magJ->resultType = MAG_POLARIZATION;
     magJ->SetVectorDOFs(dim_, isaxi_);
     magJ->unit = "Vs/m^2";
-    magJ->definedOn = ResultInfo::ELEMENT;
+    magJ->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POLARIZATION);
     magJ->entryType = ResultInfo::VECTOR;
 
     DefineFieldResult( polarization_, magJ );
@@ -1144,7 +1144,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magM->resultType = MAG_MAGNETIZATION;
     magM->SetVectorDOFs(dim_, isaxi_);
     magM->unit = "A/m";
-    magM->definedOn = ResultInfo::ELEMENT;
+    magM->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_MAGNETIZATION);
     magM->entryType = ResultInfo::VECTOR;
 
     DefineFieldResult( magnetization_, magM );
@@ -1162,7 +1162,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     energy->resultType = MAG_ENERGY;
     energy->dofNames = "";
     energy->unit = "Ws";
-    energy->definedOn = ResultInfo::REGION;
+    energy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ENERGY);
     energy->entryType = ResultInfo::SCALAR;
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
@@ -1180,7 +1180,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     psiRes->resultType = COIL_LINKED_FLUX;
     psiRes->dofNames = "";
     psiRes->unit = "Vs/m^2";
-    psiRes->definedOn = ResultInfo::COIL;
+    psiRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_LINKED_FLUX);
     psiRes->entryType = ResultInfo::SCALAR;
 
     availResults_.insert( psiRes );
@@ -1203,7 +1203,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     cldRes->resultType = MAG_CORE_LOSS_DENSITY;
     cldRes->dofNames = "";
     cldRes->unit = "W/kg";
-    cldRes->definedOn = ResultInfo::ELEMENT;
+    cldRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_CORE_LOSS_DENSITY);
     cldRes->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> coreLossDensCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     DefineFieldResult( coreLossDensCoef, cldRes );
@@ -1213,7 +1213,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     clRes->resultType = MAG_CORE_LOSS;
     clRes->dofNames = "";
     clRes->unit = "W";
-    clRes->definedOn = ResultInfo::REGION;
+    clRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_CORE_LOSS);
     clRes->entryType = ResultInfo::SCALAR;
     //DefineFieldResult( coreLossCoef, clRes );
     availResults_.insert( clRes );
@@ -1234,7 +1234,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
     jld->dofNames = "";
     jld->unit = "W/m^3";
-    jld->definedOn = ResultInfo::ELEMENT;
+    jld->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER_DENSITY);
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );
@@ -1250,7 +1250,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       jldN->resultType = MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES;
       jldN->dofNames = "";
       jldN->unit = "W/m^3";
-      jldN->definedOn = ResultInfo::NODE;
+      jldN->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES);
       jldN->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> jldNCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
       DefineFieldResult( jldNCoef, jldN );
@@ -1260,7 +1260,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     jldRes->resultType = MAG_JOULE_LOSS_POWER;
     jldRes->dofNames = "";
     jldRes->unit = "W";
-    jldRes->definedOn = ResultInfo::REGION;
+    jldRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER);
     jldRes->entryType = ResultInfo::SCALAR;
     availResults_.insert( jldRes );
     shared_ptr<ResultFunctor> jldFunc;

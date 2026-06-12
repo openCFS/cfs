@@ -699,7 +699,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     res2->resultType = ELEC_POTENTIAL;
     res2->dofNames = "";
     res2->unit = "V";
-    res2->definedOn = ResultInfo::NODE;
+    res2->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL);
     res2->entryType = ResultInfo::SCALAR;
     res2->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res2 );
@@ -720,7 +720,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     res3->resultType = LAGRANGE_MULT;
     res3->dofNames = "";
     res3->unit = "";
-    res3->definedOn = ResultInfo::NODE;
+    res3->definedOn = ResultInfo::MapSolTypeToDefinedOn(LAGRANGE_MULT);
     res3->entryType = ResultInfo::SCALAR;
     res3->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
     results_.Push_back( res3);
@@ -743,7 +743,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         res4->resultType = LAGRANGE_MULT_1;
         res4->dofNames = "";
         res4->unit = "";
-        res4->definedOn = ResultInfo::NODE;
+        res4->definedOn = ResultInfo::MapSolTypeToDefinedOn(LAGRANGE_MULT_1);
         res4->entryType = ResultInfo::SCALAR;
         res4->SetFeFunction(feFunctions_[LAGRANGE_MULT_1]);
         results_.Push_back( res4);
@@ -761,7 +761,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     permeability->resultType = MAG_ELEM_PERMEABILITY;
     permeability->dofNames = "";
     permeability->unit = "Vs/Am";
-    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
     permeability->entryType = ResultInfo::SCALAR;
     permeability->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
@@ -796,7 +796,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       gradV->resultType = GRAD_ELEC_POTENTIAL;
       gradV->dofNames = vecComponents;
       gradV->unit = "V/m";
-      gradV->definedOn = ResultInfo::ELEMENT;
+      gradV->definedOn = ResultInfo::MapSolTypeToDefinedOn(GRAD_ELEC_POTENTIAL);
       gradV->entryType = ResultInfo::VECTOR;
       gradV->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       availResults_.insert( gradV );
@@ -816,7 +816,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecIntensT->SetVectorDOFs(dim_, isaxi_);
       elecIntensT->dofNames = vecComponents;
       elecIntensT->unit = "V/m";
-      elecIntensT->definedOn = ResultInfo::ELEMENT;
+      elecIntensT->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY_TRANSVERSAL);
       elecIntensT->entryType = ResultInfo::VECTOR;
       elecIntensT->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> elecIntensTFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -829,7 +829,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecIntensL->SetVectorDOFs(dim_, isaxi_);
       elecIntensL->dofNames = vecComponents;
       elecIntensL->unit = "V/m";
-      elecIntensL->definedOn = ResultInfo::ELEMENT;
+      elecIntensL->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY_LONGITUDINAL);
       elecIntensL->entryType = ResultInfo::VECTOR;
       elecIntensL->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> elecIntensLFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -842,7 +842,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       elecIntens->SetVectorDOFs(dim_, isaxi_);
       elecIntens->dofNames = vecComponents;
       elecIntens->unit = "V/m";
-      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
       elecIntens->entryType = ResultInfo::VECTOR;
       shared_ptr<CoefFunctionMulti> elecIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( elecIntensFunc, elecIntens );
@@ -853,7 +853,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       displcurrIntens->SetVectorDOFs(dim_, isaxi_);
       displcurrIntens->dofNames = vecComponents;
       displcurrIntens->unit = "";
-      displcurrIntens->definedOn = ResultInfo::ELEMENT;
+      displcurrIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(DISPLACEMENT_CURRENT_FIELD_INTENSITY);
       displcurrIntens->entryType = ResultInfo::VECTOR;
       displcurrIntens->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       shared_ptr<CoefFunctionMulti> displcurrIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -865,7 +865,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       displcurr->SetVectorDOFs(dim_, isaxi_);
       displcurr->dofNames = "";
       displcurr->unit = "";
-      displcurr->definedOn = ResultInfo::SURF_REGION;
+      displcurr->definedOn = ResultInfo::MapSolTypeToDefinedOn(DISPLACEMENT_CURRENT_SURF);
       displcurr->entryType = ResultInfo::SCALAR;
       displcurr->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( displcurr );
@@ -888,7 +888,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     eddyJ->resultType = MAG_EDDY_CURRENT_DENSITY;
     eddyJ->dofNames = vecComponents;
     eddyJ->unit = "A/m^2";
-    eddyJ->definedOn = ResultInfo::ELEMENT;
+    eddyJ->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT_DENSITY);
     eddyJ->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> eddyJFunc(
         new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -900,7 +900,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     ec->resultType = MAG_EDDY_CURRENT;
     ec->dofNames = "";
     ec->unit = "A";
-    ec->definedOn = ResultInfo::SURF_REGION;
+    ec->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT);
     ec->entryType = ResultInfo::SCALAR;
     availResults_.insert( ec );
     // first, create normal mapping
@@ -922,7 +922,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     fluxDens->resultType = MAG_FLUX_DENSITY;
     fluxDens->dofNames = vecComponents;
     fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
+    fluxDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX_DENSITY);
     fluxDens->entryType = ResultInfo::VECTOR;
     fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> bFunc;
@@ -941,7 +941,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     normFlux->dofNames = "";
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
-    normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_NORMAL_FLUX_DENSITY);
     normFlux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
@@ -955,7 +955,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     flux->dofNames = "";
     flux->unit = "Vs";
     flux->entryType = ResultInfo::SCALAR;
-    flux->definedOn = ResultInfo::SURF_REGION;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX);
     flux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {

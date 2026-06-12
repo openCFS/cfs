@@ -1188,7 +1188,7 @@ void LatticeBoltzmannPDE::DefinePrimaryResults() {
 
   res1->dofNames = "";
   res1->unit = "?";
-  res1->definedOn = ResultInfo::NODE;
+  res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(TEST_DOF);
   res1->entryType = ResultInfo::SCALAR;
   feFunctions_[TEST_DOF]->SetResultInfo(res1);
   results_.Push_back( res1 );
@@ -1210,7 +1210,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   prob->dofNames = probDofNames;
   prob->unit = "";
   prob->entryType = ResultInfo::VECTOR;
-  prob->definedOn = ResultInfo::ELEMENT;
+  prob->definedOn = ResultInfo::MapSolTypeToDefinedOn(LBM_PROBABILITY_DISTRIBUTION);
   shared_ptr<CoefFunctionFormBased> probFunc;
   probFunc.reset(new CoefFunctionLBM<Double>(this,feFct, prob));
   DefineFieldResult(probFunc,prob);
@@ -1227,7 +1227,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   dens->unit =  "";
   dens->dofNames = "";
   dens->entryType = ResultInfo::SCALAR;
-  dens->definedOn = ResultInfo::ELEMENT;
+  dens->definedOn = ResultInfo::MapSolTypeToDefinedOn(LBM_DENSITY);
   shared_ptr<CoefFunctionFormBased> densFunc;
   densFunc.reset(new CoefFunctionLBM<Double>(this,feFct, dens));
   DefineFieldResult(densFunc,dens);
@@ -1237,7 +1237,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   press->unit =  "";
   press->dofNames = "";
   press->entryType = ResultInfo::SCALAR;
-  press->definedOn = ResultInfo::ELEMENT;
+  press->definedOn = ResultInfo::MapSolTypeToDefinedOn(LBM_PRESSURE);
   shared_ptr<CoefFunctionFormBased> pressFunc;
   pressFunc.reset(new CoefFunctionLBM<Double>(this,feFct, press));
   DefineFieldResult(pressFunc,press);
@@ -1252,7 +1252,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   velo->dofNames = velDofNames;
   velo->unit =  "";
   velo->entryType = ResultInfo::VECTOR;
-  velo->definedOn = ResultInfo::ELEMENT;
+  velo->definedOn = ResultInfo::MapSolTypeToDefinedOn(LBM_VELOCITY);
   shared_ptr<CoefFunctionFormBased> veloFunc;
   veloFunc.reset(new CoefFunctionLBM<Double>(this,feFct, velo));
   DefineFieldResult(veloFunc,velo);
@@ -1263,7 +1263,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   mechPD->dofNames = "";
   mechPD->unit = "";
   mechPD->entryType = ResultInfo::SCALAR;
-  mechPD->definedOn = ResultInfo::ELEMENT;
+  mechPD->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PSEUDO_DENSITY);
   mechPD->fromOptimization = true;
   shared_ptr<CoefFunctionFormBased> mechPDFunc;
   mechPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, mechPD));
@@ -1274,7 +1274,7 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   physicalPD->dofNames = "";
   physicalPD->unit = "";
   physicalPD->entryType = ResultInfo::SCALAR;
-  physicalPD->definedOn = ResultInfo::ELEMENT;
+  physicalPD->definedOn = ResultInfo::MapSolTypeToDefinedOn(LBM_PHYSICAL_PSEUDO_DENSITY);
   physicalPD->fromOptimization = true;
   shared_ptr<CoefFunctionFormBased> physicalPDFunc;
   physicalPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, physicalPD));

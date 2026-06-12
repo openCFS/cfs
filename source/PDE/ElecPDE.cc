@@ -1512,7 +1512,7 @@ namespace CoupledField {
     if( subType_  != "flatShell" ) {
       res1->dofNames = "";
       res1->unit = MapSolTypeToUnit(ELEC_POTENTIAL);
-      res1->definedOn = ResultInfo::NODE;
+      res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL);
       res1->entryType = ResultInfo::SCALAR;
     } else {
       
@@ -1575,7 +1575,7 @@ namespace CoupledField {
       lagMultElec->unit = "C/m^2";
       lagMultElec->entryType = ResultInfo::SCALAR;
       lagMultElec->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
-      lagMultElec->definedOn = ResultInfo::NODE;
+      lagMultElec->definedOn = ResultInfo::MapSolTypeToDefinedOn(LAGRANGE_MULT);
       feFunctions_[LAGRANGE_MULT]->SetResultInfo(lagMultElec);
       
       results_.Push_back(lagMultElec);
@@ -1615,7 +1615,7 @@ namespace CoupledField {
     ef->resultType = ELEC_FIELD_INTENSITY;
     ef->SetVectorDOFs(dim_, isaxi_, is2p5);
     ef->unit = MapSolTypeToUnit(ELEC_FIELD_INTENSITY);
-    ef->definedOn = ResultInfo::ELEMENT;
+    ef->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
     ef->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> eFunc;
 
@@ -1637,7 +1637,7 @@ namespace CoupledField {
     efs->resultType = ELEC_FIELD_INTENSITY_SURF;
     efs->SetVectorDOFs(dim_, isaxi_, is2p5);
     efs->unit = MapSolTypeToUnit(ELEC_FIELD_INTENSITY_SURF);
-    efs->definedOn = ResultInfo::SURF_ELEM;
+    efs->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY_SURF);
     efs->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionSurf> eFuncS;
     
@@ -1656,7 +1656,7 @@ namespace CoupledField {
       elecP->resultType = ELEC_POLARIZATION;
       elecP->SetVectorDOFs(dim_, isaxi_, is2p5);
       elecP->unit = MapSolTypeToUnit(ELEC_POLARIZATION);
-      elecP->definedOn = ResultInfo::ELEMENT;
+      elecP->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POLARIZATION);
       elecP->entryType = ResultInfo::VECTOR;
       DefineFieldResult( hysteresisPolarization_, elecP );
       availResults_.insert( elecP );
@@ -1676,7 +1676,7 @@ namespace CoupledField {
     perm->resultType = ELEC_ELEM_PERMITTIVITY;
     perm->dofNames = "";
     perm->unit = MapSolTypeToUnit(ELEC_ELEM_PERMITTIVITY);
-    perm->definedOn = ResultInfo::ELEMENT;
+    perm->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_ELEM_PERMITTIVITY);
     perm->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionFormBased> perm_coef;
     if(analysistype_== MULTIHARMONIC){
@@ -1692,7 +1692,7 @@ namespace CoupledField {
     flux->resultType = ELEC_FLUX_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_, is2p5);
     flux->unit = MapSolTypeToUnit(ELEC_FLUX_DENSITY);
-    flux->definedOn = ResultInfo::ELEMENT;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FLUX_DENSITY);
     flux->entryType = ResultInfo::VECTOR;
     
     shared_ptr<CoefFunctionFormBased> fluxFunc;
@@ -1731,7 +1731,7 @@ namespace CoupledField {
     chargeD->resultType = ELEC_SURFACE_CHARGE_DENSITY;
     chargeD->dofNames = "";
     chargeD->unit = MapSolTypeToUnit(ELEC_SURFACE_CHARGE_DENSITY);
-    chargeD->definedOn = ResultInfo::SURF_ELEM;
+    chargeD->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_SURFACE_CHARGE_DENSITY);
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
     // the coefficient function is defined later
@@ -1751,7 +1751,7 @@ namespace CoupledField {
     charge->resultType = ELEC_CHARGE;
     charge->dofNames = "";
     charge->unit = MapSolTypeToUnit(ELEC_CHARGE);
-    charge->definedOn = ResultInfo::SURF_REGION;
+    charge->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_CHARGE);
     charge->entryType = ResultInfo::SCALAR;
     availResults_.insert( charge );
     // build result functor for integration
@@ -1769,7 +1769,7 @@ namespace CoupledField {
     ed->resultType = ELEC_ENERGY_DENSITY;
     ed->dofNames = "";
     ed->unit = MapSolTypeToUnit(ELEC_ENERGY_DENSITY);
-    ed->definedOn = ResultInfo::ELEMENT;
+    ed->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_ENERGY_DENSITY);
     ed->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionFormBased> edFunc;
 
@@ -1793,7 +1793,7 @@ namespace CoupledField {
     // Electric energy E = \frac{1} {2} \varepsilon \int_{\Omega} \bm{E} \cdot \bm{E} \mathrm{d} \Omega
     shared_ptr<ResultInfo> energy( new ResultInfo );
     energy->resultType = ELEC_ENERGY;
-    energy->definedOn = ResultInfo::REGION;
+    energy->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_ENERGY);
     energy->entryType = ResultInfo::SCALAR;
     energy->dofNames = "";
     energy->unit = MapSolTypeToUnit(ELEC_ENERGY);
@@ -1825,7 +1825,7 @@ namespace CoupledField {
     //efd->SetVectorDOFs(dim_, isaxi_, is2p5);
     efd->dofNames= vecDofNames;
     efd->unit = MapSolTypeToUnit(ELEC_FORCE_DENSITY);
-    efd->definedOn = ResultInfo::SURF_ELEM;
+    efd->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FORCE_DENSITY);
     efd->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionSurf> efdFuncS;
     //factor -1 because positive normal direction points into mechanic region
@@ -1838,7 +1838,7 @@ namespace CoupledField {
     elForce->resultType = ELEC_FORCE;
     elForce->dofNames= vecDofNames;
     elForce->unit = MapSolTypeToUnit(ELEC_FORCE);
-    elForce->definedOn = ResultInfo::SURF_REGION;
+    elForce->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FORCE);
     elForce->entryType = ResultInfo::VECTOR;
     availResults_.insert( elForce );
     // build result functor for integration

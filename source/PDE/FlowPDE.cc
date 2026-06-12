@@ -621,7 +621,7 @@ namespace CoupledField {
     pressure->dofNames = "";
     pressure->unit = "Pa";
 
-    pressure->definedOn = ResultInfo::NODE;
+    pressure->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_PRESSURE);
     pressure->entryType = ResultInfo::SCALAR;
     feFunctions_[FLUIDMECH_PRESSURE]->SetResultInfo(pressure);
     results_.Push_back( pressure );
@@ -636,7 +636,7 @@ namespace CoupledField {
     velocity->dofNames = velDofNames;
     velocity->unit = "m/s";
 
-    velocity->definedOn = ResultInfo::NODE;
+    velocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VELOCITY);
     velocity->entryType = ResultInfo::VECTOR;
     feFunctions_[FLUIDMECH_VELOCITY]->SetResultInfo(velocity);
     results_.Push_back( velocity );
@@ -678,7 +678,7 @@ namespace CoupledField {
       stress->dofNames = stressComponents;
       stress->unit = MapSolTypeToUnit(FLUIDMECH_STRESS);
       stress->entryType = ResultInfo::TENSOR;
-      stress->definedOn = ResultInfo::ELEMENT;
+      stress->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_STRESS);
       stress->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( stress );
       shared_ptr<CoefFunctionFormBased> sigmaFunc;
@@ -695,7 +695,7 @@ namespace CoupledField {
       strain->dofNames = stressComponents;
       strain->unit =  MapSolTypeToUnit(FLUIDMECH_STRAINRATE);;
       strain->entryType = ResultInfo::TENSOR;
-      strain->definedOn = ResultInfo::ELEMENT;
+      strain->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_STRAINRATE);
       strain->SetFeFunction(feFunctions_[FLUIDMECH_VELOCITY]);
       availResults_.insert( strain );
       shared_ptr<CoefFunctionFormBased> strainFunc;

@@ -271,7 +271,7 @@ namespace CoupledField
     fluxDens->resultType = MAG_FLUX_DENSITY;
     fluxDens->dofNames = vecComponents;
     fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
+    fluxDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX_DENSITY);
     fluxDens->entryType = ResultInfo::VECTOR;
     fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     availResults_.insert( fluxDens );
@@ -493,7 +493,7 @@ namespace CoupledField
         magIntens->dofNames = vecComponents;
         //magIntens->SetVectorDOFs(dim_, isaxi_);
         magIntens->unit = "A/m";
-        magIntens->definedOn = ResultInfo::ELEMENT;
+        magIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FIELD_INTENSITY);
         magIntens->entryType = ResultInfo::VECTOR;
         
         shared_ptr<CoefFunctionFormBased> magIntensFunc;
@@ -786,7 +786,7 @@ namespace CoupledField
       lfd_static->resultType = MAG_FORCE_LORENTZ_DENSITY_STATIC;
       lfd_static->dofNames = vecComponents;
       lfd_static->unit = "N/m^3";
-      lfd_static->definedOn = ResultInfo::ELEMENT;
+      lfd_static->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_LORENTZ_DENSITY_STATIC);
       lfd_static->entryType = ResultInfo::VECTOR;
 
       // assemble coefficient function F_L = 0.5 * (Re(J) X Re(B) + Im(J) X Im(B))  
@@ -816,7 +816,7 @@ namespace CoupledField
       lfd_harmonic->resultType = MAG_FORCE_LORENTZ_DENSITY_HARMONIC;
       lfd_harmonic->dofNames = vecComponents;
       lfd_harmonic->unit = "N/m^3";
-      lfd_harmonic->definedOn = ResultInfo::ELEMENT;
+      lfd_harmonic->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_LORENTZ_DENSITY_HARMONIC);
       lfd_harmonic->entryType = ResultInfo::VECTOR;
 
       // assemble coefficient function F_L = 0.5 * (Re(J) X Re(B) - Im(J) X Im(B)) +
@@ -852,7 +852,7 @@ namespace CoupledField
       lfd->resultType = MAG_FORCE_LORENTZ_DENSITY;
       lfd->dofNames = vecComponents;
       lfd->unit = "N/m^3";
-      lfd->definedOn = ResultInfo::ELEMENT;
+      lfd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_LORENTZ_DENSITY);
       lfd->entryType = ResultInfo::VECTOR;
       availResults_.insert( lfd );
 
@@ -869,7 +869,7 @@ namespace CoupledField
       lf->resultType = MAG_FORCE_LORENTZ;
       lf->dofNames = vecComponents;
       lf->unit = "N";
-      lf->definedOn = ResultInfo::REGION;
+      lf->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_LORENTZ);
       lf->entryType = ResultInfo::VECTOR;
       availResults_.insert( lf );
 
@@ -893,7 +893,7 @@ namespace CoupledField
       mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
       mfd->dofNames = vecComponents;
       mfd->unit = "N/m^3";
-      mfd->definedOn = ResultInfo::SURF_ELEM;
+      mfd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_MAXWELL_DENSITY);
       mfd->entryType = ResultInfo::VECTOR;
       availResults_.insert( mfd );
       // Note: The positive normal direction in this case is defined as the
@@ -907,7 +907,7 @@ namespace CoupledField
       mf->resultType = MAG_FORCE_MAXWELL;
       mf->dofNames = vecComponents;
       mf->unit = "N";
-      mf->definedOn = ResultInfo::SURF_REGION;
+      mf->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_MAXWELL);
       mf->entryType = ResultInfo::VECTOR;
       availResults_.insert( mf );
 
@@ -931,7 +931,7 @@ namespace CoupledField
       vwp->resultType = MAG_FORCE_VWP;
       vwp->dofNames = vecComponents;
       vwp->unit = "N";
-      vwp->definedOn = ResultInfo::SURF_REGION;
+      vwp->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_VWP);
       vwp->entryType = ResultInfo::VECTOR;
       availResults_.insert( vwp );
       

@@ -580,7 +580,7 @@ namespace CoupledField{
     flowvelocity->dofNames = vecDofNames;
     flowvelocity->unit = "m/s";
 
-    flowvelocity->definedOn = ResultInfo::NODE;
+    flowvelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_VELOCITY);
     flowvelocity->entryType = ResultInfo::VECTOR;
 
     velocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
@@ -630,7 +630,7 @@ namespace CoupledField{
     potEnergy->dofNames = "";
     potEnergy->unit = "Ws";
     potEnergy->entryType = ResultInfo::SCALAR;
-    potEnergy->definedOn = ResultInfo::REGION;
+    potEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(SPLIT_POT_ENERGY);
     availResults_.insert ( potEnergy );
     if( isComplex_ ) {
       keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));

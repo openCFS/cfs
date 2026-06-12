@@ -227,6 +227,7 @@ namespace CoupledField {
       case MECH_VELOCITY:
       case MECH_ACCELERATION:
       case MECH_RHS_LOAD:
+      case MECH_SHAPE:
         return ResultInfo::NODE;
       
       // ACOUSTIC
@@ -236,9 +237,10 @@ namespace CoupledField {
       case ACOU_PRESSURE_DERIV_2:
       case ACOU_VELOCITY:
       case ACOU_ACCELERATION:
-      case ACOU_FORCE:
       case ACOU_RHS_LOAD:
       case ACOU_RHSVAL:
+      case ACOU_MIXED_MASS_LOAD:
+      case ACOU_MIXED_MOMENTUM_LOAD:
         return ResultInfo::NODE;
       
       // ACOUSTIC - TDEF auxiliary (nodal)
@@ -270,6 +272,7 @@ namespace CoupledField {
       case HEAT_TEMPERATURE:
       case HEAT_TEMPERATURE_D1:
       case HEAT_RHS_LOAD:
+      case HEAT_MEAN_TEMPERATURE:
         return ResultInfo::NODE;
       
       // ELECTRIC
@@ -288,6 +291,9 @@ namespace CoupledField {
       case MAG_TOTAL_POTENTIAL:
       case MAG_REDUCED_POTENTIAL:
       case MAG_RHS_LOAD:
+      case MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES:
+      case LAGRANGE_MULT:
+      case LAGRANGE_MULT_1:
         return ResultInfo::NODE;
       
       // COIL
@@ -396,7 +402,7 @@ namespace CoupledField {
       // HEAT - ELEMENT BASED
       case HEAT_FLUX_DENSITY:
       case HEAT_SOURCE_DENSITY:
-      case HEAT_FLUX_INTENSITY:
+      case HEAT_CONDUCTIVITY_TENSOR_HOM:
         return ResultInfo::ELEMENT;
       
       // ELECTRIC - ELEMENT BASED
@@ -406,15 +412,11 @@ namespace CoupledField {
       case ELEC_POLARIZATION:
       case ELEC_POWER_DENSITY:
       case ELEC_CURRENT_DENSITY:
-      case ELEC_NORMAL_CURRENT_DENSITY:
-      case ELEC_GRAD_V_INT:
       case ELEC_ELEM_PERMITTIVITY:
       case ELEC_COND_TENSOR:
       //case DISPLACEMENT_CURRENT_DENSITY:
       case DISPLACEMENT_CURRENT_FIELD_INTENSITY:
-      case DISPLACEMENT_NORMAL_CURRENT_DENSITY:
       case ELECTRIC_AND_DISPLACEMENT_CURRENT_DENSITY:
-      case ELECTRIC_AND_DISPLACEMENT_NORMAL_CURRENT_DENSITY:
       case ELEC_FIELD_INTENSITY_TRANSVERSAL:
       case ELEC_FIELD_INTENSITY_LONGITUDINAL:
         return ResultInfo::ELEMENT;
@@ -434,9 +436,6 @@ namespace CoupledField {
       case MAG_FORCE_LORENTZ_DENSITY:
       case MAG_FORCE_LORENTZ_DENSITY_STATIC:
       case MAG_FORCE_LORENTZ_DENSITY_HARMONIC:
-      case MAG_FORCE_MAXWELL_DENSITY:
-      case MAG_NORMALFORCE_MAXWELL_DENSITY:
-      case MAG_TANGENTIALFORCE_MAXWELL_DENSITY:
       case MAG_EDDY_POWER_DENSITY:
       case MAG_ENERGY_DENSITY:
       case MAG_CORE_LOSS_DENSITY:
@@ -446,6 +445,7 @@ namespace CoupledField {
       case MAG_MAGNETIZATION:
       case MAG_POLARIZATION:
       case FLUX_INDUCED_STRAIN:
+      case MAG_NORMAL_FLUX_DENSITY:
         return ResultInfo::ELEMENT;
       
       // FLUID MECHANICS - ELEMENT BASED
@@ -476,6 +476,10 @@ namespace CoupledField {
       case FLUIDMECH_VISCOUS_DISS_POWER_DENS_DIV:
       case FLUIDMECH_VISCOUS_DISS_POWER_DENS_STRAIN:
       case FLUIDMECH_STABILPARAM:
+      case FLUIDMECH_INTENSITY:
+      case FLUIDMECH_INTENSITY_PRESSURE_ONLY:
+      case FLUIDMECH_PRES_GRADIENT:
+      case GRAD_ELEC_POTENTIAL:
         return ResultInfo::ELEMENT;
       
       // SMOOTH - ELEMENT BASED
@@ -486,7 +490,6 @@ namespace CoupledField {
       // WATER WAVES - ELEMENT BASED
       case WATER_POSITION:
       case WATER_PRES_TENS:
-      case WATER_SURFACE_TORQUE_DENSITY:
       case WATER_TDT:
         return ResultInfo::ELEMENT;
       
@@ -539,33 +542,36 @@ namespace CoupledField {
       case MECH_NORMAL_STRESS:
       case MECH_NORMAL_VELOCITY:
       case MECH_NORMAL_STRUCT_INTENSITY:
-      case MECH_FORCE:
         return ResultInfo::SURF_ELEM;
       
       // ACOUSTIC - SURFACE
+      case ACOU_SURFIMPEDANCE:
+      case ACOU_NORMAL_INTENSITY_PLANEWAVE:
       case ACOU_SURFPRESSURE:
       case ACOU_NORMAL_VELOCITY:
       case ACOU_NORMAL_INTENSITY:
       case ACOU_SURFINTENSITY:
-      case ACOU_MIXED_MASS_LOAD:
-      case ACOU_MIXED_MOMENTUM_LOAD:
       //case ACOUSSURF_RHSVAL:
         return ResultInfo::SURF_ELEM;
       
       // HEAT - SURFACE
-      //case HEAT_FLUX_NORMAL:
-      //  return ResultInfo::SURF_ELEM;
+      case HEAT_FLUX_INTENSITY:
+        return ResultInfo::SURF_ELEM;
       
       // ELECTRIC - SURFACE
       case ELEC_FORCE_DENSITY:
       case ELEC_SURFACE_CHARGE_DENSITY:
-      case ELEC_FORCE:
-      case DISPLACEMENT_CURRENT_SURF:
+      case ELEC_FIELD_INTENSITY_SURF:
+      case ELEC_NORMAL_CURRENT_DENSITY:
+      case DISPLACEMENT_NORMAL_CURRENT_DENSITY:
+      case ELECTRIC_AND_DISPLACEMENT_NORMAL_CURRENT_DENSITY:
         return ResultInfo::SURF_ELEM;
       
       // MAGNETIC - SURFACE
       case MAG_FLUX_DENSITY_SURF:
-      case MAG_NORMAL_FLUX_DENSITY:
+      case MAG_FORCE_MAXWELL_DENSITY:
+      case MAG_NORMALFORCE_MAXWELL_DENSITY:
+      case MAG_TANGENTIALFORCE_MAXWELL_DENSITY:
         return ResultInfo::SURF_ELEM;
       
       // FLUID MECHANICS - SURFACE
@@ -580,8 +586,7 @@ namespace CoupledField {
       
       // WATER WAVES - SURFACE
       case WATER_SURFACE_TRACTION:
-      case WATER_SURFACE_TORQUE:
-      case WATER_SURFACE_FORCE:
+      case WATER_SURFACE_TORQUE_DENSITY:
         return ResultInfo::SURF_ELEM;
       
       // ============================================
@@ -599,21 +604,24 @@ namespace CoupledField {
       case ACOU_POT_ENERGY:
       case ACOU_KIN_ENERGY:
       case ACOU_LAMB_RHS:
+      case SPLIT_POT_ENERGY:
         return ResultInfo::REGION;
       
       // HEAT - REGION
-      case HEAT_MEAN_TEMPERATURE:
-      case HEAT_CONDUCTIVITY_TENSOR_HOM:
-        return ResultInfo::REGION;
+        // (HEAT_MEAN_TEMPERATURE moved to NODE; HEAT_CONDUCTIVITY_TENSOR_HOM moved to ELEMENT)
       
       // ELECTRIC - REGION
       case ELEC_ENERGY:
+      case ELEC_POWER:
+      case ELEC_GRAD_V_INT:
         return ResultInfo::REGION;
       
       // MAGNETIC - REGION
+      case MAG_JOULE_LOSS_POWER:
       case MAG_ENERGY:
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
+      case MAG_FORCE_LORENTZ:
         return ResultInfo::REGION;
       
       // FLUID MECHANICS - REGION
@@ -631,11 +639,14 @@ namespace CoupledField {
       case MECH_POWER:
       case MECH_DEF_SURF_VOLUME:
       case MECH_WEIGHT:
+      case MECH_FORCE:
         return ResultInfo::SURF_REGION;
       
       // ACOUSTIC - SURFACE REGION
       case ACOU_POWER:
       case ACOU_POWER_PLANEWAVE:
+      case ACOU_FORCE:
+      case ACOU_SURF_AVG_IMPEDANCE:
         return ResultInfo::SURF_REGION;
       
       // HEAT - SURFACE REGION
@@ -645,17 +656,18 @@ namespace CoupledField {
       // ELECTRIC - SURFACE REGION
       case ELEC_CHARGE:
       case ELEC_CURRENT:
-      case ELEC_POWER:
+      case ELEC_FORCE:
+      case DISPLACEMENT_CURRENT_SURF:
         return ResultInfo::SURF_REGION;
       
       // ELECTRIC QUASI-STATIC
       case ELEC_CURRENT_SURF:
+      case ELEC_AND_DISPLACEMENT_CURRENT:
         return ResultInfo::SURF_REGION;
       
       // MAGNETIC - SURFACE REGION
       case MAG_FLUX:
       case MAG_FORCE_VWP:
-      case MAG_FORCE_LORENTZ:
       case MAG_FORCE_MAXWELL:
       case MAG_EDDY_CURRENT:
       case MAG_EDDY_CURRENT1:
@@ -669,20 +681,22 @@ namespace CoupledField {
       case FLUIDMECH_PRESSURE_DERIV_2:
       case FLUIDMECH_PRESSURE_TIME_DERIV_1:
       case FLUIDMECH_PRESSURE_TIME_DERIV_2:
-      case FLUIDMECH_INTENSITY:
-      case FLUIDMECH_INTENSITY_PRESSURE_ONLY:
       case FLUIDMECH_POWER:
       case FLUIDMECH_POWER_PRESSURE_ONLY:
       case FLUIDMECH_IMPEDANCE:
         return ResultInfo::SURF_REGION;
       
       // WATER WAVES - SURFACE REGION
-      //case WATER_SURFACE_FORCE:
-      //  return ResultInfo::SURF_REGION;
+      case WATER_SURFACE_FORCE:
+      case WATER_SURFACE_TORQUE:
+        return ResultInfo::SURF_REGION;
       
+      // SMOOTH - SURFACE
+      case SMOOTH_CONTACT_FORCE_DENSITY:
+        return ResultInfo::SURF_ELEM;
+
       // SMOOTH - SURFACE REGION
       case SMOOTH_CONTACT_FORCE:
-      case SMOOTH_CONTACT_FORCE_DENSITY:
         return ResultInfo::SURF_REGION;
       
       // NODE_LIST for nodal list results
@@ -705,20 +719,16 @@ namespace CoupledField {
       case OPT_RESULT_56: case OPT_RESULT_57: case OPT_RESULT_58: case OPT_RESULT_59: case OPT_RESULT_60:
       case OPT_RESULT_61: case OPT_RESULT_62: case OPT_RESULT_63: case OPT_RESULT_64: case OPT_RESULT_65:
       case OPT_RESULT_66:
-      case LAGRANGE_MULT:
       case LAGRANGE_MULT_DERIV_1:
       case LAGRANGE_MULT_DERIV_2:
-      case LAGRANGE_MULT_1:
       case THERMOMECH_FORCE:
       case THERMOELEC_FORCE:
       case GRAD_ACOU_SOLUTION:
-      case GRAD_ELEC_POTENTIAL:
       case GRAD_ELEC_POTENTIAL_DERIV1:
       case GENERIC_RESULT_0: case GENERIC_RESULT_1: case GENERIC_RESULT_2: case GENERIC_RESULT_3: case GENERIC_RESULT_4:
       case GENERIC_RESULT_5: case GENERIC_RESULT_6: case GENERIC_RESULT_7: case GENERIC_RESULT_8: case GENERIC_RESULT_9:
       case NO_SOLUTION_TYPE:
       case INVALID_SOLUTION_TYPE:
-      case SPLIT_POT_ENERGY:
       case SPLIT_LAMB:
       case SPLIT_DIVLAMB:
       case COOSY_X: case COOSY_Y: case SURFACE_NORMAL: case AREA: case ETA: case XI: case NODE_NORMAL:

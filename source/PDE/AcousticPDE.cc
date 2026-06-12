@@ -2849,7 +2849,7 @@ namespace CoupledField{
       res1->dofNames = "";
       res1->unit = MapSolTypeToUnit(ACOU_POTENTIAL);
     }
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_POTENTIAL);
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[formulation_]->SetResultInfo(res1);
     results_.Push_back( res1 );
@@ -2902,7 +2902,7 @@ namespace CoupledField{
     temperature->dofNames = "";
     temperature->unit = MapSolTypeToUnit(HEAT_MEAN_TEMPERATURE);
 
-    temperature->definedOn = ResultInfo::NODE;
+    temperature->definedOn = ResultInfo::MapSolTypeToDefinedOn(HEAT_MEAN_TEMPERATURE);
     temperature->entryType = ResultInfo::SCALAR;
 
    	meanTemperatureCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,false));
@@ -2918,7 +2918,7 @@ namespace CoupledField{
     density->resultType = ELEM_DENSITY;
     density->dofNames = "";
     density->unit = MapSolTypeToUnit(ELEM_DENSITY);
-    density->definedOn = ResultInfo::ELEMENT;
+    density->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEM_DENSITY);
     density->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
     		                              complexFluidFormulation_));
@@ -2931,7 +2931,7 @@ namespace CoupledField{
     sos->resultType = ACOU_ELEM_SPEED_OF_SOUND;
     sos->dofNames = "";
     sos->unit = MapSolTypeToUnit(ACOU_ELEM_SPEED_OF_SOUND);
-    sos->definedOn = ResultInfo::ELEMENT;
+    sos->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_ELEM_SPEED_OF_SOUND);
     sos->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
     		                             complexFluidFormulation_));
@@ -3097,7 +3097,7 @@ namespace CoupledField{
       CheckIfIsOnlyOneMaterial();
       pres->entryType = ResultInfo::SCALAR;
       if(isOnlyOneMaterial_){ // only one material is defined in the whole computational domain
-        pres->definedOn = ResultInfo::NODE; //can be defined as nodal quantity - no material jump
+        pres->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_PRESSURE);
       } else{ // if more than one material (i.e. material jump occuring)
         pres->definedOn = ResultInfo::ELEMENT; // result downgraded from nodal to element
         WARN("More than one material is defined in the whole computational domain:\n"
@@ -3138,7 +3138,7 @@ namespace CoupledField{
     surfPres->dofNames = "";
     surfPres->unit = MapSolTypeToUnit(ACOU_SURFPRESSURE);
     surfPres->entryType = ResultInfo::SCALAR;
-    surfPres->definedOn = ResultInfo::SURF_ELEM;
+    surfPres->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_SURFPRESSURE);
     DefineFieldResult(presFct, surfPres);
 
     // optimization results are provided in DesignSpace::ExtractResults()
@@ -3146,7 +3146,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> mpd(new ResultInfo);
     mpd->resultType = PSEUDO_DENSITY;
     mpd->entryType = ResultInfo::SCALAR;
-    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->definedOn = ResultInfo::MapSolTypeToDefinedOn(PSEUDO_DENSITY);
     mpd->dofNames = MapSolTypeToUnit(PSEUDO_DENSITY);
     mpd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
@@ -3155,7 +3155,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> ppd(new ResultInfo);
     ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
     ppd->entryType = ResultInfo::SCALAR;
-    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->definedOn = ResultInfo::MapSolTypeToDefinedOn(PHYSICAL_PSEUDO_DENSITY);
     ppd->dofNames = MapSolTypeToUnit(PHYSICAL_PSEUDO_DENSITY);
     ppd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
@@ -3167,7 +3167,7 @@ namespace CoupledField{
     force->dofNames = "";
     force->unit = MapSolTypeToUnit(ACOU_FORCE);
     force->entryType = ResultInfo::SCALAR;
-    force->definedOn = ResultInfo::SURF_REGION;
+    force->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_FORCE);
     // Force F = \int_Gamma p *n dGamma
     // Integrate pressure over surface
     shared_ptr<ResultFunctor> forceFct;
@@ -3235,7 +3235,7 @@ namespace CoupledField{
       velNormal->dofNames = "";
       velNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_VELOCITY);
       velNormal->entryType = ResultInfo::SCALAR;
-      velNormal->definedOn = ResultInfo::SURF_ELEM;
+      velNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_NORMAL_VELOCITY);
       shared_ptr<CoefFunctionSurf> velFctNormal;
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
       std::string quantity = "acouNormalVelocity";
@@ -3254,7 +3254,7 @@ namespace CoupledField{
       surfImpedance->dofNames = "";
       surfImpedance->unit = MapSolTypeToUnit(ACOU_SURFIMPEDANCE);
       surfImpedance->entryType = ResultInfo::SCALAR;
-      surfImpedance->definedOn = ResultInfo::SURF_ELEM;
+      surfImpedance->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_SURFIMPEDANCE);
       PtrCoefFct surfImpFct = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, presFct, velFctNormal, CoefXpr::OP_DIV ) );
       DefineFieldResult(surfImpFct, surfImpedance);
       
@@ -3264,7 +3264,7 @@ namespace CoupledField{
       impedance->dofNames = "";
       impedance->unit = MapSolTypeToUnit(ACOU_SURF_AVG_IMPEDANCE);
       impedance->entryType = ResultInfo::SCALAR;
-      impedance->definedOn = ResultInfo::SURF_REGION;
+      impedance->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_SURF_AVG_IMPEDANCE);
       // area weighted average
       shared_ptr<ResultFunctor> impedanceFct;
       if( isComplex_ ) {
@@ -3286,7 +3286,7 @@ namespace CoupledField{
       intensity->dofNames = vecDofNames;
       intensity->unit = MapSolTypeToUnit(ACOU_INTENSITY);
       intensity->entryType = ResultInfo::VECTOR;
-      intensity->definedOn = ResultInfo::ELEMENT;
+      intensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_INTENSITY);
       PtrCoefFct intensFct;
       // Intensity I = p * conj(v)
       intensFct = 
@@ -3301,7 +3301,7 @@ namespace CoupledField{
       surfIntensity->dofNames = vecDofNames;
       surfIntensity->unit = MapSolTypeToUnit(ACOU_SURFINTENSITY);
       surfIntensity->entryType = ResultInfo::VECTOR;
-      surfIntensity->definedOn = ResultInfo::SURF_ELEM;
+      surfIntensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_SURFINTENSITY);
       shared_ptr<CoefFunctionSurf> sIntens;
       sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
       DefineFieldResult(sIntens, surfIntensity);
@@ -3314,7 +3314,7 @@ namespace CoupledField{
       intensNormal->dofNames = "";
       intensNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_INTENSITY);
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      intensNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_NORMAL_INTENSITY);
       shared_ptr<CoefFunctionSurf> sNormIntens;
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
@@ -3327,7 +3327,7 @@ namespace CoupledField{
       power->dofNames = "";
       power->unit = MapSolTypeToUnit(ACOU_POWER);
       power->entryType = ResultInfo::SCALAR;
-      power->definedOn = ResultInfo::SURF_REGION;
+      power->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_POWER);
       // Power p = \int_Gamma I *n dGamma
       // Integrate normal intensity
       shared_ptr<ResultFunctor> powerFct;
@@ -3355,7 +3355,7 @@ namespace CoupledField{
       pos->dofNames = vecDofNames;
       pos->unit = MapSolTypeToUnit(ACOU_POSITION);
       pos->entryType = ResultInfo::VECTOR;
-      pos->definedOn = ResultInfo::ELEMENT;
+      pos->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_POSITION);
       // u = 1/(rho*omega^2) * grad(p)
       PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
@@ -3374,7 +3374,7 @@ namespace CoupledField{
       intensNormalPW->dofNames = "";
       intensNormalPW->unit = MapSolTypeToUnit(ACOU_NORMAL_INTENSITY_PLANEWAVE);
       intensNormalPW->entryType = ResultInfo::SCALAR;
-      intensNormalPW->definedOn = ResultInfo::SURF_ELEM;
+      intensNormalPW->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_NORMAL_INTENSITY_PLANEWAVE);
 
       //compute 1/(2*rho*c0)
       //shared_ptr<CoefFunctionMulti> c0Fct  = matCoefs_[ACOU_ELEM_SPEED_OF_SOUND];
@@ -3412,7 +3412,7 @@ namespace CoupledField{
       powerPW->dofNames = "";
       powerPW->unit = MapSolTypeToUnit(ACOU_POWER_PLANEWAVE);
       powerPW->entryType = ResultInfo::SCALAR;
-      powerPW->definedOn = ResultInfo::SURF_REGION;
+      powerPW->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_POWER_PLANEWAVE);
       shared_ptr<ResultFunctor> powerFctPW;
       powerFctPW.reset(new ResultFunctorIntegrate<Complex>(sNormIntensPW,
                                                         feFct, powerPW ) );
@@ -3428,7 +3428,7 @@ namespace CoupledField{
     kinEnergy->dofNames = "";
     kinEnergy->unit = MapSolTypeToUnit(ACOU_KIN_ENERGY);
     kinEnergy->entryType = ResultInfo::SCALAR;
-    kinEnergy->definedOn = ResultInfo::REGION;
+    kinEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_KIN_ENERGY);
     availResults_.insert ( kinEnergy );
 
     shared_ptr<BaseFeFunction> deriv1vFct;
@@ -3453,7 +3453,7 @@ namespace CoupledField{
     potEnergy->dofNames = "";
     potEnergy->unit = MapSolTypeToUnit(ACOU_POT_ENERGY);
     potEnergy->entryType = ResultInfo::SCALAR;
-    potEnergy->definedOn = ResultInfo::REGION;
+    potEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_POT_ENERGY);
     availResults_.insert ( potEnergy );
     if( isComplex_ ) {
       keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));
@@ -3468,7 +3468,7 @@ namespace CoupledField{
     loadDensity->resultType = ACOU_RHS_LOAD_DENSITY;
     loadDensity->dofNames = "";
     loadDensity->unit = "";
-    loadDensity->definedOn = ResultInfo::ELEMENT;
+    loadDensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_RHS_LOAD_DENSITY);
     loadDensity->entryType = ResultInfo::SCALAR;
     acousticRhsDensityCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
     DefineFieldResult( acousticRhsDensityCoef_,loadDensity );
@@ -3482,7 +3482,7 @@ namespace CoupledField{
     pmlDampFactor->resultType = PML_DAMP_FACTOR;
     pmlDampFactor->dofNames = vecDofNames;
     pmlDampFactor->unit = "";
-    pmlDampFactor->definedOn = ResultInfo::ELEMENT;
+    pmlDampFactor->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_DAMP_FACTOR);
     pmlDampFactor->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlDampFactorCoefFct;
@@ -3496,7 +3496,7 @@ namespace CoupledField{
       pmlTensor->resultType = PML_TENSOR;
       pmlTensor->dofNames = tensorDofNames;
       pmlTensor->unit = "";
-      pmlTensor->definedOn = ResultInfo::ELEMENT;
+      pmlTensor->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_TENSOR);
       pmlTensor->entryType = ResultInfo::TENSOR;
       shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
       matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
@@ -3508,7 +3508,7 @@ namespace CoupledField{
       pmlDeterminant->resultType = PML_DETERMINANT;
       pmlDeterminant->dofNames = "";
       pmlDeterminant->unit = "";
-      pmlDeterminant->definedOn = ResultInfo::ELEMENT;
+      pmlDeterminant->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_DETERMINANT);
       pmlDeterminant->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
       matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
@@ -3520,7 +3520,7 @@ namespace CoupledField{
       pmlDistance->resultType = PML_DISTANCE;
       pmlDistance->dofNames = "";
       pmlDistance->unit = "";
-      pmlDistance->definedOn = ResultInfo::ELEMENT;
+      pmlDistance->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_DISTANCE);
       pmlDistance->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
       matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
@@ -3534,7 +3534,7 @@ namespace CoupledField{
         pmlScal->resultType = ACOU_PMLAUXSCALAR;
         pmlScal->dofNames = "";
         pmlScal->unit = "-";
-        pmlScal->definedOn = ResultInfo::NODE;
+        pmlScal->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_PMLAUXSCALAR);
         pmlScal->entryType = ResultInfo::SCALAR;
         feFunctions_[ACOU_PMLAUXSCALAR]->SetResultInfo(pmlScal);
         results_.Push_back( pmlScal );
@@ -3546,7 +3546,7 @@ namespace CoupledField{
       pmlVec->resultType = ACOU_PMLAUXVEC;
       pmlVec->dofNames = vecDofNames;
       pmlVec->unit = "-";
-      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_PMLAUXVEC);
       pmlVec->entryType = ResultInfo::VECTOR;
       feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
       results_.Push_back( pmlVec );
@@ -3615,7 +3615,7 @@ namespace CoupledField{
      flowvelocity->dofNames = dofNames;
      flowvelocity->unit = MapSolTypeToUnit(MEAN_FLUIDMECH_VELOCITY);
 
-     flowvelocity->definedOn = ResultInfo::NODE;
+     flowvelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY);
      flowvelocity->entryType = ResultInfo::VECTOR;
      
      meanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
@@ -3630,7 +3630,7 @@ namespace CoupledField{
        divflowvelocity->dofNames = "";
        divflowvelocity->unit = MapSolTypeToUnit(DIV_MEAN_FLUIDMECH_VELOCITY);
 
-       divflowvelocity->definedOn = ResultInfo::ELEMENT;
+       divflowvelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(DIV_MEAN_FLUIDMECH_VELOCITY);
        divflowvelocity->entryType = ResultInfo::SCALAR;
 
        divMeanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));

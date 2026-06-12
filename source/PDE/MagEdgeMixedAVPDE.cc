@@ -650,7 +650,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     res2->resultType = ELEC_POTENTIAL;
     res2->dofNames = "";
     res2->unit = "V";
-    res2->definedOn = ResultInfo::NODE;
+    res2->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL);
     res2->entryType = ResultInfo::SCALAR;
     res2->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
     results_.Push_back( res2 );
@@ -694,7 +694,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       gradV->resultType = GRAD_ELEC_POTENTIAL;
       gradV->dofNames = vecComponents;
       gradV->unit = "V/m";
-      gradV->definedOn = ResultInfo::ELEMENT;
+      gradV->definedOn = ResultInfo::MapSolTypeToDefinedOn(GRAD_ELEC_POTENTIAL);
       gradV->entryType = ResultInfo::VECTOR;
       gradV->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
       availResults_.insert( gradV );
@@ -714,7 +714,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       elecIntens->SetVectorDOFs(dim_, isaxi_);
       elecIntens->dofNames = vecComponents;
       elecIntens->unit = "V/m";
-      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
       elecIntens->entryType = ResultInfo::VECTOR;
       shared_ptr<CoefFunctionMulti> elecIntensFunc(
           new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -726,7 +726,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       eddyJ->resultType = MAG_EDDY_CURRENT_DENSITY;
       eddyJ->dofNames = vecComponents;
       eddyJ->unit = "A/m^2";
-      eddyJ->definedOn = ResultInfo::ELEMENT;
+      eddyJ->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT_DENSITY);
       eddyJ->entryType = ResultInfo::VECTOR;
       shared_ptr<CoefFunctionMulti> eddyJFunc(
           new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
@@ -745,7 +745,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       ec1->resultType = MAG_EDDY_CURRENT1;
       ec1->dofNames = "";
       ec1->unit = "A";
-      ec1->definedOn = ResultInfo::SURF_REGION;
+      ec1->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT1);
       ec1->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec1 );
 
@@ -769,7 +769,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       ec2->resultType = MAG_EDDY_CURRENT2;
       ec2->dofNames = "";
       ec2->unit = "A";
-      ec2->definedOn = ResultInfo::SURF_REGION;
+      ec2->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT2);
       ec2->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec2 );
       // first, create normal mapping, -1.0 because we want the inward pointing normal vector
@@ -790,7 +790,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     fluxDens->resultType = MAG_FLUX_DENSITY;
     fluxDens->dofNames = vecComponents;
     fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
+    fluxDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX_DENSITY);
     fluxDens->entryType = ResultInfo::VECTOR;
     fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> bFunc;
@@ -809,7 +809,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     normFlux->dofNames = "";
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
-    normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_NORMAL_FLUX_DENSITY);
     normFlux->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
@@ -823,7 +823,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     flux->dofNames = "";
     flux->unit = "Vs";
     flux->entryType = ResultInfo::SCALAR;
-    flux->definedOn = ResultInfo::SURF_REGION;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX);
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {
       fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens, magVecPotFeFct, flux ) );
@@ -838,7 +838,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     ccd->resultType = MAG_COIL_CURRENT_DENSITY;
     ccd->dofNames = vecComponents;
     ccd->unit = "A/m^2";
-    ccd->definedOn = ResultInfo::ELEMENT;
+    ccd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_COIL_CURRENT_DENSITY);
     ccd->entryType = ResultInfo::VECTOR;
     availResults_.insert( ccd );
     shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
@@ -854,7 +854,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     tcd->resultType = MAG_TOTAL_CURRENT_DENSITY;
     tcd->dofNames = vecComponents;
     tcd->unit = "A/m^2";
-    tcd->definedOn = ResultInfo::ELEMENT;
+    tcd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_TOTAL_CURRENT_DENSITY);
     tcd->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,
                                                                 isComplex_));
@@ -865,7 +865,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     ect->resultType = MAG_TOTAL_CURRENT;
     ect->dofNames = "";
     ect->unit = "A";
-    ect->definedOn = ResultInfo::SURF_REGION;
+    ect->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_TOTAL_CURRENT);
     ect->entryType = ResultInfo::SCALAR;
     availResults_.insert( ect );
 
@@ -887,7 +887,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     reluc->resultType = MAG_ELEM_RELUCTIVITY;
     reluc->dofNames = "";
     reluc->unit = "Am/Vs";
-    reluc->definedOn = ResultInfo::ELEMENT;
+    reluc->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_RELUCTIVITY);
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
 

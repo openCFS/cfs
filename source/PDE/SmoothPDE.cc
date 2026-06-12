@@ -558,7 +558,7 @@ namespace CoupledField {
     disp->unit = "m";
     disp->entryType = ResultInfo::VECTOR;
     disp->SetFeFunction(feFunctions_[SMOOTH_DISPLACEMENT]);
-    disp->definedOn = ResultInfo::NODE;
+    disp->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DISPLACEMENT);
     feFunctions_[SMOOTH_DISPLACEMENT]->SetResultInfo(disp);
 
     // -----------------------------------
@@ -600,7 +600,7 @@ namespace CoupledField {
       vel->dofNames = dispDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::NODE;
+      vel->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_VELOCITY);
       availResults_.insert( vel );
       DefineTimeDerivResult( SMOOTH_VELOCITY, 1, SMOOTH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[SMOOTH_VELOCITY];
@@ -631,7 +631,7 @@ namespace CoupledField {
     stressZero->dofNames = "";
     stressZero->unit = MapSolTypeToUnit(SMOOTH_ZERO_PRESSURE);
     stressZero->entryType = ResultInfo::SCALAR;
-    stressZero->definedOn = ResultInfo::NODE;
+    stressZero->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_ZERO_PRESSURE);
     availResults_.insert( stressZero );
     PtrCoefFct constZero = CoefFunction::Generate( mp_, Global::REAL, "0.0");
 
@@ -643,7 +643,7 @@ namespace CoupledField {
     strain->dofNames = stressComponents;
     strain->unit =  "";
     strain->entryType = ResultInfo::TENSOR;
-    strain->definedOn = ResultInfo::ELEMENT;
+    strain->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_STRAIN);
     shared_ptr<CoefFunctionFormBased> strainFunc;
     if( isComplex_ ) {
       strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
@@ -659,7 +659,7 @@ namespace CoupledField {
     contactForceDensity->dofNames = dispDofNames;
     contactForceDensity->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE_DENSITY);
     contactForceDensity->entryType = ResultInfo::VECTOR;
-    contactForceDensity->definedOn = ResultInfo::SURF_ELEM;
+    contactForceDensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_CONTACT_FORCE_DENSITY);
     availResults_.insert( contactForceDensity );
 
     StdVector<std::string> surfList1;
@@ -682,7 +682,7 @@ namespace CoupledField {
     contactForce->dofNames = dispDofNames;
     contactForce->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE);
     contactForce->entryType = ResultInfo::VECTOR;
-    contactForce->definedOn = ResultInfo::SURF_REGION;
+    contactForce->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_CONTACT_FORCE);
     // Integrate surface traction
     shared_ptr<ResultFunctor> contactForceFct;
     if(isComplex_)
@@ -699,7 +699,7 @@ namespace CoupledField {
     defEnergyDens->dofNames = "";
     defEnergyDens->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY_DENS);
     defEnergyDens->entryType = ResultInfo::SCALAR;
-    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    defEnergyDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DEFORM_ENERGY_DENS);
     shared_ptr<CoefFunctionFormBased> dedFunc;
     if( isComplex_ ) {
       dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
@@ -716,7 +716,7 @@ namespace CoupledField {
     defEnergy->dofNames = "";
     defEnergy->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY);
     defEnergy->entryType = ResultInfo::SCALAR;
-    defEnergy->definedOn = ResultInfo::REGION;
+    defEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DEFORM_ENERGY);
     availResults_.insert(defEnergy);
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {

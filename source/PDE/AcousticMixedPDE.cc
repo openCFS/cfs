@@ -404,7 +404,7 @@ namespace CoupledField{
           flowvelocityNormal->dofNames = "";
           flowvelocityNormal->unit = "m/s";
 
-          flowvelocityNormal->definedOn = ResultInfo::NODE;
+          flowvelocityNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY_NORMAL);
           flowvelocityNormal->entryType = ResultInfo::SCALAR;
 
 
@@ -807,7 +807,7 @@ namespace CoupledField{
       pressure->dofNames = "";
       pressure->unit = "Pa";
 
-      pressure->definedOn = ResultInfo::NODE;
+      pressure->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_PRESSURE);
       pressure->entryType = ResultInfo::SCALAR;
       feFunctions_[ACOU_PRESSURE]->SetResultInfo(pressure);
       results_.Push_back( pressure );
@@ -821,7 +821,7 @@ namespace CoupledField{
       velocity->dofNames = velDofNames;
       velocity->unit = "m/s";
 
-      velocity->definedOn = ResultInfo::NODE;
+      velocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_VELOCITY);
       velocity->entryType = ResultInfo::VECTOR;
       feFunctions_[ACOU_VELOCITY]->SetResultInfo(velocity);
       results_.Push_back( velocity );
@@ -841,7 +841,7 @@ namespace CoupledField{
       rhsP->resultType = ACOU_MIXED_MASS_LOAD;
       rhsP->dofNames = "";
       rhsP->unit = "?";
-      rhsP->definedOn = ResultInfo::NODE;
+      rhsP->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_MIXED_MASS_LOAD);
       rhsP->entryType = ResultInfo::SCALAR;
       rhsP->SetFeFunction(feFunctions_[ACOU_PRESSURE]);
       DefineFieldResult( this->rhsFeFunctions_[ACOU_PRESSURE], rhsP );
@@ -853,7 +853,7 @@ namespace CoupledField{
       rhsV->resultType = ACOU_MIXED_MOMENTUM_LOAD;
       rhsV->dofNames = velDofNames;
       rhsV->unit = "?";
-      rhsV->definedOn = ResultInfo::NODE;
+      rhsV->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_MIXED_MOMENTUM_LOAD);
       rhsV->entryType = ResultInfo::VECTOR;;
       rhsV->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
       DefineFieldResult( this->rhsFeFunctions_[ACOU_VELOCITY], rhsV );
@@ -868,7 +868,7 @@ namespace CoupledField{
       pml->dofNames = velDofNames;
       //pml->dofNames = "";
       pml->unit = "";
-      pml->definedOn = ResultInfo::ELEMENT;
+      pml->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_DAMP_FACTOR);
       pml->entryType = ResultInfo::VECTOR;
       pml->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
       shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
@@ -882,7 +882,7 @@ namespace CoupledField{
         pmlVec->resultType = ACOU_PMLAUXVEC;
         pmlVec->dofNames = velDofNames;
         pmlVec->unit = "-";
-        pmlVec->definedOn = ResultInfo::NODE;
+        pmlVec->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_PMLAUXVEC);
         pmlVec->entryType = ResultInfo::VECTOR;
         feFunctions_[ACOU_PMLAUXVEC]->SetResultInfo(pmlVec);
         results_.Push_back( pmlVec );
@@ -911,7 +911,7 @@ namespace CoupledField{
      flowvelocity->dofNames = dofNames;
      flowvelocity->unit = "m/s";
 
-     flowvelocity->definedOn = ResultInfo::NODE;
+     flowvelocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY);
      flowvelocity->entryType = ResultInfo::VECTOR;
      flowvelocity->SetFeFunction(feFunctions_[ACOU_VELOCITY]);
      results_.Push_back( flowvelocity );
