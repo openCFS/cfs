@@ -9,6 +9,7 @@
 #include "Utils/ToolsFull.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "coin-or/IpSolveStatistics.hpp"
 
 #include "boost/lexical_cast.hpp"
@@ -38,6 +39,13 @@ void IPOPT::Init()
   
   // smart pointer!
   app = new IpoptApplication();
+
+  // write the ipopt log to <simname>.ipopt (parity with SnOpt's .snopt print file). Must be set
+  // before Initialize() so the file journalist is created. Can be overridden/disabled via the
+  // <ipopt><option .../> block below (e.g. output_file or file_print_level=0).
+  app->Options()->SetStringValue("output_file", progOpts->GetSimName() + ".ipopt");
+  app->Options()->SetIntegerValue("file_print_level", 5);
+
   // Initialize the IpoptApplication and process the options
   app->Initialize();
 
@@ -45,7 +53,7 @@ void IPOPT::Init()
   LOG_TRACE2(ipopt) << "set max_iter to " << opt_->GetMaxIterations() << " - " 
                     << opt_->GetCurrentIteration();
   
-  // up to now we don't have hessian  
+  // up to now we don't have hessian
   app->Options()->SetStringValue("hessian_approximation", "limited-memory");
 
   // handle restart case!
@@ -159,10 +167,11 @@ bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
   // arbitrary constraints ,
   m = opt_->constraints.view->GetNumberOfActiveConstraints();
 
-  // up to now we have only dense constraint gradients. 
-  // In practice one could make the non-matching part spare or
-  // combine the sparse parts of constraints ... but this is future!
-  nnz_jac_g = n * m; 
+  // sparse constraint jacobian: dense constraints (e.g. volume) contribute n, local/sparse ones
+  // (e.g. the per-feature 'distance' length constraint) only the few design variables they depend
+  // on. The structure and the matching value order are emitted in eval_jac_g, mirroring
+  // SnOpt::InitJacobians().
+  nnz_jac_g = opt_->constraints.view->CalcNumberOfJacobianNonZeros();
 
   // we have no hessian
   nnz_h_lag = 0;
@@ -264,24 +273,24 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
                        Index m, Index nele_jac, Index* iRow, Index *jCol,
                        Number* values)
 {
-  if (values == NULL) 
+  if (values == NULL)
   {
-    // return the structure of the jacobian of the constraints
-    
-    // note that we are dense and have for every constraint n elements.
-    // These are 0.0 if the design does not match!
-
+    // return the sparsity structure of the constraint jacobian. For each active constraint (row) we
+    // emit its sparsity pattern columns: dense constraints list all n columns, local/sparse ones
+    // only the design variables they depend on. Same (constraint, pattern) order as the values
+    // written by EvalGradConstraints below. Mirrors SnOpt::InitJacobians().
+    int index = 0;
     for(int row = 0; row < m; row++)
     {
-      for(int col = 0; col < n; col++)
+      StdVector<unsigned int>& pattern = opt_->constraints.view->Get(row)->GetSparsityPattern();
+      for(unsigned int e = 0; e < pattern.GetSize(); e++)
       {
-        // the jacobian array/matrix is a long vector with n*m elements
-        // see the IPOPT example in the docu to understand!
-        int index = row * n + col;
         iRow[index] = row;
-        jCol[index] = col;
+        jCol[index] = pattern[e];
+        index++;
       }
     }
+    assert(index == nele_jac);
   }
   // do evaluation
   else

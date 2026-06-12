@@ -381,7 +381,7 @@ namespace CoupledField
     ************************************************************************/
 
     /** returns name and value, and child summary information
-     * @param depth if the elemen is matrix type the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
+     * @param depth if the element is matrix type, the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
     void ToString(std::string& ret, int depth ) const;
     
     /** variant of other ToString() with more copy operations but also more convenient */

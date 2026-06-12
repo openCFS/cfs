@@ -1,7 +1,5 @@
 #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
-//#include <Python.h>
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+#include "Utils/CfsNumpy.hh"
 
 #include <assert.h>
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -65,8 +63,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   options = PythonKernel::ParseOptions(lst);
   pnh->Get("options")->SetValue(lst);
 
-  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
-  import_array1(); // having this in the first call magically prevents segfaults with PyArg_ParseTuple
+  CfsImportNumpy(); // ensure the shared numpy table is initialized (idempotent), see CfsNumpy.hh
 
   // call optional setup()
   std::string val = "not callable";
@@ -241,6 +238,30 @@ void PythonOptimizer::EvalGradObjective(PyObject *args)
 }
 
 
+void PythonOptimizer::EvalHessian(PyObject *args)
+{
+  PyObject *xobj = nullptr, *hobj = nullptr;
+  if(!PyArg_ParseTuple(args, "O!O!", &PyArray_Type, &xobj, &PyArray_Type, &hobj))
+    throw("cfs.evalhessian(x, H) expects a 1D design array and a 2D Hessian array");
+
+  Vector<double> x(xobj, false); // 1D design, borrowed
+  assert(x.GetSize() == n);
+
+  // set the design to x and evaluate the objective gradient first: the aggregation and feature
+  // Hessian terms need d_obj/d_rho_e, which is stored on the design elements by this call
+  StdVector<double> grad(n);
+  BaseOptimizer::EvalGradObjective(n, x.GetPointer(), true, grad);
+
+  Optimization* optim = domain->GetOptimization();
+  Function* obj = optim->objectives.data[0];
+  Matrix<double> H;
+  if(!optim->GetDesign()->CalcShapeHessian(obj, H))
+    throw("cfs.evalhessian: no exact shape Hessian available (needs feature mapping with a 'curvature' objective)");
+
+  // fill the python-provided 2D array; MatrixToNumpyArray works from any TU now (shared numpy table)
+  PythonKernel::MatrixToNumpyArray(H, hobj);
+}
+
 void PythonOptimizer::EvalConstraints(PyObject *args)
 {
   StdVector<Vector<double> > data;
@@ -274,6 +295,95 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
   BaseOptimizer::EvalGradConstraints(x.GetSize(), x.GetPointer(), m, m*n, true, false, stdgrad); // scale=true, normalize=false
 
   grad.Export(obj[1]);
+}
+
+int PythonOptimizer::GetNumberOfJacobianNonZeros()
+{
+  return optimization->constraints.view->CalcNumberOfJacobianNonZeros();
+}
+
+void PythonOptimizer::GetConstraintSparsity(PyObject *args)
+{
+  StdVector<Vector<double> > data;
+  StdVector<PyObject*> obj = ParseArrays(args, 2, data, false); // rows, cols (output)
+
+  Vector<double>& rows = data[0];
+  Vector<double>& cols = data[1];
+
+  assert(rows.GetSize() == cols.GetSize());
+  assert(rows.GetSize() == optimization->constraints.view->CalcNumberOfJacobianNonZeros());
+
+  // (constraint, design variable) index pairs in packed order; same order as the values below.
+  // doubles here, the python side casts them to int for the scipy.sparse matrix.
+  unsigned int k = 0;
+  for(int c = 0; c < m; c++)
+  {
+    StdVector<unsigned int>& pattern = optimization->constraints.view->Get(c)->GetSparsityPattern();
+    for(unsigned int e = 0; e < pattern.GetSize(); e++)
+    {
+      rows[k] = c;
+      cols[k] = pattern[e];
+      k++;
+    }
+  }
+  optimization->constraints.view->Done(); // reset a potential slope constraint, like EvalGradConstraints()
+
+  rows.Export(obj[0]);
+  cols.Export(obj[1]);
+}
+
+void PythonOptimizer::EvalGradConstraintsSparse(PyObject *args)
+{
+  StdVector<Vector<double> > data;
+  StdVector<PyObject*> obj = ParseArrays(args, 2, data, false); // x, vals
+
+  const Vector<double>& x = data[0];
+  Vector<double>& vals = data[1];
+
+  const unsigned int nnz = optimization->constraints.view->CalcNumberOfJacobianNonZeros();
+  assert(x.GetSize() == n && vals.GetSize() == nnz);
+
+  // packed/sparse values in the same (constraint, pattern) order as GetConstraintSparsity
+  StdVector<double> stdvals(vals.GetPointer(), vals.GetSize()); // wrapper
+  BaseOptimizer::EvalGradConstraints(x.GetSize(), x.GetPointer(), m, nnz, true, false, stdvals);
+
+  vals.Export(obj[1]);
+}
+
+void PythonOptimizer::EvalConstraintHessian(PyObject *args)
+{
+  PyObject *xobj = nullptr, *vobj = nullptr, *hobj = nullptr;
+  if(!PyArg_ParseTuple(args, "O!O!O!", &PyArray_Type, &xobj, &PyArray_Type, &vobj, &PyArray_Type, &hobj))
+    throw("cfs.evalhessian_constr(x, v, H) expects a 1D design x, a 1D multiplier v (size m) and a 2D n x n H");
+
+  Vector<double> x(xobj, false); // borrowed
+  Vector<double> v(vobj, false);
+  assert(x.GetSize() == n && (int) v.GetSize() == m);
+
+  // set the design; the element values suffice for the geometric per-constraint Hessian
+  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
+
+  Matrix<double> H(n, n);
+  H.Init();
+
+  // sum_c v_c * Hess(c_c) via the generic per-constraint Hessian interface (raw, scipy's v carries
+  // the bound sign). Constraints without an exact Hessian contribute nothing.
+  ConditionContainer::VirtualView* view = optimization->constraints.view;
+  StdVector<double> out;
+  for(int c = 0; c < m; c++)
+  {
+    Condition* g = view->Get(c);
+    Matrix<unsigned int>& hp = g->GetHessianSparsityPattern();
+    if(hp.GetNumRows() == 0)
+      continue;
+    out.Resize(hp.GetNumRows());
+    g->CalcHessian(out, 1.0);
+    for(unsigned int k = 0; k < hp.GetNumRows(); k++)
+      H[hp(k, 0)][hp(k, 1)] += v[c] * out[k];
+  }
+  view->Done(); // reset a potential slope constraint to global mode, like EvalGradConstraints()
+
+  PythonKernel::MatrixToNumpyArray(H, hobj);
 }
 
 double PythonOptimizer::GetSimpExponent() {
@@ -563,6 +673,25 @@ PyObject* PythonOptimizer::GetDesignValues(PyObject* args)
     py[i] = GetDesign(space->GetDesignElement(i), ac);
 
   py.Export(PyTuple_GetItem(args,0)); // PyTuple_GetItem = Borrowed reference
+
+  Py_RETURN_NONE;
+}
+
+PyObject* PythonOptimizer::GetPseudoDensity(PyObject* args)
+{
+  DesignSpace* space = domain->GetOptimization()->GetDesign();
+
+  if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
+    throw("arguments for get_pseudo_density() are numpy-return, access (optional)");
+
+  Function::Access ac = PyTuple_Size(args) == 2 ? ParseAccess(PyTuple_GetItem(args,1)) : Function::PLAIN;
+
+  // DesignSpace::data is the element pseudo density, for feature mapping the aggregated mrho_e
+  Vector<double> py(space->data.GetSize());
+  for(unsigned int i = 0, n = space->data.GetSize(); i < n; i++)
+    py[i] = GetDesign(&space->data[i], ac);
+
+  py.Export(PyTuple_GetItem(args,0)); // borrowed reference
 
   Py_RETURN_NONE;
 }

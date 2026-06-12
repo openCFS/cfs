@@ -181,6 +181,15 @@ public:
 
   bool IsVariable() const { return !fixed && map == ""; }
 
+  /** Optimization index this variable contributes to, or -1 if constant.
+   *  Resolves chain/symmetry mapping (map_to) to its target. The single place
+   *  encoding free / mapped / constant. */
+  int EffectiveOptIndex() const
+  {
+    const FeatureVariable* t = map_to != nullptr ? map_to : this;
+    return t->IsVariable() ? (int) t->GetOptIndex() : -1;
+  }
+
   /** check all components of point if we are fixed. Mapping is OK */
   static bool IsFixed(const StdVector<FeatureVariable>& point);
 

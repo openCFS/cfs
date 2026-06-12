@@ -1,4 +1,5 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Excitation.hh"
 #include "Utils/ToolsFull.hh"
@@ -50,6 +51,8 @@ void FeaturedDesign::SetEnums()
   boundary.Add(TANH, "tanh");
   boundary.Add(LINEAR, "linear");
   boundary.Add(POLY, "poly");
+  boundary.Add(QUINTIC, "quintic");
+  boundary.Add(BEZIER, "bezier");
 
   orientation.Add(ROUNDED, "rounded");
   orientation.Add(STRAIGHT, "straight");
@@ -240,6 +243,12 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
       out[base + i] = opt * scale;
     }
   }
+}
+
+void FeaturedDesign::OpenGradPlot(PtrParamNode pn)
+{
+  if(pn->Get("gradplot")->As<bool>())
+    gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
 }
 
 void FeaturedDesign::WriteGradientFile()

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/simulation
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Feature mapping design tracking (Python objective) with native ipopt optimizer</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-06-17</date>
+    <references>Wein, Jung, Moradian, Stingl; Gradient-Based Generation of Feature Mapping Initial
+                Designs from SIMP Density Fields; 2026 (to be submitted :))</references>
+    <isVerified>no</isVerified>
+    <description>
+      Solve tracking problem which python density tracking funcion of bar_10.density.xml reference.
+      FE is disabled. We use ipopt with manually tuned options. snopt is faster and als dumas_gcmma (for a larger mesh).
+      Mesh is bulk2d_10 (create_mesh.py --type bulk2d --res 10 --file python_tracking.mesh).
+    </description>
+  </documentation>
+
+  <!-- the tracking objective and gradient are implemented in the reusable share/python kernel -->
+  <python file="tracking.py" path="cfs:share:python" />
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="python_tracking.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left">
+              <comp dof="x"/>
+              <comp dof="y"/>
+           </fix>
+           <force name="right">
+             <comp dof="x" value="1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <!-- only the geometric pseudo density is deterministic; no mechDisplacement (FE is dummy) -->
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <!-- Dummy FE-Part -->
+    <linearSystems>
+      <system>
+        <solverList>
+          <cg>
+            <maxIter>1</maxIter>
+          </cg>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization>
+    <!-- design tracking objective implemented in share/python/tracking.py -->
+    <costFunction type="python" task="minimize">
+      <python name="track" init="track_init" eval="track_eval" grad="track_grad" script="kernel">
+        <!-- the bar shaped target field rho* the features shall reproduce -->
+        <option key="target" value="bar_10.density.xml"/>
+      </python>
+    </costFunction>
+
+    <!-- has internally local constraints for each feature but the logging is the local constraint aggregation -->
+    <constraint type="distance" design="node" bound="lowerBound" value="0.05"/>
+    <constraint type="distance" design="node" bound="upperBound" value="0.8"/>
+
+    <!-- snopt is faster, also dumas_gcmma is good (for a larger mesh). The ipopt options are hand-tuned for
+      fast test. Works also with defaults. -->
+    <optimizer type="ipopt" maxIterations="50">
+      <ipopt>
+        <option name="tol" type="real" value="1e-3"/>
+        <option name="limited_memory_max_history" type="integer" value="20"/>
+        <option name="mu_strategy" type="string" value="monotone"/>
+        <option name="mu_init" type="real" value="0.01"/>
+        <option name="acceptable_tol" type="real" value="10"/>
+        <option name="acceptable_compl_inf_tol" type="real" value="10"/>
+        <option name="acceptable_obj_change_tol" type="real" value="1e-2"/>
+        <option name="acceptable_iter" type="integer" value="3"/>
+      </ipopt>
+      <snopt>
+        <option type="integer" name="verify_level" value="3" />
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping transition=".1" boundary="poly" order="5" combine="p-norm" p="3">
+        <pill>
+          <node dof="x" initial="0.1"  upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.3" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.8" upper="1" lower="0" tip="end"/>
+          <profile initial="0.05" lower="0.02" upper="0.4"/>
+        </pill>
+        <pill>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.3" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.7"  upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.9" upper="1" lower="0" tip="end"/>
+          <profile initial="0.05" lower="0.02" upper="0.4"/>
+        </pill>
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <export save="last" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

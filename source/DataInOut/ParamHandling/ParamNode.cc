@@ -1008,7 +1008,16 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
   }
-  //std::cout << "label=" << name_ << " value=" << value_.has_value() << " type=" << value_.type().name() << std::endl;
+  // parsed python option list (SpaghettiDesign/PythonOptimizer 'options' node) -> "key=value ..."
+  if(value_.type() == typeid(StdVector<std::pair<std::string, std::string> >))
+  {
+    const auto& opts = std::any_cast<StdVector<std::pair<std::string, std::string> > >(value_);
+    std::stringstream ss;
+    for(unsigned int i = 0; i < opts.GetSize(); i++)
+      ss << (i ? " " : "") << opts[i].first << "=" << opts[i].second;
+    ret = ss.str();
+    return;
+  }
   assert(!value_.has_value()); // this should not happen when we have a value
 }
 

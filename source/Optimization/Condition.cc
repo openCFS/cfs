@@ -1054,6 +1054,22 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::MECH_23)->GetOptIndex();
 
     break;
+  case DISTANCE:
+  {
+    // c = ||Q-P|| over the four node coordinates [px py qx qy] (neighbor order -1,0,1,2, see
+    // CalcDistance); the full 4x4 (row, col) opt-index pairs, profile p is absent. CalcHessian fills
+    // the matching 16 values.
+    const int o[4] = { (int) id.GetElement(-1)->GetOptIndex(), (int) id.GetElement(0)->GetOptIndex(),
+                       (int) id.GetElement(1)->GetOptIndex(),  (int) id.GetElement(2)->GetOptIndex() };
+    hess_sparsity_.Resize(16, 2);
+    for(int i = 0, k = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++, k++)
+      {
+        hess_sparsity_(k, 0) = o[i];
+        hess_sparsity_(k, 1) = o[j];
+      }
+    break;
+  }
   default:
     hess_sparsity_.Resize(0, 0);
     break;
@@ -1109,6 +1125,31 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     out[10] = factor * (2.0*e12);      // 11
     out[11] = factor * (-2.0*(e11-v-eps)); // 12
     //out[11] = factor * (-2.0*(e11-v)); // 12
+    break;
+  }
+  case DISTANCE:
+  {
+    // exact Hessian of c = ||Q-P|| w.r.t. [px py qx qy]: the [[Hv,-Hv],[-Hv,Hv]] block with
+    // Hv = (I - dd^T/r^2)/r, d = Q-P, r = |d| (same as FeatureMappingDesign::Pill::HessLength). The
+    // 16 values match the (row,col) order of GetHessianSparsityPattern().
+    Function::Local::Identifier& id = GetCurrentVirtualContext();
+    double px = id.GetElement(-1)->GetPlainDesignValue();
+    double py = id.GetElement(0)->GetPlainDesignValue();
+    double qx = id.GetElement(1)->GetPlainDesignValue();
+    double qy = id.GetElement(2)->GetPlainDesignValue();
+    double dx = qx - px, dy = qy - py;
+    double r2 = dx*dx + dy*dy, r = std::sqrt(r2);
+    assert(r > 0.0);
+    double a = (1.0 - dx*dx/r2) / r;
+    double b = -dx*dy / (r2*r);
+    double c = (1.0 - dy*dy/r2) / r;
+    const double H[4][4] = {{ a,  b, -a, -b},
+                            { b,  c, -b, -c},
+                            {-a, -b,  a,  b},
+                            {-b, -c,  b,  c}};
+    for(int i = 0, k = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++, k++)
+        out[k] = factor * H[i][j];
     break;
   }
   default:
@@ -1620,3 +1661,15 @@ void ConditionContainer::VirtualView::Done()
     }
   }
 }
+
+int ConditionContainer::VirtualView::CalcNumberOfJacobianNonZeros()
+{
+  int nnz = 0;
+  for(int c = 0; c < GetNumberOfActiveConstraints(); c++)
+    nnz += Get(c)->GetSparsityPatternSize();
+  Done(); // reset a potential slope constraint back to global mode, like EvalGradConstraints()
+  return nnz;
+}
+
+
+

@@ -1,5 +1,4 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+#include "Utils/CfsNumpy.hh"
 
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -45,8 +44,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     pen = pn->Get("p")->As<double>();
   }
 
-  if(pn->Get("gradplot")->As<bool>()) // todo: move to FeaturedDesign
-   gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
+  OpenGradPlot(pn);
 
   // map
   SetupMapping();

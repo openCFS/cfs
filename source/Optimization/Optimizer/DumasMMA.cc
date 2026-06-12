@@ -141,7 +141,20 @@ void DumasMMA::SolveProblem()
     double f = EvalObjective(n, xval.GetPointer(), true); // only for gcmma and logging/stopping
     EvalGradObjective(n,  xval.GetPointer(), true, dfdx); // we scale
     EvalConstraints(n, xval.GetPointer(), m, true, g.GetPointer(), true); // normalize f_i <= 0, we do not give the constraint bound to the solver
-    EvalGradConstraints(n, xval.GetPointer(), m, n*m, true, true, dgdx); // normalize
+    // dgdx[i*m + j] = dg_j/dx_i (variable-major, see GenSub in MMASolver/GCMMASolver).
+    // we need to map our sparse constraints to dense one -> limits high number of constraints.
+    unsigned int nnz = opt->constraints.view->CalcNumberOfJacobianNonZeros();
+    StdVector<double> packed(nnz);
+    EvalGradConstraints(n, xval.GetPointer(), m, nnz, true, true, packed); // normalize
+    dgdx.Init(0.0);
+    unsigned int k = 0;
+    for(unsigned int c = 0; c < m; c++)
+    {
+      StdVector<unsigned int>& pattern = opt->constraints.view->Get(c)->GetSparsityPattern();
+      for(unsigned int e = 0; e < pattern.GetSize(); e++)
+        dgdx[pattern[e] * m + c] = packed[k++]; // make Dumas structure happy
+    }
+    opt->constraints.view->Done();
 
     LOG_DBG(dumas) << "SP: it=" << optimization->GetCurrentIteration() << " f=" << f << " gcmma=" << (gcmma != nullptr);
     // store iteration 0

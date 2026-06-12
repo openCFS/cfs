@@ -993,7 +993,18 @@ if(USE_SNOPT)
   add_subdirectory(Optimization/FeatureMapping/aniso_single)
   add_subdirectory(Optimization/FeatureMapping/aniso_no_groundmaterial)
 endif()
-
+if(USE_DUMAS)
+  add_subdirectory(Optimization/FeatureMapping/bezier)
+endif()
+if(USE_DUMAS AND USE_EMBEDDED_PYTHON)
+  add_subdirectory(Optimization/FeatureMapping/python_reward)
+endif()
+if(USE_IPOPT AND USE_EMBEDDED_PYTHON) # cfs ipopt, not cyipopt
+  add_subdirectory(Optimization/FeatureMapping/python_tracking)
+endif()
+if(USE_EMBEDDED_PYTHON) # uses scipy.optmize trust-region
+  add_subdirectory(Optimization/FeatureMapping/python_hessian)
+endif()
 if(USE_ARPACK AND USE_SUITESPARSE)
   # is evaluate optimization only
   add_subdirectory(Optimization/MultiSequence/bloch_stiffness)

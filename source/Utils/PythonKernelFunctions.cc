@@ -1,5 +1,5 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+#define CFS_NUMPY_OWNER // this TU owns and initializes the shared numpy C-API table
+#include "Utils/CfsNumpy.hh"
 
 #include "Utils/PythonKernel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -79,6 +79,11 @@ PyObject* get_opt_design_size(PyObject *self, PyObject *args)
 PyObject* get_num_pseudo_density(PyObject *self, PyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetNumDesign(args) : nullptr;
+}
+
+PyObject* get_pseudo_density(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetPseudoDensity(args) : nullptr;
 }
 
 PyObject* get_opt_design_value(PyObject *self, PyObject *args)
@@ -189,6 +194,16 @@ PyObject* opt_evalgradobj(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+/** cfs.evalhessian(x,H) fills the n x n numpy array H with the objective shape Hessian */
+PyObject* opt_evalhessian(PyObject *self, PyObject *args)
+{
+  if(!python->CheckPyOpt())
+    return NULL;
+
+  python->GetPyOpt()->EvalHessian(args);
+  Py_RETURN_NONE;
+}
+
 /** cfs.cfs_evalconstrs(x,g) fills numpy 1d arrays of size n and m */
 PyObject* opt_evalconstrs(PyObject *self, PyObject *args)
 {
@@ -206,6 +221,42 @@ PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
     return NULL;
 
   python->GetPyOpt()->EvalGradConstraints(args);
+  Py_RETURN_NONE;
+}
+
+/** cfs.get_num_jacobian_nonzeros() returns the total nnz of the constraint jacobian (sparse interface) */
+PyObject* opt_get_num_jacobian_nonzeros(PyObject *self, PyObject *args)
+{
+  return python->CheckPyOpt() ? PyLong_FromLong(python->GetPyOpt()->GetNumberOfJacobianNonZeros()) : NULL;
+}
+
+/** cfs.get_constraint_sparsity(rows, cols) fills two 1D arrays of size nnz with the (constraint, var) indices */
+PyObject* opt_get_constraint_sparsity(PyObject *self, PyObject *args)
+{
+  if(!python->CheckPyOpt())
+    return NULL;
+
+  python->GetPyOpt()->GetConstraintSparsity(args);
+  Py_RETURN_NONE;
+}
+
+/** cfs.evalgradconstrs_sparse(x, vals) fills the packed sparse jacobian values (1D, size nnz) */
+PyObject* opt_evalgradconstrs_sparse(PyObject *self, PyObject *args)
+{
+  if(!python->CheckPyOpt())
+    return NULL;
+
+  python->GetPyOpt()->EvalGradConstraintsSparse(args);
+  Py_RETURN_NONE;
+}
+
+/** cfs.evalhessian_constr(x, v, H) fills H (n x n) with the multiplier-contracted constraint Hessian */
+PyObject* opt_evalhessian_constr(PyObject *self, PyObject *args)
+{
+  if(!python->CheckPyOpt())
+    return NULL;
+
+  python->GetPyOpt()->EvalConstraintHessian(args);
   Py_RETURN_NONE;
 }
 
@@ -602,6 +653,7 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"optimizer_set_property", optimizer_set_property, METH_VARARGS, "set name:string and value:string for the current optimizer, only a few implement this."},
   {"get_opt_design_size", get_opt_design_size, METH_VARARGS, "Returns number of design variables"},
   {"get_num_pseudo_density", get_num_pseudo_density, METH_VARARGS, "Returns number of pseudo densities (DesignSpace::data), != design_size for slack case."},
+  {"get_pseudo_density", get_pseudo_density, METH_VARARGS, "Fills numpy array (size get_num_pseudo_density) with element pseudo density DesignSpace::data; for feature mapping the aggregated mrho_e. Optional access."},
   {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional Function::Access (int or string). Default plain. For slack, ... silently plain"},
   {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "attribute is numpy array and optional Function::Access. See get_opt_design_value()"},
   {"get_opt_stopping_rules", get_opt_stopping_rules, METH_VARARGS, "return the stoppping rules"},
@@ -623,7 +675,12 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"evalobj", opt_evalobj, METH_VARARGS, "Evaluate objective. Expects 1D design array"},
   {"evalconstrs", opt_evalconstrs, METH_VARARGS, "Evaluate constraints. Expects 1D design array and 1D value array or size m"},
   {"evalgradobj", opt_evalgradobj, METH_VARARGS, "Evaluate objective gradient w. r. t design variables. Expects 1D design array and dense gradient array "},
+  {"evalhessian", opt_evalhessian, METH_VARARGS, "Evaluate the exact objective shape Hessian. Expects 1D design array (size n) and a 2D array (n x n) which is filled. Feature mapping with a 'curvature' objective only."},
   {"evalgradconstrs", opt_evalgradconstrs, METH_VARARGS, "Evaluate constrains gradients. Expects 1D design array of size n and dense 1D value array of size m*n"},
+  {"get_num_jacobian_nonzeros", opt_get_num_jacobian_nonzeros, METH_VARARGS, "Returns the total number of nonzeros in the constraint jacobian (sparse interface)."},
+  {"get_constraint_sparsity", opt_get_constraint_sparsity, METH_VARARGS, "Fills the sparse constraint jacobian structure: two 1D arrays of size nnz with rows[k]=constraint, cols[k]=design variable. Query once."},
+  {"evalgradconstrs_sparse", opt_evalgradconstrs_sparse, METH_VARARGS, "Evaluate the sparse constraint jacobian values. Expects 1D design array (size n) and 1D value array (size nnz), same order as get_constraint_sparsity."},
+  {"evalhessian_constr", opt_evalhessian_constr, METH_VARARGS, "Multiplier-contracted constraint Hessian sum_c v_c Hess(c_c). Expects 1D design x (size n), 1D multiplier v (size m) and a 2D n x n array which is filled."},
   {"getSimpExponent", opt_getSimpExponent, METH_VARARGS, "Returns power-law exponent."},
   {"get_dfdH", opt_get_dfdH, METH_VARARGS, "Returns derivative of objective w.r.t. material tensor. Expects 3D array of size nelems x 3 x 3"},
   {"getOrgStiffness", opt_getOrgStiffness, METH_VARARGS, "Returns stiffness tensor of original (core) material."},
@@ -638,11 +695,20 @@ PyModuleDef PythonKernel::cfs_modules = {
     PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_methods, NULL, NULL, NULL, NULL
 };
 
+// owner of the shared numpy C-API table (PY_ARRAY_UNIQUE_SYMBOL), see Utils/CfsNumpy.hh
+void CfsImportNumpy()
+{
+  if(PyArray_API != nullptr) // table already initialized, shared across all TUs
+    return;
+  if(_import_array() < 0) // _import_array() sets the shared CFS_PyArray_API table
+    throw Exception("failed to import the numpy C-API");
+}
+
 PyObject* PythonKernel::SetModulFunctions(void)
 {
-  LOG_DBG(pkf) << "SMF execute import_array and PyModule_Create(&PythonKernel::cfs_modules);";
-  // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
-  import_array();
+  LOG_DBG(pkf) << "SMF execute CfsImportNumpy and PyModule_Create(&PythonKernel::cfs_modules);";
+  // fills the shared numpy table, see https://stackoverflow.com/questions/37943699
+  CfsImportNumpy();
 
   return PyModule_Create(&PythonKernel::cfs_modules);
 }

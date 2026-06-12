@@ -793,6 +793,10 @@ void SnOpt::SetIntegerValue(const std::string& key, int32_t value)
   {
     option = "Verify level";
   }
+  else if(key == "scale_option")
+  {
+    option = "Scale option";
+  }
   else if(key == "major_print_level")
   {
     option = "Major print level";

@@ -183,16 +183,46 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
   // we check this in SetLocalPythonVirtualElementMap()
   if(ppn->Has("sparsity"))
     py_sparsity_ = PyObject_GetAttrString(kernel, ppn->Get("sparsity")->As<string>().c_str());
+
+  // optional second order support, see CalcCurvature()
+  if(ppn->Has("curvature"))
+  {
+    py_curvature_ = PyObject_GetAttrString(kernel, ppn->Get("curvature")->As<string>().c_str());
+    PythonKernel::CheckPythonFunction(py_curvature_, ppn->Get("curvature")->As<string>().c_str());
+  }
 }
 
 
 void Function::DeletePythonFunction()
 {
+  Py_XDECREF(py_curvature_);
   Py_XDECREF(py_sparsity_);
   Py_XDECREF(py_grad_);
   Py_XDECREF(py_eval_);
   Py_XDECREF(py_arg_);
 
+}
+
+bool Function::CalcCurvaturePython(Vector<double>& diag)
+{
+  if(py_curvature_ == nullptr)
+  {
+    // warn once (SetWarning deduplicates in the info.xml), then signal no curvature
+    preInfo_->Get("python")->SetWarning("no 'curvature' function given, exact Hessian unavailable");
+    return false;
+  }
+
+  // call like eval/grad with the opt dict; the function pulls what it needs via cfs getters and
+  // returns the per-element diagonal d^2J/d_rho_e^2 as a numpy array (read via Vector(pyret))
+  PyObject* ret = PyObject_CallObject(py_curvature_, py_arg_);
+  PythonKernel::CheckPythonReturn(ret);
+
+  diag.Fill(ret, true); // decref
+  if(diag.GetSize() != elements.GetSize())
+    EXCEPTION("the python curvature function shall return a numpy array of size " << elements.GetSize()
+              << " (number of elements) but got " << diag.GetSize());
+
+  return true;
 }
 
 void Function::SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identifier>& virtual_elem_map, DesignSpace* space)

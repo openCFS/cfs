@@ -15,8 +15,26 @@ try:
 except ImportError:
   print('Warning: cannot load pandas, some export might fail')
 
-from multiprocessing.pool import Pool as Pool # preferably to line below
-#from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
+# Parallelism strategy, chosen by the interpreter build:
+# - GIL build (the CI and most real runs): process pool via an explicitly forced 'fork' start method.
+#   fork (not spawn/forkserver) means the embedded cfs binary is never re-exec'd as a worker, and forcing
+#   it also overrides Python 3.14's new 'forkserver' default. This gives real parallelism.
+# - Free-threading build (GIL disabled, e.g. python3.14t with PYTHON_GIL=0): run serially. This keeps the
+#   embedded free-threaded host free of any spawn/fork machinery (no cfs re-exec, no resource_tracker).
+import sys
+_serial_pool = not getattr(sys, '_is_gil_enabled', lambda: True)()
+if _serial_pool:
+  print('Warning: free-threading build (GIL disabled) - spaghetti3d parallel sections run SERIAL')
+else:
+  multiprocessing.set_start_method('fork', force=True)
+  from multiprocessing.pool import Pool
+
+def pmap(num_threads, func, items):
+  """Map func over items, returning a list: parallel (process pool) on a GIL build, serial on free-threading."""
+  if _serial_pool:
+    return [func(x) for x in items]
+  with Pool(num_threads) as pool:
+    return pool.map(func, items)
   # noinspection PyUnresolvedReferences
 try:
   import vtkmodules.vtkInteractionStyle
@@ -220,10 +238,7 @@ def cfs_map_to_design():
       return glob.tensor_cfs_fmo
   assemble_fe_field()
   start = ti.time()
-  with Pool(glob.num_threads) as pool:
-    rho = pool.map(integrate_fe, glob.integrate)
-    pool.close()
-    pool.join()
+  rho = pmap(glob.num_threads, integrate_fe, glob.integrate)
   #integrate_fe_field()
   if not glob.silent:
     print('time for integration:', ti.time()-start)
@@ -1182,10 +1197,7 @@ def create_idx_field(discretization = None):
 # setup fe lists in shapes
 
 def create_fe_lists():
-  with Pool(glob.num_threads) as pool:
-    res = pool.map(setup_fe_list_glob, glob.shapes)
-    pool.close()
-    pool.join()
+  res = pmap(glob.num_threads, setup_fe_list_glob, glob.shapes)
   for i, s in enumerate(glob.shapes):
     s.fe_list_intermediate = res[i][0]
     s.fe_list_full = res[i][1]
@@ -2166,7 +2178,7 @@ if __name__ == '__main__':
     opt = np.zeros(glob.num_total)
     for s in glob.shapes:
       opt[s.base:s.base+s.num_optvar] = s.optvar()
-    with Pool(glob.num_threads) as pool:
+    if True:  # FD gradient check runs serial; the Pool wrapper here was never used (no map)
       for i in range(n[0]):
         for j in range(n[1]):
           for k in range(n[2]):
@@ -2208,8 +2220,6 @@ if __name__ == '__main__':
                 for shape_idx_list in glob.fe_list[i][j][k].shapes_idx_list:
                   print('shape_idx_list:', shape_idx_list, 'with dist', glob.shapes[shape_idx_list[0]].dist(Xmid))
                 print('Number of full material shapes:', len(glob.fe_list[i][j][k].shapes_full))
-      pool.close()
-      pool.join()
     print('number of false gradients:', count)
 
   if args.remove_alpha or args.remove_ghosts > -.1:

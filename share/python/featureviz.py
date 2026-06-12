@@ -20,6 +20,7 @@ class Global:
     self.shapes = []         # array of pills
     self.n = [10, 10, 1]       # [nx, ny, nz]
     self.transition = -1.0   # optional transition zone width, -1 means not set
+    self.extension = 0.0     # optional outward enlargement of the transition zone (asymmetric Bezier)
 
 glob = Global()
 
@@ -112,6 +113,8 @@ def read_xml(filename, density = False, set = None, quiet = False):
   pn = header.xpath('./featureMapping') # added 10.2025
   if len(pn) == 1 and 'transition' in pn[0].attrib:
     glob.transition = float(pn[0].attrib['transition'])
+    if 'extension' in pn[0].attrib:
+      glob.extension = float(pn[0].attrib['extension'])
 
   shapes = []
   sq = 'last()' if set == None else '@id="' + str(set) + '"'
@@ -127,7 +130,7 @@ def read_xml(filename, density = False, set = None, quiet = False):
     physical = []
     for child in data:
       if(child.tag == "element"):
-        physical.append(float(child.get("physical")))
+        physical.append(float(child.get("physical" if "physical" in child.attrib else "design")))
     if len(physical) != np.prod(glob.n):
       print('cannot visualize density: there are',len(physical),'rho_e in the .density.xml set but mesh is',glob.n[0],'x',glob.n[1])
     else:
@@ -156,20 +159,46 @@ def read_xml(filename, density = False, set = None, quiet = False):
       
   return shapes, domain, rho
 
-def plot_rho(fig, domain, rho):
-  if rho is None:
+def plot_rho(fig, domain, rho, ref=None, grid=False):
+  if rho is None and ref is None:
     return
-  assert len(rho.shape) == 2
+  # ax.fill(color=c) sets BOTH face and edge to c, so cells get a per-cell border that stacks into a
+  # mesh; force edgecolor='none' to suppress it. --grid instead draws an explicit dark mesh.
+  edge = dict(edgecolor=(0.3, 0.3, 0.3), linewidth=0.4) if grid else dict(edgecolor='none')
+  # the reference is always drawn when given; the main density only when --density supplied rho
+  grid = rho if rho is not None else ref
+  assert len(grid.shape) == 2
+  if rho is not None and ref is not None and ref.shape != rho.shape:
+    print('cannot overlay reference: mesh', ref.shape, 'differs from', rho.shape)
+    ref = None
   # domain is [[min_x, min_y], [max_x, max_y]]
-  nx, ny = rho.shape
+  nx, ny = grid.shape
   bx = domain[0][0] # base
   by = domain[0][1]
   dx = (domain[1][0] - bx) / nx
   dy = (domain[1][1] - by) / ny
   ax = fig.gca()
-  for y in range(ny):
-    for x in range(nx):
-      ax.fill([bx+x*dx, bx+(x+1)*dx, bx+(x+1)*dx,bx+x*dx], [by+y*dy, by+y*dy, by+(y+1)*dy,by+(y+1)*dy], color=str(max(1-rho[x,y],0)), zorder=0)
+
+  def cell(x, y):
+    return [bx+x*dx, bx+(x+1)*dx, bx+(x+1)*dx, bx+x*dx], [by+y*dy, by+y*dy, by+(y+1)*dy, by+(y+1)*dy]
+
+  # reference first (blue, alpha by intensity), then the new density on top (black, alpha by intensity).
+  # over void (ref==0) the black alpha-over-white reduces to (1-rho) grayscale, identical to the plain
+  # density, so density above void is unchanged; only cells overlapping the reference blend.
+  if ref is not None:
+    for y in range(ny):
+      for x in range(nx):
+        r = max(min(ref[x,y], 1.0), 0.0)
+        if r > 0:
+          xs, ys = cell(x, y)
+          ax.fill(xs, ys, color=(0, 0, 1), alpha=r, zorder=0, antialiased=False, **edge)
+  if rho is not None:
+    for y in range(ny):
+      for x in range(nx):
+        n = max(min(rho[x,y], 1.0), 0.0)
+        if n > 0:
+          xs, ys = cell(x, y)
+          ax.fill(xs, ys, color=(0, 0, 0), alpha=n, zorder=1, antialiased=False, **edge)
 
 def plot_outline(s, sub, p, fill, linestyle='-'):
   # code based on Patrick Jung's pltviz.py 
@@ -247,13 +276,13 @@ def plot_data(res, shapes, detail, domain, ghost):
         CR = CC + s.p * s.V0
 
         sub.add_line(plt.Line2D((CL[0],CR[0]),(CL[1],CR[1]), alpha=lineopacity, color= c))
-        plt.annotate('$p' + tail, CC, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
+        plt.annotate('$2p' + tail, CC, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
 
     # outline of the pill
     plot_outline(s, sub, s.p, fill=True)
     if detail >= 2:
-      plot_outline(s, sub, s.p - .5*glob.transition, fill=False, linestyle=':')
-      plot_outline(s, sub, s.p + .5*glob.transition, fill=False, linestyle=':')
+      plot_outline(s, sub, s.p - .5*glob.transition, fill=False, linestyle=':')                  # solid side, dist = -transition/2
+      plot_outline(s, sub, s.p + .5*glob.transition + glob.extension, fill=False, linestyle=':') # void side, dist = +(transition/2 + extension)
 
   return fig
 
@@ -268,6 +297,8 @@ if __name__ == '__main__':
   parser.add_argument('--density', help="visualize additionally the physical density", action='store_true')
   parser.add_argument('--ghost', help="add ghost domain in fraction of org size", type=float, default=0.0)
   parser.add_argument('--gray', help="plot grayscale image", action='store_true')
+  parser.add_argument('--grid', help="draw the mesh grid on the rendered density/reference cells", action='store_true')
+  parser.add_argument('--reference', help="overlay a reference .density.xml beneath the main density, shown in blue (implies --density)")
 
   parser.add_argument('--noshow', help="don't show the image", action='store_true')  
   parser.add_argument('--noaxis', help="dont plot axis and ticks", action='store_true')
@@ -278,6 +309,13 @@ if __name__ == '__main__':
     os.sys.exit()
   file = args.input 
   
+  ref_rho = None
+  if args.reference:
+    if not os.path.exists(args.reference):
+      print("error: cannot find reference '" + args.reference + "'")
+      os.sys.exit()
+    _, _, ref_rho = read_xml(args.reference, density=True, quiet=True) # sets glob to ref mesh; main reads below reset it
+
   colors = ['tab:gray'] if args.gray else ['tab:blue', 'tab:green', 'tab:red', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
   
   if args.interactive or args.animate:
@@ -290,8 +328,8 @@ if __name__ == '__main__':
         #plt.show(block=False)
         shapes, domain, rho = read_xml(args.input, args.density, str(sts[idx]), quiet=True)
         fig = plot_data(800,shapes,args.detail,domain, args.ghost)
-        if args.density:
-          plot_rho(fig, domain, rho)
+        if args.density or ref_rho is not None:
+          plot_rho(fig, domain, rho, ref_rho, args.grid)
         fig.show()  
 
         action = input('you see ' + str(set[idx]) + ' press (b)ack, (c)ancel/q/x or any other key + Enter for next: ')
@@ -308,8 +346,8 @@ if __name__ == '__main__':
         print(str(s) + ' ',end='', flush=True)
         shapes, domain, rho = read_xml(file, args.density, str(s), quiet=True)
         fig = plot_data(800,shapes,args.detail,domain, args.ghost)
-        if args.density:
-          plot_rho(fig, domain, rho)
+        if args.density or ref_rho is not None:
+          plot_rho(fig, domain, rho, ref_rho, args.grid)
         fig.gca().set_title(name + ' : ' + str(s))
         # Convert plot to image
         fig.canvas.draw()
@@ -325,8 +363,8 @@ if __name__ == '__main__':
   # sets some values in glob!
   shapes, domain, rho = read_xml(file, args.density, args.set)
   fig = plot_data(800,shapes,args.detail,domain, args.ghost)
-  if args.density:
-    plot_rho(fig, domain, rho)
+  if args.density or ref_rho is not None:
+    plot_rho(fig, domain, rho, ref_rho, args.grid)
   if args.noaxis:
     plt.axis('off')
   if args.save:

@@ -128,6 +128,10 @@ protected:
   /** Helper for SetupDesign(). Stores the variable to shape_param_ and opt_shape_param_ */
   void AddVariable(FeatureVariable* var);
 
+  /** opens gradplot_ for WriteGradientFile() if the optional 'gradplot' attribute is set.
+   * To be called in the constructor of derived classes with their design element node */
+  void OpenGradPlot(PtrParamNode pn);
+
   virtual void SetupVirtualShapeElementMapBending(Feature* f, StdVector<Function::Local::Identifier>& vem, StdVector<BaseDesignElement*>& nodes, bool two_signs, int sign_1, int sign_2) { assert(false); };
 
   /** mandatory helper for base SetupDesign(). */
@@ -190,6 +194,11 @@ protected:
 
     /** for efficiency reason calculate all gradients at once. Is a waste for fixed variables */
     virtual void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const { assert(false); }
+
+    /** second derivatives of the distance for exact Hessian computation, symmetric matrix
+     * over all feature variables. The default throws, implemented by Pill (isotropic only) */
+    virtual void HessDistance(const Point& X, FeatureVariable::Tip part, Matrix<double>& out) const {
+      throw Exception("second derivative of the distance not implemented for this feature type"); }
 
     int GetOptVariables() const { return opt_variables_; }
    
@@ -270,7 +279,7 @@ protected:
 
   /** this describes the continuation of a structure in 1D. See feature mapping review.
    * Not every class uses all boundary functions, this is handled in the schema file */
-  typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY } Boundary;
+  typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY, QUINTIC, BEZIER } Boundary;
   
   /** gives the fiber orientation for anisotropic material in spaghettiParamMat
    * rounded: follows the spaghetti direction but at the endings uses orientations parallel to the boundary
