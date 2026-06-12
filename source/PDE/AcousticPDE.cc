@@ -3857,9 +3857,6 @@ namespace CoupledField{
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
 
-    if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for AcousticPDE: variable-step BDF2 is incompatible with acoustic wave simulation. Use fixed deltaT.");
-
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
@@ -3874,12 +3871,18 @@ namespace CoupledField{
 
     // Helper lambda to create the appropriate scheme
     auto makeScheme = [&]() -> GLMScheme* {
+      GLMScheme* scheme = nullptr;
       if (integrationScheme)
-        return GetXmlDefinedScheme(integrationScheme);
+        scheme = GetXmlDefinedScheme(integrationScheme);
       else {
         Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
-        return new Newmark(0.5, 0.25, alpha);
+        scheme = new Newmark(0.5, 0.25, alpha);
       }
+      if (GetDomain()->GetAdaptiveData() && scheme->maxDerivOrder_ < 2)
+        EXCEPTION("Adaptive timestepping on AcousticPDE requires a second-order time scheme: "
+                  "use <integrationScheme><newmark .../> (or omit it for the Newmark default). "
+                  "bdf2, trapezoidal and rk4 cannot integrate the mass term.");
+      return scheme;
     };
   
     // Main formulation scheme

@@ -2612,9 +2612,6 @@ namespace CoupledField {
   // ======================================================
   void MechPDE::InitTimeStepping()
   {
-    if (GetDomain()->GetAdaptiveData())
-        EXCEPTION("Adaptive timestepping is not supported for MechPDE: variable-step BDF2 is incompatible with structural wave simulation. Use fixed deltaT.");
-
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
@@ -2634,6 +2631,17 @@ namespace CoupledField {
     {
       Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
       scheme = new Newmark(0.5, 0.25, alpha);
+    }
+
+    if (GetDomain()->GetAdaptiveData())
+    {
+      if (nonLin_)
+        EXCEPTION("Adaptive timestepping is not supported for nonlinear MechPDE "
+                  "(incremental update is incompatible with step rejection).");
+      if (scheme->maxDerivOrder_ < 2)
+        EXCEPTION("Adaptive timestepping on MechPDE requires a second-order time scheme: "
+                  "use <integrationScheme><newmark .../> (or omit it for the Newmark default). "
+                  "bdf2, trapezoidal and rk4 cannot integrate the mass term.");
     }
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;

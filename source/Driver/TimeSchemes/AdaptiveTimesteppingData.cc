@@ -68,6 +68,27 @@ bool AdaptiveTimesteppingData::is_error_finite(Double Error)
     return std::isfinite(Error);
 }
 
+bool AdaptiveTimesteppingData::warmUpHold(double& schemeLocalError)
+{
+    if (!warmUpEnabled_ || !inWarmUpPhase_) return false;
+    if (!is_error_finite(localError_)) {
+        std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
+        localError_      = 0.0;
+        schemeLocalError = 0.0;
+        return true;
+    }
+    double ratio = (tol_ > 0.0) ? localError_ / tol_ : localError_;
+    if (ratio <= warmUpLTETarget_) {
+        // Error history is maintained by adaptTimestep() for every accepted step — no seeding here.
+        inWarmUpPhase_ = false;
+        std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
+        return true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
+    }
+    std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
+              << " > " << warmUpLTETarget_ << ", holding fixed dt.\n";
+    return true;
+}
+
 void AdaptiveTimesteppingData::mark_saturated()
 {
     postSaturationMode_ = true;
@@ -222,7 +243,8 @@ AdaptiveTimesteppingData::StepResult
 AdaptiveTimesteppingData::computeNextStep(
         double h, double h_prev, double est, double dtMin, double dtMax)
 {
-    const double maxRatio = 1.0 + std::sqrt(2.0);
+    const double maxRatio = (maxGrowthRatio_ > 0.0) ? maxGrowthRatio_
+                                                    : 1.0 + std::sqrt(2.0);
 
     // 1. NaN/Inf guard — Newton solver diverged; solution vector is NaN.
     // GLM history is still clean here, so reject and retry at dtMin. Abort after 3 in a row.
@@ -267,14 +289,15 @@ AdaptiveTimesteppingData::computeNextStep(
 
     // 4b. LTE stability damping — pulls h_next toward h when LTE trend is unstable.
     // Applies symmetrically to growth and shrinkage, for all controller types.
-    double sf = lteStabilityFactor(est);
+    double sf = lteDampingEnabled_ ? lteStabilityFactor(est) : 1.0;
     if (sf < 1.0) {
         h_next = h * (1.0 + (h_next / h - 1.0) * sf);
         std::cout << " [Adaptive] LTE unstable (sf=" << sf
                   << ") — damping step change to dt=" << h_next << "\n";
     }
 
-    // 5. BDF2 stability cap — upper bound on growth ratio.
+    // 5. Scheme stability cap — upper bound on growth ratio (maxGrowthRatio_:
+    // BDF2 zero-stability bound 1+sqrt(2); Newmark is A-stable, wider cap allowed).
     if (h_next / h > maxRatio)
         h_next = h * maxRatio;
 

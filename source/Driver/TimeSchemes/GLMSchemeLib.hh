@@ -41,7 +41,7 @@ class GLMScheme{
   Double prev_dtPrev1_   = -1.0;
   Double prev_dtPrev2_   = -1.0;
 
-  bool   adaptiveBDF2  = false;
+  bool   adaptiveEnabled_ = false;  // adaptive timestepping active (BDF2 or Newmark)
   Double local_error_  = 0.0;
   bool   initialized_  = false;
   bool   coefChanged_  = false;  // true when a0/dt changed; triggers system matrix rebuild
@@ -268,6 +268,10 @@ class Newmark : public GLMScheme{
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain);
+
+    Double GetGamma() const { return gamma_; }
+    Double GetBeta()  const { return beta_; }
+    Double GetAlpha() const { return alpha_; }
 
   private:
     /*!parameter for switching between implicit and explicit scheme

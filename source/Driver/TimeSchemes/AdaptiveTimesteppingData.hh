@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -38,6 +39,37 @@ public:
 
     void   registerFieldLTE(double lte);
     double getControllingError() const;
+
+    //! Per-DOF tolerance scaling: lte / (atol + maxAbsY·rtol) in rtol/atol mode, raw lte otherwise.
+    double scaledLTE(double lte, double maxAbsY) const {
+        return (rtol_ > 0.0) ? lte / (atol_ + maxAbsY * rtol_) : lte;
+    }
+
+    //! Accumulates per-DOF (scaled) LTE values into the configured error norm.
+    struct ErrorNorm {
+        int    scheme;        // 1 = maxlocalError, 2 = normalizedError (RMS)
+        double maxv = 0.0;
+        double sum  = 0.0;
+        std::size_t n = 0;
+        void   add(double lte) { if (scheme == 2) sum += lte*lte; if (lte > maxv) maxv = lte; n++; }
+        double result() const  { return (scheme == 2 && n > 0) ? std::sqrt(sum/n) : maxv; }
+    };
+    ErrorNorm newErrorNorm() const { return ErrorNorm{errorScheme_}; }
+
+    //! Warm-up hold: true while running at fixed deltaT until LTE/tol <= warmUpLTETarget_.
+    //! Resets localError_ and the caller's scheme-local error if LTE is non-finite.
+    bool warmUpHold(double& schemeLocalError);
+
+    //! Scheme-dependent stability cap on step growth h_next/h; 0 = unset (falls back to 1+sqrt(2)).
+    //! Set at adaptive activation; with mixed schemes the most restrictive bound wins.
+    double maxGrowthRatio_ = 0.0;
+    void restrictMaxGrowthRatio(double r) {
+        maxGrowthRatio_ = (maxGrowthRatio_ > 0.0) ? std::min(maxGrowthRatio_, r) : r;
+    }
+
+    //! LTE-trend damping (lteStabilityFactor) on/off. Newmark's ZX estimate alternates with
+    //! 2*dt (ü update has a -ü_n term for beta=1/4), which falsely triggers the damper.
+    bool lteDampingEnabled_ = true;
 
     // per-step feedback (written by TransientDriver, read by TimeSchemeGLM)
     double prevError_     = 0.0;

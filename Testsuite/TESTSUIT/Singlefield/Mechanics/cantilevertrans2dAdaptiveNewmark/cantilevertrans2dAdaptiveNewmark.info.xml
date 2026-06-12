@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="274" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.5902s" wall="0.590229" cpu="0.345426" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="236" peak="241"/>
+  </summary>
+  <header id="">
+    <environment started="12-Jun-26 21:10:47" host="rk1" estimatedEnd="2026-Jun-12 21:10:47" remainingTime="0.13187" timePerStep="0.0013457"/>
+    <progOpts problem="cantilevertrans2dAdaptiveNewmark" parameterFile="/home/dorninger/cfs/Testsuite/TESTSUIT/Singlefield/Mechanics/cantilevertrans2dAdaptiveNewmark/cantilevertrans2dAdaptiveNewmark.xml" schemaPath="/home/dorninger/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.05" name="Kaum Konvergenz" build="RELEASE" git_commit="262eb1e72d7614494427fd1fa18e334108bf3db3-modified" git_branch="adaptiveTimestepping" compiled="Jun 12 2026" exe="/home/dorninger/cfs/build/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="8" ny="3" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="24" nodes="36">
+          <timer id="4" wall-clock="0.001108s" wall="0.00110777" cpu="0.001108" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="5.279e-05s" wall="5.2791e-05" cpu="5.2e-05" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="0.0001133s" wall="0.000113303" cpu="0.000113" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="5.74e-06s" wall="5.74e-06" cpu="6e-06" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="4.355e-05s" wall="4.3551e-05" cpu="4.3e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="cantilev" id="0" type="volume" regular="yes" hom="yes" nodes="36" elems="24" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="ux-dof" count="4"/>
+        <nodes name="uy-dof" count="4"/>
+        <nodes name="uy-load" count="4"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="9.6393e-07" f="0" nx="8" ny="3" nz="1" step="269" t="0.00030057" t0="0"/>
+    </domain>
+    <results>
+      <timer id="29" wall-clock="0.3176s" wall="0.317648" cpu="0.174567" calls="1614"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001556s" wall="0.00155587" cpu="0.001556" calls="1"/>
+    </hdf5>
+  </output>
+  <sequenceStep sequence="1">
+    <transient totalAdaptiveRetries="63">
+      <header unit="s"/>
+      <init_transient>
+        <timer id="16" wall-clock="0.05201s" wall="0.0520149" cpu="0.011987" calls="1"/>
+      </init_transient>
+    </transient>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="cantilev" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionConst" region="cantilev">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="cantilev">
+                <coef type="CoefFunctionConst" value="2330"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="uy-load" size="4" region="no_region"/>
+                <coef type="CoefFunctionTimeFreq&lt;double&gt;" value="((0.0)  /  (4)) (((t lt 7e-6)?4:0)  /  (4))"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="silizium">
+          <regionList>
+            <region name="cantilev"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 2.024307e+11  7.487162e+10  7.487162e+10  0.000000e+00  0.000000e+00  0.000000e+00
+                 7.487162e+10  2.024307e+11  7.487162e+10  0.000000e+00  0.000000e+00  0.000000e+00
+                 7.487162e+10  7.487162e+10  2.024307e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  6.377953e+10  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  6.377953e+10  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  6.377953e+10
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1.62e+11,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.27,0)"/>
+          <property name="Density" value="(2330,0)"/>
+          <property name="Rayleigh_Alpha" value="2760.8696686617518"/>
+          <property name="Rayleigh_Beta" value="2.2635530647954404e-07"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 2.024307e+11  7.487162e+10  0.000000e+00
+                 7.487162e+10  2.024307e+11  0.000000e+00
+                 0.000000e+00  0.000000e+00  6.377953e+10
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <cantilev/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="ux-dof" dofs="x"/>
+            <nodeList name="uy-dof" dofs="y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="64" totalNumFreeEqns="64" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="64" lastFreeEqn="64" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="64" lastFreeIndex="64"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLU>
+            <summary>
+              <setup>
+                <timer id="25" label="setup_directLU" wall-clock="0.01643s" wall="0.0164268" cpu="0.01639" calls="331"/>
+              </setup>
+              <solve>
+                <timer id="26" label="solve_directLU" wall-clock="0.003573s" wall="0.00357346" cpu="0.00357" calls="332"/>
+              </solve>
+            </summary>
+          </directLU>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="27" wall-clock="0.0002515s" wall="0.00025146" cpu="0.000289" calls="331"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="28" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph nnz="880">
+        <timer id="21" wall-clock="0.02261s" wall="0.0226089" cpu="0.000626" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="22" wall-clock="1.459e-05s" wall="1.459e-05" cpu="1.5e-05" calls="1" sub="true" parent="21"/>
+        </finalize>
+        <sort>
+          <timer id="23" wall-clock="9.85e-06s" wall="9.85e-06" cpu="1e-05" calls="1" sub="true" parent="21"/>
+        </sort>
+        <rows number="64" min="8" max="18" mean="13.75" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="24" wall-clock="0.0001481s" wall="0.000148054" cpu="0.000148" calls="1" sub="true" parent="21"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="17" wall-clock="0.006413s" wall="0.00641328" cpu="0.004551" calls="664"/>
+          <matrices>
+            <timer id="18" wall-clock="0.004416s" wall="0.00441628" cpu="0.0025" calls="332" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="0.001114s" wall="0.00111355" cpu="0.001112" calls="332" sub="true" parent="17"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="20" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

@@ -514,10 +514,9 @@ namespace CoupledField {
     if(!accepted && retryCount == 0)
       antiWindupError_ = prevLTEerror_;
 
-    // Detect: first LTE step (step 3 = after 2 warm-up steps) rejecting repeatedly.
-    // This means the initial deltaT is too large for the tolerance — BDF2 step ratios
-    // blow up on retries, inflating the LTE estimate artificially.
-    if (!accepted && retryCount == 1 && actTimeStep_ == restartStep_ + 3) {
+    // Detect: an early LTE-capable step (after the scheme's 1-2 warm-up steps) rejecting
+    // repeatedly. The initial deltaT is then too large for the tolerance.
+    if (!accepted && retryCount == 1 && actTimeStep_ <= restartStep_ + 3) {
       std::cout << " [Adaptive] HINT: The first LTE-capable step is rejecting.\n"
                 << "            Initial deltaT=" << firstdt_ << " is likely too large for the given tolerance.\n"
                 << "            Add StartAtmin=\"ON\" to your <adaptiveTimeStepping> to start from deltaTmin instead.\n"

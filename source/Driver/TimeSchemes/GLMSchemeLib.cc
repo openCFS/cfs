@@ -165,6 +165,23 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
 }
 
 void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+  // Adaptive: Newmark is one-step, the tableau depends only on the current deltaT (no step
+  // ratio like BDF2); we only track dt changes to trigger the matrix rebuild + refactorization.
+  // coefChanged_ is sticky (cleared on accept in FinishStep): TransformBC re-calls this method
+  // with unchanged dt and must not clear a pending rebuild flag.
+  if(adaptiveEnabled_){
+    if(!initialized_){
+      dtCurrent_ = dtPrev1_ = dtPrev2_ = deltaT;
+      initialized_ = true;
+      coefChanged_ = true;
+    }else if(deltaT != dtCurrent_){
+      dtPrev2_ = dtPrev1_;
+      dtPrev1_ = dtCurrent_;
+      dtCurrent_ = deltaT;
+      coefChanged_ = true;
+    }
+  }
+
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
 

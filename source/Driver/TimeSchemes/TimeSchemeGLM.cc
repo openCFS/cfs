@@ -102,12 +102,14 @@ namespace CoupledField{
     predictors_.Clear();
 
     delete prevPrevSol_; prevPrevSol_ = nullptr;
+    delete glmStepStart_; glmStepStart_ = nullptr;
   }
 
   void TimeSchemeGLM::Init(SingleVector* solVec,Double dt){
-    curScheme_->adaptiveBDF2 = false;
+    curScheme_->adaptiveEnabled_ = false;
     curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_,dt);
     prevPrevSol_ = nullptr;
+    glmStepStart_ = nullptr;
 
     //now init GLM vector
     //this now highly depends on the used scheme
@@ -232,27 +234,47 @@ namespace CoupledField{
         mathparser_ = domain_->GetMathParser();
      }
 
-    if(domain_ != nullptr && curScheme_->adaptiveBDF2 != true)
+    if(domain_ != nullptr && curScheme_->adaptiveEnabled_ != true)
     {
       auto atd = domain_->GetAdaptiveData();
       if(atd && atd->enabled_)
       {
-        // GetType() == 3: BDF2; adaptive step control is only supported for BDF2
-        if(curScheme_->GetType() == 3)
+        const GLMScheme::SchemeType type = curScheme_->GetType();
+        if(type == GLMScheme::BDF2 || type == GLMScheme::NEWMARK)
         {
-          curScheme_->adaptiveBDF2 = true;
+          if(type == GLMScheme::NEWMARK)
+          {
+            Newmark* nm = static_cast<Newmark*>(curScheme_);
+            if(nm->GetAlpha() != 0.0)
+              EXCEPTION("Adaptive timestepping is not implemented for the HHT-alpha method "
+                        "(alpha != 0): the Zienkiewicz-Xie LTE estimator assumes standard "
+                        "Newmark. Use alpha=\"0\".");
+            if(std::abs(nm->GetBeta() - 1.0/6.0) < 1e-8)
+              EXCEPTION("Adaptive timestepping cannot be used with Newmark beta = 1/6 "
+                        "(Fox-Goodwin): the Zienkiewicz-Xie LTE estimator degenerates. "
+                        "Use e.g. beta=\"0.25\".");
+          }
+          curScheme_->adaptiveEnabled_ = true;
           adaptiveStepCount_ = 0;
           // Re-seed dt history with the actual first adaptive dt (Init() seeded firstdt_,
           // which is wrong when StartAtmin makes the first step use dtMin).
           curScheme_->initialized_ = false;
+          // Step-growth cap: BDF2 zero-stability bound 1+sqrt(2); Newmark is A-stable
+          // (gamma=1/2, beta=1/4), only controller robustness limits growth -> 5x.
+          atd->restrictMaxGrowthRatio(type == GLMScheme::NEWMARK ? 5.0
+                                                                 : 1.0 + std::sqrt(2.0));
+          // The LTE-trend damper misreads the 2*dt alternation of the Newmark ZX
+          // estimate as instability and throttles dt; disable it for Newmark.
+          if(type == GLMScheme::NEWMARK)
+            atd->lteDampingEnabled_ = false;
         }else
         {
-          EXCEPTION("Adaptive timestepping is only implemented for BDF2. Hint: select desired time scheme via <integrationScheme>");
+          EXCEPTION("Adaptive timestepping is only implemented for BDF2 and Newmark. Hint: select desired time scheme via <integrationScheme>");
         }
       }
     }
-    // Adaptive Timestepping: update dt from AdaptiveTimesteppingData and recompute BDF2 coefficients.
-    if(curScheme_->adaptiveBDF2)
+    // Adaptive Timestepping: update dt from AdaptiveTimesteppingData and recompute coefficients.
+    if(curScheme_->adaptiveEnabled_)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
       curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_, dt);
@@ -297,6 +319,18 @@ namespace CoupledField{
       // if we get to this point, we are already in the next iteration, so it is save to assume that we did not converge
       ProcessGlmVec(false);
       resetGlmVector_ = false;
+    }
+
+    // Adaptive + stage-aliasing scheme (Newmark): the solver overwrites glm[avoidUpdateIdx_]
+    // in-place, so back up the step-start value for rejection restore and LTE.
+    // updatePredictor=true marks a fresh step attempt (false on coupling re-iterations).
+    if(updatePredictor && curScheme_->adaptiveEnabled_ && curScheme_->lastStageIsSolution_
+       && avoidUpdateIdx_ >= 0){
+      if(glmStepStart_ == nullptr){
+        glmStepStart_ = new Vector<Double>();
+        glmStepStart_->Resize(glmVector_[avoidUpdateIdx_]->GetSize());
+      }
+      glmStepStart_->operator=(*glmVector_[avoidUpdateIdx_]);
     }
   }
 
@@ -423,34 +457,17 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::FinishStepLTE() {
-    if (!curScheme_->adaptiveBDF2 || adaptiveStepCount_ < 2) return;
-    LTELocalErrorEstimation();
+    if (!curScheme_->adaptiveEnabled_ || adaptiveStepCount_ < MinStepsForLTE()) return;
+    if (curType_ == GLMScheme::NEWMARK)
+      LTENewmarkEstimation();
+    else
+      LTELocalErrorEstimation();
     domain_->GetAdaptiveData()->registerFieldLTE(curScheme_->local_error_);
   }
 
-  bool TimeSchemeGLM::WarmUpHold(AdaptiveTimesteppingData* atd) {
-    if (!atd->warmUpEnabled_ || !atd->inWarmUpPhase_) return false;
-    if (!atd->is_error_finite(atd->localError_)) {
-      std::cout << " [Adaptive] Warm-up: LTE is non-finite, resetting to 0 and holding fixed dt.\n";
-      atd->localError_         = 0.0;
-      curScheme_->local_error_ = 0.0;
-      return true;
-    }
-    double ratio = (atd->tol_ > 0.0) ? atd->localError_ / atd->tol_ : atd->localError_;
-    if (ratio <= atd->warmUpLTETarget_) {
-      // Error history is maintained by adaptTimestep() for every accepted step — no seeding here.
-      atd->inWarmUpPhase_ = false;
-      std::cout << " [Adaptive] Warm-up ended: LTE/tol=" << ratio << ", holding dt one transition step.\n";
-      return true;  // one extra hold so the PI/PID controller doesn't cold-start with a large jump
-    }
-    std::cout << " [Adaptive] Warm-up: LTE/tol=" << ratio
-              << " > " << atd->warmUpLTETarget_ << ", holding fixed dt.\n";
-    return true;
-  }
-
   void TimeSchemeGLM::FinishStep(){
-    if (curScheme_->adaptiveBDF2) {
-      if (adaptiveStepCount_ >= 2) {
+    if (curScheme_->adaptiveEnabled_) {
+      if (adaptiveStepCount_ >= MinStepsForLTE()) {
         auto* atd = domain_->GetAdaptiveData().get();
 
         if (atd->lteCollected_) {
@@ -459,13 +476,13 @@ namespace CoupledField{
 
           if (atd->stepRejected_) {
             // A prior field already rejected this step; follow along.
-            reset_dt();
+            RestoreRejectedStep();
             return;
           }
 
           if (!atd->stepDecisionMade_) {
             // First field to reach here makes the single step-size decision.
-            bool skipAdaptiveControl = WarmUpHold(atd);
+            bool skipAdaptiveControl = atd->warmUpHold(curScheme_->local_error_);
             atd->stepDecisionMade_ = true;
             if (!skipAdaptiveControl) {
               bool accepted = ComputeAdaptiveStepSize();
@@ -474,7 +491,7 @@ namespace CoupledField{
                           << atd->getControllingError()
                           << " > tol, retrying with dt= "
                           << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
-                reset_dt();
+                RestoreRejectedStep();
                 return;
               }
             }
@@ -484,35 +501,42 @@ namespace CoupledField{
 
         } else {
           // ── Single-field path (FinishStepLTE not called) ─────────────
-          LTELocalErrorEstimation();
-          bool skipAdaptiveControl = WarmUpHold(atd);
+          if (curType_ == GLMScheme::NEWMARK)
+            LTENewmarkEstimation();
+          else
+            LTELocalErrorEstimation();
+          bool skipAdaptiveControl = atd->warmUpHold(curScheme_->local_error_);
           if (!skipAdaptiveControl) {
             bool accepted = ComputeAdaptiveStepSize();
             if (!accepted) {
               std::cout << " [Adaptive] Step REJECTED: LocalError= " << curScheme_->local_error_
                         << " > tol, retrying with dt= "
                         << mathparser_->GetExprVars(MathParser::GLOB_HANDLER, "dt") << "\n";
-              reset_dt();
+              RestoreRejectedStep();
               return;
             }
           }
         }
       }
 
-      // Step accepted: save dt history and glm[1] (y_{n-1}) as prevPrevSol_ (y_{n-2}).
-      // NOTE: glmVector_[1] still holds y_{n-1} here (before the GLM update below).
+      // Step accepted: save dt history snapshots for reset_dt() on a future rejection.
       curScheme_->prev_dtCurrent_ = curScheme_->dtCurrent_;
       curScheme_->prev_dtPrev1_   = curScheme_->dtPrev1_;
       curScheme_->prev_dtPrev2_   = curScheme_->dtPrev2_;
 
-      // Save y_{n-1} (glm[1]) as y_{n-2} before GLM update; skip first step (glm[1] not yet valid).
-      if (adaptiveStepCount_ >= 1) {
+      // BDF2 only: save y_{n-1} (glm[1]) as y_{n-2} before the GLM update below.
+      // Skip first step (glm[1] not yet valid). Newmark's LTE needs no solution history.
+      if (curType_ == GLMScheme::BDF2 && adaptiveStepCount_ >= 1) {
         if (prevPrevSol_ == nullptr) {
           prevPrevSol_ = new Vector<Double>();
           prevPrevSol_->Resize(glmVector_[1]->GetSize());
         }
         prevPrevSol_->operator=(*glmVector_[1]);
       }
+      // Newmark's coefChanged_ is sticky (see Newmark::ComputeCoefficients); the rebuild
+      // decision for this step is consumed, so clear it on accept.
+      if (curType_ == GLMScheme::NEWMARK)
+        curScheme_->coefChanged_ = false;
       adaptiveStepCount_++;
     }
   
@@ -706,10 +730,6 @@ namespace CoupledField{
     Double h0 = curScheme_->dtPrev2_;
 
     auto* atd = domain_->GetAdaptiveData().get();
-    int    ErrorScheme = atd->errorScheme_;
-    double RTOL        = atd->rtol_;
-    double ATOL        = atd->atol_;
-    bool useScaling = (RTOL > 0.0);
 
     // Guard: need two accepted steps before prevPrevSol_ is valid.
     // glm[1] is valid (y_{n-1}) after the first step; prevPrevSol_ (y_{n-2}) after the second.
@@ -724,11 +744,8 @@ namespace CoupledField{
     const Double w_r  = (h2 > 0.0 && h1 > 0.0) ? h2 / h1 : 1.0;
     const Double a0_r = (1.0 + 2.0*w_r) / (1.0 + w_r);
 
-    double l2_norm = 0.0;
-
-    Double maxLTE = 0.0;
+    auto norm = atd->newErrorNorm();
     UInt n = stageVector_[0]->GetSize();
-    Double sum = 0.0;
     for (UInt j = 0; j < n; j++) {
         Double stage_j, yNp1_raw, yN_raw, yNm1_raw;
         stageVector_[0]->GetEntry(j, stage_j);    // ẏ_{n+1}
@@ -764,25 +781,60 @@ namespace CoupledField{
         // D3 = y[t_{n+1},t_n,t_{n-1},t_{n-2}] ≈ y'''/6; BDF2 LTE = h²(h+h₋₁)/6·y''' → factor 6 cancels.
         Double lte  = std::abs(h2 * h2 * (h2 + h1) * D3);
 
-        if (useScaling) {  // when using girect tol instead of rtol/atol implementation
-            Double sc = ATOL + std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)}) * RTOL;
-            lte = lte / sc;
-        }
-
-        if(ErrorScheme == 2){sum = sum + std::pow(lte,2);}
-        if (lte > maxLTE){ maxLTE = lte; }
+        norm.add(atd->scaledLTE(lte, std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)})));
     }
 
-    if(ErrorScheme == 2)
-    { // Euclidean (normalised) error norm
-      l2_norm = std::sqrt(sum/n);
-      curScheme_->local_error_ = l2_norm;
-      atd->localError_ = l2_norm;
-    }else
-    {
-      curScheme_->local_error_ = maxLTE;
-      atd->localError_ = maxLTE;
+    curScheme_->local_error_ = norm.result();
+    atd->localError_ = curScheme_->local_error_;
+  }
+
+  void TimeSchemeGLM::LTENewmarkEstimation()
+  {
+    // Zienkiewicz–Xie (1991): lte_j = |(β − 1/6)·h²·(ü_{n+1,j} − ü_{n,j})|.
+    // ü_{n+1} comes from the GLM update row for the acceleration slot; since the stage
+    // aliases glm[avoidUpdateIdx_], the step-start value is read from glmStepStart_.
+    auto* atd = domain_->GetAdaptiveData().get();
+
+    if (glmStepStart_ == nullptr) {
+      atd->localError_ = 0.0;
+      curScheme_->local_error_ = 0.0;
+      return;
     }
+
+    const Double beta = static_cast<Newmark*>(curScheme_)->GetBeta();
+    const Double h    = curScheme_->dtCurrent_;
+    const UInt accelIdx = curScheme_->numOldSols_ + curScheme_->numSol1stDerivs_;
+    const UInt rowBase  = curScheme_->numStages_ * (curScheme_->maxDerivOrder_ + 1);
+
+    // glm entry with step-start substitution for the solver-overwritten slot
+    auto oldVal = [&](UInt i, UInt j) {
+      Double v;
+      ((Integer)i == avoidUpdateIdx_ ? glmStepStart_ : glmVector_[i])->GetEntry(j, v);
+      return v;
+    };
+    // GLM update row (rowBase+deriv) applied to {stage, old glm}: new glm[deriv] per DOF
+    auto updateRow = [&](UInt deriv, UInt j) {
+      Double stage_j;
+      stageVector_[0]->GetEntry(j, stage_j);
+      Double v = curScheme_->schemeCoefs_[rowBase + deriv][0] * stage_j;
+      for (UInt i = 0; i < curScheme_->sizeGLMVec_; i++)
+        v += curScheme_->schemeCoefs_[rowBase + deriv][1 + i] * oldVal(i, j);
+      return v;
+    };
+
+    auto norm = atd->newErrorNorm();
+    const UInt n = stageVector_[0]->GetSize();
+    for (UInt j = 0; j < n; j++) {
+      Double aNew = updateRow(accelIdx, j);
+      Double aOld = oldVal(accelIdx, j);
+      Double lte  = std::abs((beta - 1.0/6.0) * h * h * (aNew - aOld));
+
+      Double uNew = updateRow(0, j);
+      norm.add(atd->scaledLTE(lte, std::max(std::abs(uNew), std::abs(oldVal(0, j)))));
+    }
+
+    curScheme_->local_error_ = norm.result();
+    atd->localError_ = curScheme_->local_error_;
   }
 
   bool TimeSchemeGLM::ComputeAdaptiveStepSize()
@@ -816,6 +868,15 @@ namespace CoupledField{
     curScheme_->dtPrev2_   = curScheme_->prev_dtPrev2_;
     // The system matrix may have been rebuilt for the rejected dt; force a rebuild on retry.
     curScheme_->coefChanged_ = true;
+  }
+
+  void TimeSchemeGLM::RestoreRejectedStep()
+  {
+    reset_dt();
+    // Newmark aliases the stage onto glm[avoidUpdateIdx_]: the solver already overwrote it
+    // with the rejected solution; restore the step-start value so the retry starts clean.
+    if (curScheme_->lastStageIsSolution_ && avoidUpdateIdx_ >= 0 && glmStepStart_ != nullptr)
+      glmVector_[avoidUpdateIdx_]->operator=(*glmStepStart_);
   }
 
 }

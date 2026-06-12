@@ -99,6 +99,11 @@
             <xsd:complexType>
               <xsd:annotation>
                 <xsd:documentation>
+                  Adapts the time scheme the PDE actually uses, selected via integrationScheme:
+                  supported are bdf2 (parabolic PDEs) and newmark with alpha=0, beta!=1/6 (wave PDEs).
+                  If integrationScheme is omitted, the PDE default applies (e.g. mechanic/acoustic: newmark).
+                  Warm-up before the LTE controller activates: 1 step (newmark) / 2 steps (bdf2).
+
                   deltaTmin         : Minimum time step size. If hit, the step is force-accepted and a warning is issued.
                   deltaTmax         : Maximum time step size. The controller never exceeds this value.
                   directTol         : LTE acceptance tolerance (step accepted when LTE &lt; directTol). Typical: 1e-4..1e-8. Mutually exclusive with relativeTol/absoluteTol. (The use of relativeTol/absoluteTol is recommended)
@@ -156,6 +161,8 @@
               <xsd:documentation>Overrides the default time integration scheme used for this PDE.
                                   Exactly one child element must be specified: trapezoidal, newmark, bdf2, or rk4.
                                   If omitted, the solver's built-in default scheme is used.
+                                  With adaptiveTimeStepping, this element also selects the adaptive scheme:
+                                  bdf2 and newmark (alpha=0, beta!=1/6) are supported.
               </xsd:documentation>
             </xsd:annotation>
             <xsd:complexType>

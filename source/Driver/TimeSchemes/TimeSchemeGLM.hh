@@ -217,15 +217,27 @@ class TimeSchemeGLM : public BaseTimeScheme{
     // y_{n-1} is read directly from glm[1] (correct after the schemeCoefs_[3] fix).
     SingleVector* prevPrevSol_ = nullptr;
 
+    //! Step-start backup of glm[avoidUpdateIdx_] for schemes where the stage aliases the
+    //! GLM vector (Newmark): restored on rejection, read as the old solution by the LTE.
+    SingleVector* glmStepStart_ = nullptr;
+
     int adaptiveStepCount_ = 0;
 
   private:
 
     void LTELocalErrorEstimation();
+    void LTENewmarkEstimation();
     bool ComputeAdaptiveStepSize();
 
-    //! Warm-up phase handling; returns true while adaptive control must be skipped (dt held fixed).
-    bool WarmUpHold(AdaptiveTimesteppingData* atd);
+    //! Accepted steps needed before the LTE estimator has valid history.
+    //! Newmark: 1 (ü_0 is zero-initialized, no initial-acceleration solve); BDF2: 2 (needs y_{n-2}).
+    int MinStepsForLTE() const {
+      return (curType_ == GLMScheme::NEWMARK) ? 1 : 2;
+    }
+
+    //! Rejection handling: reset_dt() plus undo of the solver's glm overwrite for
+    //! stage-aliasing schemes (Newmark) so the retry starts from clean step-start state.
+    void RestoreRejectedStep();
 
 
     ///just export the scheme to a file
