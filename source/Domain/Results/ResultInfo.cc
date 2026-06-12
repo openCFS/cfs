@@ -478,7 +478,6 @@ namespace CoupledField {
       case FLUIDMECH_STABILPARAM:
       case FLUIDMECH_INTENSITY:
       case FLUIDMECH_INTENSITY_PRESSURE_ONLY:
-      case FLUIDMECH_PRES_GRADIENT:
       case GRAD_ELEC_POTENTIAL:
         return ResultInfo::ELEMENT;
       
