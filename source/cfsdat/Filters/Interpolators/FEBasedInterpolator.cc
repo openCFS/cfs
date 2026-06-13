@@ -573,7 +573,7 @@ void FEBasedInterpolator::FindTargetElements(Grid* findGrid, std::set<std::strin
         StdVector<CF::Double>* distances = new StdVector<CF::Double>();
         foundReplacementEntities[i] = replacements;
         foundReplacementDistances[i] = distances;
-        Vector<double> pCoord = globCoords[i];
+        const Vector<double>& pCoord = globCoords[i];
         Double minDistance = std::numeric_limits<Double>::max();
         if (findElems) { // elements are to be found
           replacements->Reserve(size);

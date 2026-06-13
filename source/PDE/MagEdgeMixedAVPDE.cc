@@ -153,8 +153,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       }
 
       // Get possible nonlinearities defined in this region
-      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
+      const StdVector<NonLinType>& matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
 
       // Create new entity list, based on the region
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );

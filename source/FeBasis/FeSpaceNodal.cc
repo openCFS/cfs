@@ -172,7 +172,7 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
       //LOG_DBG2(feSpaceNodal) << "GetVectorValuesAtCoords for updatedGeo = " << updateGeo << ":\n" << valuesAtCoords.ToString();
 
       for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
-        StdVector<UInt> curEqs = idxMap[aNode];
+        const StdVector<UInt>& curEqs = idxMap[aNode];
         // loop over all dofs
         //if we have an empty set we loop over everything
         if(comp.size()==0){

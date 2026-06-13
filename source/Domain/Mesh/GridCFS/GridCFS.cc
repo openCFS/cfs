@@ -1061,8 +1061,8 @@ void GridCFS::MapFaces()
     Vector<Double> normalUndefSign, normalDefSign;
     for(UInt i =0;i<elemList.size();++i){
       Elem* curE = elemList[i];
-      ElemShape curShape = Elem::shapes[curE->type];
-      StdVector<Elem::FEType> subelems = curShape.surfElemTypes;
+      const ElemShape& curShape = Elem::shapes[curE->type];
+      const StdVector<Elem::FEType>& subelems = curShape.surfElemTypes;
       UInt numSubElems = curShape.numSurfElems;
       for(UInt aSub =0; aSub<numSubElems ; ++aSub,++numNcSurfElems_){
         //create the subelement
@@ -1079,7 +1079,7 @@ void GridCFS::MapFaces()
           // ordering vertexNodes-edgeNodes-FaceNodes
 
           //obtain the faceNodeArray
-          StdVector<UInt> fNodes = curShape.faceNodes[aSub];
+          const StdVector<UInt>& fNodes = curShape.faceNodes[aSub];
           UInt numNodes = curShape.faceNodes[aSub].GetSize();
           curSurf->connect.Resize(numNodes);
           //now we loop over the face nodes and assign the corresponding nodes from the volume element
@@ -1181,7 +1181,7 @@ void GridCFS::MapFaces()
         LOG_DBG3(gridcfs) << interiorSurfElems[iElem]->connect[i] << " ";
       }
       LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
-      StdVector<shared_ptr<NcSurfElem> > neigh = interiorSurfElems[iElem]->neighbors;
+      const StdVector<shared_ptr<NcSurfElem> >& neigh = interiorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
       }
@@ -1203,7 +1203,7 @@ void GridCFS::MapFaces()
         LOG_DBG3(gridcfs) << exteriorSurfElems[iElem]->connect[i] << " ";
       }
       LOG_DBG3(gridcfs) << std::endl << "\t Neighbors:" << std::endl;
-      StdVector<shared_ptr<NcSurfElem> > neigh = exteriorSurfElems[iElem]->neighbors;
+      const StdVector<shared_ptr<NcSurfElem> >& neigh = exteriorSurfElems[iElem]->neighbors;
       for(UInt i=0;i < neigh.GetSize();++i){
         LOG_DBG3(gridcfs) << "\t " << neigh[i]->elemNum << " ";
       }
@@ -1265,7 +1265,7 @@ void GridCFS::MapFaces()
         //get the index vector
         if(fiter->second.GetSize() > 1){
           // so we have an interior element so we let the guys know about each other
-          StdVector<UInt> fIdx = fiter->second;
+          const StdVector<UInt>& fIdx = fiter->second;
           for(UInt curE = 0; curE < fIdx.GetSize(); ++curE){
             //and loop again but only assign if cuE != j
             for(UInt j = 0; j < fIdx.GetSize(); ++j){

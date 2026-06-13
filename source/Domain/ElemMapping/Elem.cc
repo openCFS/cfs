@@ -64,7 +64,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
                << this->elemNum );
    }
    // copy nodes, according to the element shape
-    StdVector<UInt> faceNodes = shapes[type].faceNodes[locFaceIndex];
+    const StdVector<UInt>& faceNodes = shapes[type].faceNodes[locFaceIndex];
     UInt numNodes = faceNodes.GetSize();
     nodes.Resize(numNodes);
    for( UInt i = 0; i < numNodes; ++i ) {
@@ -88,7 +88,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
                << this->elemNum );
    }
    // copy nodes, according to the element shape
-   StdVector<UInt> faceNodes = shapes[type].edgeVertices[locEdgeIndex];
+   const StdVector<UInt>& faceNodes = shapes[type].edgeVertices[locEdgeIndex];
    UInt numNodes = faceNodes.GetSize();
    nodes.Resize(numNodes);
    for( UInt i = 0; i < numNodes; ++i ) {

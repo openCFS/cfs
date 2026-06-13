@@ -501,7 +501,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type my_app)
   eit.Begin();
   while(!eit.IsEnd())
   {
-    StdVector<unsigned int> elem_nodes = eit.GetElem()->connect;
+    const StdVector<unsigned int>& elem_nodes = eit.GetElem()->connect;
     for(unsigned int n = 0; n < elem_nodes.GetSize(); n++)
       nodes.insert(elem_nodes[n]);
     eit++;

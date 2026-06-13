@@ -229,7 +229,7 @@ namespace CoupledField {
       
       SDLists_[actRegion] = actSDList;
       
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
       if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
         shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
         actSDList->SetRegion( actRegion );
@@ -370,7 +370,7 @@ namespace CoupledField {
       PtrCoefFct coefMAPScal, coefMAPVec;
       bool isMapping = false;
       
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
 
       if (dampingList_[actRegion] == PML)
       {
@@ -1239,7 +1239,7 @@ namespace CoupledField {
     shared_ptr<CoefFunction > curCoef;
     //get possible nonlinearities defined in this region
     bool regionIsHyst = false;
-    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
+    const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[regionId];
     if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
       //std::cout << "Found region with hysteresis" << std::endl;
       regionIsHyst = true;

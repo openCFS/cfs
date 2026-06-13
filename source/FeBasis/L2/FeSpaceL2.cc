@@ -396,7 +396,7 @@ namespace CoupledField{
          {
            UInt numVertexNodes = 0;
            UInt numVert = Elem::shapes[actEl->type].numVertices;
-           StdVector<UInt> elemNodes = actEl->connect;
+           const StdVector<UInt>& elemNodes = actEl->connect;
 
            //in case of surface elements we obtain the number of the first associated volume element
            if((actListType == EntityList::SURF_ELEM_LIST) ||

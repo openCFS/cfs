@@ -196,7 +196,7 @@ void AeroacousticBase::Node2Cell(Vector<Double>& returnVec,
 //#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for(UInt i = 0; i < maxNumTrgEntities; ++i){
     UInt patchSize = targetSourceIndex[i].GetSize();
-    StdVector<UInt> sM = targetSourceIndex[i];
+    const StdVector<UInt>& sM = targetSourceIndex[i];
     CF::UInt targetIndex = i * numEquPerEnt;
     for (CF::UInt j = 0; j < patchSize; j++) {
       CF::UInt sourceIndex = sM[j];

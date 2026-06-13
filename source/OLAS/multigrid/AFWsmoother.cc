@@ -57,7 +57,7 @@ CreatePatches(const CRS_Matrix<Double>& AuxMatrix,
   // "invert" edgeIndNode, so that we get indices in edgeIndNode for every node
   std::unordered_map<Integer, StdVector<UInt> > edgesOfNode;
   for(UInt i = 0; i < edgeIndNode.GetSize(); ++i ){
-    StdVector<Integer> nodes = edgeIndNode[i];
+    const StdVector<Integer>& nodes = edgeIndNode[i];
     StdVector<UInt>& t1 = edgesOfNode[nodes[0]];
     StdVector<UInt>& t2 = edgesOfNode[nodes[1]];
     t1.Push_back( i );

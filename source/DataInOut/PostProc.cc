@@ -648,7 +648,7 @@ namespace CoupledField {
       std::string probGeo = feFct->GetPDE()->GetDomain()->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
       
       shared_ptr<ResultInfo> resInfo = feFct->GetResultInfo();
-      StdVector<std::string> dofNamesRes = resInfo->dofNames; 
+      //const StdVector<std::string>& dofNamesRes = resInfo->dofNames;
       
       if( dofNames_.GetSize() > 1 ) {
         StdVector<std::string> dofNamesGrid;
@@ -1060,7 +1060,7 @@ namespace CoupledField {
     std::string probGeo = feFct->GetPDE()->GetDomain()->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
     
     shared_ptr<ResultInfo> resInfo = feFct->GetResultInfo();
-    StdVector<std::string> dofNamesRes = resInfo->dofNames; 
+    const StdVector<std::string>& dofNamesRes = resInfo->dofNames;
     
     if( dofNamesRes.GetSize() > 1 ) {
       StdVector<std::string> dofNamesGrid;

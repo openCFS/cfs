@@ -650,7 +650,7 @@ namespace CoupledField {
 		std::map<RegionIdType, StdVector<NonLinType> > nonLinMap;
 		nonLinMap = pde2_->GetNonLinRegionTypes();
 
-		StdVector<NonLinType> nonLinTypes = nonLinMap[regionId];
+		const StdVector<NonLinType>& nonLinTypes = nonLinMap[regionId];
     if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
 
 			// extract stiffness tensor from mech pde

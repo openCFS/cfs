@@ -136,7 +136,7 @@ namespace CoupledField {
       // stiffness integrator: int (electric conductivity * grad N_i grad N_j) dx
       //
       shared_ptr<CoefFunction > condCoef;
-      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+      const StdVector<NonLinType>& matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
       if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 ) {
         //we read the computed conductivity tensor for each element from file
         //shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_POTENTIAL];

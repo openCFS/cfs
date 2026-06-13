@@ -833,7 +833,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // loop over all coupled SinglePDEs and remove involved
     // SinglePDEs
     for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
-      StdVector<SinglePDE*> sPdes = rPDE_.coupledPDEs_[i]->GetSinglePDEs();
+      const StdVector<SinglePDE*>& sPdes = rPDE_.coupledPDEs_[i]->GetSinglePDEs();
       for( UInt j = 0; j < sPdes.GetSize(); ++j ) {
         SinglePDE * singlePde = sPdes[j];
         if( uncoupledPdes.find(singlePde) != uncoupledPdes.end() ) {

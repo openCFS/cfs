@@ -322,7 +322,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][0] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              //const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -420,7 +420,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[2][1] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -461,7 +461,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][0] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -501,7 +501,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[2][1] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
             } 
         }

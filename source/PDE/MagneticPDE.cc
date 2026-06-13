@@ -226,7 +226,7 @@ namespace CoupledField {
       myFct->AddEntityList( actSDList );
 
 		  //get possible nonlinearities defined in this region
-		  StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+		  const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
 
 		  // ====================================================================
 		  //  NONLINEAR BH RELATION (NON-HYSTERETIC)
@@ -349,7 +349,7 @@ namespace CoupledField {
 
           //check for frozen permeability
           isPermFrozen = false;
-          StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+          const StdVector<NonLinType>& matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
           if ( matDepenTypes.Find(PERMEABILITY_FROZEN) != -1 ) {
             // Here, the magnetic permeability is not used from the material file but rather from a previous simulation.
             // Hence, we freeze the permeability from this last simulation step and use it for further computations, much

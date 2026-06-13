@@ -134,7 +134,7 @@ namespace CoupledField {
   void CoefFunctionConvolution::GetVector(Vector<Double>& retvec, const LocPointMapped& lpm ) {
 
     // get variables for all nodes of the element
-    StdVector<UInt> nids = lpm.ptEl->connect;
+    const StdVector<UInt>& nids = lpm.ptEl->connect;
     // history variables at nodes
     Vector<Double> h_n = GetSavedVals(nids,&histvals_);
     // node variables of last (converged) step

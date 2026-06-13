@@ -197,7 +197,7 @@ private:
   //! Calculates the expression \f[ \frac{\delta \vert J \vert}{\delta r} /f]
   //! \param J (input) Jacobian matrix
   //! \param J_dr (input) derivative of Jacobian matrix in r-direction
-  Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr);
+  Double CalcDetJDr(const Matrix<Double> &J, const Matrix<Double> &dJ_dr);
 
   //! Pointer to FeFunction
   shared_ptr<BaseFeFunction> feFct_;

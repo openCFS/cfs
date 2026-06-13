@@ -4968,7 +4968,7 @@ namespace CoupledField
     std::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
     std::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
     while(lIt != lengths.end() ){
-      StdVector<Integer> e = eIt->second;
+      const StdVector<Integer>& e = eIt->second;
       Double l = lIt->second;
       geomIndEdge_[lIt->first].eNodes = e;
       geomIndEdge_[lIt->first].length = l;
@@ -5029,7 +5029,7 @@ namespace CoupledField
     std::unordered_map<Integer, StdVector<Double> > tempLengthOfEdge;
     edgeIndNode_.Resize(geomIndEdge_.size());
     for(UInt i = 0; i < geomIndEdge_.size(); ++i ){
-      StdVector<Integer> nodes = geomIndEdge_[i].eNodes;
+      const StdVector<Integer>& nodes = geomIndEdge_[i].eNodes;
       edgeIndNode_[i] = nodes;
       StdVector<UInt>& t1 = tempNodesOfEdge[nodes[0]];
       StdVector<UInt>& t2 = tempNodesOfEdge[nodes[1]];

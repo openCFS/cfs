@@ -407,7 +407,7 @@ Integer Agglomerate<T>::CreateAgglomerateGraphs( const CRS_Matrix<Double>& auxMa
     Agglomerates_.Resize(cInd);
     for(UInt i = 0; i < tempAgglomerates.GetSize(); ++i){
       if(deleteAgg[i] != 1){
-        StdVector<Integer> t = tempAgglomerates[i];
+        const StdVector<Integer>& t = tempAgglomerates[i];
         Agglomerates_[CoarseIndex_[t[0]]] = t;
       }
     }
