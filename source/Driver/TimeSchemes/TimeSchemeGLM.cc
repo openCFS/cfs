@@ -277,6 +277,10 @@ namespace CoupledField{
     if(curScheme_->adaptiveEnabled_)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
+      // Advance the dt history once per fresh step attempt (BDF2); skipped on coupling
+      // re-iterations (updatePredictor=false) so the history shifts exactly once. Newmark: no-op.
+      if(updatePredictor)
+        curScheme_->AdvanceAdaptiveStep(dt);
       curScheme_->ComputeCoefficients(curScheme_->solDerivOrder_, dt);
     }
 
@@ -533,10 +537,9 @@ namespace CoupledField{
         }
         prevPrevSol_->operator=(*glmVector_[1]);
       }
-      // Newmark's coefChanged_ is sticky (see Newmark::ComputeCoefficients); the rebuild
-      // decision for this step is consumed, so clear it on accept.
-      if (curType_ == GLMScheme::NEWMARK)
-        curScheme_->coefChanged_ = false;
+      // coefChanged_ is sticky for adaptive (BDF2: set in AdvanceAdaptiveStep; Newmark: in
+      // ComputeCoefficients). The rebuild for this step is consumed, so clear it on accept.
+      curScheme_->coefChanged_ = false;
       adaptiveStepCount_++;
     }
   

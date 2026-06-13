@@ -68,6 +68,10 @@ class GLMScheme{
      */
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT)=0;
 
+    //! Adaptive: advance dt history one step (called once per attempt from BeginStep).
+    //! Default no-op; BDF2 overrides it (its tableau depends on the step ratio dtCurrent_/dtPrev1_).
+    virtual void AdvanceAdaptiveStep(Double /*newDt*/) {}
+
     /*!
      * Transforms a given BC value according to the current scheme formulation.
      * E.g. if the user specifies a dirichlet condition on the unknown but we solve for
@@ -308,6 +312,8 @@ class Bdf2 : public GLMScheme{
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
+    //! \copydoc GLMScheme::AdvanceAdaptiveStep(Double)
+    virtual void AdvanceAdaptiveStep(Double newDt) override;
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
      /// domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,

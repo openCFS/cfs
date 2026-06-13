@@ -339,14 +339,17 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     dtPrev2_ = deltaT;
     initialized_ = true;
     coefChanged_ = true;
-  }else
+  }else if(!adaptiveEnabled_)
   {
+    // Non-adaptive (constant-step) BDF2: legacy per-call shift (a no-op at constant dt).
     Double oldDt = dtCurrent_;
     dtPrev2_ = dtPrev1_;
     dtPrev1_ = dtCurrent_;
     dtCurrent_ = deltaT;
     coefChanged_ = (dtCurrent_ != oldDt);
   }
+  // Adaptive BDF2: the dt history is advanced once per step in AdvanceAdaptiveStep(); this
+  // method only (re)computes the tableau, so TransformBC/coupling re-calls leave it untouched.
 
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
@@ -401,6 +404,22 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[4][3] = 0;
     break;
   }
+}
+
+void Bdf2::AdvanceAdaptiveStep(Double newDt){
+  // Advance the dt history by exactly one step (called once per fresh adaptive attempt).
+  // coefChanged_ is sticky: set here when the tableau changes, cleared on accept in FinishStep.
+  if(!initialized_){
+    dtCurrent_ = dtPrev1_ = dtPrev2_ = newDt;
+    initialized_ = true;
+    coefChanged_ = true;
+    return;
+  }
+  const Double newW = newDt / dtCurrent_;  // dtCurrent_ becomes the new dtPrev1_
+  coefChanged_ = (newDt != dtCurrent_) || (newW != w_);  // rebuild iff 1/dt scaling or step ratio changed
+  dtPrev2_ = dtPrev1_;
+  dtPrev1_ = dtCurrent_;
+  dtCurrent_ = newDt;  // w_ is recomputed in ComputeCoefficients
 }
 
 
