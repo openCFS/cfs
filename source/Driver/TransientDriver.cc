@@ -209,12 +209,8 @@ namespace CoupledField {
  
    
 
-    if (atData_ && atData_->controllerType_ != 2) {
-        const std::string& pn = ptPDE_->GetName();
-        if (pn.rfind("magnetic", 0) == 0)
-            EXCEPTION("Adaptive timestepping on magnetic PDEs requires controller=\"PID\".");
-    }
-
+    // Note: no controller restriction for magnetic PDEs anymore — the I/PI divergence
+    // only occurred with nonlinear materials, which MagBasePDE::InitTimeStepping rejects.
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
