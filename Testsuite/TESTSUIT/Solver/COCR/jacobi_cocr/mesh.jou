@@ -1,0 +1,20 @@
+reset
+
+# {c = 343}
+# {f = 100}
+# {lambda = c / f}
+#{mesh_size = lambda / 16}
+
+create sphere radius {1.5*lambda} znegative ypositive xpositive
+
+volume 1 scheme polyhedron size {mesh_size}
+
+mesh volume 1
+
+block 1 add volume 1 name "V_air"
+
+nodeset 1 add vertex 3 name "P_excite"
+
+nodeset 2 add surface 4 name "S_ABC"
+
+export ansys cdb "mesh.cdb" overwrite

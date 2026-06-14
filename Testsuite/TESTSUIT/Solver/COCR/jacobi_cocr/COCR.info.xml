@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.348s" wall="0.347984" cpu="0.347532" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="256" peak="257"/>
+  </summary>
+  <header id="">
+    <environment started="14-Jun-26 12:46:39" host="likun-ubuntu-pc" estimatedEnd="2026-Jun-14 12:46:39" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="COCR" parameterFile="/home/likun/openCFS/CFS/dev/CFS_SRC/cfs/Testsuite/TESTSUIT/Solver/COCR/jacobi_cocr/COCR.xml" schemaPath="/home/likun/openCFS/CFS/dev/CFS_SRC/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.06" name="Kaum Konvergenz" build="RELEASE" git_commit="276b08eb1512bc557379224c5a7ca21462f4f229" git_branch="lluo_COCR_Solver" compiled="Jun 14 2026" exe="/home/likun/openCFS/CFS/dev/CFS_BUILD/build_opt/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="11475" nodes="12027">
+          <timer id="4" wall-clock="0.01006s" wall="0.010065" cpu="0.010054" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="0.003518s" wall="0.00351813" cpu="0.003518" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="0.005827s" wall="0.00582665" cpu="0.005815" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="1.401e-06s" wall="1.401e-06" cpu="2e-06" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="V_air" id="0" type="volume" regular="no" hom="yes" nodes="12027" elems="10800" isQuadratic="no"/>
+        <region name="S_ABC" id="1" type="surface" regular="no" hom="yes" nodes="721" elems="675" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="P_excite" count="1" coord="(0,0,0)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="100" step="1" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="28" wall-clock="0.00508s" wall="0.00507965" cpu="0.005079" calls="4"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.009565s" wall="0.00956495" cpu="0.009565" calls="1"/>
+    </hdf5>
+  </output>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="frequency list given" start="0" end="100" numFreq="1"/>
+      <init_harmonic>
+        <timer id="16" wall-clock="0.04283s" wall="0.0428317" cpu="0.042832" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="V_air" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="V_air">
+                <coef type="CoefFunctionConst" value="8.4998624503586893e-06"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" region="V_air">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="no" region="S_ABC">
+                <coef type="CoefFunctionConst" value="0.0029154523577583445"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="V_air"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(141767,0)"/>
+          <property name="Acoustic_Sound_Speed" value="342.9999455620972"/>
+          <property name="Density" value="(1.205,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <V_air/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+        <feFunctions>
+          <acouPressure/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="12027" totalNumFreeEqns="12027" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="12027" lastFreeEqn="12027" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="12027" lastFreeIndex="12027"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <cocr>
+            <summary>
+              <setup>
+                <timer id="24" label="setup_cocr" wall-clock="0.0001346s" wall="0.000134639" cpu="0.000135" calls="1"/>
+              </setup>
+              <solve>
+                <timer id="25" label="solve_cocr" wall-clock="0.09882s" wall="0.0988175" cpu="0.098798" calls="1"/>
+              </solve>
+              <statistics avgIterations="161" avgResReduction="8.8606e-11"/>
+            </summary>
+            <process>
+              <solver numIter="161" finalNorm="8.8606e-11" solutionIsOkay="yes"/>
+            </process>
+          </cocr>
+        </solver>
+        <precond>
+          <jacobi>
+            <summary>
+              <precond_Jacobi_setup>
+                <timer id="26" wall-clock="0.0002617s" wall="0.000261747" cpu="0.000262" calls="1"/>
+              </precond_Jacobi_setup>
+              <precond_Jacobi_run>
+                <timer id="27" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Jacobi_run>
+            </summary>
+          </jacobi>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph nnz="302299">
+        <timer id="21" wall-clock="0.02914s" wall="0.0291381" cpu="0.029139" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="22" wall-clock="0.002584s" wall="0.00258391" cpu="0.002584" calls="1" sub="true" parent="21"/>
+        </finalize>
+        <sort>
+          <timer id="23" wall-clock="0.003463s" wall="0.00346277" cpu="0.003463" calls="1" sub="true" parent="21"/>
+        </sort>
+        <rows number="12027" min="8" max="27" mean="25.135" estimated_row_size="100"/>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="17" wall-clock="0.1039s" wall="0.103911" cpu="0.10354" calls="2"/>
+          <matrices>
+            <timer id="18" wall-clock="0.1039s" wall="0.103908" cpu="0.103537" calls="1" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="6.65e-07s" wall="6.65e-07" cpu="1e-06" calls="1" sub="true" parent="17"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="20" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>
