@@ -381,4 +381,24 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- ==================================================================== -->
+  <!-- ==                                                                == -->
+  <!-- ==                   OLAS_SBM_DIAG preconditioner                 == -->
+  <!-- ==                                                                == -->
+  <!-- ==================================================================== -->
+  <xsd:element name="ldl" type="DT_PrecondLDL" substitutionGroup="PrecondBasic"/>
+
+  <xsd:complexType name="DT_PrecondLDL">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <!-- Refactorize when the previous COCR solve needed more than this
+               many preconditioner applications -->
+          <xsd:element name="maxApplyIter" type="xsd:positiveInteger" minOccurs="0" default="50"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 </xsd:schema>

@@ -19,7 +19,8 @@ SET(PRECOND_SRCS
     ILDLPrecond/ildlcnfactoriser.cc
     ILDLPrecond/ildlkfactoriser.cc
     ILDLPrecond/ildlprecond.cc
-    ILDLPrecond/ildltpfactoriser.cc    
+    ILDLPrecond/ildltpfactoriser.cc
+    LDLPrecond.cc
     )
 
 ADD_LIBRARY(precond-olas STATIC ${PRECOND_SRCS})

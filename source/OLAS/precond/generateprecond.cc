@@ -33,6 +33,7 @@
 #include "OLAS/precond/IC0Precond.hh"
 #include "OLAS/precond/SBMDiagPrecond.hh"
 #include "OLAS/precond/SBMJacobiPrecond.hh"
+#include "OLAS/precond/LDLPrecond.hh"
 
 namespace CoupledField {
 
@@ -360,9 +361,37 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
           "library" );
 #endif
       break;
-
-   
       
+      // ============================
+      //   LDL Preconditioner
+      // ============================
+    case BasePrecond::LDL:
+#ifdef USE_PARDISO
+      if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
+        EXCEPTION( "LDLPrecond only works with (S)CRS_Matrix class!" );
+      }
+      else {
+        const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
+        if ( stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM ) {
+          EXCEPTION( "LDLPrecond requires a sparseSym (SCRS) matrix!" );
+        }
+      }
+
+      if ( entryType == BaseMatrix::DOUBLE ) {
+        retVal = new LDLPrecond<Double>( precondNode, olasInfo );
+        ASSERTMEM( retVal, sizeof(LDLPrecond<Double>) );
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated real LDL precond";
+      }
+      if ( entryType == BaseMatrix::COMPLEX ) {
+        retVal = new LDLPrecond<Complex>( precondNode, olasInfo );
+        ASSERTMEM( retVal, sizeof(LDLPrecond<Complex>) );
+        LOG_DBG(genPrecond) << " GeneratePrecond: Generated complex LDL precond";
+      }
+#else
+      EXCEPTION( "Compile with USE_PARDISO to enable the LDL preconditioner" );
+#endif
+      break;
+
       // ============================
       //   Cholmod Preconditioner
       // ============================
@@ -648,7 +677,11 @@ LOG_DBG(genPrecond) << " GenerateStdPrecondObject: Generated "\
       case BasePrecond::CHOLMOD:
         ret.insert(BaseMatrix::SPARSE_SYM);
         break;
-        
+      
+      case BasePrecond::LDL:
+        ret.insert(BaseMatrix::SPARSE_SYM);
+        break;
+      
       case BasePrecond::LDL_SOLVER2:
       case BasePrecond::DIRECT:
       case BasePrecond::RICHARDSON:

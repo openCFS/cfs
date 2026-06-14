@@ -42,7 +42,8 @@ namespace CoupledField {
     EnumTuple( BasePrecond::LDL_SOLVER, "directLDL"),
     EnumTuple( BasePrecond::LDL_SOLVER2, "directLDL2"),
     EnumTuple( BasePrecond::PARDISO_PRECOND, "pardiso" ),
-    EnumTuple( BasePrecond::CHOLMOD, "cholmod")
+    EnumTuple( BasePrecond::CHOLMOD, "cholmod"),
+    EnumTuple( BasePrecond::LDL, "ldl")
   };
 
   Enum<BasePrecond::PrecondType> BasePrecond::precondType = \

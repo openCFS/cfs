@@ -28,7 +28,7 @@ namespace CoupledField {
       // === Classical Preconditioners ==
       MG, JACOBI, BLOCK_JACOBI, SSOR, ILU0,ILUTP, 
       ILUK, ILDL0, ILDLK, ILDLTP, ILDLCN, IC0,
-      SBM_DIAG, SBM_JACOBI,
+      SBM_DIAG, SBM_JACOBI, LDL,
 
       // === Solvers used as Preconditioners ==
       DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
