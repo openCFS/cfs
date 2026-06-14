@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation /home/likun/openCFS/CFS/dev/CFS_SRC/cfs/share/xml/CFS-Simulation/CFS.xsd">
+ 
+ <documentation>
+   <title> Test case of harmonic25d driver for acoustics </title>
+   <authors>
+     <author>Likun LUO</author>
+   </authors>
+   <date>2025-05-19</date>
+   <keywords>
+     <keyword>acoustic</keyword>
+   </keywords>
+   <references> LI et al 2021. https://doi.org/10.1016/j.apacoust.2021.108270 </references>
+   <isVerified>yes</isVerified>
+   <description>
+      2.5D acoustic model of three-dimensional spherical wave propagation from a point source.
+      The model geometry consists of a 2D circle which is treated as axially infinite, characteristic of 2.5D formulations.
+      To simulate an open unbounded domain in the radial direction, first-order absorbing boundary conditions are used.
+      Frequency domain computation.
+   </description>
+ </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ldl_cocr.h5ref"/>
+      <!-- <cdb fileName="quater_sphere.cdb"/> -->
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_channel" material="air"/>
+    </regionList>
+  </domain> 
+  
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic25d>
+        <excitationFreq>100.0</excitationFreq>
+        <cutoffFreq>120</cutoffFreq>
+        <!-- We use a coarse frequency resolution in the test case to reduce run time. -->
+        <freqResolution>10.01</freqResolution>
+        <!-- For validation, use the following resolution instead  -->
+        <!-- <freqResolution>0.25</freqResolution> -->
+      </harmonic25d>
+    </analysis>
+    <pdeList>
+      <acoustic>
+        <regionList>
+          <region name="S_channel"/>
+        </regionList>
+        <bcsAndLoads>
+          <rhsValues name="center_node" value="1"/>
+          <absorbingBCs name="L_ABC" volumeRegion="S_channel"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>      
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <cocr>
+            <stoppingRule type="absNorm"/>
+            <tol>1e-4</tol>
+            <maxIter>1000</maxIter>
+            <consoleConvergence>no</consoleConvergence>
+          </cocr>
+        </solverList>
+        <precondList>
+          <ldl>
+            <maxApplyIter>10</maxApplyIter>
+          </ldl>
+        </precondList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+
+
+</cfsSimulation>

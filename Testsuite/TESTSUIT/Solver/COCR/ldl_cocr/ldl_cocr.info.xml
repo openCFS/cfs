@@ -1,0 +1,233 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="18" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.8836s" wall="0.883643" cpu="0.883214" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="265" peak="285"/>
+  </summary>
+  <header id="">
+    <environment started="14-Jun-26 22:14:54" host="likun-ubuntu-pc"/>
+    <progOpts problem="ldl_cocr" parameterFile="/home/likun/openCFS/CFS/dev/CFS_SRC/cfs/Testsuite/TESTSUIT/Solver/COCR/ldl_cocr/ldl_cocr.xml" schemaPath="/home/likun/openCFS/CFS/dev/CFS_SRC/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.06" name="Kaum Konvergenz" build="RELEASE" git_commit="8eb0f3c17f528d0839676c016639fb98146c7297-modified" git_branch="lluo_LDLPrecond" compiled="Jun 14 2026" exe="/home/likun/openCFS/CFS/dev/CFS_BUILD/build_LDLPrecond/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="3101" nodes="8876">
+          <timer id="4" wall-clock="0.004426s" wall="0.00442627" cpu="0.004427" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="0.002147s" wall="0.00214678" cpu="0.002147" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="0.001566s" wall="0.00156606" cpu="0.001566" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="1.311e-06s" wall="1.311e-06" cpu="1e-06" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="S_channel" id="0" type="volume" regular="no" hom="yes" nodes="8876" elems="2887" isQuadratic="yes"/>
+        <region name="L_ABC" id="1" type="surface" regular="no" hom="yes" nodes="189" elems="94" isQuadratic="yes"/>
+        <region name="L_bottom" id="2" type="surface" regular="yes" hom="yes" nodes="121" elems="60" isQuadratic="yes"/>
+        <region name="L_left" id="3" type="surface" regular="yes" hom="yes" nodes="121" elems="60" isQuadratic="yes"/>
+      </regions>
+      <namedNodes>
+        <nodes name="center_node" count="1" coord="(0,0)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser baseFreqHarmonic25D="100" dt="0" f="120.12" step="13" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="32" wall-clock="0.0494s" wall="0.0494008" cpu="0.049394" calls="52"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.006296s" wall="0.00629606" cpu="0.006296" calls="1"/>
+    </hdf5>
+  </output>
+  <sequenceStep sequence="1">
+    <harmonic25d>
+      <header unit="Hz"/>
+      <init_harmonic25d>
+        <timer id="15" wall-clock="0.09303s" wall="0.0930293" cpu="0.093006" calls="1"/>
+      </init_harmonic25d>
+    </harmonic25d>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="S_channel" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" region="S_channel">
+                <coef type="CoefFunctionConst" value="1"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="S_channel">
+                <coef type="CoefFunctionConst" value="8.4998624503586893e-06"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="no" region="L_ABC">
+                <coef type="CoefFunctionConst" value="0.0029154523577583445"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="damping_aux" feMatrixMapped="damping_aux" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_channel"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(141767,0)"/>
+          <property name="Acoustic_Sound_Speed" value="342.9999455620972"/>
+          <property name="Density" value="(1.205,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_channel/>
+                <default order="2"/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+        <feFunctions>
+          <acouPressure/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="8876" totalNumFreeEqns="8876" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="8876" lastFreeEqn="8876" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="8876" lastFreeIndex="8876"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <cocr>
+            <summary>
+              <setup>
+                <timer id="24" label="setup_cocr" wall-clock="0.0005873s" wall="0.000587274" cpu="0.000584" calls="13"/>
+              </setup>
+              <solve>
+                <timer id="25" label="solve_cocr" wall-clock="0.5101s" wall="0.510105" cpu="0.510082" calls="13"/>
+              </solve>
+              <statistics avgIterations="7" avgResReduction="3.0829e-05"/>
+            </summary>
+            <process>
+              <solver numIter="1" finalNorm="1.5926e-14" solutionIsOkay="yes"/>
+              <solver numIter="2" finalNorm="3.1125e-07" solutionIsOkay="yes"/>
+              <solver numIter="3" finalNorm="1.7815e-06" solutionIsOkay="yes"/>
+              <solver numIter="4" finalNorm="1.7735e-05" solutionIsOkay="yes"/>
+              <solver numIter="10" finalNorm="4.922e-05" solutionIsOkay="yes"/>
+              <solver numIter="1" finalNorm="2.2686e-14" solutionIsOkay="yes"/>
+              <solver numIter="6" finalNorm="8.7725e-05" solutionIsOkay="yes"/>
+              <solver numIter="27" finalNorm="9.37e-05" solutionIsOkay="yes"/>
+              <solver numIter="1" finalNorm="3.3243e-14" solutionIsOkay="yes"/>
+              <solver numIter="21" finalNorm="6.751e-05" solutionIsOkay="yes"/>
+              <solver numIter="1" finalNorm="4.6751e-14" solutionIsOkay="yes"/>
+              <solver numIter="21" finalNorm="8.2796e-05" solutionIsOkay="yes"/>
+              <solver numIter="1" finalNorm="2.3273e-15" solutionIsOkay="yes"/>
+            </process>
+          </cocr>
+        </solver>
+        <precond>
+          <ldl maxApplyIter="10">
+            <summary>
+              <precond_ldl_setup>
+                <timer id="28" wall-clock="0.1001s" wall="0.100058" cpu="0.100046" calls="13"/>
+              </precond_ldl_setup>
+              <precond_ldl_run>
+                <timer id="29" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_ldl_run>
+            </summary>
+          </ldl>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <process>
+              <!-- memory in KB-->
+              <call number="1">
+                <symbfact cpu="0.039417" wall="0.039417" peakMem="4727" permanentMem="4388"/>
+                <numfact cpu="0.011521" wall="0.011521" peakMem="8738"/>
+              </call>
+            </process>
+            <summary>
+              <setup>
+                <symbfact>
+                  <timer id="30" wall-clock="0.03942s" wall="0.0394173" cpu="0.039418" calls="1"/>
+                </symbfact>
+                <numfact>
+                  <timer id="31" wall-clock="0.06016s" wall="0.0601631" cpu="0.06015" calls="5"/>
+                </numfact>
+              </setup>
+            </summary>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph nnz="136546">
+        <timer id="20" wall-clock="0.08282s" wall="0.0828216" cpu="0.082803" calls="1" sub="true" parent="15"/>
+        <finalize>
+          <timer id="21" wall-clock="0.001572s" wall="0.00157224" cpu="0.001572" calls="1" sub="true" parent="20"/>
+        </finalize>
+        <sort>
+          <timer id="22" wall-clock="0.001194s" wall="0.00119441" cpu="0.001194" calls="1" sub="true" parent="20"/>
+        </sort>
+        <rows number="8876" min="8" max="26" mean="15.384" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="23" wall-clock="0.07176s" wall="0.0717635" cpu="0.071752" calls="1" sub="true" parent="20"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="16" wall-clock="0.02843s" wall="0.0284322" cpu="0.028062" calls="26"/>
+          <matrices>
+            <timer id="17" wall-clock="0.0284s" wall="0.0283985" cpu="0.028025" calls="13" sub="true" parent="16"/>
+          </matrices>
+          <rhs>
+            <timer id="18" wall-clock="8.375e-06s" wall="8.375e-06" cpu="1e-05" calls="13" sub="true" parent="16"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="19" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <warning lineNum="205" fileName="/home/likun/openCFS/CFS/dev/CFS_SRC/cfs/source/Driver/Harmonic25DDriver.cc" message="cutoffFreq is not an exact multiple of freqRes. The cutoffFreq is changed to 120.12"/>
+</cfsInfo>
