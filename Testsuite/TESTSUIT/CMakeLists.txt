@@ -5,7 +5,7 @@
 #-------------------------------------------------------------------------------
 # Subdirectories for solver test cases
 #-------------------------------------------------------------------------------
-
+add_subdirectory(Solver/COCR/jacobi_cocr)
 if(USE_PARDISO)
   ADD_SUBDIRECTORY(Solver/pardiso/transpose)
   ADD_SUBDIRECTORY(Solver/pardiso/conjugateTranspose)
