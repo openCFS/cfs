@@ -24,10 +24,14 @@ def get_name(name: str | os.PathLike, value: float, final: bool = False):
 
 
 def relative_paths(xml):
-    mesh_path = xpath(xml, "//cfs:mesh/@fileName")
-    # if path is given relative from home, there is probably a reason, else replace
-    if not mesh_path.startswith("~"):
-        replace(xml, "//cfs:mesh/@fileName", f"../{mesh_path}")  
+    try:
+        mesh_path = xpath(xml, "//cfs:mesh/@fileName")
+        # if path is given relative from home, there is probably a reason, else replace
+        if not mesh_path.startswith("~"):
+            replace(xml, "//cfs:mesh/@fileName", f"../{mesh_path}")
+    except RuntimeError:
+        # no mesh defined
+        pass
     mat_path = xpath(xml, "//cfs:materialData/@file")
     # if path is given relative from home, there is probably a reason, else replace
     if not mat_path.startswith("~"):
@@ -37,6 +41,8 @@ def relative_paths(xml):
 def cont_robust(name: str | os.PathLike,
                 folder: str,
                 cfs_threads: str,
+                mesh: Optional[str],
+                param: Optional[str],
                 ersatz: Optional[str],
                 steps: List[float]):
     print(f"STEPS = {steps}")
@@ -45,12 +51,17 @@ def cont_robust(name: str | os.PathLike,
 
     densities = ""
     for istep, (step, deta) in enumerate(zip(steps, detas)):
-        xml = open_xml(f"{name}.xml")
+        if param:
+            xml = open_xml(param)
+        else:
+            xml = open_xml(f"{name}.xml")
         # switch to relative paths
         if folder:
             relative_paths(xml)
             if ersatz:
                 ersatz = f"../{ersatz}"
+            if mesh:
+                mesh = f"../{mesh}"
         search_mode = True
         # test for robust
         if search_mode:
@@ -111,6 +122,9 @@ def cont_robust(name: str | os.PathLike,
         elif ersatz:
             cmd += ["-x", ersatz]
 
+        if mesh:
+            cmd += ["-m", mesh]
+
         subprocess.run(cmd, cwd=folder, check=True)
 
 
@@ -134,6 +148,10 @@ if __name__ == "__main__":
                         help="Run the continuation in subfolder.")
     parser.add_argument("-t", default=1, type=int,
                         help="Threads to use for cfs simulations.")
+    parser.add_argument("-m", "--mesh", type=str,
+                        help="Name of the mesh file.")
+    parser.add_argument("-p", "--param", type=str,
+                        help="Name of XML parameter file, defaults to {name}.xml")
     parser.add_argument("-x", "--ersatz", type=str,
                         help="Name of ersatz material density file.")
     parser.add_argument('--factor', nargs=3, type=float, required=True,
@@ -159,5 +177,7 @@ if __name__ == "__main__":
     cont_robust(path.with_suffix(""),
                 folder,
                 str(args.t),
+                args.mesh,
+                args.param,
                 args.ersatz,
                 steps)
