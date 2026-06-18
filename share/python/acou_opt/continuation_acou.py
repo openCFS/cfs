@@ -49,19 +49,22 @@ def cont_robust(name: str | os.PathLike,
     detas = exp_steps(1e-3, DETA, len(steps))
     print(f"ETAS = {detas}")
 
+    # switch cfs to relative paths
+    if folder:
+        if ersatz:
+            ersatz = f"../{ersatz}"
+        if mesh:
+            mesh = f"../{mesh}"
+
     densities = ""
     for istep, (step, deta) in enumerate(zip(steps, detas)):
         if param:
             xml = open_xml(param)
         else:
             xml = open_xml(f"{name}.xml")
-        # switch to relative paths
+        # switch xml to relative paths
         if folder:
             relative_paths(xml)
-            if ersatz:
-                ersatz = f"../{ersatz}"
-            if mesh:
-                mesh = f"../{mesh}"
         search_mode = True
         # test for robust
         if search_mode:
