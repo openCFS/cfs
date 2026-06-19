@@ -457,6 +457,7 @@
       <xsd:enumeration value="fluidMechMeshVelocityNode"/>
       <xsd:enumeration value="fluidMechPressure"/>
       <xsd:enumeration value="fluidMechZeroPressure"/>
+      <xsd:enumeration value="fluidMechAbsolutePressure"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="lagrangeMultiplier1"/>
     </xsd:restriction>

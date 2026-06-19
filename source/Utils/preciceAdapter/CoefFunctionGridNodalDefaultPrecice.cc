@@ -74,29 +74,27 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
                        const LocPointMapped& lpm ){
-  //no tensors right now
   assert(this->dimType_ != CoefFunction::TENSOR);
 
-  const Elem* sourceElem = NULL;
+  const Elem* sourceElem = lpm.ptEl;
+  if (!sourceElem)
+    EXCEPTION("CoefFunctionGridNodalDefaultPrecice::GetVector: could not determine source element.");
 
-  //this->UpdateSolution();
-  
-  sourceElem = lpm.ptEl;
+  CoefMat.Resize(this->dimDof_);
+  CoefMat.Init();
 
-  Vector<DATA_TYPE> elemSol;
-  
-  if(this->dimType_ == CoefFunction::SCALAR)
-    CoefMat.Resize(1);
-  else if (this->dimType_ == CoefFunction::VECTOR)
-    CoefMat.Resize(this->dimDof_);
-  
-  if(!sourceElem){
-    EXCEPTION("Could not determine source element.")
+  const StdVector<UInt>& nodes = sourceElem->connect;
+  const UInt nNodes = nodes.GetSize();
+  for (UInt i = 0; i < nNodes; ++i) {
+    Vector<Double> nodeSol = preciceAdapter_->GetNodeResult(this->solType_, nodes[i]);
+    for (UInt k = 0; k < this->dimDof_; ++k)
+      CoefMat[k] += DATA_TYPE(nodeSol[k]);
   }
 
-  // handle this with the preciceAdapter_
-  std::cout << "handle this with the preciceAdapter_" << "\n";
-  //this->GetElemSolution( CoefMat, sourceElem->elemNum);
+  DATA_TYPE factor = this->hasConstantFactor_ ? this->constantFactor_ : DATA_TYPE(1);
+  const DATA_TYPE inv = factor / DATA_TYPE(nNodes);
+  for (UInt k = 0; k < this->dimDof_; ++k)
+    CoefMat[k] *= inv;
 }
 
 template<typename DATA_TYPE>

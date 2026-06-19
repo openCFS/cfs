@@ -1959,6 +1959,36 @@ namespace CoupledField {
 
       DefineFieldResult( constZero, pressureZero );
 
+      // === FLUID-MECHANIC ABSOLUTE PRESSURE ===
+      // p_abs = p' + p0, where p0 = kappa/gamma is the mean thermodynamic pressure
+      // derived from the material bulk modulus and adiabatic exponent.
+      // Only meaningful for the compressible formulation; use for coupling with
+      // solvers that work with absolute pressure (e.g., OpenFOAM rhoPimpleFoam).
+      if ( isCompressible_ ) {
+        shared_ptr<ResultInfo> absPressure(new ResultInfo);
+        absPressure->resultType = FLUIDMECH_ABSOLUTE_PRESSURE;
+        absPressure->dofNames = "";
+        absPressure->unit = MapSolTypeToUnit(FLUIDMECH_ABSOLUTE_PRESSURE);
+        absPressure->entryType = ResultInfo::SCALAR;
+        absPressure->definedOn = ResultInfo::MapSolTypeToDefinedOn(FLUIDMECH_ABSOLUTE_PRESSURE);
+        absPressure->SetFeFunction(feFunctions_[FLUIDMECH_PRESSURE]);
+        availResults_.insert( absPressure );
+
+        shared_ptr<CoefFunctionMulti> p0Multi(new CoefFunctionMulti(
+            CoefFunction::SCALAR, 1, 1, false, true));
+        for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+          RegionIdType actReg = regions_[iRegion];
+          PtrCoefFct kappa = materials_[actReg]->GetScalCoefFnc(FLUID_BULK_MODULUS, Global::REAL);
+          PtrCoefFct gammaCoef = materials_[actReg]->GetScalCoefFnc(FLUID_ADIABATIC_EXPONENT, Global::REAL);
+          PtrCoefFct p0 = CoefFunction::Generate(mp_, Global::REAL,
+              CoefXprBinOp(mp_, kappa, gammaCoef, CoefXpr::OP_DIV));
+          p0Multi->AddRegion(actReg, p0);
+        }
+        PtrCoefFct pAbsCoef = CoefFunction::Generate(mp_, part,
+            CoefXprBinOp(mp_, this->GetCoefFct(FLUIDMECH_PRESSURE), p0Multi, CoefXpr::OP_ADD));
+        DefineFieldResult( pAbsCoef, absPressure );
+      }
+
       // === FLUID-MECHANIC STRAINRATE ===
       shared_ptr<ResultInfo> strain(new ResultInfo);
       strain->resultType = FLUIDMECH_STRAINRATE;

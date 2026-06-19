@@ -329,6 +329,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_NORMAL_VELOCITY, "fluidMechNormalVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_ZERO_PRESSURE, "fluidMechZeroPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_ABSOLUTE_PRESSURE, "fluidMechAbsolutePressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
@@ -1018,6 +1019,7 @@ namespace CoupledField {
       case FLUIDMECH_TOTAL_STRESS:
       case FLUIDMECH_SURFACE_TRACTION:
       case FLUIDMECH_ZERO_PRESSURE:
+      case FLUIDMECH_ABSOLUTE_PRESSURE:
       case WATER_PRESSURE:
       case WATER_PRES_TENS:
       case SMOOTH_ZERO_PRESSURE:

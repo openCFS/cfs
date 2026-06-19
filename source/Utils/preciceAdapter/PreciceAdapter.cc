@@ -240,7 +240,14 @@ namespace CoupledField
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
             {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},
-            {"Pressure", {"fluidMechPressure", SolutionType::FLUIDMECH_PRESSURE}},
+            // "Pressure" = full thermodynamic pressure (p' + p0), as produced by
+            // fluidMechAbsolutePressure. This is what external solvers such as
+            // OpenFOAM rhoPimpleFoam expect as a fixedValue BC on p.
+            {"Pressure", {"fluidMechAbsolutePressure", SolutionType::FLUIDMECH_ABSOLUTE_PRESSURE}},
+            // "PerturbationPressure" = acoustic perturbation p' only (fluidMechPressure).
+            // Use this for openCFS-to-openCFS LinFlow coupling where both sides
+            // work with perturbation quantities.
+            {"PerturbationPressure", {"fluidMechPressure", SolutionType::FLUIDMECH_PRESSURE}},
             {"Velocity", {"fluidMechVelocity", SolutionType::FLUIDMECH_VELOCITY}},
             {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
         };
@@ -250,8 +257,10 @@ namespace CoupledField
             return it->second;
         else
             EXCEPTION("Invalid quantity: " << precicename
-                    << ". Currently the adapter only works for one of [\"Temperature\", \"Displacement\", "
-                    << "\"MagneticFluxDensity\", \"MagneticFieldIntensity\", \"JouleLossDensity\"]");
+                    << ". Currently the adapter supports: \"Temperature\", \"Displacement\", "
+                    << "\"Force\", \"Stress\", \"MagneticFluxDensity\", \"MagneticFieldIntensity\", "
+                    << "\"JouleLossDensity\", \"Pressure\", \"PerturbationPressure\", \"Velocity\", "
+                    << "\"PressureTemporalDerivative\"");
     }
 
 
