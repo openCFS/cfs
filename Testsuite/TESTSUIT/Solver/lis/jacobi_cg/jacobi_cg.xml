@@ -27,7 +27,7 @@
 
   <fileFormats>
     <input>
-      <hdf5 fileName="lis.h5ref"/>
+      <hdf5 fileName="jacobi_cg.h5ref"/>
     </input>
     <output>
       <hdf5/>
@@ -98,5 +98,3 @@
     </linearSystems> 
   </sequenceStep> 
 </cfsSimulation>
-
-
