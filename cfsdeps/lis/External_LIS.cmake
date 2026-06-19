@@ -5,11 +5,11 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "lis")
-set(LIS_VER "2.0.34") # for Dependencies.cc which cannot easily inlcude lis.h (fucks up boost)
+set(LIS_VER "2.1.11") # for Dependencies.cc which cannot easily inlcude lis.h (fucks up boost)
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
-set(DEPS_VER "-b") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
+set(PACKAGE_MD5 "ed5cf7cf764ed9574b2497f4dd2f68ab")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -49,8 +49,8 @@ if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called m
 else()
   list(APPEND DEPS_CONFIGURE --enable-omp=no)
 endif()
-# enabling complex makes lis computations fail.
-list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=no --enable-saamg=no --enable-static --enable-shared=no )
+# Up form version 2.1.11, algorithm for complex matrix is enabled
+list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=yes --enable-saamg=no --enable-static --enable-shared=no )
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )

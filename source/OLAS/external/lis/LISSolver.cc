@@ -12,6 +12,36 @@
   #include <omp.h>
 #endif
 
+// Include lis.h AFTER all std/CFS headers so its complex-mode math macros are not
+// substituted into them, then undef the macros so the rest of this translation unit uses normal math.
+#include "lis_config.h"
+#ifdef USE_COMPLEX
+// selects LIS's complex scalar (double[2] in C++); 16 bytes
+  #define _COMPLEX        
+#endif
+#include "lis.h"
+#include "lis_precon.h"
+#ifdef _COMPLEX
+  #undef acos
+  #undef acosh
+  #undef asin
+  #undef asinh
+  #undef atan
+  #undef atanh
+  #undef cos
+  #undef cosh
+  #undef exp
+  #undef fabs
+  #undef log
+  #undef pow
+  #undef proj
+  #undef sin
+  #undef sinh
+  #undef sqrt
+  #undef tan
+  #undef tanh
+#endif
+
 using std::string;
 using boost::lexical_cast;
 
@@ -41,7 +71,10 @@ namespace CoupledField{
     EnumTuple( LISSolver::BICRSAFE, "BiCRSAFE"),
     EnumTuple( LISSolver::FGMRES, "FGMRES"),
     EnumTuple( LISSolver::IDRS, "IDRs"),
-    EnumTuple( LISSolver::MINRES, "minres")
+    EnumTuple( LISSolver::IDR1, "IDR1"),
+    EnumTuple( LISSolver::MINRES, "minres"),
+    EnumTuple( LISSolver::COCG, "COCG"),
+    EnumTuple( LISSolver::COCR, "COCR")
   };
 
   Enum<LISSolver::LISSolverType> LISSolver::lisSolverType = \
@@ -53,6 +86,7 @@ namespace CoupledField{
   {
     EnumTuple( LISSolver::NONE, "none" ),
     EnumTuple( LISSolver::JACOBI_PRE, "jacobi" ),
+    EnumTuple( LISSolver::BJACOBI, "block_jacobi" ),
     EnumTuple( LISSolver::ILU, "iluk"),
     EnumTuple( LISSolver::SSOR, "ssor"),
     EnumTuple( LISSolver::HYBRID, "hybrid" ),
@@ -120,6 +154,19 @@ LISSolver::~LISSolver(){
   lis_finalize();
 }
 
+namespace {
+  // Zero a LIS vector without a by-value LIS_SCALAR. In C++ LIS_SCALAR is the double[2]
+  // array form, so the scalar overload won't bind and would be ABI-incompatible with the
+  // C library regardless. Writing zero bytes is layout/ABI-neutral and yields a complex
+  // zero the library reads correctly.
+  inline void lisZero(LIS_VECTOR v){
+    LIS_INT ln = 0;
+    LIS_INT gn = 0;
+    lis_vector_get_size(v, &ln, &gn);
+    std::memset(v->value, 0, sizeof(LIS_SCALAR) * static_cast<size_t>(ln));
+  }
+}
+
 void LISSolver::Setup(BaseMatrix &sysmat){
 
   const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
@@ -144,94 +191,68 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     // TODO first validate and second, as we anyway work with A0_ we can convert the matrix A0_ only
     EXCEPTION("LIS solver cannot yet handle SCRS matrices. Please set sparseNonSym as storage type");
   }
+  
   if(etype == BaseMatrix::DOUBLE)
   {
-    // symmetric or non-symmetric real case
-    // in symmetric case convert scrs matrix to crs matrix
+    // real case. The complex LIS build expects LIS_SCALAR (complex), so embed the real
+    // values as complex with zero imaginary part. cbuf_ (member) persists across the solve.
     const CRS_Matrix<Double>& crs = dynamic_cast<const CRS_Matrix<Double>&>(stdmat);
 
-    if(crs.GetNumCols() != crs.GetNumRows()){
-      EXCEPTION("IS solver only tested for quadratic matrices");
-    }
-    //gather info
+    if(crs.GetNumCols() != crs.GetNumRows())
+      EXCEPTION("LIS solver only tested for quadratic matrices");
+
     UInt nnz = crs.GetNnz();
     UInt dim = crs.GetNumRows();
 
     Integer * rowPtr = (Integer *)crs.GetRowPointer();
     Integer * colPtr = (Integer *)crs.GetColPointer();
-    Double * dataPtr = const_cast<Double*>(crs.GetDataPointer());
+    const Double * dataPtr = crs.GetDataPointer();
+
+    cbuf_.assign(dataPtr, dataPtr + nnz);   // Double -> Complex(re, 0)
 
     err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
-    err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
+    err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(cbuf_.data()),A_); CHKERR(err);
     err = lis_matrix_assemble(A_); CHKERR(err);
 
-    // Create RHS vector only the first time, assuming that dimensions will not change
-    if(firstSetup_ ){//|| b_->n != dim){
+    if(firstSetup_){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      lis_vector_set_all(0.0, b_);
+      lisZero(b_);
     }
-    ownMatrixA_ = false;
+    ownMatrixA_ = false;   // cbuf_ owns the data
   }
   else
   {
-    // non-symmetric complex case
+    // native complex symmetric case (LIS built with --enable-complex).
+    // Complex and LIS_SCALAR share {re,im} layout -> share CFS' CRS arrays zero-copy.
     const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
 
     if(crs.GetNumCols() != crs.GetNumRows())
-      EXCEPTION("IS solver only tested for quadratic matrices");
+      EXCEPTION("LIS solver only tested for quadratic matrices");
 
-    //gather info
+    UInt nnz = crs.GetNnz();
     UInt dim = crs.GetNumRows();
 
     Integer * rowPtr = (Integer *)crs.GetRowPointer();
     Integer * colPtr = (Integer *)crs.GetColPointer();
     Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
 
-    err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
-
-    for(UInt row=0; row<dim; row++) {
-      for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
-/* #if 0
-        LIS_INT i=row*2;
-        LIS_INT j=colPtr[col]*2;
-#endif */
-        LIS_INT i=row;
-        LIS_INT j=colPtr[col];
-        Complex val=dataPtr[col];
-/* #if 0
-        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,i+1,  j,-val.imag(),A_);
-        if(val.imag()) lis_matrix_set_value(LIS_INS_VALUE,  i,j+1, val.imag(),A_);
-        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+1,j+1, val.real(),A_);
-#endif */
-        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
-        if(val.imag())
-        {
-          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
-          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
-        }
-        else
-        {
-          lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
-          lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
-        }
-        if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
-      }
-    }
-    err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
+    err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
+    err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(dataPtr),A_); CHKERR(err);
     err = lis_matrix_assemble(A_); CHKERR(err);
-    if(firstSetup_ ){//|| b_->n != dim){
+
+    if(firstSetup_){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      lis_vector_set_all(0.0,b_);
+      lisZero(b_);
     }
-    ownMatrixA_ = true;
+    ownMatrixA_ = false;
   }
+
   if(firstSetup_){
     err = lis_vector_duplicate(b_,&x_); CHKERR(err);
-    lis_vector_set_all(0.0,b_);
+    lisZero(x_);
   }
   if(resetXZero_ || firstSetup_){
-    lis_vector_set_all(0.0,x_);
+    lisZero(x_);
   }
 
   //copy matrix (needed as a workaround for multiple iterations with different system matrices to solve without memory leak)
@@ -239,17 +260,14 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   lis_matrix_set_type(A0_,LIS_MATRIX_CSR);
   err = lis_matrix_convert(A_,A0_); CHKERR(err);
 
-
   //create the solver
-
-
   string config;
   if(firstSetup_ ){//|| solver_->A != A0_){
     CreateConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
   } else {
-    err = lis_precon_destroy(precond_);CHKERR(err);
+    err = lis_precon_destroy(precond_); CHKERR(err);
   }
   solver_->A = A0_;
 
@@ -264,52 +282,32 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
 void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
 {
-  if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
-    for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
-      Double myEnt =0;
-      rhs.GetEntry((UInt)i,myEnt);
-    
-      b_->value[i] = myEnt;
-      //lis_vector_set_value(LIS_INS_VALUE,i,myEnt,b_);
-    }
-  } else {
-    for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
-      Complex myEnt = 0;
-      rhs.GetEntry((UInt)i,myEnt);
+  // LIS vectors hold LIS_SCALAR (complex); Complex shares the same {re,im} layout.
+  const bool isReal = (sysmat.GetEntryType() == BaseMatrix::DOUBLE);
 
-      // Set RHS value
-#if 0
-      lis_vector_set_value(LIS_INS_VALUE,i*2,myEnt.real(),b_);
-      lis_vector_set_value(LIS_INS_VALUE,i*2+1,myEnt.imag(),b_);
-#endif
-      b_->value[i] = myEnt.real();
-      b_->value[i+n] = myEnt.imag();
-    }
-  }
+  Complex* bval = reinterpret_cast<Complex*>(b_->value);
   
-  Integer err = 0;
-  err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
-  if(err){
-    EXCEPTION("Solver returned error code: " << err << " ...aborting")
-  }
-  //lis_solve(A_, b_, x_, solver_);
-  //copy solution
-  if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
-    for(UInt i=0; i<sol.GetSize();i++){
-      sol.SetEntry(i,x_->value[i]);
+  for(UInt i=0, n=rhs.GetSize(); i<n; i++){
+    if(isReal){ 
+      Double r = 0;
+      rhs.GetEntry(i, r);
+      bval[i] = Complex(r, 0.0);
+    } else {
+      Complex e = 0;
+      rhs.GetEntry(i, e);
+      bval[i] = e;
     }
   }
-  else
-  {
-    for(UInt i=0, n=sol.GetSize(); i<n; i++){
-      Complex myEnt = 0;
-#if 0
-      myEnt.real() = x_->value[i*2];
-      myEnt.imag() = x_->value[i*2+1];
-#endif
-      myEnt = Complex(x_->value[i], x_->value[i+n]);
-      
-      sol.SetEntry(i,myEnt);
+
+  Integer err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
+  if(err) EXCEPTION("Solver returned error code: " << err << " ...aborting");
+
+  Complex* xval = reinterpret_cast<Complex*>(x_->value);
+  for(UInt i=0, n=sol.GetSize(); i<n; i++){
+    if(isReal) {
+      sol.SetEntry(i, xval[i].real());
+    } else {
+      sol.SetEntry(i, xval[i]);
     }
   }
 
@@ -442,6 +440,9 @@ void LISSolver::CreateSolverString(PtrParamNode solverNode, string& output){
       case GPBICR:
       case BICRSAFE:
       case MINRES:
+      case IDR1:
+      case COCG:
+      case COCR:
         //nothing to do
         break;
       default:
@@ -541,6 +542,7 @@ void LISSolver::CreatePrecondString(PtrParamNode precondNode, string& output){
         break;
       case NONE:
       case JACOBI_PRE:
+      case BJACOBI:
         //nothing to do
         break;
       default:
