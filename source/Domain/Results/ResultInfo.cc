@@ -546,6 +546,8 @@ namespace CoupledField {
       
       // ACOUSTIC - SURFACE
       case ACOU_SURFIMPEDANCE:
+      case ACOU_CHARACTERISTIC:
+      case ACOU_CHARACTERISTIC_COUPLING:
       case ACOU_NORMAL_INTENSITY_PLANEWAVE:
       case ACOU_SURFPRESSURE:
       case ACOU_NORMAL_VELOCITY:

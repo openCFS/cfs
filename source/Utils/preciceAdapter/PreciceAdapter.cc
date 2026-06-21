@@ -249,7 +249,16 @@ namespace CoupledField
             // work with perturbation quantities.
             {"PerturbationPressure", {"fluidMechPressure", SolutionType::FLUIDMECH_PRESSURE}},
             {"Velocity", {"fluidMechVelocity", SolutionType::FLUIDMECH_VELOCITY}},
-            {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
+            {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}},
+            // Characteristic (impedance-matched) flow<->acoustics coupling. Two owner-tagged
+            // scalar fields (named by the participant that produces them, so the meaning never
+            // flips with wave direction). Both are surface-element quantities.
+            //   - openCFS writes its own outgoing invariant w_out = p' + rho0 c0 u_n'
+            //     (acouCharacteristic post-processing result).
+            //   - openCFS reads the fluid's outgoing invariant as its incoming w_in
+            //     (acouCharacteristicCoupling, consumed by the characteristicCouplingBC).
+            {"AcousticCharacteristicFromAcou",  {"acouCharacteristic",         SolutionType::ACOU_CHARACTERISTIC}},
+            {"AcousticCharacteristicFromFluid", {"acouCharacteristicCoupling", SolutionType::ACOU_CHARACTERISTIC_COUPLING}}
         };
 
         auto it = conversionMap.find(precicename);
@@ -260,7 +269,8 @@ namespace CoupledField
                     << ". Currently the adapter supports: \"Temperature\", \"Displacement\", "
                     << "\"Force\", \"Stress\", \"MagneticFluxDensity\", \"MagneticFieldIntensity\", "
                     << "\"JouleLossDensity\", \"Pressure\", \"PerturbationPressure\", \"Velocity\", "
-                    << "\"PressureTemporalDerivative\"");
+                    << "\"PressureTemporalDerivative\", \"AcousticCharacteristicFromAcou\", "
+                    << "\"AcousticCharacteristicFromFluid\"");
     }
 
 

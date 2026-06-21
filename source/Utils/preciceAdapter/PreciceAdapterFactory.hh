@@ -20,9 +20,16 @@ namespace CoupledField
      */
     inline std::unique_ptr<IPreciceAdapter> CreatePreciceAdapter(boost::shared_ptr<ParamNode> paramNode) {
 #ifdef USE_PRECICE
-        // Determine at runtime whether to use PreCICE based on configuration
-        return std::make_unique<PreciceAdapter>(paramNode);
-        
+        // Determine at runtime whether to use PreCICE based on configuration:
+        // only build the real adapter when a <fileFormats><preciceCoupling> block is
+        // present. Otherwise fall back to the dummy so standalone (uncoupled) transient
+        // runs work even in a preCICE-enabled build.
+        if (paramNode) {
+            auto ff = paramNode->Get("fileFormats", ParamNode::PASS);
+            if (ff && ff->Has("preciceCoupling"))
+                return std::make_unique<PreciceAdapter>(paramNode);
+        }
+        return std::make_unique<DummyPreciceAdapter>();
 #else
         // PreCICE is not compiled in; return DummyPreciceAdapter
         return std::make_unique<DummyPreciceAdapter>();

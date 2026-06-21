@@ -17,6 +17,7 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal,
   isComplex_ =  false;
   mapNormal_ = mapNormal;
   factor_ = factor;
+  addScalarCoef_.reset();
   // set the dimension based on the result (if possible)
   if( surfInfo ) {
     dim_= surfInfo->GetDimDof();
@@ -184,6 +185,13 @@ void CoefFunctionSurf::GetScalar_(TYPE& coefScalar, const LocPointMapped& lpm) {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
   coefScalar *= factor_;
+  // optional additive scalar term, evaluated on the volume neighbour (see SetAdditiveScalarCoef).
+  // For w = (rho0 c0 v').n + p' this adds p'; equivalent to projecting p'*n onto n (n.n = 1).
+  if( addScalarCoef_ ) {
+    TYPE addVal;
+    addScalarCoef_->GetScalar( addVal, *surfLpm.lpmVol );
+    coefScalar += addVal;
+  }
   //std::cout << "Value: " << coefScalar << std::endl;
 }
 

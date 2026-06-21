@@ -88,6 +88,15 @@ public:
     dim_ = dim;
   }
 
+  //! Optional additive scalar volume coef, evaluated on the volume neighbour and ADDED to the
+  //! (possibly normal-mapped) result. Lets one express surface quantities of the form
+  //! "scalar + (vector).n" as a single surface result. Example: the acoustic characteristic
+  //! w = p' + rho0 c0 v'.n  =  (rho0 c0 v').n + p'  -- the (rho0 c0 v') part is normal-mapped
+  //! (mapNormal=true) while p' is added here (equivalent to projecting p'*n onto n, since n.n=1).
+  void SetAdditiveScalarCoef(PtrCoefFct coef){
+    addScalarCoef_ = coef;
+  }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
 
@@ -128,6 +137,9 @@ public:
   
   //! Factor in case of surface mapping
   Double factor_;
+
+  //! Optional additive scalar coef (see SetAdditiveScalarCoef); null if unused
+  PtrCoefFct addScalarCoef_;
 
   //! information
   SolutionType resultType_;

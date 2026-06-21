@@ -179,6 +179,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_FORCE, "acouForce");
     SolutionTypeEnum.Add(ACOU_SURF_AVG_IMPEDANCE, "acouSurfAvgImpedance");
     SolutionTypeEnum.Add(ACOU_SURFIMPEDANCE, "acouSurfImpedance");
+    SolutionTypeEnum.Add(ACOU_CHARACTERISTIC, "acouCharacteristic");
+    SolutionTypeEnum.Add(ACOU_CHARACTERISTIC_COUPLING, "acouCharacteristicCoupling");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
@@ -1011,6 +1013,8 @@ namespace CoupledField {
 
       case ACOU_PRESSURE:
       case ACOU_SURFPRESSURE:
+      case ACOU_CHARACTERISTIC:
+      case ACOU_CHARACTERISTIC_COUPLING:
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
       case FLUIDMECH_COMP_STRESS:

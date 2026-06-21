@@ -1905,6 +1905,105 @@ namespace CoupledField{
       }
 
       //========================================================================================
+      // Characteristic (impedance-matched) coupling boundaries (flow <-> acoustics via preCICE)
+      //
+      // Robin condition on the coupling surface:
+      //     dpsi/dn + (1/c0) psi_t = w_in / (rho0 c0)
+      // realised as the sum of
+      //   (1) a boundary damping term, identical to the absorbing BC (coeffDamp = 1/c0), and
+      //   (2) an incident-wave normal-velocity load  v_fed = sign * w_in / (rho0 c0),
+      // where w_in is the neighbour's outgoing acoustic invariant, fed via preCICE through the
+      // inherited <grid>/<defaultGrid> mechanism (or a constant/analytic value for testing).
+      // See Utils/preciceAdapter/characteristic_coupling_derivation.md for the derivation.
+      // Implemented for the real, time-domain acouPotential formulation only.
+      //========================================================================================
+      ParamNodeList charBcNodes = bcNode->GetList( "characteristicCouplingBC" );
+      for( UInt i = 0; i < charBcNodes.GetSize(); ++i ) {
+        if( formulation_ != ACOU_POTENTIAL )
+          EXCEPTION("characteristicCouplingBC is currently only implemented for the acouPotential formulation.");
+        if( isComplex_ )
+          EXCEPTION("characteristicCouplingBC is a transient (real) coupling BC; harmonic analysis is not supported.");
+        if( sosAtLaplace_ )
+          EXCEPTION("characteristicCouplingBC is not available with speed of sound at the Laplace operator.");
+        if( isMechCoupled_ )
+          EXCEPTION("characteristicCouplingBC is not yet supported together with mechanic coupling.");
+
+        std::string regionName = charBcNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
+
+        std::string volRegName = charBcNodes[i]->Get("volumeRegion")->As<std::string>();
+        if( volRegName == "" )
+          EXCEPTION("characteristicCouplingBC '" << regionName << "' requires the 'volumeRegion' attribute "
+                    << "(adjacent volume) to read the reference values rho0 and c0.");
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+        // register the surface entities once for the formulation's fe function
+        feFunctions_[formulation_]->AddEntityList( actSDList );
+
+        // --- reference medium rho0, c0 from the adjacent volume material ---
+        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+        PtrCoefFct blk  = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        // c0 = sqrt(K / rho)
+        PtrCoefFct c0 = CoefFunction::Generate( mp_, Global::REAL,
+                          CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV), CoefXpr::OP_SQRT) );
+        // rho0 * c0  (characteristic impedance)
+        PtrCoefFct rho0c0 = CoefFunction::Generate( mp_, Global::REAL,
+                          CoefXprBinOp(mp_, dens, c0, CoefXpr::OP_MULT) );
+
+        // ====================================================================
+        // (1) damping half: coeffDamp = mechAcouFactor / c0  (= 1/c0 here)
+        // ====================================================================
+        PtrCoefFct mechAcouFactor;
+        CalcMechAcouFac( mechAcouFactor, dens );
+        PtrCoefFct coeffDamp = CoefFunction::Generate( mp_, Global::REAL,
+                          CoefXprBinOp(mp_, mechAcouFactor, c0, CoefXpr::OP_DIV) );
+
+        BiLinearForm* charDampInt = NULL;
+        if( dim_ == 2 )
+          charDampInt = new BBInt<>( new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
+        else
+          charDampInt = new BBInt<>( new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
+
+        FEMatrixType targetMatrix = updatedGeo_ ? DAMPING_UPDATE : DAMPING;
+        charDampInt->SetName("characteristicCouplingDamping");
+        BiLinFormContext* charDampContext = new BiLinFormContext( charDampInt, targetMatrix );
+        charDampContext->SetEntities( actSDList, actSDList );
+        charDampContext->SetFeFunctions( feFunctions_[formulation_], feFunctions_[formulation_] );
+        assemble_->AddBiLinearForm( charDampContext );
+
+        // ====================================================================
+        // (2) incident half: normalVelocity load  v_fed = sign * w_in / (rho0 c0)
+        //     w_in is read from preCICE via the inherited <grid> mechanism.
+        // ====================================================================
+        StdVector<std::string> emptyComp;
+        std::set<UInt> definedDofs;
+        bool wInUpdateGeo = updatedGeo_;
+        PtrCoefFct wInCoef;
+        ReadUserFieldValues( actSDList, charBcNodes[i], emptyComp, ResultInfo::SCALAR,
+                             isComplex_, wInCoef, definedDofs, wInUpdateGeo );
+
+        Double sign = charBcNodes[i]->Get("sign")->As<Double>();
+        PtrCoefFct signCoef = CoefFunction::Generate( mp_, Global::REAL, std::to_string(sign) );
+        // v_fed = sign * ( w_in / (rho0 c0) )
+        PtrCoefFct vFed = CoefFunction::Generate( mp_, Global::REAL,
+                          CoefXprBinOp(mp_, signCoef,
+                            CoefXprBinOp(mp_, wInCoef, rho0c0, CoefXpr::OP_DIV), CoefXpr::OP_MULT) );
+
+        std::set<RegionIdType> volRegions( regions_.Begin(), regions_.End() );
+        LinearForm* charLoadInt = NULL;
+        if( dim_ == 2 )
+          charLoadInt = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(), 1.0, vFed, volRegions, wInUpdateGeo );
+        else
+          charLoadInt = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,3,1>(), 1.0, vFed, volRegions, wInUpdateGeo );
+
+        charLoadInt->SetName("characteristicCouplingIncident");
+        LinearFormContext* charLoadContext = new LinearFormContext( charLoadInt );
+        charLoadContext->SetEntities( actSDList );
+        charLoadContext->SetFeFunction( feFunctions_[formulation_] );
+        assemble_->AddLinearForm( charLoadContext );
+      }
+
+      //========================================================================================
       // Impedance boundaries
       // TODO: implement impedance BC
       //========================================================================================
@@ -3257,7 +3356,41 @@ namespace CoupledField{
       surfImpedance->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_SURFIMPEDANCE);
       PtrCoefFct surfImpFct = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, presFct, velFctNormal, CoefXpr::OP_DIV ) );
       DefineFieldResult(surfImpFct, surfImpedance);
-      
+
+      // === ACOU_CHARACTERISTIC ===
+      // Outgoing acoustic characteristic invariant  w_out = p' + rho0 c0 u_n'
+      //   = (rho0 c0 v').n  +  p'      (v' = -grad psi, n the outward surface normal)
+      // exported as a single scalar surface result for the impedance-matched (characteristic)
+      // flow<->acoustics coupling; the neighbour reads it as its incoming w_in.
+      // Built like FLUIDMECH NORMAL_INTENSITY: a plain volume vector (rho0 c0 v') is assembled
+      // with CoefXpr and normal-projected by a single CoefFunctionSurf; the scalar p' (which is
+      // not a normal projection) is added on the volume neighbour via SetAdditiveScalarCoef.
+      // Only meaningful for the potential formulation (uses the volume velocity vector velFct).
+      if( formulation_ == ACOU_POTENTIAL ) {
+        shared_ptr<ResultInfo> charOut(new ResultInfo);
+        charOut->resultType = ACOU_CHARACTERISTIC;
+        charOut->dofNames = "";
+        charOut->unit = MapSolTypeToUnit(ACOU_CHARACTERISTIC);
+        charOut->entryType = ResultInfo::SCALAR;
+        charOut->definedOn = ResultInfo::MapSolTypeToDefinedOn(ACOU_CHARACTERISTIC);
+
+        // rho0 c0 (volume scalar) and the volume vector  rho0 c0 v'  (v' = velFct = -grad psi)
+        PtrCoefFct densFctChar = this->GetCoefFct( ELEM_DENSITY );
+        PtrCoefFct c0FctChar   = this->GetCoefFct( ACOU_ELEM_SPEED_OF_SOUND );
+        PtrCoefFct rho0c0Char  = CoefFunction::Generate( mp_, part,
+                                   CoefXprBinOp(mp_, densFctChar, c0FctChar, CoefXpr::OP_MULT) );
+        PtrCoefFct rho0c0VolVel = CoefFunction::Generate( mp_, part,
+                                   CoefXprBinOp(mp_, rho0c0Char, velFct, CoefXpr::OP_MULT) );
+
+        // single CoefFunctionSurf: normal projection of (rho0 c0 v')  +  additive scalar p'
+        shared_ptr<CoefFunctionSurf> wOutSurf;
+        wOutSurf.reset(new CoefFunctionSurf(true, 1.0, charOut));
+        this->SetSurfVolNeighborRegion(wOutSurf, "acouCharacteristic");
+        wOutSurf->SetAdditiveScalarCoef(presFct);
+        DefineFieldResult(wOutSurf, charOut);
+        surfCoefFcts_[wOutSurf] = rho0c0VolVel;
+      }
+
       // === ACOU_SURF_AVG_IMPEDANCE ===
       shared_ptr<ResultInfo> impedance(new ResultInfo);
       impedance->resultType = ACOU_SURF_AVG_IMPEDANCE;
