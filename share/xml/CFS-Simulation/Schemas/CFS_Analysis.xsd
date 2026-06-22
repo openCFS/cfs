@@ -733,6 +733,28 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element name="warmStart" type="xsd:boolean" default="true" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>
+                True: reuse the last solution vector as inital guess for the iterative solver.
+                False: Use zero vector as initial guess
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="reuseFactorization" type="xsd:boolean" default="false" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>
+                Reuse the LDL^T factorization of PARDISO driver as preconditioner for iterative solver
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="maxIterBeforeRefactorize" type="xsd:nonNegativeInteger" default="10" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>
+                Maximum number of iterations allowed before activate the factorization again
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <!-- poslist currently not used -->
           <!--xsd:element name="posList" minOccurs="1" maxOccurs="1">
             <xsd:annotation>

@@ -132,6 +132,10 @@ class Harmonic25DDriver : public virtual SingleDriver {
     //! Current frequency step
     UInt actFreqStep_;
 
+    bool warmStart_ = true;
+    bool reuseFactorization_ = false;
+    UInt maxIterBeforeRefactorize_ = 10;
+
     //! Number of evaluation positions for IFT
     // UInt numPos_;
 

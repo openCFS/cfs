@@ -98,6 +98,10 @@ namespace CoupledField {
     }
 
     virtual void SetTranspose(TransposeType ttype) { EXCEPTION("Solver does not know transpose"); }
+
+    virtual void SetReuseFactorization(bool) {}
+    virtual void RequestRefactorization() {}
+    virtual UInt GetNumIters() {return 0;}
     
   protected:
     
@@ -149,6 +153,7 @@ namespace CoupledField {
     BaseIterativeSolver() {
       scalFac_ = -1.0;
       numCalls_ = 0;
+      numIter_ = 0;
       accIters_ = 0;
       accReduction_ = 0.0;
     }
@@ -156,6 +161,8 @@ namespace CoupledField {
     //! Default Destructor
     ~BaseIterativeSolver() {
     }
+
+    UInt GetNumIters() override {return numIter_;}
 
   protected:
 
@@ -210,6 +217,9 @@ namespace CoupledField {
     
     //! Accumulated residual error reduction
     Double accReduction_;
+    
+    //! Number of iterations
+    UInt numIter_ = 0;
   };
 
 

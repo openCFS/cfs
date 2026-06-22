@@ -263,6 +263,7 @@ namespace CoupledField {
     // ------------------------
     PtrParamNode out = infoNode_->Get( ParamNode::PROCESS )->Get( "solver", ParamNode::APPEND );
     out->Get( "numIter"        )->SetValue( niter );
+    numIter_ = niter;
     out->Get( "finalNorm"      )->SetValue( trueResNorm );
     out->Get( "solutionIsOkay" )->SetValue( converged );
 

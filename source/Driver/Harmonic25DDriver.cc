@@ -21,6 +21,7 @@
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "OLAS/solver/BaseSolver.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -55,6 +56,16 @@ namespace CoupledField {
         // Initialize value
         baseFreq_ = param_->Get("excitationFreq")->MathParse<Double>();
         mathParser_->SetValue( MathParser::GLOB_HANDLER, "baseFreqHarmonic25D", baseFreq_);
+
+        if (param_->Has("warmStart")) {
+          warmStart_ = param_->Get("warmStart")->As<bool>();
+        }
+        if (param_->Has("reuseFactorization")){
+          reuseFactorization_ = param_->Get("reuseFactorization")->As<bool>();
+        }
+        if (param_->Has("maxIterBeforeRefactorize")) {
+          maxIterBeforeRefactorize_ = param_->Get("maxIterBeforeRefactorize")->As<Integer>();
+        }
 
         // Check if we should store the calculated wavenumber spectrum to results or not
         // param_->Has("storeSpectrum") ? storeSpectrum_ = param_->Get("storeSpectrum")->As<bool>() : storeSpectrum_ = false;
@@ -172,7 +183,9 @@ namespace CoupledField {
 
       // Assemble rhs and system matrices for this wavenumber step
       algsys->InitRHS();
-      algsys->InitSol();
+      if (!warmStart_ || freqStp.step == 1) {
+        algsys->InitSol();
+      }
       pde->SetRhsValues();
       assemble->AssembleLinRHS();
       assemble->AssembleMatrices();
@@ -210,6 +223,18 @@ namespace CoupledField {
       algsys->BuildInDirichlet();
       algsys->SetupPrecond();
       algsys->SetupSolver();
+
+      if (reuseFactorization_) {
+        BaseDirectSolver *pc = dynamic_cast<BaseDirectSolver*>(algsys->GetSolver()->GetPrecond());
+        if (!pc) {
+          EXCEPTION("reuseFactorization requires a direct solver (e.g. PARDISO) as preconditioner.");
+        }
+        if (freqStp.step == 1) pc->SetReuseFactorization(true);
+        if (algsys->GetSolver()->GetNumIters() >= maxIterBeforeRefactorize_) {
+          pc->RequestRefactorization();
+        }
+      }
+
       algsys->Solve();
       sstep->StoreSolutionToFeFunctions();
 

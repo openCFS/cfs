@@ -147,6 +147,9 @@ namespace CoupledField {
       }
     };
 
+    void SetReuseFactorization(bool on) override { reuseFactorization_ = on; }
+    void RequestRefactorization()       override { refreshRequested_ = true; }
+
   private:
 
     //! Default constructor
@@ -260,6 +263,12 @@ namespace CoupledField {
 
     //! A flag specifying if Setup is being called for the first time
     bool firstCall_ = true;
+
+    //! A flag freezing factorization phase so that it can be reused across the computation
+    bool reuseFactorization_ = false;
+
+    //! A flag to activate re-factorize at next Setup 
+    bool refreshRequested_ = false;
 
     // ! Should PARDISO performance be logged for each PARDISO call?
     bool logPerformance_ = false;

@@ -241,6 +241,10 @@ extern "C" {
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";
 
+    if (reuseFactorization_ && !firstCall_ && !refreshRequested_) {
+      return;
+    }
+    refreshRequested_ = false;
     // ============================================================
     //  Determine which of the two steps: symbolical and numerical
     //  factorisation must be performed
