@@ -36,6 +36,7 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/PrescribedSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 namespace CoupledField {
@@ -52,9 +53,14 @@ namespace CoupledField {
     nonLin_        = false;
     nonLinMaterial_= false;
     
-    //! Always use total Lagrangian formulation 
+    //! Always use total Lagrangian formulation
     updatedGeo_        = false;
-    
+
+    // Prescribed-displacement mode: if a <prescribedDisplacement> block is present, the
+    // whole-domain deformation is read from an external source (e.g. computed by OpenFOAM)
+    // and injected directly into the solution -- the smoothing PDE is not solved.
+    prescribedDisplacement_ = ( myParam_->Get("prescribedDisplacement", ParamNode::PASS) != nullptr );
+
     // ****************************
     // DETERMINE GEOMETRY
     // ****************************
@@ -274,7 +280,14 @@ namespace CoupledField {
   void SmoothPDE::DefineRhsLoadIntegrators(PtrParamNode input)
   {
     LOG_TRACE(smoothpde) << "Defining rhs load integrators for smooth PDE";
-    
+
+    if( prescribedDisplacement_ ) {
+      // Prescribed mode: register the external whole-domain displacement source; there is no
+      // RHS to assemble (the field is injected directly into the solution, see DefineSolveStep).
+      ReadPrescribedDisplacement();
+      return;
+    }
+
     // Get FESpace and FeFunction of smooth displacement
     shared_ptr<BaseFeFunction> myFct = feFunctions_[SMOOTH_DISPLACEMENT];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
@@ -518,7 +531,38 @@ namespace CoupledField {
 
   void SmoothPDE::DefineSolveStep()
   {
-    solveStep_ = new StdSolveStep(*this);
+    if( prescribedDisplacement_ )
+      // No solve: the prescribed external displacement is written straight into the solution.
+      solveStep_ = new PrescribedSolveStep(*this);
+    else
+      solveStep_ = new StdSolveStep(*this);
+  }
+
+  void SmoothPDE::ReadPrescribedDisplacement()
+  {
+    PtrParamNode pdNode = myParam_->Get("prescribedDisplacement", ParamNode::PASS);
+    if( !pdNode )
+      return;
+
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[SMOOTH_DISPLACEMENT];
+    shared_ptr<ResultInfo> aResult = feFct->GetResultInfo();
+
+    // Register the externally prescribed displacement as an external data source over the whole
+    // domain (all PDE regions). PrescribedSolveStep::ApplyPrescribed() later writes it directly
+    // into the solution vector via ApplyExternalData() -- no assembly, no linear solve. The
+    // source is re-evaluated every step, so a time-dependent field is picked up automatically.
+    for( UInt i = 0; i < regions_.GetSize(); ++i )
+    {
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_) );
+      actSDList->SetRegion( regions_[i] );
+
+      PtrCoefFct coef;
+      std::set<UInt> definedDofs;
+      bool coefUpdateGeo;
+      ReadUserFieldValues( actSDList, pdNode->Get("vector"), aResult->dofNames, aResult->entryType,
+                           isComplex_, coef, definedDofs, coefUpdateGeo );
+      feFct->AddExternalDataSource( coef, actSDList );
+    }
   }
   
   // ======================================================

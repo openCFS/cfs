@@ -19,6 +19,7 @@ SET(DRIVER_SRCS
   SolveSteps/SolveStepElec.cc
   SolveSteps/SolveStepEB.cc
   SolveSteps/StdSolveStep.cc
+  SolveSteps/PrescribedSolveStep.cc
   SolveSteps/SolveStepHyst.cc
   )
 
