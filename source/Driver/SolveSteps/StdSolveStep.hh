@@ -106,8 +106,6 @@ namespace CoupledField
 
     //!  base method for solving one harmonic step 
     virtual void SolveStepHarmonic();
-
-    void SolveStepHarmonic25D(Double ExcitationFreq, Double WaveNumFreq);
     
     //! solves for one linear frequency step 
     virtual void StepHarmonicLin();
@@ -123,6 +121,13 @@ namespace CoupledField
     //! in the SolveProblem() method
     virtual void GetSolutionValMultHarm(const UInt& h);
     virtual void GetRHSValMultHarm(const UInt& h);
+
+    //----------------------- 2.5D HARMONIC -----------------------------------
+    
+    //! Helper Function for 2.5D Harmonic Analysis Driver
+    //! Sync algebraic system solution into the FE function aliased solVec_
+    //! Mandatory for result output
+    void StoreSolutionToFeFunctions();
 
     //----------------------- EIGENFREQUENCY ----------------------------------
 

@@ -20,6 +20,7 @@
 #include "Driver/Harmonic25DDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
+#include "OLAS/algsys/AlgebraicSys.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ResultHandler.hh"
@@ -163,10 +164,54 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
       ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
 
-      // sstep->GetAlgSys()->Solve();
       BaseSolveStep *step = ptPDE_->GetSolveStep();
       StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
-      sstep->SolveStepHarmonic25D(baseFreq_, actFreq_);
+      AlgebraicSys *algsys = sstep->GetAlgSys();
+      Assemble *assemble = sstep->GetAssemble();
+      StdPDE *pde = dynamic_cast<StdPDE*>(ptPDE_);
+
+      // Assemble rhs and system matrices for this wavenumber step
+      algsys->InitRHS();
+      algsys->InitSol();
+      pde->SetRhsValues();
+      assemble->AssembleLinRHS();
+      assemble->AssembleMatrices();
+      pde->SetBCs();
+      algsys->InitMatrix(SYSTEM);
+
+      // 2.5D dynamic-stiffness prefactors: excitation omega vs. wavenumber (kz) omega
+      Double BaseOmega    = 2*M_PI*baseFreq_;   // excitation angular frequency
+      Double WaveNumOmega = 2*M_PI*actFreq_;    // wavenumber angular frequency
+
+      // Mass Matrix prefactor (omega_kz^2 - omega^2)
+      Complex FactorM = Complex(WaveNumOmega*WaveNumOmega - BaseOmega*BaseOmega, 0.0);
+      // Damping Matrix prefactor (impedance BC): i*omega
+      Complex FactorC = Complex(0.0, BaseOmega);
+      // Absorbing-BC auxiliary prefactor, sign-dependent on (omega^2 - omega_kz^2)
+      Complex SqrtRootResult = std::sqrt(-FactorM);
+      Complex FactorABC = Complex(0.0, 0.0);
+      if (std::abs(SqrtRootResult.real()) > 1.0E-12) {
+        // propagating: i*sqrt(omega^2 - omega_kz^2)
+        FactorABC = Complex(0.0,1.0) * SqrtRootResult;
+      } else if (std::abs(SqrtRootResult.imag()) > 1.0E-12) {
+        // evanescent: sqrt(omega_kz^2 - omega^2)
+        FactorABC = Complex(std::abs(SqrtRootResult.imag()), 0.0);
+      }
+
+      // Effective matrix: 1*K + FactorC*C + FactorABC*C_abc + FactorM*M
+      std::map<FEMatrixType,Complex> dynamicStiffnessMatrixFactors;
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(STIFFNESS,   Complex(1.0,0.0)) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(DAMPING,     FactorC) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(DAMPING_AUX, FactorABC) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(MASS,        FactorM) );
+      algsys->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
+
+      // Apply Dirichlet, (re)build precond/solver, solve, sync solution back
+      algsys->BuildInDirichlet();
+      algsys->SetupPrecond();
+      algsys->SetupSolver();
+      algsys->Solve();
+      sstep->StoreSolutionToFeFunctions();
 
       return actFreq_;
     }
