@@ -3348,68 +3348,10 @@
 
   <!-- The possible excitations we have -->
   <xsd:simpleType name="DT_Excitation">
+    <!-- for magnetic coupling we combine two excitations (0_1) - here fixed  the first. -->
+    <!-- we numeriate excitations by their index and start with 0-based -->
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="all" />
-      <xsd:enumeration value="x" />
-      <xsd:enumeration value="y" />
-      <xsd:enumeration value="z" />
-      <xsd:enumeration value="yz" />
-      <xsd:enumeration value="xz" />
-      <xsd:enumeration value="xy" />
-      <!-- for magnetic coupling we combine two excitations - here fixed  the first. -->
-      <xsd:enumeration value="0_1" />
-      <!-- we numeriate excitations by their index and start with 0-based -->
-      <xsd:enumeration value="0" />
-      <xsd:enumeration value="1" />
-      <xsd:enumeration value="2" />
-      <xsd:enumeration value="3" />
-      <xsd:enumeration value="4" />
-      <xsd:enumeration value="5" />
-      <xsd:enumeration value="6" />
-      <xsd:enumeration value="7" />
-      <xsd:enumeration value="8" />
-      <xsd:enumeration value="9" />
-      <xsd:enumeration value="10" />
-      <xsd:enumeration value="11" />
-      <xsd:enumeration value="12" />
-      <xsd:enumeration value="13" />
-      <xsd:enumeration value="14" />
-      <xsd:enumeration value="15" />
-      <xsd:enumeration value="16" />
-      <xsd:enumeration value="17" />
-      <xsd:enumeration value="18" />
-      <xsd:enumeration value="19" />
-      <xsd:enumeration value="20" />
-      <xsd:enumeration value="21" />
-      <xsd:enumeration value="22" />
-      <xsd:enumeration value="23" />
-      <xsd:enumeration value="24" />
-      <xsd:enumeration value="25" />
-      <xsd:enumeration value="26" />
-      <xsd:enumeration value="27" />
-      <xsd:enumeration value="28" />
-      <xsd:enumeration value="29" />
-      <xsd:enumeration value="30" />
-      <xsd:enumeration value="31" />
-      <xsd:enumeration value="32" />
-      <xsd:enumeration value="33" />
-      <xsd:enumeration value="34" />
-      <xsd:enumeration value="35" />
-      <xsd:enumeration value="36" />
-      <xsd:enumeration value="37" />
-      <xsd:enumeration value="38" />
-      <xsd:enumeration value="39" />
-      <xsd:enumeration value="40" />
-      <xsd:enumeration value="41" />
-      <xsd:enumeration value="42" />
-      <xsd:enumeration value="43" />
-      <xsd:enumeration value="44" />
-      <xsd:enumeration value="45" />
-      <xsd:enumeration value="46" />
-      <xsd:enumeration value="47" />
-      <xsd:enumeration value="48" />
-      <xsd:enumeration value="49" />
-      <xsd:enumeration value="50" />
+      <xsd:pattern value="^(all|x|y|z|yz|xz|xy|0_1|[0-9]+)$" />
     </xsd:restriction>
   </xsd:simpleType>
 
