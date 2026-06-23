@@ -24,7 +24,10 @@ namespace CoupledField {
 
     if ( xml_ != NULL ) {
       xml_->GetValue( "maxIter", maxIter_, ParamNode::INSERT );
-      xml_->GetValue( "tol", eps_, ParamNode::INSERT );
+      if (xml_->Has("tol")) {
+        eps_ = xml_->Get("tol")->MathParse<Double>();
+      }
+      // xml_->GetValue( "tol", eps_, ParamNode::INSERT );
       xml_->GetValue( "consoleConvergence", consoleConvergence_, ParamNode::INSERT );
     }
   }
