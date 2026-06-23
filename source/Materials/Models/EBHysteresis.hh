@@ -54,18 +54,27 @@ namespace CoupledField {
           Methods regarding the computation of the Jacobian matrix
       =========================================================================================
       */
+
+      //simple diagonal approximation: mu_ii = |dB_i| / |dH_i|, off-diagonals set to zero
       Matrix<Double> EvaluateLocalMu(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
+      //DFP (Davidon-Fletcher-Powell) quasi-Newton update of dB/dH (symmetric rank-2 update).
       Matrix<Double> EvaluateLocalMuDFP(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
+      //Broyden (GBM) quasi-Newton update of dB/dH (rank-1 update)
       Matrix<Double> EvaluateLocalMuGBM(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
+      //BFGS quasi-Newton update of dB/dH (symmetric rank-2 update)
       Matrix<Double> EvaluateLocalMuBFGS(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
+      //forward finite difference approximation of dB/dH. Used as initial Jacobian in the
+      //first Newton iteration when no quasi-Newton history is available yet
       Matrix<Double> EvaluateLocalMuFiniteDifferences(Vector<Double> E, StdVector<Double> D, UInt idx);
 
+      //Computes dB/dH analytically for the purely anhysteretic case using the atan anhysteretic function
       Matrix<Double> EvaluateLocalMuAnhystersisOnly(Vector<Double> E, UInt idx);
 
+      //Computes the inverse of a 3x3 matrix using the adjugate method: A^{-1} = adj(A) / det(A)
       StdVector<Double> inv3x3(StdVector<Double> A);
 
       /*
@@ -73,16 +82,30 @@ namespace CoupledField {
           Methods regarding the evaluation of the hysteresis model
       =========================================================================================
       */
+
+      //used the correct Eval_*() method based on approx_type_ and anhyst_type_
       Vector<Double> Evaluate(Vector<Double> E, UInt idx);
 
+      //2D Energy-Based Model (EBM) with atan anhysteretic function.
+      //Solves the dual variational problem (Eq. 2.35) via 1D Newton iteration over the angle phi
       Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      //2D Vector Play Model (VPM) with analytic anhysteretic function (atan or Pacejka)
       Vector<Double> Eval_2D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      //3D Vector Play Model (VPM) with analytic anhysteretic function (atan or Pacejka)
       Vector<Double> Eval_3D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
+      //2D Vector Play Model (VPM) with SMSM multiscale anhysteretic model
       Vector<Double> Eval_2D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      //3D Vector Play Model (VPM) with SMSM multiscale anhysteretic model
       Vector<Double> Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
+      //2D Energy-Based Model (EBM) with SMSM multiscale anhysteretic model
       Vector<Double> Eval_2D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      //3D Energy-Based Model (EBM) with SMSM multiscale anhysteretic model
       Vector<Double> Eval_3D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
       /*

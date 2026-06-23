@@ -232,14 +232,6 @@ DEFINE_LOG(eb, "EBHysteresis")
     Vector<Double> sigma;
     stressCoef->GetVector(sigma, lpm);
 
-    // // dirty hack for 2d setups: add zero z-component to the stress tensor
-    // if(dim_ == 2){
-    //   sigma.Push_back(0.0);
-    //   sigma.Push_back(0.0);
-    //   sigma.Push_back(0.0);
-    //   sigma[5] = sigma[2];
-    //   sigma[2] = 0.0;
-    // }
     SMSM_model_->Register_stress(sigma);
 
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
@@ -328,6 +320,15 @@ DEFINE_LOG(eb, "EBHysteresis")
       delta_H[i] = HVec[i] - Htotal_prev_[idx][i];
       delta_B[i] = B_k[i] - B_k_0[i];
     }
+    LOG_DBG3(eb) << "AFTER EVALUATION" 
+                 << "\n\t HVec =  \t\t" << HVec.ToString()
+                 << "\n\t Htotal_prev_["<<idx<<"] = \t" << Htotal_prev_[idx].ToString()
+                 << "\n\t Mprev_iter_["<<idx<<"] = \t" << Mprev_iter_[idx].ToString()
+                 << "\n\t M = \t\t\t" << M.ToString()
+                 << "\n\t B_k = \t\t\t" << B_k.ToString()
+                 << "\n\t B_k_0 = \t\t" << B_k_0.ToString()
+                 << "\n\t delta_H = \t\t" << delta_H.ToString()
+                 << "\n\t delta_B = \t\t" << delta_B.ToString();
 
     if ((numS_ > 1) || (anhyst_type_ == "multiscale_anhysteresis") || (anhyst_formula_ == "pacejka"))
     { // hysteretic case
@@ -480,13 +481,16 @@ DEFINE_LOG(eb, "EBHysteresis")
     identity.Resize(dim_,dim_); 
 
     Double t0, t1, t3, factor1,factor2,factor3;
-    Double mu0 = 1.256637061e-06;
+    Double mu0 = mu0_;
 
     // 2D case (x,y)
     if (dim_ == 2){
+      //compute ||H|| and normalized argument t = ||H||/A
       t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1]);
       t1 = t0/A_;
       t3 = std::atan(t1);
+
+      //scalar factors for tensor decomposition dM/dH = (f1-f2)*H \otimes H + f3*I
       factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
       factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
       factor3 = (2*Ps_*t3)/(M_PI*t0);
@@ -494,10 +498,10 @@ DEFINE_LOG(eb, "EBHysteresis")
       for (UInt i = 0; i < dim_; ++i){
         for (UInt j = 0; j < dim_; ++j){
           identity[i][j] = (i == j) ? 1 : 0;
-          T2[i][j] = HVec[i]*HVec[j];
+          T2[i][j] = HVec[i]*HVec[j]; //outer product H \otimes H
           chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
           if (std::isnan(chi[i][j])){
-            chi[i][j] = 0;
+            chi[i][j] = 0; //fallback for H=0
           }
           mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
         }
@@ -506,6 +510,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       HVec[0] = (HVec[0] == 0) ? 1e-12 : HVec[0];
       HVec[1] = (HVec[1] == 0) ? 1e-12 : HVec[1];
       HVec[2] = (HVec[2] == 0) ? 1e-12 : HVec[2];
+      //compute ||H|| and normalized argument t = ||H||/A
       t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
       t1 = t0/A_;
       t3 = std::atan(t1);
@@ -516,10 +521,10 @@ DEFINE_LOG(eb, "EBHysteresis")
       for (UInt i = 0; i < dim_; ++i){
         for (UInt j = 0; j < dim_; ++j){
           identity[i][j] = (i == j) ? 1 : 0;
-          T2[i][j] = HVec[i]*HVec[j];
+          T2[i][j] = HVec[i]*HVec[j]; //outer product H \otimes H
           chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
           if (std::isnan(chi[i][j])){
-            chi[i][j] = 0;
+            chi[i][j] = 0; //fallback for H=0
           }
           mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
         }
@@ -528,18 +533,23 @@ DEFINE_LOG(eb, "EBHysteresis")
     return mu;
   }
 
+  //approximates Jacobian dB/dH via forward finite differences, 
+  //used to compute a reliable starting value for quasi-Newton in the first Newton iteration
   Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
     Matrix<Double> mu;
     mu.Resize(dim_,dim_);
 
-    Double h = 1*10^(-7);
+    Double h = 1*10^(-7); //step size for fintie difference
+
+    //unit vectors
     Vector<Double> eh_x(dim_);
     Vector<Double> eh_y(dim_);
     Vector<Double> eh_z(dim_);
+
+    //H, B and M vectors for each coordinate direction
     Vector<Double> H_incx(dim_);
     Vector<Double> H_incy(dim_);
     Vector<Double> H_incz(dim_);
-
     Vector<Double> M_incx(dim_);
     Vector<Double> M_incy(dim_);
     Vector<Double> M_incz(dim_);
@@ -561,6 +571,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
       M_incx = Evaluate(H_incx, idx);
       M_incy = Evaluate(H_incy, idx);
+      //B = mu0*(H + M)
       for (UInt i = 0; i < dim_; i++)
       {
         B_incx[i] = mu0_ * (H_incx[i] + M_incx[i]);
@@ -654,15 +665,18 @@ DEFINE_LOG(eb, "EBHysteresis")
 Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
 
       // define needed variables
-      Matrix<Double> yyT(dim_, dim_);
-      Matrix<Double> BxBxT(dim_, dim_);
-      Matrix<Double> B_k1(dim_, dim_);
-      Matrix<Double> B = mu_[idx];
-      Double yTx;
-      Double xTBx;
+      Matrix<Double> yyT(dim_, dim_); //outer product of y
+      Matrix<Double> BxBxT(dim_, dim_); //outer product of Bx
+      Matrix<Double> B_k1(dim_, dim_); //updated permeability tensor (i.e., Jacobian)
+      Matrix<Double> B = mu_[idx]; //previous -''-
+      Double yTx; //inner product y^T x
+      Double xTBx; //inner product x^T*B*x
+      //increments
       StdVector<Double> y = dB;
       StdVector<Double> x = dH;
-      Vector<Double> Bx(dim_);
+
+      Vector<Double> Bx(dim_);//B*x
+
 
       // update nu via BFGS formula
       if(dim_ == 2){
@@ -745,13 +759,13 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Matrix<Double> mu;
     mu.Resize(dim_,dim_);
 
-    Matrix<Double> dD_dyadic_dEtransposed(dim_, dim_);
-    Matrix<Double> dE_dyadic_dDtransposed(dim_, dim_);
-    Matrix<Double> dD_dyadic_dDtransposed(dim_, dim_);
-    Matrix<Double> I(dim_, dim_);
-    Matrix<Double> leftM(dim_, dim_);
-    Matrix<Double> rightM(dim_, dim_);
-    Matrix<Double> A(dim_,dim_);
+    Matrix<Double> dD_dyadic_dEtransposed(dim_, dim_); //=dB * dH^T  (outer product)
+    Matrix<Double> dE_dyadic_dDtransposed(dim_, dim_); //=dH * dB^T  (outer product)
+    Matrix<Double> dD_dyadic_dDtransposed(dim_, dim_); //dB * dB^T  (outer product, numerator of last term)
+    Matrix<Double> I(dim_, dim_); //= dH^T * dB  (inner product, common denominator)
+    Matrix<Double> leftM(dim_, dim_); //= I - dD_dyadic_dEtransposed / dDtransposed_in_dE
+    Matrix<Double> rightM(dim_, dim_); //= I - dE_dyadic_dDtransposed / dDtransposed_in_dE
+    Matrix<Double> A(dim_,dim_); //= leftM * mu_{k-1} * rightM
     
     if(dim_ == 2){
       I[0][0] = 1.0;
@@ -806,8 +820,10 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
                   << "\n\t epsilon_km1 = " << mu_[idx].ToString()
                   << "\n\t A = " << A.ToString();
 
+      //zero off-diagonals to enforce diagonal Jacobian approximation
       mu[0][1] = 0.0;
       mu[1][0] = 0.0;
+      //NaN/Inf diagonal entries fall back to the previous value mu_{k-1}.
       for (UInt i = 0; i < dim_; i++){
           if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
             Matrix<Double> e = mu_[idx];
@@ -899,12 +915,14 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
                   << "\n\t epsilon_km1 = " << mu_[idx].ToString()
                   << "\n\t A = " << A.ToString();
 
+      // Zero off-diagonals (consistent with 2D case)
       mu[0][1] = 0.0;
       mu[1][0] = 0.0;
       mu[2][0] = 0.0;
       mu[0][2] = 0.0;
       mu[1][2] = 0.0;
       mu[2][1] = 0.0;
+      //NaN/Inf diagonal entries fall back to the previous value mu_{k-1}.
       for (UInt i = 0; i < dim_; i++)
       {
         if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
@@ -919,20 +937,23 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return mu;
   }
 
-
+  //Broyden update, see Section 1.3.2 in the PhD Thesis of Lukas Domenig
+  //"GBM"...good broyden method, see "Numerical Optimization" by Nocedal and Wright, 2006, Chapter 6
   Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx)
   {
     Matrix<Double> mu;
     mu.Resize(dim_,dim_);
 
-    Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
-    Vector<Double> dHvec(dim_);
-    Matrix<Double> rightM(dim_,dim_);
-    double offset = 1e-13;
+    Vector<Double> dD_minus_epsilon_km1_times_dE(dim_); //dD - mu_{k-1} * dE: residual of the secant condition (numerator of the Broyden update)
+    Vector<Double> dHvec(dim_); //dH stored as Vector (needed for NormL2_squared() and DyadicMult())
+    Matrix<Double> rightM(dim_,dim_); //rank-1 update matrix: rightM = dD_minus_epsilon_km1_times_dE \otimes dHvec
+    double offset = 1e-13; //to avoid division by zero
 
     if(dim_ == 2){
       dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
       dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
+
+      //numerator
       dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1]);
       dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1]);
 
@@ -970,7 +991,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       dHvec[2] = dH[2];
       dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
       
-      rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
+      rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec); //otimes with dH and add to previous Jacobian
       
       mu[1][0] = mu_[idx][1][0] + rightM[1][0];
       mu[0][1] = mu_[idx][0][1] + rightM[0][1];
@@ -1003,7 +1024,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return mu;  
   }
 
-
+  //computes the inverse of a 3x3 matrix A by means of the adjugate method: inv(A) = (1/det(A)) * adj(A)
   StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
     double detA = 0;
     StdVector<Double> adjA(9); adjA.Init(0.0);
@@ -1128,7 +1149,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return ret;
   }
 
-
+  ///Vector Play Model (VPM) hysteresis operator evaluation (see Eq. 2.15 / 2.38 in PhD Thesis of Lukas Domenig).
   Vector<Double> EBHysteresis::Eval_3D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> ret;
@@ -1148,19 +1169,26 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Double Hex_y = Hn[1];
     Double Hex_z = Hn[2];
 
+    //per-particle variables computed inside the loop:
+    //HrxS_prev/HryS_prev/HrzS_prev: reversible field H_rev of particle k from previous time step
+    //Px/Py/Pz:  accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
+    //Hirr_x/y/z: irreversible field components H_irr_k = H_ext - H_rev_k (used for projection onto sphere)
     Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1, Hirr_x, Hirr_y, Hirr_z;
 
     StdVector<Double> &HxS_prev = HxS_n_[idx];
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &HzS_prev = HzS_n_[idx];
 
+    //Composite VPM evaluation (Eq. 2.38 in PhD thesis Lukas Domenig):
+    //condition1 = ||(H_ext - H_rev,prev) / chi[k]||^2 <= 1: H_ext still inside sphere -> keep H_rev
+    //condition1 > 1: H_ext outside sphere (dissipation threshold exceeded) -> project onto sphere surface
     for (UInt k = 0; k < numS_; k++)
     {
       HrxS_prev = HxS_prev[k];
       HryS_prev = HyS_prev[k];
       HrzS_prev = HzS_prev[k];
       condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2) + std::pow((Hex_z - HrzS_prev) / chi[k], 2));
-      if (condition1 <= 1.0)
+      if (condition1 <= 1.0) //inside sphere, no dissipation, keep previous H_rev
       {
         HrxS_sol[k] = HrxS_prev;
         HryS_sol[k] = HryS_prev;
@@ -1189,7 +1217,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
       if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
       { 
-        if(anhyst_formula_=="atan"){
+        if(anhyst_formula_=="atan"){ //evaluate anhysteretic function in direction of H_rev, see (2.61)
           MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
           MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
           MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
@@ -1210,6 +1238,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Px = 0.0;
     Py = 0.0;
     Pz = 0.0;
+    //weighted sum M = sum_l omega_l * M_l, see (2.37)
     for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
@@ -1232,7 +1261,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return ret;
   }
 
-
+  ///Vector Play Model (VPM) hysteresis operator evaluation (see Eq. 2.15 / 2.38 in PhD Thesis of Lukas Domenig).
   Vector<Double> EBHysteresis::Eval_2D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> ret;
@@ -1249,11 +1278,18 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Double Hex_x = Hn[0];
     Double Hex_y = Hn[1];
 
+    //per-particle variables computed inside the loop:
+    //HrxS_prev/HryS_prev/HrzS_prev: reversible field H_rev of particle k from previous time step
+    //Px/Py/Pz: accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
+    //Hirr_x/y/z: irreversible field components H_irr_k = H_ext - H_rev_k (used for projection onto sphere)
     Double HrxS_prev, HryS_prev, HrS, Px, Py, condition1, Hirr_x, Hirr_y;
 
     StdVector<Double> &HxS_prev = HxS_n_[idx];
     StdVector<Double> &HyS_prev = HyS_n_[idx];
 
+    //Composite VPM evaluation (Eq. 2.38 in PhD thesis Lukas Domenig):
+    //condition1 = ||(H_ext - H_rev,prev) / chi[k]||^2 <= 1: H_ext still inside sphere -> keep H_rev
+    //condition1 > 1: H_ext outside sphere (dissipation threshold exceeded) -> project onto sphere surface
     for (UInt k = 0; k < numS_; k++)
     {
       HrxS_prev = HxS_prev[k];
@@ -1284,7 +1320,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
       if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
       { 
-        if(anhyst_formula_=="atan"){
+        if(anhyst_formula_=="atan"){ //evaluate anhysteretic function in direction of H_rev, see (2.61)
           MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
           MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
         }
@@ -1301,6 +1337,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     }
     Px = 0.0;
     Py = 0.0;
+    //weighted sum M = sum_l omega_l * M_l, see (2.37)
     for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
@@ -1347,12 +1384,18 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     MyS_sol.Resize(numS_, 0.0);
     MzS_sol.Resize(numS_, 0.0);
 
+    //external magnetic field strengths
     Double Hex_x = Hn[0];
     Double Hex_y = Hn[1];
     Double Hex_z = Hn[2];
 
+    //per-particle variables computed inside the loop:
+    //HrxS_prev/HryS_prev/HrzS_prev: reversible field H_rev of particle k from previous time step
+    //Px/Py/Pz: accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
+    //Hirr_x/y/z: irreversible field components H_irr_k = H_ext - H_rev_k (used for projection onto sphere)
     Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1, Hirr_x, Hirr_y, Hirr_z;
 
+    //references to reversible field state vectors H_rev,n-1 of all particles for element idx (H_rev,n-1 in Eq. 2.38 of the thesis)
     StdVector<Double> &HxS_prev = HxS_n_[idx];
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &HzS_prev = HzS_n_[idx];
@@ -1453,12 +1496,31 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     MxS_sol.Resize(numS_, 0.0);
     MyS_sol.Resize(numS_, 0.0);
 
+    //external components
     Double Hex_x = Hn[0];
     Double Hex_y = Hn[1];
 
+    //HrxS_prev/HryS_prev: reversible field H_rev of particle k from previous time step
+    //MxSprev/MySprev: magnetization M of particle k from previous time step
+    //phi:angle of H_irr on the sphere boundary (the 1D optimization variable, see Eq. 2.35)
+    //err: convergence error of the Newton iteration for phi
+    //iter: Newton iteration counter
+    //ux/uy: H_rev = H_ext + chi[k]*[cos(phi), sin(phi)]^T (point on sphere boundary)
+    //uabs:||H_rev|| = ||(ux, uy)||
+    //ux1/uy1: first derivative of (ux,uy) w.r.t. phi = chi[k]*[-sin(phi), cos(phi)]^T
+    //ux2/uy2: second derivative of (ux,uy) w.r.t. phi = chi[k]*[-cos(phi), -sin(phi)]^T
+    //Man: anhysteretic magnetization Man(||H_rev||) = (2*Ps/pi)*atan(||H_rev||/A)
+    //Man1: derivative dMan/d(||H_rev||)
+    //g1: gradient F'(phi) of the energy functional (Eq. 2.35)
+    //g2: Hessian F''(phi) of the energy functional
+    //phiNew: updated angle after Newton step
+    //HrS: magnitude of the converged reversible field ||H_rev_k||
+    //Px/Py: accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
     Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, ux, uy,
         uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
     UInt iter;
+
+    //references to reversible field state vectors H_rev,n-1 of all particles for element idx (H_rev,n-1 in Eq. 2.38 of the thesis)
     StdVector<Double> &HxS_prev = HxS_n_[idx];
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &MxS_prev = MxS_n_[idx];
@@ -1557,8 +1619,6 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return ret;
   }
 
-
-
   Vector<Double> EBHysteresis::Eval_3D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> Hn2d(2);
@@ -1588,6 +1648,21 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Double Hex_x = Hn[0];
     Double Hex_y = Hn[1];
 
+    //HrxS_prev/HryS_prev: reversible field H_rev of particle k from previous time step
+    //MxSprev/MySprev: magnetization M of particle k from previous time step
+    //phi:angle of H_irr on the sphere boundary (the 1D optimization variable, see Eq. 2.35)
+    //err: convergence error of the Newton iteration for phi
+    //ux/uy: H_rev = H_ext + chi[k]*[cos(phi), sin(phi)]^T (point on sphere boundary)
+    //uabs:||H_rev|| = ||(ux, uy)||
+    //ux1/uy1: first derivative of (ux,uy) w.r.t. phi = chi[k]*[-sin(phi), cos(phi)]^T
+    //ux2/uy2: second derivative of (ux,uy) w.r.t. phi = chi[k]*[-cos(phi), -sin(phi)]^T
+    //Man: anhysteretic magnetization Man(||H_rev||) = (2*Ps/pi)*atan(||H_rev||/A)
+    //Man1: derivative dMan/d(||H_rev||)
+    //g1: gradient F'(phi) of the energy functional (Eq. 2.35)
+    //g2: Hessian F''(phi) of the energy functional
+    //phiNew: updated angle after Newton step
+    //HrS: magnitude of the converged reversible field ||H_rev_k||
+    //Px/Py: accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
     Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, F_prime, F_prime_prime,
            ux, uy, uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
     Matrix<Double> dM_dHrev(2,2);
@@ -1602,6 +1677,11 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     LOG_DBG3(eb) << "\n\t Stress tensor = "<<SMSM_model_->GetSigma().ToString();    
     LOG_DBG3(eb) << "\n\t chi = "<< chi.ToString();
 
+    //Composite EBM evaluation using the dual/variational approach combined with the
+    //Multiscale Magnetomechanical Model (SMSM) as anhysteretic function
+    //for each pseudo particle k, the same 1D Newton optimization over theta is performed as in Eval_2D_EBM_ATAN,
+    //but the anhysteretic response Man(H_rev) is evaluated by the SMSM model instead of an analytic function.
+    //The SMSM model accounts for magnetomechanical coupling via the stress tensor sigma.
     for (UInt k = 0; k < numS_; k++)
     {
       LOG_DBG3(eb) << "\n\t Starting with k = "<<k;
@@ -1771,10 +1851,13 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
                                        Double& F_prime_orig, Double& F_prime_prime_orig)
   {
 
-    Double G_prev = 1.0e12;
-    Double s = 1.0e-5;
-    Double e = 1.0;
-    UInt num = 3;
+    //line search to find the optimal step size eta in [s, e] for the Newton update of phi (Eq. 3.55 in thesis Lukas Domenig).
+    //evaluates G(eta) = F'(phi - eta * F'_orig/F''_orig) * F'_orig/F''_orig
+    //returns the eta that minimizes |G|, i.e., closest to a stationary point of the energy functional
+    Double G_prev = 1.0e12;  //save minimum |G| found so far
+    Double s = 1.0e-5;       //lower bound for eta
+    Double e = 1.0;          //upper bound for eta
+    UInt num = 3;            //number of intervals
     Double etaopt = 0.0;
     Double F_prime, F_prime_prime, phi_k, G, eta;
     Matrix<Double> dM_dHrev;
@@ -1792,7 +1875,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       LOG_DBG3(eb) << "\n\t eta: " << eta;
       LOG_DBG3(eb) << "\n\t phi_k: " << phi_k;
 
-
+      //compute necessary derivatives
       Calc_derivs(F_prime, F_prime_prime, dM_dHrev, Mprev_x, Mprev_y,
                       Hx, Hy, Hprev_x, Hprev_y, phi_k, chi);
       LOG_DBG3(eb) << "\n\t F_prime: " << F_prime;

@@ -26,9 +26,7 @@ DEFINE_LOG(smsm, "SMSM")
     dim_ = dim;
 
     if(dim_ == 3){
-      // Define the file path
-      // std::string filePath = "/home/klaus/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
-      //std::string filePath = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+      // Define the file path to the TABgamma data file
       std::string filePath = "/home/lukas/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
       std::ifstream file(filePath);
 
@@ -61,9 +59,14 @@ DEFINE_LOG(smsm, "SMSM")
       // Close the file
       file.close();
 
+      //initialize the local (cauchy, i.e., linearized) stress tensor to zero (updated later via Register_stress())
       SIGMAloc_.Resize(3, 3);
       SIGMAloc_.Init();
 
+      //magnetostrictive strain tensor components for all numRows_ directions.
+      //For each direction gamma_i = (gamma0, gamma1, gamma2) on the unit sphere:
+      //epsmu_jk[i] = 1.5 * lambda_jk * (gamma_i[j]*gamma_i[k] - delta_jk/3)
+      //where lambda100 applies to diagonal terms (j==k) and lambda111 to off-diagonal terms (j!=k)
       epsmu11_.Resize(numRows_);
       epsmu12_.Resize(numRows_);
       epsmu13_.Resize(numRows_);
@@ -103,16 +106,15 @@ DEFINE_LOG(smsm, "SMSM")
         TABgamma_[i][1] = sin(i*delta_alpha);
       }
 
-
       // 2D case, here we assume a plane stress state!!!!!
+      //i.e., sigma_33 = sigma_13 = sigma_23 = 0, which further implies eps_13 = eps_23 = 0
       SIGMAloc_.Resize(2, 2);
       SIGMAloc_.Init();
 
+      //epsmu13_ and epsmu23_ are zero due to plane stress assumptionand are therefore not needed
       epsmu11_.Resize(numRows_);
       epsmu12_.Resize(numRows_);
-//      epsmu13_.Resize(numRows_, 0.0);
       epsmu22_.Resize(numRows_);
-//      epsmu23_.Resize(numRows_, 0.0);
       epsmu33_.Resize(numRows_, -1.5 * l100_ * 1.0 / 3.0);
       Wan_.Resize(numRows_);
 
@@ -146,13 +148,23 @@ DEFINE_LOG(smsm, "SMSM")
   void SMSM::Eval3D(Double valH, StdVector<Double> dirHloc)
   {
 
+  //Computes the total free energy Wtot[i] for each discrete magnetization direction gamma_i.
+  //The total free energy consists of three contributions (see Eq. 3 in Roppert et al. 2024):
+  //G_alpha(H, sigma, alpha_i) = G_mag + G_el + G_an
+  //-where:
+  //G_mag[i]= -mu0 * H . M_alpha(alpha_i) = -mu0 * Ms * valH * (gamma_i . dirHloc)...Zeeman energy
+  //G_el[i]= -eps_mu(alpha_i) : sigma magnetoelastic energy)...elastic energy
+  //G_an[i] = Wan_[i]....anisotropy energy                     
   Vector<Double> Wtot(numRows_);
-  Double As_times_Wtot_exp = 0.0; 
-  Double gamma0, gamma1, gamma2, e11, e12, e13, e23, e33, e22, f;
+  Double As_times_Wtot_exp = 0.0; //denominator of the Boltzmann distribution (Eq. 2 / 5) in cited paper
+  Double gamma0, gamma1, gamma2, e11, e12, e13, e23, e33, e22, f; //direction components
+  
+  //homogenization step: Integrate over all discrete directions using the Boltzmann probabilities
+  //compute total energy for every discrete direction alpha_i
   for (UInt i = 0; i < numRows_; ++i) {
-    gamma0 = TABgamma_[i][0];
-    gamma1 = TABgamma_[i][1];
-    gamma2 = TABgamma_[i][2];
+    gamma0 = TABgamma_[i][0]; //x-component
+    gamma1 = TABgamma_[i][1]; //y-component
+    gamma2 = TABgamma_[i][2]; //z-component
     e11 = epsmu11_[i];
     e12 = epsmu12_[i];
     e13 = epsmu13_[i];
@@ -193,14 +205,14 @@ DEFINE_LOG(smsm, "SMSM")
     EXCEPTION("Sum(exp(As*Wtot) = "<<As_times_Wtot_exp);
   }
 
-
-
   Double eps_11 = 0.0;
   Double eps_12 = 0.0;
   Double eps_13 = 0.0;
   Double eps_22 = 0.0;
   Double eps_23 = 0.0;
   Double eps_33 = 0.0;
+
+  //dMdH denotes the differential susceptibility tensor
   Double dMdH_00 = 0.0;
   Double dMdH_11 = 0.0;
   Double dMdH_22 = 0.0;
@@ -210,14 +222,18 @@ DEFINE_LOG(smsm, "SMSM")
   Double dMdH_20 = 0.0;
   Double dMdH_21 = 0.0;
   Double dMdH_12 = 0.0;
+
+  //components of M (i.e., volume averaged magnetizaition)
   Double MMoy0 = 0.0;
   Double MMoy1 = 0.0;
   Double MMoy2 = 0.0;
+
   Double falpha_Malpha_0, falpha_Malpha_1, falpha_Malpha_2;
   Vector<Double> Malpha(3);
   Vector<Double> falpha_Malpha(3);
   for (UInt i = 0; i < numRows_; ++i) {
     gamma0 = TABgamma_[i][0];
+    
     gamma1 = TABgamma_[i][1];
     gamma2 = TABgamma_[i][2];
     e11 = epsmu11_[i];
@@ -227,14 +243,15 @@ DEFINE_LOG(smsm, "SMSM")
     e33 = epsmu33_[i];
     e22 = epsmu22_[i];
 
-
     // here we must also use the scaling-trick described above for the nominator
     f = std::exp(-AS_*Wtot[i] - Wtot_max*AS_) / As_times_Wtot_exp;
     
+    //accumulate macroscopic magnetization components
     MMoy0 += Ms_*f*gamma0;
     MMoy1 += Ms_*f*gamma1;
     MMoy2 += Ms_*f*gamma2;
 
+    //accumulate macroscopic magnetostrictive strain components
     eps_11 += Ms_*f * e11;
     eps_12 += Ms_*f * e12;
     eps_13 += Ms_*f * e13;
@@ -242,6 +259,8 @@ DEFINE_LOG(smsm, "SMSM")
     eps_23 += Ms_*f * e23;
     eps_33 += Ms_*f * e33;
 
+    //directional contributions to the magnetization and susceptibility tensor components
+    //for the current direction gamma_i, weighted by the Boltzmann probability f
     falpha_Malpha_0 = gamma0*Ms_ * f;
     falpha_Malpha_1 = gamma1*Ms_ * f;
     falpha_Malpha_2 = gamma2*Ms_ * f;
@@ -256,9 +275,6 @@ DEFINE_LOG(smsm, "SMSM")
     dMdH_21 += falpha_Malpha_2*gamma1*Ms_;
     dMdH_12 += falpha_Malpha_1*gamma2*Ms_;
   }
-
- 
-
 
   dMdH_00 = mu0_*AS_*(dMdH_00 - MMoy0*MMoy0);
   dMdH_11 = mu0_*AS_*(dMdH_11 - MMoy1*MMoy1);
@@ -291,7 +307,7 @@ DEFINE_LOG(smsm, "SMSM")
 
   LOG_DBG3(smsm) << "\n\t dMdH_ = " << dMdH_.ToString();
 
- 
+  //assemble the macroscopic magnetostrictive strain tensor from the homogenized components
   epsmumoy_.Resize(3,3);
   epsmumoy_[0][0] = eps_11;
   epsmumoy_[0][1] = eps_12;
@@ -304,7 +320,6 @@ DEFINE_LOG(smsm, "SMSM")
   epsmumoy_[2][2] = eps_33;
 
   }
-
 
   void SMSM::Eval2D(Double valH, StdVector<Double> dirHloc)
   {
@@ -349,8 +364,6 @@ DEFINE_LOG(smsm, "SMSM")
     EXCEPTION("Sum(exp(As*Wtot) = "<<As_times_Wtot_exp);
   }
 
-
-
   Double eps_11 = 0.0;
   Double eps_12 = 0.0;
   Double eps_22 = 0.0;
@@ -364,6 +377,7 @@ DEFINE_LOG(smsm, "SMSM")
   Double falpha_Malpha_0, falpha_Malpha_1;
   Vector<Double> Malpha(3);
   Vector<Double> falpha_Malpha(3);
+  //homogenization step: Integrate over all discrete directions using the Boltzmann probabilities
   for (UInt i = 0; i < numRows_; ++i) {
     gamma0 = TABgamma_[i][0];
     gamma1 = TABgamma_[i][1];
@@ -375,14 +389,18 @@ DEFINE_LOG(smsm, "SMSM")
     // here we must also use the scaling-trick described above for the nominator
     f = std::exp(-AS_*Wtot[i] - Wtot_max*AS_) / As_times_Wtot_exp;
     
+    //accumulate macroscopic magnetization components
     MMoy0 += Ms_*f*gamma0;
     MMoy1 += Ms_*f*gamma1;
 
+    //accumulate macroscopic magnetostrictive strain components
     eps_11 += Ms_*f * e11;
     eps_12 += Ms_*f * e12;
     eps_22 += Ms_*f * e22;
     eps_33 += Ms_*f * e33;
 
+    //directional contributions to the magnetization and susceptibility tensor components
+    //for the current direction gamma_i, weighted by the Boltzmann probability f
     falpha_Malpha_0 = gamma0*Ms_ * f;
     falpha_Malpha_1 = gamma1*Ms_ * f;
       
@@ -411,7 +429,7 @@ DEFINE_LOG(smsm, "SMSM")
   
   LOG_DBG3(smsm) << "\n\t dMdH_ = " << dMdH_.ToString();
 
- 
+  //assemble the macroscopic magnetostrictive strain tensor from the homogenized components
   epsmumoy_.Resize(3,3);
   epsmumoy_[0][0] = eps_11;
   epsmumoy_[0][1] = eps_12;
