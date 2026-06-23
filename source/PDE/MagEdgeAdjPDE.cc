@@ -591,6 +591,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       gradAdjParam.reset(new ResultInfo);
       gradAdjParam->resultType = MAG_GRAD_ADJ_PARAM;
       gradAdjParam->dofNames = "";
+      gradAdjParam->resultName = "Adjoint gradient (region integral)";
       gradAdjParam->unit = "";
       gradAdjParam->entryType = ResultInfo::SCALAR;
       gradAdjParam->definedOn = ResultInfo::REGION;    
@@ -618,6 +619,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       gradAdjParam1.reset(new ResultInfo);
       gradAdjParam1->resultType = MAG_GRAD_ADJ_PARAM1;
       gradAdjParam1->dofNames = "";
+      gradAdjParam1->resultName = "Adjoint gradient for parameter 1 (region integral)";
       gradAdjParam1->unit = "";
       gradAdjParam1->entryType = ResultInfo::SCALAR;
       gradAdjParam1->definedOn = ResultInfo::REGION;    
@@ -642,6 +644,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       gradAdjParam2.reset(new ResultInfo);
       gradAdjParam2->resultType = MAG_GRAD_ADJ_PARAM2;
       gradAdjParam2->dofNames = "";
+      gradAdjParam2->resultName = "Adjoint gradient for parameter 2 (region integral)";
       gradAdjParam2->unit = "";
       gradAdjParam2->entryType = ResultInfo::SCALAR;
       gradAdjParam2->definedOn = ResultInfo::REGION;    
@@ -666,6 +669,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       gradAdjParam3.reset(new ResultInfo);
       gradAdjParam3->resultType = MAG_GRAD_ADJ_PARAM3;
       gradAdjParam3->dofNames = "";
+      gradAdjParam3->resultName = "Adjoint gradient for parameter 3 (region integral)";
       gradAdjParam3->unit = "";
       gradAdjParam3->entryType = ResultInfo::SCALAR;
       gradAdjParam3->definedOn = ResultInfo::REGION;    
@@ -691,6 +695,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       gradAdjParam4.reset(new ResultInfo);
       gradAdjParam4->resultType = MAG_GRAD_ADJ_PARAM4;
       gradAdjParam4->dofNames = "";
+      gradAdjParam4->resultName = "Adjoint gradient for parameter 4 (region integral)";
       gradAdjParam4->unit = "";
       gradAdjParam4->entryType = ResultInfo::SCALAR;
       gradAdjParam4->definedOn = ResultInfo::REGION;    

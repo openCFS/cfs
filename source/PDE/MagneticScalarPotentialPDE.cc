@@ -202,7 +202,7 @@ namespace CoupledField
             stiffInt = new BDBInt<>(new GradientOperator<FeH1, 3>(), muNL, 1.0, updatedGeo_);
           }
         }
-        stiffInt->SetName("(db/dh grad phi, grad phi')");
+        stiffInt->SetName("magStiffIntHyst_db_dh_gradPhi_gradPhiPrime: (dB/dH grad phi, grad phi')");
       }
       else
       {
@@ -219,7 +219,7 @@ namespace CoupledField
         {
           stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), mu, 1.0, updatedGeo_);
         }
-        stiffInt->SetName("(mu grad phi, grad phi')");
+        stiffInt->SetName("magStiffIntLin_gradPhi_gradPhiPrime: (mu grad phi, grad phi')");
       }
 
       BiLinFormContext *stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS);

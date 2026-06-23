@@ -147,6 +147,9 @@ namespace CoupledField
   //! \class MagEdgeAStarPDE
   //! 
   //! \purpose 
+  //! This class is used to solve for the magnetic vector potential
+  //! \vec{A}⁺ with the Weyl Gauge, i.e., V=0, such that there holds
+  //! for the electric field \vec{E}=-\partial \vec{A}⁺/\partial t.
   //! 
   //! \collab 
   //! 

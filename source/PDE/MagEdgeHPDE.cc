@@ -141,6 +141,16 @@ namespace CoupledField {
 
 
   // **********************************************************
+  // **********************************************************
+  //  Definition of Integrators
+  // **********************************************************
+  void MagEdgeHPDE::DefineIntegrators(){
+    this->DefineStandardIntegrators();
+    DefineCoilIntegrators(); // in MagBasePDE
+  }
+
+
+  // **********************************************************
   // INIT. TIME STEPPING (not a real time stepping, since the
   // resulting FEM system is not an ODE)
   // **********************************************************
@@ -152,16 +162,6 @@ namespace CoupledField {
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
     feFunctions_[MAG_FIELD_INTENSITY]->SetTimeScheme(myScheme);
   }
-
-
-  // **********************************************************
-  //  Definition of Integrators
-  // **********************************************************
-  void MagEdgeHPDE::DefineIntegrators(){
-    this->DefineStandardIntegrators();
-    DefineCoilIntegrators(); // in MagBasePDE
-  }
-
 
   // **********************************************************
   // just a helper function for DefineCoilIntegrators()
@@ -447,6 +447,7 @@ namespace CoupledField {
             std::map<std::string, string> StringParameterMap; 
             ParameterMap.clear();
             StringParameterMap.clear();
+            // for reference on the parameters see PhD Thesis of Lukas Domenig, 2026
             actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
             /// here is sill set the strong param map for the EBhst
             if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
@@ -631,6 +632,7 @@ namespace CoupledField {
               StringParameterMap.clear();
               actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
               /// here is sill set the strong param map for the EBhst
+              // for reference on the types of anhysteretic functions see PhD Thesis of Lukas Domening, 2026
               if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
                 actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB);
                 if(actSDMat->GetAnhystFormula() == "atan"){
@@ -903,6 +905,7 @@ namespace CoupledField {
           PtrCoefFct p_nl;
           PtrCoefFct p_times_curlh;
           if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR CASE, NONLINEAR SUBREGION
+            // CoefFunction represents p_nl * curl(h)
             CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), nlScalCoefm_[actRegion], CoefXpr::OP_MULT);
             PtrCoefFct p_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
             if (dim_ == 2) {
@@ -912,6 +915,7 @@ namespace CoupledField {
             }
             lin1_pts->SetName("(p_nl curlh,curlN): residual");
           } else{ // NONLINEAR CASE, LINEAR SUBREGION
+            // CoefFunction represents p_linear * curl(h)
             p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)));
             CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), p, CoefXpr::OP_MULT);
             PtrCoefFct p_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);

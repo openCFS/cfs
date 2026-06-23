@@ -106,8 +106,13 @@ namespace CoupledField
   //! \class MagneticScalarPotentialADJPDE
   //! 
   //! \purpose   
-  //! This class is derived from class SinglePDE. It is used for solving
-  //! electrostatic equation in 3D. 
+  //! Implements the adjoint problem corresponding to the magnetic scalar
+  //! potential forward PDE. It is used to compute sensitivities and
+  //! adjoint‑gradient terms needed for inverse problems and parameter
+  //! identification.
+  //! The PDE solves the (adjoint) scalar potential equation in weak form
+  //! using H1 conforming finite elements (scalar unknown). The adjoint RHS
+  //! is constructed from forward solution data and objective derivatives.
   //! 
   //! \collab 
   //! 

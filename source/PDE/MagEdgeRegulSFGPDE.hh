@@ -80,7 +80,12 @@ namespace CoupledField
   //! \class MagEdgeMixedAVPDE
   //! 
   //! \purpose 
-  //! 
+  //! This class is used to solve for a two-dimensional magnetic field 
+  //! a solution that satisfies Ampere's law (curlh = j).
+  //! Since the curlcurl equation alone gives a singular stiffness matrix,
+  //! gauging is introduced via Lagrange multipliers to ensure a
+  //! Coulomb-like gauge condition, i.e., div h_{sc} = 0.
+
   //! \collab 
   //! 
   //! \implement 

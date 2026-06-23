@@ -38,7 +38,7 @@
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 
-// new postprocessing concept
+// postprocessing
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
@@ -61,7 +61,7 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     pdematerialclass_ = ELECTROMAGNETIC;
 
     //! Always use updated Lagrangian formulation
-    updatedGeo_        = true; //true;
+    updatedGeo_        = true;
 
     // check if we have a 3d setup
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
@@ -247,10 +247,6 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     } // loop: coils
   }
 
-
-
-
-
   // ********************************************************************************
   // TIME-STEPPING SECTION
   // ********************************************************************************
@@ -345,4 +341,3 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     return crSpaces;
   }
 } // end of namespace
-

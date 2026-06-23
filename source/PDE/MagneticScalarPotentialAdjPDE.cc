@@ -555,6 +555,7 @@ namespace CoupledField
           Hforward = hPostproc_[actRegion];
           //result grad(p), where p is the adjoint solution!
           PtrCoefFct gradPot = this->GetCoefFct(MAG_POTENTIAL_GRAD_ADJ);
+          // Compute inner product H_forward \cdot \nabla(p_adjoint)
           mult = CoefFunction::Generate( mp_, Global::REAL,
                                        CoefXprBinOp(mp_, Hforward, gradPot, CoefXpr::OP_MULT) );    
           scalMult->AddRegion(actRegion, mult);
