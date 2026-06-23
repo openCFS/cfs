@@ -96,7 +96,6 @@ protected:
   UInt spaceDim_;
   
   // object for the model
-  //shared_ptr<Model> matModel_;
   Model* matModel_;
 
   // modelname

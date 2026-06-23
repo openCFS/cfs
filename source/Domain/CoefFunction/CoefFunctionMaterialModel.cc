@@ -47,18 +47,13 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
   spaceDim_ = dim;
 
   if (modelName_ == "JilesAthertonModel") {
-
     dimType_ = SCALAR;
-    //static ,means that all objects get the same matModel"!
-    //static Jiles JilesModel;
     matModel_ = new Jiles();
-  } else if(modelName_ == "EBHysteresisModel"){
+  } else if(modelName_ == "EBHysteresisModel") {
     dimType_ = TENSOR;
     matModel_ = new EBHysteresis(); 
-  } else if(modelName_ == "invEBHysteresisModel"){
+  } else if(modelName_ == "invEBHysteresisModel") {
     dimType_ = TENSOR;
-    //static ,means that all objects get the same matModel"!
-    //static invEBHysteresis invEBHysteresisModel;
     matModel_ = new invEBHysteresis();
   } else {
 

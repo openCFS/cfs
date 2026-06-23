@@ -1712,7 +1712,12 @@ namespace CoupledField
               progStream.str("");
             }
 
-            if (form->IsExtractReal()) {
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
+            LOG_DBG3(assemble) << "ARLF: linform: " << form->ToString();
+            
+            // Calculate real valued element vector
+            // check if only the real part of a complex value shall be considered
+            if( form->IsExtractReal() ){
               Vector<Complex> tmp;
               form->CalcElemVector(tmp, entIt);
               elemVec = tmp.GetPart(Global::REAL);
@@ -1720,11 +1725,21 @@ namespace CoupledField
               form->CalcElemVector(elemVec, entIt);
             }
 
+            // Map equation numbers. eqnVec can be empty if nodes are not in system (e.g. not simulated region)
             actContext.MapEqns(entIt, eqnVec, fctId);
-            ReMapEquations(eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.GetSize() << " -> " << eqnVec.ToString();
 
-            if (!eqnVec.IsEmpty())
+            // Perform remapping
+            ReMapEquations(eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
+
+            // elemVec can be independent on equations, e.g. for const or expression form
+            assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
+
+            // Pass element vector to algebraic system only when we have equations
+            if(!eqnVec.IsEmpty())
               algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
 #endif
         }

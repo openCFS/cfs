@@ -1293,15 +1293,8 @@ namespace CoupledField {
         break;
 
       case MAG_POTENTIAL:
-        return "Vs/m";
-        break;
-
       case MAG_POTENTIAL_ADJ:
         return "Vs/m";
-        break;
-
-      case MAG_POTENTIAL_GRAD_ADJ:
-        return "Vs/m^2";
         break;
 
       case MAG_FLUX_DENSITY:
@@ -1309,6 +1302,7 @@ namespace CoupledField {
       case MAG_FLUX_DENSITY_SURF:
       case MAG_CURL_ADJ:
       case MAG_NORMAL_FLUX_DENSITY:
+      case MAG_POTENTIAL_GRAD_ADJ:
         return "Vs/m^2";
         break;
 

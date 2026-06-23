@@ -59,13 +59,13 @@ namespace CoupledField
     bool performOneMoreStep;
     bool isNewton = false;
     
-    SBM_Vector solInc(BaseMatrix::DOUBLE);
-    SBM_Vector stageSol(BaseMatrix::DOUBLE);
-    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE);
-    SBM_Vector actRHS(BaseMatrix::DOUBLE);
-    SBM_Vector Linform_nm1(BaseMatrix::DOUBLE);
-    SBM_Vector Linform_nm1_temp(BaseMatrix::DOUBLE);
-    
+    SBM_Vector solInc(BaseMatrix::DOUBLE); // incremental solution update in each Newton iteration
+    SBM_Vector stageSol(BaseMatrix::DOUBLE); // accumulated solution
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); // temporary copy of stageSol used by line search methods
+    SBM_Vector actRHS(BaseMatrix::DOUBLE); // right-hand side vector 
+    SBM_Vector Linform_nm1(BaseMatrix::DOUBLE); // current solution state passed into line search routines
+    SBM_Vector Linform_nm1_temp(BaseMatrix::DOUBLE); // assembled linear forms from the previous time step (real time stepping)
+
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
     
@@ -75,9 +75,9 @@ namespace CoupledField
     
     UInt pos = 0;
 
-    LOG_DBG2(solvestepeb) << "STARTING SetTransNonLin() =============================================";
-    LOG_DBG2(solvestepeb) << "numStages:" << numStages;
-    LOG_DBG2(solvestepeb) << "actTime_:" << actTime_;
+    LOG_DBG3(solvestepeb) << "STARTING SetTransNonLin() =============================================";
+    LOG_DBG3(solvestepeb) << "numStages:" << numStages;
+    LOG_DBG3(solvestepeb) << "actTime_:" << actTime_;
 
     for(UInt i=0;i<numStages;i++){
       stageSol.Resize(feFunctions_.size());
@@ -89,7 +89,7 @@ namespace CoupledField
       }
       stageSol.SetOwnership(false); 
 
-      LOG_DBG2(solvestepeb) << "stageSol before while:" << stageSol.ToString();
+      LOG_DBG3(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -106,17 +106,22 @@ namespace CoupledField
       std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
       // ###############################################################
       // PSEUDO TIME STEPPING (START)
+      // For pseudo time stepping, the problem is solved as a sequence of
+      // steady-state systems. The time derivative terms remain in the system
+      // matrix to improve stability and convergence. Unlike real time stepping,
+      // the RHS is reassembled in every Newton iteration, including both linear
+      // and nonlinear contributions.
       // ###############################################################
       if (pseudo_time_stepping_ == 1) {
         while (true){
           iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
           stageSol_temp = stageSol;
 
-          LOG_DBG2(solvestepeb) << "=============== Start iteration " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "=============== Start iteration " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
           // set up RHS
           algsys_->InitRHS();
@@ -132,11 +137,11 @@ namespace CoupledField
 
 
 
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
           // set up matrix
@@ -149,11 +154,11 @@ namespace CoupledField
             algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
           }
 
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
           // solve system
@@ -165,11 +170,11 @@ namespace CoupledField
           algsys_->Solve(setIDBC);
           algsys_->GetSolutionVal(solInc, setIDBC );
 
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
           // apply line search
           Double etaLineSearch = 1.0;
@@ -191,12 +196,12 @@ namespace CoupledField
             stageSol = stageSol_temp;
           }
 
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t etaLineSearch " << etaLineSearch;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t etaLineSearch " << etaLineSearch;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         
           std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
           for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
@@ -211,11 +216,11 @@ namespace CoupledField
           residualErr = actRHS.NormL2();
           residualErr = std::abs(residualErr)/residualErr0;
 
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
+          LOG_DBG3(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG3(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
           
           // calculate incremental error ========================================
@@ -405,6 +410,10 @@ namespace CoupledField
     
     //update stage
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      /*
+       * here we finally compute the new solution vector
+       *  solution_new = solution_old + stage_solutions
+       */
       fncIt->second->GetTimeScheme()->FinishStep();
     }
   }
@@ -470,6 +479,7 @@ namespace CoupledField
     Double residual_step = 0.0;
 
     const UInt nrEtas = 4;
+    //reduce the number of heuristically tried-out values for eta (trade-off between accuracy and computational cost)
     //const Double eta[nrEtas] = {1,0.6667,0.4444,0.2963,0.1975,0.1317,0.0878,0.0585,0.039,0.026,0.01733333333};
     const Double eta[nrEtas] = {1,0.1,0.01,0.001};
     const Double eta0 = 0;

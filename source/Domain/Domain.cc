@@ -754,11 +754,11 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     PtrParamNode actPdeNode = pdeNodes[i];
     if( isParentDomain_) {
       //check for formulation
-      std::string formulation = "NO";
+      std::string formulation = "";
       if ( actPdeNode->Has("formulation") ) {
         formulation = actPdeNode->Get("formulation")->As<std::string>();     
       }
-      if ( formulation != "NO" )
+      if ( formulation != "" )
         std::cout << "++ Creating PDE '" + actPdeName + "' with formulation '" + formulation + "' for analysis '" 
                   << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;    
       else
@@ -783,7 +783,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "magnetic"){
-      std::string formulation = "No Special Formuation";
+      std::string formulation = "";
       if ( actPdeNode->Has("formulation") ) {
         formulation = actPdeNode->Get("formulation")->As<std::string>();     
       }
@@ -800,7 +800,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new MagneticScalarPotentialAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "magneticEdge"){
-      std::string formulation = "No Special Formuation";
+      std::string formulation = "";
       if ( actPdeNode->Has("formulation") ) {
         formulation = actPdeNode->Get("formulation")->As<std::string>();     
       }
@@ -834,7 +834,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
-      std::string formulation = "No Special Formuation";
+      std::string formulation = "";
       if ( actPdeNode->Has("formulation") ) {
         formulation = actPdeNode->Get("formulation")->As<std::string>();     
       }      

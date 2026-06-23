@@ -950,14 +950,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
     
     // In the end print final ordering:
-    std::cout << "++ Final ordering of PDEs: ";
     LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
     for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
       LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
           <<  rPDE_.PDEs_[i]->GetName();
-          std::cout << " " << i+1 << ": " <<  rPDE_.PDEs_[i]->GetName();
     }
-    std::cout << std::endl;
   }
   
   PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,

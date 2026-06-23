@@ -64,8 +64,9 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
     EXCEPTION("In CoefFunctionFileDataMeas::GetVector: time from file and transient analysis does not fit!")
 
   vec.Resize(dataVec.size());
-  for ( UInt k=0; k<dataVec.size();k++)
+  for ( UInt k=0; k<dataVec.size();k++) {
      vec[k] = dataVec[k];
+  }
 
   //std::cout << "DataVec: " << vec << std::endl;
  }
@@ -131,13 +132,11 @@ void CoefFunctionFileDataMeas::ReadData(std::istream& input, int dim)
        EXCEPTION("fail to parse fileData " << filename_ << " line:" << line);
     }
 
-    if(iter != tokens.end())
+    if(iter != tokens.end()) {
       EXCEPTION("too much data tokens in line " << line_cnt << " in dataFile " << filename_);
+    }
     LOG_DBG2(cfdm) << "RD: read vec=" << ToStringCont(vec);
     dataH_.push_back(vec);
   }
-
 }
-
-
 } // end of namespace

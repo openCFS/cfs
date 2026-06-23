@@ -119,9 +119,9 @@ AddBOperator( BaseBOperator* bOp,
   // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
   if( integratorName_.empty() || integratorName_==integratorName ) {
     // check for compatibility of dimension
-    /* if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
+    if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
       EXCEPTION( "Implementation error: All B-operators must have the same vector size");
-    } */
+    }
     
     // check if region has already an integrator assigned
     if( bOps_.find(region) != bOps_.end() ) {
@@ -263,9 +263,9 @@ template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::AddIntegrato
       UInt nRows, nCols;
       coef->GetTensorSize(nRows, nCols);
       UInt dMatSize = TRANS ? nCols : nRows;
-      /* if( dMatSize != res_->dofNames.GetSize() ) {
+      if( dMatSize != res_->dofNames.GetSize() ) {
         EXCEPTION( "All B-operators must have the same vector size");
-      }  */
+      }
     }
     //now we clone each integrator and we already checked if we are in single thread region
 #ifdef USE_OPENMP
