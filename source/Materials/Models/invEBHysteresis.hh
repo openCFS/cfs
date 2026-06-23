@@ -158,52 +158,71 @@ namespace CoupledField {
 
     private:
       //==============
+
+      // spatial dimension of the problem (2 or 3)
       UInt dim_; 
 
       std::map<UInt,UInt> ElemNum2Idx_;
 
+      // number of elements in the mesh
       UInt numElems_;
-
-      Double Js_,Ms_;
+      // sautration polarization [T]
+      Double Js_;
+      // saturation magnetization [A/m] for atan/Pacejka anhysteretic function
+      Double Ms_;
+      // path to the lookup table file for the anhysteretic function
       string lookup_table_file_;
+      // parameters for Pacejka anhysteretic function
       Double A_, pa_, pb_, pc_;
+      // parameters for Brauer anhysteretic function
       Double p_0_, p_1_, p_2_;
+      // vauum permeability [Vs/Am]
       Double mu0_;
+      // number of pseudo particles in the composite model
       UInt numS_;
+      // method for quasi-Newton approximation of the Jacobian: 4 = BFGS, other methods (finite differences, DFP, GBM)
+      // not implemented yet
       UInt jacobian_method_;
+      // type of anhysteretic model: currently only "analytic_anhysteresis" implemented
       std::string anhyst_type_;
+      // analytic anhysteretic formula: tan, atan, pacejka, brauer or lookup table
       std::string anhyst_formula_;
+      // inverse hysteresis approximation type: "fullInvEB" (Newton optimization) or "approxVSM" (Vector Stop Model)
       std::string approx_type_;
+      // ath to the file containing pinning forces (kappa) and weights (omega) for the composite model
       std::string pinning_forces_weight_;
       UInt ndx_g_;
+      // lookup table for the anhysteretic function: J values [T] and corresponding H values [A/m]
       std::vector<Double> J_lut_, H_lut_;
       StdVector<Double> kappa_file_, omega_file_;
 
-
+      // Flux density B and field H from the previous Newton iteration (for quasi-Newton update)
       StdVector< StdVector<Double> > B_prev_;
       StdVector< StdVector<Double> > H_prev_;
 
+      // B from the previous time step for the VSM and corresponding temporaty buffers
       StdVector< StdVector<Double> > B_prev_VSM_;
       StdVector< StdVector<Double> > H_prev_VSM_;      
       StdVector< StdVector<Double> > B_prev_VSM_tmp_;
       StdVector< StdVector<Double> > H_prev_VSM_tmp_;
 
+      // internal state vectors of the VSM from previous time step and temporary buffers
       StdVector< StdVector<Double> > w_state_x_old_;
       StdVector< StdVector<Double> > w_state_y_old_;
       StdVector< StdVector<Double> > w_state_z_old_;
-
       StdVector< StdVector<Double> > w_state_x_tmp_;
       StdVector< StdVector<Double> > w_state_y_tmp_;
       StdVector< StdVector<Double> > w_state_z_tmp_;
 
+      // state vectors 
       StdVector< StdVector<Double> > J_x_k_prev_;
       StdVector< StdVector<Double> > J_y_k_prev_;
       StdVector< StdVector<Double> > J_z_k_prev_;
 
+      // magnetic polarization J_k [T] per pseudo particle and temporary buffers
       StdVector< StdVector<Double> > J_x_k_n_;
       StdVector< StdVector<Double> > J_y_k_n_;
       StdVector< StdVector<Double> > J_z_k_n_;
-
       StdVector< StdVector<Double> > J_x_k_n_tmp_;
       StdVector< StdVector<Double> > J_y_k_n_tmp_;
       StdVector< StdVector<Double> > J_z_k_n_tmp_;

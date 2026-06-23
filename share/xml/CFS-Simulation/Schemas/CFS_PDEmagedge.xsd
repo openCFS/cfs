@@ -58,6 +58,13 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- penalty function parameter magnetostatic H formulation-->
+          <xsd:element name="penaltyFunctionParameter" type="xsd:double" minOccurs="0" maxOccurs="1" default="1e-6">
+            <xsd:annotation>
+              <xsd:documentation>Penalty function parameter used in the magnetostatic \vec{H}-formulation to eliminate the magnetic vector potential. Default: 1e-6.</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <xsd:element name="hysteresisTimeStepping" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>
