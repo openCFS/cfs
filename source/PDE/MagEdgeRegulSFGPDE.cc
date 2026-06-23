@@ -36,7 +36,7 @@
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 
-// new postprocessing concept
+// postprocessing
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
@@ -245,21 +245,24 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
   // ********************************************************************************
   void MagEdgeRegulSFGPDE::DefinePrimaryResults() {
 
-      StdVector<std::string> vecComponents;
+    StdVector<std::string> vecComponents;
+    if (dim_ == 2) {
       vecComponents = "x", "y";
-      
+    } else {
+      vecComponents = "x", "y", "z";
+    }
 
-      // === MAGNETIC RESULT FIELD INTENSITY ===
-      shared_ptr<ResultInfo> potInfo(new ResultInfo);
-      potInfo->resultType = MAG_FIELD_INTENSITY;
-      potInfo->SetFeFunction(feFunctions_[MAG_FIELD_INTENSITY]);
-      potInfo->dofNames = vecComponents;
-      potInfo->unit = "A/m";
-      potInfo->definedOn = ResultInfo::ELEMENT;
-      potInfo->entryType = ResultInfo::VECTOR;
-      feFunctions_[MAG_FIELD_INTENSITY]->SetResultInfo(potInfo);
-      DefineFieldResult( feFunctions_[MAG_FIELD_INTENSITY], potInfo );
-      hdbcSolNameMap_[MAG_FIELD_INTENSITY] = "fluxParallel"; // actually flux-normal!!!!
+    // === MAGNETIC RESULT FIELD INTENSITY ===
+    shared_ptr<ResultInfo> potInfo(new ResultInfo);
+    potInfo->resultType = MAG_FIELD_INTENSITY;
+    potInfo->SetFeFunction(feFunctions_[MAG_FIELD_INTENSITY]);
+    potInfo->dofNames = vecComponents;
+    potInfo->unit = "A/m";
+    potInfo->definedOn = ResultInfo::ELEMENT;
+    potInfo->entryType = ResultInfo::VECTOR;
+    feFunctions_[MAG_FIELD_INTENSITY]->SetResultInfo(potInfo);
+    DefineFieldResult( feFunctions_[MAG_FIELD_INTENSITY], potInfo );
+    hdbcSolNameMap_[MAG_FIELD_INTENSITY] = "fluxParallel"; // actually flux-normal!!!!
   }
 
   // ********************************************************************************

@@ -149,6 +149,10 @@ namespace CoupledField
   //! \class MagEdgeHPDE
   //! 
   //! \purpose 
+  //! This class defines the \vec{H}-formulation (magnetic field strength
+  //! in [A/m]), i.e., a direct form of Maxwell's equations,
+  //! which is solved with edge elements. Supports linear, nonlinear
+  //! and hysteresic material models.
   //! 
   //! \collab 
   //! 

@@ -66,14 +66,13 @@ namespace CoupledField
     formulation_ = MagBasePDE::EDGE;
 
     //! Always use updated Lagrangian formulation
-    updatedGeo_ = true; // true;
+    updatedGeo_ = true;
 
     // default is false
     useGradFields_ = paramNode->Get("useGradientFields")->As<bool>();
     onlyVacuum_ = paramNode->Get("onlyVacuum")->As<bool>();
 
     // check if we have a 3d setup
-    //    bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if (!is3d_)
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
 
@@ -514,6 +513,7 @@ namespace CoupledField
           conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
           scaleByEdgeSize = true;
           regularizedRegions_.insert(actRegion);
+          WARN("Regularization activated for region '" << regionName << "' (conductivity=" << conductivity << ") - using artificial conductivity " << regularizationFactor * reluc[0][0]);
         }
 
         conduc_->AddRegion(actRegion, conductivityCoeff);
@@ -875,58 +875,7 @@ namespace CoupledField
       // Add entity list will add nothing, if entities were already assigned
       myFct->AddEntityList(actSDList);
     }
-    //
-    //    // =================================
-    //    //  Magnetization -> from hysteresis (VOLUME) OLD
-    //    // =================================
-    //    //check for hysteresis
-    //    if ( isHysteresis_ ){
-    //      LOG_DBG(magEdgePde) << "Putting magnetization to rhs";
-    //
-    //      std::map<RegionIdType,PtrCoefFct > regionCoefs = magnetization_->GetRegionCoefs();
-    //      std::map<RegionIdType,PtrCoefFct > regionHystCoefs = hysteresisCoefs_->GetRegionCoefs();
-    //      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
-    //      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
-    //
-    //        // get regionIdType
-    //        RegionIdType curReg = it->first;
-    //        PtrCoefFct curHystCoef = regionHystCoefs[curReg];
-    //
-    //        if(curHystCoef == NULL){
-    //        //if(it->second == NULL){
-    //          continue;
-    //        }
-    //        // get SDList
-    //        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-    //        actSDList->SetRegion( curReg );
-    //
-    //        // set fullevaluation to trigger evaluation at each integration point
-    //        // the nonlinear parameter "evaluation depth" determines if each
-    //        // integration point gets mapped to midpoint (> fullevaluation = false)
-    //        // or if hyst operator really is evaluated at the actual int. point
-    //        bool fullevaluation = true;
-    //
-    //        // NEW: we do not pass the hysteresis coefficient function
-    //        // directly but instead a special class that returns the
-    //        // correctly weighted term
-    //        // even though, we have a similar function for output,
-    //        // we need a separate coefFunction here as rhsMag might
-    //        // be evaluated at another timestep/interation step as outputMag
-    //        shared_ptr<CoefFunction> rhsMag = curHystCoef->GenerateRHSCoefFnc("MagMagnetization");
-    //
-    //        lin = GetRHSMagnetizationInt( magStrictFactor, rhsMag, fullevaluation );
-    //
-    //        lin->SetName("rhs_magnetization");
-    //        lin->SetSolDependent();
-    //        LinearFormContext *ctx = new LinearFormContext( lin );
-    //        ctx->SetEntities( actSDList );
-    //        ctx->SetFeFunction(myFct);
-    //        assemble_->AddLinearForm(ctx);
-    //        // Add entity list will add nothing, if entities were already assigned
-    //        myFct->AddEntityList(actSDList);
-    //      }
-    //    }
-    //    std::cout << "DONE Putting magnetization to rhs" << std::endl;
+    
     // ==================
     //  FLUX DENSITY
     // ==================

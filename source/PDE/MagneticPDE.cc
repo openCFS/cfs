@@ -97,19 +97,20 @@ namespace CoupledField {
     anyRegionHasConductivity_ = false;
     RegionIdType actRegion;
     PtrCoefFct conducCoef;
-	  BaseMaterial * actMat = NULL;
+    BaseMaterial * actMat = NULL;
 
     //  Loop over all regions
-	  std::map<RegionIdType, BaseMaterial*>::iterator it;
-	  //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
-	  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
-		  // Set current region and material
-		  actRegion = it->first;
-		  actMat = it->second;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
-		  conducCoef = actMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+      // Set current region and material
+      actRegion = it->first;
+      actMat = it->second;
+
+      conducCoef = actMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 
       // use this change to directly store the conductivity
       conduc_->AddRegion(actRegion, conducCoef);
@@ -123,24 +124,23 @@ namespace CoupledField {
   void MagneticPDE::DefineIntegrators() {
 
     RegionIdType actRegion;
-	  BaseMaterial * actMat = NULL;
+    BaseMaterial * actMat = NULL;
     BaseMaterial * actSDMat = NULL;
 
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, false));
 
-	  // determine tensor representation of the material parameters needed
-	  SubTensorType tensorType;
-	  if ( dim_ == 3 ) {
-		  tensorType = FULL;
-	  } else {
-		  if ( isaxi_ == true ) {
-			  tensorType = AXI;
-		  } else {
-			  // 2d: plane case
-			  tensorType = PLANE_STRAIN;
-		  }
-	  }
-
+    // determine tensor representation of the material parameters needed
+    SubTensorType tensorType;
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    } else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+      } else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+      }
+    }
 
     bool isPermFrozen = false;
 
@@ -150,11 +150,11 @@ namespace CoupledField {
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
     double factor = 1.0;
-	  if ( isMagnetoStrictCoupled_ == true ){
-		  // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
-		  // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
-		  factor = -1.0;
-	  }
+    if ( isMagnetoStrictCoupled_ == true ){
+      // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
+      // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
+      factor = -1.0;
+    }
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
