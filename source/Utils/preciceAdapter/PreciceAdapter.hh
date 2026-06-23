@@ -18,7 +18,6 @@ namespace CoupledField
 {
         class ParamNode;
         class Domain;
-        class StdSolveStep;
         class GridCFS;
         class SinglePDE;
         class ResultBase;
@@ -37,7 +36,6 @@ namespace CoupledField
 
                 // Main adapter methods
                 void initialize(Domain *domain, SinglePDE* pde) override;
-                void RegisterSolveStep(BaseSolveStep *solveStep) override;
                 void RegisterTimeStepWriteData() override;
                 void RegisterTimeStepReadData() override;
                 void finalize() override;
@@ -171,8 +169,13 @@ namespace CoupledField
         int size_;
 
         Domain *domain_;
-        StdSolveStep *solveStep_;
-        SinglePDE *singlePDE_;
+        //! All coupled PDEs registered with this participant. initialize() is
+        //! called once per PDE; the participant may drive several (iteratively
+        //! coupled) PDEs that exchange data with the same external participant.
+        std::vector<SinglePDE*> pdes_;
+        //! Guard so external (read) results are registered with the ResultHandler
+        //! only once, even though initialize() runs per coupled PDE.
+        bool externalResultsRegistered_;
         // --- End of data members ---
 
         // Disable copy and assignment.

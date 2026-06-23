@@ -11,7 +11,6 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "TransientDriverPrecice.hh"
-#include "Driver/SolveSteps/StdSolveStep.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
@@ -105,8 +104,8 @@ namespace CoupledField
       rank_(0),
       size_(1),
       domain_(nullptr),
-      solveStep_(nullptr),
-      singlePDE_(nullptr)
+      pdes_(),
+      externalResultsRegistered_(false)
     {
     }
 
@@ -548,30 +547,28 @@ namespace CoupledField
 #ifdef USE_PRECICE
     domain_ = domain;
 
-    // Step 1: Retrieve configuration parameters from the openCFS ParamNode.
-    readConfigurationParameters();
+    // Participant-level setup runs exactly once. initialize() is invoked once per
+    // coupled PDE; re-running readConfigurationParameters()/setupMeshAndCoordinates()
+    // would clear meshDataByName_ (including the preCICE vertex IDs populated by
+    // createPreciceParticipant) and corrupt subsequent data exchange.
+    if(!isInit_){
+        // Step 1: Retrieve configuration parameters from the openCFS ParamNode.
+        readConfigurationParameters();
 
-    // Step 2: Parse the precice-config.xml file 
-    readPreciceConfiguration();
+        // Step 2: Parse the precice-config.xml file
+        readPreciceConfiguration();
 
-    // Step 3: Extract and flatten node coordinates.
-    setupMeshAndCoordinates();
-    
-    // maybe we are not yet in the correct sequence step, therefore,
-    // continue
-    TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
-
-    if(!tp){
-        return;
-    }else{
-        if(!(tp->GetActSequenceStep() == sequenceStep_)){
+        // Bail out if this driver is not (yet) in the precice sequence step.
+        TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+        if(!tp || !(tp->GetActSequenceStep() == sequenceStep_)){
             std::cout << "PreciceAdapter: Not the correct sequence step, skipping precice initialization" << "\n";
             return;
         }
-    }
 
-    // Step 4: Create the PreCICE participant.
-    if(!isInit_){
+        // Step 3: Extract and flatten node/element coordinates.
+        setupMeshAndCoordinates();
+
+        // Step 4: Create the PreCICE participant.
         std::cout << "Not yet initialized" << "\n";
 
         createPreciceParticipant();
@@ -609,6 +606,13 @@ namespace CoupledField
 
         participant_->initialize();
         isInit_ = true;
+    } else {
+        // Already initialized: only register further coupled PDEs that belong to
+        // the precice sequence step.
+        TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+        if(!tp || !(tp->GetActSequenceStep() == sequenceStep_)){
+            return;
+        }
     }
 
     RegisterSinglePDE(pde);
@@ -620,26 +624,27 @@ namespace CoupledField
 
 
 
-    void PreciceAdapter::RegisterSolveStep(BaseSolveStep *solveStep){
-        // Try to cast to StdSolveStep*
-        StdSolveStep* stdSolveStep = dynamic_cast<StdSolveStep*>(solveStep);
-        if (!stdSolveStep) {
-            // The cast failed: solveStep is not a StdSolveStep
-            EXCEPTION("PreciceAdapter::RegisterSolveStep expected a StdSolveStep pointer.");
-        }
-        solveStep_ = stdSolveStep;
-    }
-
     void PreciceAdapter::RegisterSinglePDE(SinglePDE* pde){
-        singlePDE_ = pde;
-        std::cout << "PreciceAdapter: Registered SinglePDE." << "\n";
+        // initialize() is called once per coupled PDE; collect them all instead
+        // of keeping only the last one, so a participant can drive several
+        // (iteratively coupled) PDEs.
+        if (std::find(pdes_.begin(), pdes_.end(), pde) == pdes_.end()) {
+            pdes_.push_back(pde);
+            std::cout << "PreciceAdapter: Registered SinglePDE (" << pdes_.size() << " total)." << "\n";
+        }
     }
 
 
     void PreciceAdapter::RegisterTimeStepReadData(){
-        if(!singlePDE_->IsInitialized()){
-            // initial state case
+        // initial state case: wait until all coupled PDEs are initialized before
+        // pushing read data into their result contexts.
+        if(pdes_.empty()){
             return;
+        }
+        for(auto* pde : pdes_){
+            if(!pde->IsInitialized()){
+                return;
+            }
         }
         // could happen if we are not in the right sequencestep
         TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
@@ -835,87 +840,96 @@ namespace CoupledField
 
     void PreciceAdapter::RegisterExternalResults()
     {
-    std::cout << "PreciceAdapter: Registering external results with OpenCFS result handler..." << "\n";
     #ifdef USE_PRECICE
-    // Get the result handler from the domain.
+    // The read results are participant-level and fully known once the participant
+    // has been created. initialize() runs once per coupled PDE, so register only
+    // on the first call and skip on subsequent ones.
+    if (externalResultsRegistered_) return;
+
+    std::cout << "PreciceAdapter: Registering external results with OpenCFS result handler..." << "\n";
+
     ResultHandler* resHandler = domain_->GetResultHandler();
-
-    std::cout << "ResultHandler initialised" << "\n";
-
     if(!resHandler)
-        EXCEPTION("PreciceAdapter::RegisterElementResults: No result handler available.");
+        EXCEPTION("PreciceAdapter::RegisterExternalResults: No result handler available.");
 
     std::cout << "runtimeReadResults.size() = " << runtimeReadResults_.size() << "\n";
 
-    if(runtimeReadResults_.size() == 0) return;
+    if(runtimeReadResults_.size() == 0) { externalResultsRegistered_ = true; return; }
 
     GridCFS* gridCFS = dynamic_cast<GridCFS*>(domain_->GetGrid());
-    //solveStep_
 
-    // get the entity list of the entities on which the pde is defined on
-    StdVector<RegionIdType> regions = singlePDE_->GetRegions();
+    // Each read result is bound to the openCFS region(s) of its preCICE mesh, as
+    // declared in fileFormats/preciceCoupling/participantMeshList. The coupling
+    // region (not any single PDE) defines where the field lives, so registration
+    // is independent of which / how many PDEs consume it.
+    std::set<std::string> registeredResultKeys;
+    for(auto &result : runtimeReadResults_) {
+        const CouplingMeshData& md = getMeshData(result->getConfig().meshName);
+        if (md.regionNames.empty()) {
+            EXCEPTION("PreciceAdapter::RegisterExternalResults: mesh '"
+                      << result->getConfig().meshName << "' has no assigned regions.");
+        }
 
-    std::cout << "regions.ToString() (PreciceAdapter.cc): " << regions.ToString() << "\n";
-    
-   std::set<std::string> registeredResultKeys;
-   for(auto &result : runtimeReadResults_) {
-       std::string regKey = result->getConfig().cfsname + "#" + std::to_string(static_cast<int>(result->getResultType()));
-       if (registeredResultKeys.find(regKey) != registeredResultKeys.end()) {
-          continue;
-       }
-       registeredResultKeys.insert(regKey);
-
-        // Select entity list and definedOn type based on whether the result is node- or element-based.
-        shared_ptr<EntityList> entityList;
+        // Select entity list type and definedOn based on node- vs element-based result.
+        EntityList::ListType listType;
         ResultInfo::EntityUnknownType definedOnType;
-
         if (result->getResultType() == ResultType::NODE) {
-            entityList = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, gridCFS->GetRegionName(regions[0]));
+            listType = EntityList::ListType::NODE_LIST;
             definedOnType = ResultInfo::NODE;
         } else {
-            entityList = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+            listType = EntityList::ListType::ELEM_LIST;
             definedOnType = ResultInfo::ELEMENT;
         }
 
-        if (!entityList) {
-            EXCEPTION("PreciceAdapter::RegisterExternalResults: Could not get entity list for result "
-                      << result->getConfig().cfsname);
-        }
+        for (const auto& regionName : md.regionNames) {
+            std::string regKey = result->getConfig().cfsname + "#"
+                + std::to_string(static_cast<int>(result->getResultType())) + "#" + regionName;
+            if (registeredResultKeys.find(regKey) != registeredResultKeys.end()) {
+                continue;
+            }
+            registeredResultKeys.insert(regKey);
 
-        shared_ptr<BaseResult> sol(new Result<Double>());
-        sol->SetEntityList(entityList);
+            shared_ptr<EntityList> entityList = gridCFS->GetEntityList(listType, regionName);
+            if (!entityList) {
+                EXCEPTION("PreciceAdapter::RegisterExternalResults: Could not get entity list for result "
+                          << result->getConfig().cfsname << " on region " << regionName);
+            }
 
-        shared_ptr<ResultInfo> ri(new ResultInfo());
-        ri->resultName = result->getConfig().cfsname;
-        ri->resultType = result->getConfig().solutiontype;
-        ri->definedOn  = definedOnType;
-        if (result->getConfig().quantitydim <= 1) {
-            ri->entryType = ResultInfo::SCALAR;
-            ri->dofNames = "";
-        } else {
-            ri->entryType = ResultInfo::VECTOR;
-            if (result->getConfig().quantitydim == 2 || result->getConfig().quantitydim == 3) {
-                // preCICE coupling is Cartesian in current adapter usage
-                ri->SetVectorDOFs(result->getConfig().quantitydim, false);
+            shared_ptr<BaseResult> sol(new Result<Double>());
+            sol->SetEntityList(entityList);
+
+            shared_ptr<ResultInfo> ri(new ResultInfo());
+            ri->resultName = result->getConfig().cfsname;
+            ri->resultType = result->getConfig().solutiontype;
+            ri->definedOn  = definedOnType;
+            if (result->getConfig().quantitydim <= 1) {
+                ri->entryType = ResultInfo::SCALAR;
+                ri->dofNames = "";
             } else {
-                // Generic fallback for uncommon vector dimensions.
-                ri->dofNames.Clear();
-                for (int i = 0; i < result->getConfig().quantitydim; ++i) {
-                    ri->dofNames.Push_back("comp" + std::to_string(i));
+                ri->entryType = ResultInfo::VECTOR;
+                if (result->getConfig().quantitydim == 2 || result->getConfig().quantitydim == 3) {
+                    // preCICE coupling is Cartesian in current adapter usage
+                    ri->SetVectorDOFs(result->getConfig().quantitydim, false);
+                } else {
+                    // Generic fallback for uncommon vector dimensions.
+                    ri->dofNames.Clear();
+                    for (int i = 0; i < result->getConfig().quantitydim; ++i) {
+                        ri->dofNames.Push_back("comp" + std::to_string(i));
+                    }
                 }
             }
+            sol->SetResultInfo(ri);
+
+            StdVector<std::string> outDest;
+            outDest.Push_back("");
+
+            resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                                       domain_->GetSingleDriver()->GetNumSteps(),
+                                       outDest, "", true, false);
         }
-        sol->SetResultInfo(ri);
+    }
 
-        StdVector<std::string> outDest;
-        outDest.Push_back("");
-
-        resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
-                                   domain_->GetSingleDriver()->GetNumSteps(),
-                                   outDest, "", true, false);
-   }
-
-
+    externalResultsRegistered_ = true;
     #endif
     }
 

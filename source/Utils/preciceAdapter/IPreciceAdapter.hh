@@ -36,11 +36,6 @@ namespace CoupledField
         virtual void initialize(Domain* domain, SinglePDE* pde) = 0;
 
         /**
-         * Initializes the PreCICE participant.
-         */
-        virtual void RegisterSolveStep(BaseSolveStep* solvestep) = 0;
-
-        /**
          * Writes data of the finished time step
          */
         virtual void RegisterTimeStepWriteData() = 0;

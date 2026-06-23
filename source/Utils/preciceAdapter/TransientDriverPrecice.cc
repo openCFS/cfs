@@ -99,10 +99,6 @@ namespace CoupledField {
     Double checkpointTime = 0.0;
 
     // init precice coupling adapter...already done in SinglePDE.cc domain_->InitPreciceAdapter(this)
-    // when using precice, we need direct access to the solvestep
-    preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
-
-   
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
@@ -189,9 +185,6 @@ namespace CoupledField {
         this->CheckpointingToTimestep(checkpointStep);
         actTimeStep_ = checkpointStep;
         actTime_ = checkpointTime;
-
-        // when using precice, we need direct access to the solvestep
-        preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 
         ptPDE_->GetSolveStep()->SetStartStep( checkpointStep );
         ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);

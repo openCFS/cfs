@@ -19,10 +19,6 @@ namespace CoupledField
             // No-op
         }
 
-        void RegisterSolveStep(BaseSolveStep* solveStep) override {
-            // No-op
-        }
-
         void RegisterTimeStepWriteData() override {
             // No-op
         }
