@@ -252,8 +252,11 @@ namespace CoupledField {
       
       assert(freqCutoff_ >= startFreq_ && "Cutoff Frequency must be greater than or equal Start Frequency!");
 
+      // Gleitkomma-Toleranz
+      const double epsilon = 1e-9;
+
       // calculate how many steps we have to compute, adding 1 to include the Start Frequency
-      numFreq_ = static_cast<int>(std::ceil((freqCutoff_-startFreq_)/ freqResolution_)) + 1;
+      numFreq_ = static_cast<int>(std::ceil((freqCutoff_-startFreq_) / freqResolution_ - epsilon)) + 1;
 
       // Initialize the vector and set the first element to start Frequency 
       waveNum_.Resize(numFreq_);
