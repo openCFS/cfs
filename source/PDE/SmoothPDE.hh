@@ -61,6 +61,11 @@ protected:
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
+    //! In prescribed-displacement mode, skip the algebraic system entirely (no graph, no
+    //! matrix, no solver): the field is injected directly into the already-allocated solution
+    //! vector. Otherwise the standard StdPDE::DefineAlgSys() is used.
+    virtual void DefineAlgSys() override;
+
     //! Read special results definition
     void ReadSpecialResults();
 

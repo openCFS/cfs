@@ -135,10 +135,14 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> myFct = feFunctions_[SMOOTH_DISPLACEMENT];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
-    unsigned int rows = 0;
-    unsigned int cols = 0;
-    materials_.begin()->second->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
-    assert(rows > 0 && cols > 0);
+    // In prescribed-displacement mode there is no stiffness and no (smooth) material is needed;
+    // only the fe-space approximation and entity lists are set up below to define the DOFs.
+    if( !prescribedDisplacement_ ) {
+      unsigned int rows = 0;
+      unsigned int cols = 0;
+      materials_.begin()->second->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
+      assert(rows > 0 && cols > 0);
+    }
     
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -171,8 +175,9 @@ namespace CoupledField {
       
       // ====================================================================
       //  Standard Linear Stiffness
+      //  (skipped in prescribed mode: no matrix is assembled, so no stiffness/material needed)
       // ====================================================================
-      if( !nonLin_ ) {
+      if( !nonLin_ && !prescribedDisplacement_ ) {
         
         PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         
@@ -527,6 +532,18 @@ namespace CoupledField {
       EXCEPTION("strain operator not implemented for analysis type");
 
     return bOp;
+  }
+
+  void SmoothPDE::DefineAlgSys()
+  {
+    if( prescribedDisplacement_ ) {
+      // No algebraic system in prescribed mode: skip the matrix graph, the system matrix and
+      // the solver. The fe-function solution vector is already allocated (FeFunction::Finalize),
+      // and PrescribedSolveStep writes the field directly into it -- nothing is assembled/solved.
+      // (Mirrors the matrix-free path used for direct-coupled PDEs.)
+      return;
+    }
+    StdPDE::DefineAlgSys();
   }
 
   void SmoothPDE::DefineSolveStep()

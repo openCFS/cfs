@@ -235,6 +235,13 @@ namespace CoupledField
         static const std::unordered_map<std::string, std::tuple<std::string, SolutionType>> conversionMap = {
             {"Temperature", {"heatTemperature", SolutionType::HEAT_TEMPERATURE}},
             {"Displacement", {"mechDisplacement", SolutionType::MECH_DISPLACEMENT}},
+            // Whole-domain mesh deformation read into the SmoothPDE (prescribed-displacement
+            // mode): an externally computed displacement field (e.g. OpenFOAM's volume
+            // pointDisplacement, written with 'locations volumeNodes') routed into
+            // SMOOTH_DISPLACEMENT. The "Displacement" prefix makes the OpenFOAM FSI adapter
+            // reuse its existing Displacement writer (matchingStrings is a prefix match), while
+            // the distinct full name avoids clashing with the FSI "Displacement" exchange.
+            {"DisplacementVolume", {"smoothDisplacement", SolutionType::SMOOTH_DISPLACEMENT}},
             {"Force", {"mechForce", SolutionType::MECH_FORCE}},
             {"Stress", {"mechNormalStress", SolutionType::MECH_NORMAL_STRESS}},
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
