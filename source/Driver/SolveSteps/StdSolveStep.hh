@@ -260,13 +260,13 @@ namespace CoupledField
     std::string lineSearch_;            //!< switch for lineSearch
     Double lineSearchTolerance_; //!< tolerance for line search convergence (default: 1e-3)
     UInt lineSearchMaxIter_;      //!< max iterations for line search (default: 1000)
-    bool nonLin_;               //!< flag for nonlinear calculations
-    bool nonLinMaterial_;       //!< flag for nonlinear material calculations
-    bool isHyst_;               //!< flag for hystersis modeling
-    Double incStopCrit_;          //!< stopping criterion for incremental error
-    Double residualStopCrit_;     //!< stopping criterion for residual error
-    Double lastError_;            //!< So it stops if residuum gets bigger!
-    UInt consideredH_;              //!< So it stops if residuum gets bigger!
+    bool nonLin_;           //!< flag for nonlinear calculations
+    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool isHyst_;           //!< flag for hystersis modeling
+    Double incStopCrit_;       //!< stopping criterion for incremental error
+    Double residualStopCrit_;  //!< stopping criterion for residual error
+    Double lastError_; // So it stops if residum gets bigger!
+    UInt consideredH_=1; // So it stops if residum gets bigger!
 
     Double minValidValue_;        //! stopping if any value in the region exceeds value
     Double maxValidValue_;        //! stopping if any value in the region exceeds value

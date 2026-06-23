@@ -74,9 +74,9 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef, bool al
     UInt nRows, nCols;
     switch (coef->GetDimType() ) {
     case VECTOR:
-      /* if(coef->GetVecSize() != rowSize_ ) {
+      if(coef->GetVecSize() != rowSize_ ) {
         EXCEPTION( "Vector size inconsistent: "<<"coef->GetVecSize() = "<<coef->GetVecSize()<<"; rowSize_="<<rowSize_ );
-      } */
+      }
       break;
     case TENSOR:
       coef->GetTensorSize(nRows, nCols);
