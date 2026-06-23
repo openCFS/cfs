@@ -46,7 +46,7 @@ namespace CoupledField {
     ~COCRSolver();
 
     //! Allocate / resize auxiliary vectors for the given system matrix
-    void Setup( BaseMatrix &sysMat ) override;
+    void Setup( BaseMatrix &sysMat );
 
     //! Not implemented for this solver
     void SetNewMatrixPattern() {
