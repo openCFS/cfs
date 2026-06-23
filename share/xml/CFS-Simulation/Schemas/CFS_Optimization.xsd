@@ -3350,8 +3350,25 @@
   <xsd:simpleType name="DT_Excitation">
     <!-- for magnetic coupling we combine two excitations (0_1) - here fixed  the first. -->
     <!-- we numeriate excitations by their index and start with 0-based -->
+    <xsd:union memberTypes="DT_Excitation_Keywords DT_Excitation_Numbers" />
+  </xsd:simpleType>
+  <!-- Strict list of special keywordds -->
+  <xsd:simpleType name="DT_Excitation_Keywords">
     <xsd:restriction base="xsd:string">
-      <xsd:pattern value="^(all|x|y|z|yz|xz|xy|0_1|[0-9]+)$" />
+      <xsd:enumeration value="all" />
+      <xsd:enumeration value="x" />
+      <xsd:enumeration value="y" />
+      <xsd:enumeration value="z" />
+      <xsd:enumeration value="yz" />
+      <xsd:enumeration value="xz" />
+      <xsd:enumeration value="xy" />
+      <xsd:enumeration value="0_1" />
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!-- Regex pattern for numbers -->
+  <xsd:simpleType name="DT_Excitation_Numbers">
+    <xsd:restriction base="xsd:string">
+      <xsd:pattern value="[0-9]+" />
     </xsd:restriction>
   </xsd:simpleType>
 
