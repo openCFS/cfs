@@ -90,7 +90,10 @@ if(CFS_BUILD_PRECICE AND UNIX)
   set(LIBXML2_PIC_SRC     "${LIBXML2_PIC_PREFIX}/src/libxml2-pic")
   set(LIBXML2_PIC_INSTALL "${LIBXML2_PIC_PREFIX}/install")
   set(LIBXML2_PIC_ROOT "${LIBXML2_PIC_INSTALL}" CACHE INTERNAL "libxml2 root hint for preCICE" FORCE)
-  set(LIBXML2_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/libxml2-pic_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
+  # -nz tags the no-zlib variant: distinct cache name so an older libxml2-pic that
+  # was built WITH zlib (undefined gz* in libprecice.so) is not reused. The default
+  # libxml2 cache name (above) is unaffected.
+  set(LIBXML2_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/libxml2-pic-nz_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
 
   if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${LIBXML2_PIC_ZIP}")
     # reuse the cached -fPIC libxml2: only unpack it into the install prefix
@@ -110,9 +113,13 @@ if(CFS_BUILD_PRECICE AND UNIX)
       DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
       DOWNLOAD_NAME ${PACKAGE_FILE}
       DOWNLOAD_NO_PROGRESS ON
+      # --without-zlib/--without-lzma: a plain static libxml2.a that does NOT pull in
+      # gz*/lzma symbols. Otherwise those undefined refs get embedded into the shared
+      # libprecice.so (which has no DT_NEEDED libz), breaking every consumer's link.
+      # preCICE only parses plain XML config files, so compression support is unused.
       CONFIGURE_COMMAND ./configure --prefix=${LIBXML2_PIC_INSTALL} --disable-shared --with-pic
                         --without-ftp --without-html --without-http --without-icu --without-iconv
-                        --without-python --without-modules --without-lzma
+                        --without-python --without-modules --without-lzma --without-zlib
       BUILD_COMMAND make
       INSTALL_COMMAND make install
       LOG_BUILD 1)

@@ -116,6 +116,52 @@ if(USE_PRECICE AND NOT precice_DIR)
   set(CFS_BUILD_PRECICE ON)
 endif()
 
+# Optional MPI / PETSc for preCICE (ccmake-visible cache options USE_PRECICE_MPI /
+# USE_PRECICE_PETSC). openCFS does not build MPI itself and builds PETSc via cfsdeps
+# only when USE_PETSC is set; preCICE's MPI/PETSc features are built against whatever
+# openCFS/the system provides. Each option defaults ON when:
+#   * openCFS itself is configured for it (USE_MPI / USE_PETSC) - then the compilers
+#     are already mpicxx wrappers and the same MPI/PETSc is reused, or
+#   * a system copy is detected (find_package(MPI) / pkg-config PETSc).
+# Otherwise default OFF -> the plain build without that feature. The cache options
+# let the user force either feature in ccmake. PETSc mapping requires MPI, so
+# enabling USE_PRECICE_PETSC forces USE_PRECICE_MPI on.
+if(CFS_BUILD_PRECICE)
+  # --- MPI ---
+  set(_precice_mpi_default OFF)
+  if(USE_MPI)
+    set(_precice_mpi_default ON)
+  else()
+    find_package(MPI QUIET)
+    if(MPI_FOUND OR MPI_CXX_FOUND)
+      set(_precice_mpi_default ON)
+    endif()
+  endif()
+  option(USE_PRECICE_MPI "Build preCICE with MPI communication (against openCFS/system MPI)" ${_precice_mpi_default})
+
+  # --- PETSc (requires MPI) ---
+  set(_precice_petsc_default OFF)
+  if(USE_PETSC)
+    # openCFS builds PETSc in cfsdeps (see below) - reuse that one
+    set(_precice_petsc_default ON)
+  else()
+    find_package(PkgConfig QUIET)
+    if(PKG_CONFIG_FOUND)
+      pkg_check_modules(_PRECICE_PETSC QUIET PETSc)
+      if(_PRECICE_PETSC_FOUND)
+        set(_precice_petsc_default ON)
+      endif()
+    endif()
+  endif()
+  option(USE_PRECICE_PETSC "Build preCICE with PETSc mapping (requires MPI; against openCFS/system PETSc)" ${_precice_petsc_default})
+
+  # PETSc mapping needs MPI - force MPI on when PETSc is requested
+  if(USE_PRECICE_PETSC AND NOT USE_PRECICE_MPI)
+    message(STATUS "preCICE: USE_PRECICE_PETSC requires MPI - enabling USE_PRECICE_MPI")
+    set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI)" FORCE)
+  endif()
+endif()
+
 # eigen is also a (header-only) build dependency of preCICE
 if(USE_EIGEN OR CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/eigen/External_EIGEN.cmake")

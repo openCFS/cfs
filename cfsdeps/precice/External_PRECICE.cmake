@@ -16,6 +16,17 @@ set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "22001a546429de058adff723e9c0870e")
 set(DEPS_VER "") # set to "-a", "-b", ... when only the build (not PACKAGE_VER) changed
 
+# Optional MPI / PETSc features (USE_PRECICE_MPI / USE_PRECICE_PETSC, decided in
+# FindCFSDEPS.cmake; PETSc implies MPI). Encode them into DEPS_VER *before*
+# set_precompiled_pckg_file() so feature variants use distinct precompiled caches
+# instead of clobbering each other.
+if(USE_PRECICE_MPI)
+  set(DEPS_VER "${DEPS_VER}-mpi")
+endif()
+if(USE_PRECICE_PETSC)
+  set(DEPS_VER "${DEPS_VER}-petsc")
+endif()
+
 set(PACKAGE_MIRRORS "https://github.com/precice/precice/archive/refs/tags/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
@@ -41,16 +52,26 @@ set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 set_deps_args_default(ON)
 
 # preCICE-specific configuration:
-#  * static lib, minimal feature set (no PETSc / MPI / Python) to keep the
-#    dependency surface small and avoid extra runtime deps in the testsuite,
+#  * minimal feature set (no Python; MPI and PETSc are optional - see
+#    USE_PRECICE_MPI / USE_PRECICE_PETSC) to keep the dependency surface small,
 #  * find boost / eigen / libxml2 from the cfsdeps installs in the cfs build dir.
 # preCICE is always shared, so we do NOT pass BUILD_SHARED_LIBS (it is ignored
-# and only warns). Disable the optional features so the only required deps are
-# boost / eigen / libxml2 (+ Threads).
+# and only warns). The required deps are boost / eigen / libxml2 (+ Threads, and
+# MPI / PETSc when the corresponding feature is enabled).
+if(USE_PRECICE_MPI)
+  set(_PRECICE_MPI ON)
+else()
+  set(_PRECICE_MPI OFF)
+endif()
+if(USE_PRECICE_PETSC)
+  set(_PRECICE_PETSC ON)
+else()
+  set(_PRECICE_PETSC OFF)
+endif()
 set(DEPS_ARGS ${DEPS_ARGS}
   -DBUILD_TESTING:BOOL=OFF
-  -DPRECICE_FEATURE_PETSC_MAPPING:BOOL=OFF
-  -DPRECICE_FEATURE_MPI_COMMUNICATION:BOOL=OFF
+  -DPRECICE_FEATURE_PETSC_MAPPING:BOOL=${_PRECICE_PETSC}
+  -DPRECICE_FEATURE_MPI_COMMUNICATION:BOOL=${_PRECICE_MPI}
   -DPRECICE_FEATURE_PYTHON_ACTIONS:BOOL=OFF
   -DPRECICE_BINDINGS_C:BOOL=OFF
   -DPRECICE_BINDINGS_FORTRAN:BOOL=OFF
@@ -58,6 +79,17 @@ set(DEPS_ARGS ${DEPS_ARGS}
   # CMAKE_INSTALL_PREFIX / _LIBDIR / build type / compilers come from set_deps_args_default().
   # eigen is header-only and always taken from the normal cfsdeps install.
   -DEigen3_ROOT:PATH=${CMAKE_BINARY_DIR})
+
+# When PETSc mapping is on, point preCICE's FindPETSc at openCFS' PETSc:
+#  * USE_PETSC -> the cfsdeps PETSc prefix install (full prefix with lib/petsc/conf,
+#    populated whether freshly built or restored from the precompiled cache),
+#  * otherwise rely on the system PETSC_DIR / PETSC_ARCH environment (pkg-config).
+# PETSC_ARCH is empty for a prefix install.
+if(USE_PRECICE_PETSC AND USE_PETSC)
+  list(APPEND DEPS_ARGS
+    -DPETSC_DIR:PATH=${CMAKE_BINARY_DIR}/cfsdeps/petsc/install
+    -DPETSC_ARCH:STRING=)
+endif()
 
 # boost + libxml2 follow the detect-or-build model (see cfsdeps/boost + cfsdeps/libxml2):
 # if a system/shared copy was detected, *_ROOT is empty and preCICE finds it itself;
@@ -111,6 +143,10 @@ if(TARGET boost-pic)
 endif()
 if(TARGET libxml2-pic)
   add_dependencies(precice libxml2-pic)
+endif()
+# with PETSc mapping against the cfsdeps PETSc, build preCICE after petsc
+if(USE_PRECICE_PETSC AND TARGET petsc)
+  add_dependencies(precice petsc)
 endif()
 
 # add project to global list of CFSDEPS
