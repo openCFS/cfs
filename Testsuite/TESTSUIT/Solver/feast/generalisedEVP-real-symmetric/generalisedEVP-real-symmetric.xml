@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://www.cfs++.org/simulation">
+  xmlns="http://www.cfs++.org/simulation" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
   <documentation>
     <title></title>
     <authors>
@@ -34,7 +34,8 @@ The refernce file is acutually by ARPACK.
   
   <fileFormats>
     <input>
-      <gmsh fileName="Rectangle.msh"/>
+      <!-- <gmsh fileName="Rectangle.msh"/> -->
+      <hdf5 fileName="generalisedEVP-real-symmetric.h5ref"/>
     </input>
     <output>
       <hdf5/>

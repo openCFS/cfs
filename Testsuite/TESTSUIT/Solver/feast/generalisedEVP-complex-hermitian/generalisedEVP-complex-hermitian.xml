@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
   <documentation>
    <title>Bloch mode analysis</title>
@@ -32,7 +32,8 @@
   <fileFormats>
     <input>
       <!--<mesh fileName="BlochMode2D.mesh"></mesh>-->
-      <gmsh fileName="UnitCell_working.msh"></gmsh>
+      <!-- <gmsh fileName="UnitCell_working.msh"></gmsh> -->
+      <hdf5 fileName="generalisedEVP-complex-hermitian.h5ref"/>
     </input>
     <output>
       <hdf5/>
