@@ -155,6 +155,7 @@ add_subdirectory(Singlefield/Acoustics/Surf2VolMapping2D)
 add_subdirectory(Singlefield/Acoustics/RayleighDamping3D)
 add_subdirectory(Singlefield/Acoustics/AdaptedLossTanDelta3D)
 add_subdirectory(Singlefield/Acoustics/AcousticHarmonic25D)
+add_subdirectory(Singlefield/Acoustics/CharacteristicBC1D)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for water waves test cases.
@@ -184,6 +185,7 @@ ADD_SUBDIRECTORY(Singlefield/AcousticMixed/channel3d_sfem_abc)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2d)
 ADD_SUBDIRECTORY(Singlefield/Smooth/RotatedChamberL2Norm2D)
 ADD_SUBDIRECTORY(Singlefield/Smooth/ChamberL2Norm2DHarmonic)
+ADD_SUBDIRECTORY(Singlefield/Smooth/SmoothPrescribed1D)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for Split PDE test cases.

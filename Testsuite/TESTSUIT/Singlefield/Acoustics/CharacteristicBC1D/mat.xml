@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- Lossless air for the acoustic wave equation.
+       c0 = sqrt(K/rho) = sqrt(142444.4 / 1.225) = 341 m/s
+       (matches the duct mesh design: lambda@1kHz = 341 mm, ~17 elem/wavelength). -->
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real>1.225</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>142444.4</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>
