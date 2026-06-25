@@ -56,13 +56,16 @@ set(DEPS_ARGS ${DEPS_ARGS}
   -DPRECICE_BINDINGS_FORTRAN:BOOL=OFF
   -DPRECICE_BUILD_TOOLS:BOOL=OFF
   # CMAKE_INSTALL_PREFIX / _LIBDIR / build type / compilers come from set_deps_args_default().
-  # boost + libxml2 come from the dedicated -fPIC variants (BOOST_PIC_ROOT / LIBXML2_PIC_ROOT,
-  # built in cfsdeps/boost + cfsdeps/libxml2) because preCICE is shared and embeds them;
-  # eigen is header-only and taken from the normal cfsdeps install (${CMAKE_BINARY_DIR}).
-  # preCICE finds boost via CONFIG mode (the -fPIC boost build generates the CMake config).
-  -DCMAKE_PREFIX_PATH:PATH=${BOOST_PIC_ROOT}\;${LIBXML2_PIC_ROOT}\;${CMAKE_BINARY_DIR}
-  -DBOOST_ROOT:PATH=${BOOST_PIC_ROOT}
-  -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT})
+  # Point preCICE's find_package at the dedicated -fPIC variants of boost+libxml2 and the
+  # (header-only) eigen from the normal cfsdeps install. We use single-path, package-case
+  # *_ROOT variables (honored via CMP0074) rather than a multi-path CMAKE_PREFIX_PATH:
+  # the latter is split by the list separator when forwarded through ExternalProject
+  # CMAKE_ARGS (and uppercase BOOST_ROOT is ignored under CMP0144).
+  # boost-pic is a STATIC (-fPIC) build, so tell preCICE's BoostConfig to accept static libs.
+  -DBoost_ROOT:PATH=${BOOST_PIC_ROOT}
+  -DBoost_USE_STATIC_LIBS:BOOL=ON
+  -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT}
+  -DEigen3_ROOT:PATH=${CMAKE_BINARY_DIR})
 
 # --- generic final block for cmake packages with no patch and no postinstall ---
 
