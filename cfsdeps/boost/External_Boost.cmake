@@ -169,5 +169,79 @@ if(APPLE)
   # https://stackoverflow.com/questions/77133361/no-template-named-unary-function-in-namespace-std-did-you-mean-unary-fun
   add_compile_definitions(_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
 endif()
-# boost 1.78 by default still uses std::unary_function which is removed in C++17 
-add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE) 
+# boost 1.78 by default still uses std::unary_function which is removed in C++17
+add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
+
+# ---------------------------------------------------------------------------
+# preCICE-only, position-independent (-fPIC) copy of the SAME boost version.
+#
+# preCICE 3.x is always a shared library and statically embeds boost, which the
+# default boost above cannot satisfy: it is built without -fPIC and with
+# --no-cmake-config, whereas preCICE needs both -fPIC and find_package(Boost
+# CONFIG). We therefore build a *second*, separate copy here. The default build
+# above is left completely untouched (same version 1.78, used by cfs and every
+# other package that pins it); this variant only exists when preCICE is built
+# from source (CFS_BUILD_PRECICE) and installs into its own prefix, exposed as
+# BOOST_PIC_ROOT for cfsdeps/precice/External_PRECICE.cmake.
+#
+# NOTE: not validated in this environment (no boost build / CI here) - verify on
+# the build machine. On gcc (the only preCICE config, gcc9max) B2_ARGS is empty
+# and no boost patches apply (they target musl/MSVC only), so PATCH is skipped.
+# ---------------------------------------------------------------------------
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(BOOST_PIC_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/boost-pic")
+  set(BOOST_PIC_INSTALL "${BOOST_PIC_PREFIX}/install")
+  set(BOOST_PIC_ROOT "${BOOST_PIC_INSTALL}" CACHE PATH "preCICE-only -fPIC boost prefix")
+  mark_as_advanced(BOOST_PIC_ROOT)
+  # cached precompiled package for the variant (own name -> no clash with default boost)
+  set(BOOST_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/boost-pic_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
+
+  # same user-config.jam (toolset / zlib) as the default build above
+  if(TOOLSET_NAME)
+    configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/zlib-toolset-config.jam.in" "${BOOST_PIC_PREFIX}/user-config.jam" @ONLY)
+  else()
+    configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/zlib-config.jam.in" "${BOOST_PIC_PREFIX}/user-config.jam" @ONLY)
+  endif()
+
+  if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${BOOST_PIC_ZIP}")
+    # reuse the cached -fPIC boost: only unpack it into the install prefix
+    ExternalProject_Add(boost-pic
+      PREFIX ${BOOST_PIC_PREFIX}
+      DOWNLOAD_COMMAND "" CONFIGURE_COMMAND "" BUILD_COMMAND ""
+      INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${BOOST_PIC_INSTALL}
+      COMMAND ${CMAKE_COMMAND} -E chdir ${BOOST_PIC_INSTALL} ${CMAKE_COMMAND} -E tar xzf ${BOOST_PIC_ZIP})
+  else()
+    # same library set as the default build, but WITH the boost CMake config
+    # (i.e. no --no-cmake-config) because preCICE uses find_package(Boost CONFIG)
+    set(_PIC_WITHOUT --without-python --without-graph_parallel --without-mpi --without-container
+                     --without-context --without-math --without-contract --without-coroutine
+                     --without-graph --without-stacktrace --without-fiber --without-wave)
+    ExternalProject_Add(boost-pic
+      PREFIX ${BOOST_PIC_PREFIX}
+      BINARY_DIR ${BOOST_PIC_PREFIX}/src/boost-pic
+      URL ${PACKAGE_MIRRORS}
+      URL_MD5 ${PACKAGE_MD5}
+      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
+      DOWNLOAD_NAME ${PACKAGE_FILE}
+      DOWNLOAD_NO_PROGRESS ON
+      PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${BOOST_PIC_PREFIX}/user-config.jam" "${BOOST_PIC_PREFIX}/src/boost-pic"
+      CONFIGURE_COMMAND ${BOOTSTRAP}
+      BUILD_COMMAND ./b2 --user-config=user-config.jam ${_PIC_WITHOUT} --layout=system
+                    --prefix=${BOOST_PIC_INSTALL} ${TOOLSET}
+                    define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX ${B2_ARGS}
+                    cflags=-fPIC cxxflags=-fPIC link=static address-model=64
+                    threading=multi runtime-link=shared variant=release install
+      INSTALL_COMMAND ""
+      LOG_BUILD 1)
+    # store the freshly built -fPIC boost in the (cached) precompiled dir for reuse
+    if(${CFS_DEPS_PRECOMPILED})
+      ExternalProject_Add_Step(boost-pic store-precompiled
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CFS_DEPS_CACHE_DIR}/precompiled
+        COMMAND ${CMAKE_COMMAND} -E chdir ${BOOST_PIC_INSTALL} ${CMAKE_COMMAND} -E tar czf ${BOOST_PIC_ZIP} .
+        DEPENDEES install)
+    endif()
+  endif()
+
+  add_dependencies(boost-pic zlib)
+  set(CFSDEPS ${CFSDEPS} boost-pic)
+endif()

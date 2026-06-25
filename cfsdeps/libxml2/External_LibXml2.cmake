@@ -73,3 +73,54 @@ endif()
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
+
+# ---------------------------------------------------------------------------
+# preCICE-only, position-independent (-fPIC) copy of the SAME libxml2 version.
+# preCICE is a shared library and embeds libxml2 statically, so it needs a -fPIC
+# build (autotools: --with-pic). The default build above is left untouched; this
+# variant only exists when preCICE is built from source (CFS_BUILD_PRECICE) and
+# installs into its own prefix, exposed as LIBXML2_PIC_ROOT for
+# cfsdeps/precice/External_PRECICE.cmake (found via FindLibXml2 / LibXml2_ROOT).
+# NOTE: not validated in this environment - verify on the build machine.
+# ---------------------------------------------------------------------------
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(LIBXML2_PIC_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/libxml2-pic")
+  set(LIBXML2_PIC_SRC     "${LIBXML2_PIC_PREFIX}/src/libxml2-pic")
+  set(LIBXML2_PIC_INSTALL "${LIBXML2_PIC_PREFIX}/install")
+  set(LIBXML2_PIC_ROOT "${LIBXML2_PIC_INSTALL}" CACHE PATH "preCICE-only -fPIC libxml2 prefix")
+  mark_as_advanced(LIBXML2_PIC_ROOT)
+  set(LIBXML2_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/libxml2-pic_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
+
+  if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${LIBXML2_PIC_ZIP}")
+    # reuse the cached -fPIC libxml2: only unpack it into the install prefix
+    ExternalProject_Add(libxml2-pic
+      PREFIX ${LIBXML2_PIC_PREFIX}
+      DOWNLOAD_COMMAND "" CONFIGURE_COMMAND "" BUILD_COMMAND ""
+      INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${LIBXML2_PIC_INSTALL}
+      COMMAND ${CMAKE_COMMAND} -E chdir ${LIBXML2_PIC_INSTALL} ${CMAKE_COMMAND} -E tar xzf ${LIBXML2_PIC_ZIP})
+  else()
+    # in-source autotools build (like the default), but with --with-pic
+    ExternalProject_Add(libxml2-pic
+      PREFIX ${LIBXML2_PIC_PREFIX}
+      SOURCE_DIR ${LIBXML2_PIC_SRC}
+      BINARY_DIR ${LIBXML2_PIC_SRC}
+      URL ${PACKAGE_MIRRORS}
+      URL_MD5 ${PACKAGE_MD5}
+      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
+      DOWNLOAD_NAME ${PACKAGE_FILE}
+      DOWNLOAD_NO_PROGRESS ON
+      CONFIGURE_COMMAND ./configure --prefix=${LIBXML2_PIC_INSTALL} --disable-shared --with-pic
+                        --without-ftp --without-html --without-http --without-icu --without-iconv
+                        --without-python --without-modules --without-lzma
+      BUILD_COMMAND make
+      INSTALL_COMMAND make install
+      LOG_BUILD 1)
+    if(${CFS_DEPS_PRECOMPILED})
+      ExternalProject_Add_Step(libxml2-pic store-precompiled
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CFS_DEPS_CACHE_DIR}/precompiled
+        COMMAND ${CMAKE_COMMAND} -E chdir ${LIBXML2_PIC_INSTALL} ${CMAKE_COMMAND} -E tar czf ${LIBXML2_PIC_ZIP} .
+        DEPENDEES install)
+    endif()
+  endif()
+  set(CFSDEPS ${CFSDEPS} libxml2-pic)
+endif()

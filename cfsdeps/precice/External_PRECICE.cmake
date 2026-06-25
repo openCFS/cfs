@@ -26,9 +26,12 @@ use_c_and_fortran(ON OFF)
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-# PRECICE_LIBRARY = <build>/lib/libprecice.a , PRECICE_INCLUDE_DIR = <build>/include.
-# set_standard_variables() also sets DEPS_PREFIX / DEPS_SOURCE and the clean-precice target.
-set_package_library_list("precice")
+# preCICE 3.x is ALWAYS a shared library (add_library(precice SHARED); BUILD_SHARED_LIBS
+# is ignored), so the artifact is libprecice.so, not a static .a. Set the library
+# variable manually to the shared lib (set_package_library_list would assume .a).
+set(PACKAGE_LIBRARY "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_SHARED_LIBRARY_PREFIX}precice${CMAKE_SHARED_LIBRARY_SUFFIX}")
+# set_standard_variables() also sets DEPS_PREFIX / DEPS_SOURCE and the clean-precice target
+# (PRECICE_LIBRARY = the .so above, PRECICE_INCLUDE_DIR = <build>/include).
 set_standard_variables()
 
 # install into the package's own prefix and copy to the cfs build dir (no manifest)
@@ -41,21 +44,25 @@ set_deps_args_default(ON)
 #  * static lib, minimal feature set (no PETSc / MPI / Python) to keep the
 #    dependency surface small and avoid extra runtime deps in the testsuite,
 #  * find boost / eigen / libxml2 from the cfsdeps installs in the cfs build dir.
+# preCICE is always shared, so we do NOT pass BUILD_SHARED_LIBS (it is ignored
+# and only warns). Disable the optional features so the only required deps are
+# boost / eigen / libxml2 (+ Threads).
 set(DEPS_ARGS ${DEPS_ARGS}
-  -DBUILD_SHARED_LIBS:BOOL=OFF
   -DBUILD_TESTING:BOOL=OFF
   -DPRECICE_FEATURE_PETSC_MAPPING:BOOL=OFF
   -DPRECICE_FEATURE_MPI_COMMUNICATION:BOOL=OFF
   -DPRECICE_FEATURE_PYTHON_ACTIONS:BOOL=OFF
-  -DPRECICE_BINDINGS_PYTHON:BOOL=OFF
   -DPRECICE_BINDINGS_C:BOOL=OFF
   -DPRECICE_BINDINGS_FORTRAN:BOOL=OFF
-  # CMAKE_INSTALL_PREFIX / _LIBDIR / build type / compilers come from
-  # set_deps_args_default() above.
-  # let preCICE find the cfsdeps-built boost / eigen / libxml2 (their CMake
-  # config / headers are copied into the cfs build dir by the cfsdeps macros)
-  -DCMAKE_PREFIX_PATH:PATH=${CMAKE_BINARY_DIR}
-  -DBOOST_ROOT:PATH=${CMAKE_BINARY_DIR})
+  -DPRECICE_BUILD_TOOLS:BOOL=OFF
+  # CMAKE_INSTALL_PREFIX / _LIBDIR / build type / compilers come from set_deps_args_default().
+  # boost + libxml2 come from the dedicated -fPIC variants (BOOST_PIC_ROOT / LIBXML2_PIC_ROOT,
+  # built in cfsdeps/boost + cfsdeps/libxml2) because preCICE is shared and embeds them;
+  # eigen is header-only and taken from the normal cfsdeps install (${CMAKE_BINARY_DIR}).
+  # preCICE finds boost via CONFIG mode (the -fPIC boost build generates the CMake config).
+  -DCMAKE_PREFIX_PATH:PATH=${BOOST_PIC_ROOT}\;${LIBXML2_PIC_ROOT}\;${CMAKE_BINARY_DIR}
+  -DBOOST_ROOT:PATH=${BOOST_PIC_ROOT}
+  -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT})
 
 # --- generic final block for cmake packages with no patch and no postinstall ---
 
@@ -89,8 +96,10 @@ else()
   endif()
 endif()
 
-# preCICE is built against cfs' boost / eigen / libxml2 -> build those first
-add_dependencies(precice boost eigen libxml2)
+# preCICE is built against the -fPIC boost/libxml2 variants + (header-only) eigen
+# -> build those first. boost-pic / libxml2-pic are defined in cfsdeps/boost +
+# cfsdeps/libxml2 when CFS_BUILD_PRECICE is set.
+add_dependencies(precice boost-pic libxml2-pic eigen)
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
