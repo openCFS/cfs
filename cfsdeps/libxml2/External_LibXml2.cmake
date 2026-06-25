@@ -124,5 +124,4 @@ if(CFS_BUILD_PRECICE AND UNIX)
     endif()
   endif()
   set(CFSDEPS ${CFSDEPS} libxml2-pic)
-  endif() # system libxml2 not found
 endif()
