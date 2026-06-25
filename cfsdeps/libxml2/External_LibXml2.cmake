@@ -75,20 +75,21 @@ endif()
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 
 # ---------------------------------------------------------------------------
-# preCICE-only, position-independent (-fPIC) copy of the SAME libxml2 version.
-# preCICE is a shared library and embeds libxml2 statically, so it needs a -fPIC
-# build (autotools: --with-pic). The default build above is left untouched; this
-# variant only exists when preCICE is built from source (CFS_BUILD_PRECICE) and
-# installs into its own prefix, exposed as LIBXML2_PIC_ROOT for
-# cfsdeps/precice/External_PRECICE.cmake (found via FindLibXml2 / LibXml2_ROOT).
+# libxml2 for preCICE (only when preCICE is built from source: CFS_BUILD_PRECICE).
+# preCICE embeds libxml2 into its shared libprecice.so, so it needs a -fPIC build.
+# libxml2 is small and a plain C static archive embeds cleanly into libprecice.so
+# (it was not part of the boost link error), so we always build a static -fPIC
+# copy of the SAME version here rather than detecting a system one - this also
+# avoids find_package(LibXml2) clobbering the cfsdeps LIBXML2_LIBRARY that cfs
+# itself may use. The default build above is left untouched. Exposed as
+# LIBXML2_PIC_ROOT for cfsdeps/precice/External_PRECICE.cmake.
 # NOTE: not validated in this environment - verify on the build machine.
 # ---------------------------------------------------------------------------
 if(CFS_BUILD_PRECICE AND UNIX)
   set(LIBXML2_PIC_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/libxml2-pic")
   set(LIBXML2_PIC_SRC     "${LIBXML2_PIC_PREFIX}/src/libxml2-pic")
   set(LIBXML2_PIC_INSTALL "${LIBXML2_PIC_PREFIX}/install")
-  set(LIBXML2_PIC_ROOT "${LIBXML2_PIC_INSTALL}" CACHE PATH "preCICE-only -fPIC libxml2 prefix")
-  mark_as_advanced(LIBXML2_PIC_ROOT)
+  set(LIBXML2_PIC_ROOT "${LIBXML2_PIC_INSTALL}" CACHE INTERNAL "libxml2 root hint for preCICE" FORCE)
   set(LIBXML2_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/libxml2-pic_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
 
   if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${LIBXML2_PIC_ZIP}")
@@ -123,4 +124,5 @@ if(CFS_BUILD_PRECICE AND UNIX)
     endif()
   endif()
   set(CFSDEPS ${CFSDEPS} libxml2-pic)
+  endif() # system libxml2 not found
 endif()

@@ -56,16 +56,19 @@ set(DEPS_ARGS ${DEPS_ARGS}
   -DPRECICE_BINDINGS_FORTRAN:BOOL=OFF
   -DPRECICE_BUILD_TOOLS:BOOL=OFF
   # CMAKE_INSTALL_PREFIX / _LIBDIR / build type / compilers come from set_deps_args_default().
-  # Point preCICE's find_package at the dedicated -fPIC variants of boost+libxml2 and the
-  # (header-only) eigen from the normal cfsdeps install. We use single-path, package-case
-  # *_ROOT variables (honored via CMP0074) rather than a multi-path CMAKE_PREFIX_PATH:
-  # the latter is split by the list separator when forwarded through ExternalProject
-  # CMAKE_ARGS (and uppercase BOOST_ROOT is ignored under CMP0144).
-  # boost-pic is a STATIC (-fPIC) build, so tell preCICE's BoostConfig to accept static libs.
-  -DBoost_ROOT:PATH=${BOOST_PIC_ROOT}
-  -DBoost_USE_STATIC_LIBS:BOOL=ON
-  -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT}
+  # eigen is header-only and always taken from the normal cfsdeps install.
   -DEigen3_ROOT:PATH=${CMAKE_BINARY_DIR})
+
+# boost + libxml2 follow the detect-or-build model (see cfsdeps/boost + cfsdeps/libxml2):
+# if a system/shared copy was detected, *_ROOT is empty and preCICE finds it itself;
+# if we built a copy, point preCICE at its prefix (single-path, package-case *_ROOT,
+# honored via CMP0074). preCICE links *shared* boost, so no Boost_USE_STATIC_LIBS.
+if(PRECICE_BOOST_ROOT)
+  list(APPEND DEPS_ARGS -DBoost_ROOT:PATH=${PRECICE_BOOST_ROOT})
+endif()
+if(LIBXML2_PIC_ROOT)
+  list(APPEND DEPS_ARGS -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT})
+endif()
 
 # --- generic final block for cmake packages with no patch and no postinstall ---
 
@@ -99,10 +102,16 @@ else()
   endif()
 endif()
 
-# preCICE is built against the -fPIC boost/libxml2 variants + (header-only) eigen
-# -> build those first. boost-pic / libxml2-pic are defined in cfsdeps/boost +
-# cfsdeps/libxml2 when CFS_BUILD_PRECICE is set.
-add_dependencies(precice boost-pic libxml2-pic eigen)
+# preCICE needs (header-only) eigen and, when we build them ourselves, the
+# boost / libxml2 copies first. Under the detect-or-build model those targets
+# only exist when a system copy was NOT found, so guard with TARGET checks.
+add_dependencies(precice eigen)
+if(TARGET boost-pic)
+  add_dependencies(precice boost-pic)
+endif()
+if(TARGET libxml2-pic)
+  add_dependencies(precice libxml2-pic)
+endif()
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
