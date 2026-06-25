@@ -27,7 +27,7 @@ variables:
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
-  MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
+  MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON -DUSE_PRECICE=ON"
   MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
   # Select which tag of the build containers we use. Update the tag when there are breaking changes in the conainers!
   # This way pipelines for old CFS-commits can still run on old container versions.
@@ -563,6 +563,10 @@ cfsdeps:gcc9:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
+    # build+cache preCICE here so the gcc9max build (MAX_CONFIG_OPTIONS, which
+    # enables USE_PRECICE) consumes the precompiled package instead of building
+    # preCICE in the build stage (avoids build-stage timeouts).
+    CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON"
     IMAGE: centos7-gcc9
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)

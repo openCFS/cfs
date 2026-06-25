@@ -147,6 +147,37 @@ MACRO(RUN_MPI_TEST_SIMULATION)
 ENDMACRO(RUN_MPI_TEST_SIMULATION)
 
 #-------------------------------------------------------------------------------
+# Run a preCICE-coupled test: launch the mock partner (MOCK_BINARY) and cfs
+# concurrently in the test working directory. EXECUTE_PROCESS runs several
+# COMMANDs as a parallel pipeline and waits for all of them; RESULTS_VARIABLE
+# yields one exit code per command, so a crash of *either* fails the test.
+# The CTest TIMEOUT property guards against a hung m2n socket.
+#-------------------------------------------------------------------------------
+MACRO(RUN_COUPLED_SIMULATION)
+  SET(_COUPLED_WD "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}")
+  # preCICE leaves an exchange directory behind; start clean
+  FILE(REMOVE_RECURSE "${_COUPLED_WD}/precice-run")
+  EXECUTE_PROCESS(
+    COMMAND "${MOCK_BINARY}" "${PRECICE_CONFIG}" "${MOCK_SPEC}"
+    COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${TEST_FILE_BASENAME}"
+    WORKING_DIRECTORY "${_COUPLED_WD}"
+    RESULTS_VARIABLE COUPLED_RETVALS
+    ERROR_VARIABLE COUPLED_ERROR)
+  FOREACH(_rv ${COUPLED_RETVALS})
+    IF(NOT _rv EQUAL 0)
+      MESSAGE("ERROR: exit codes=${COUPLED_RETVALS} : ${COUPLED_ERROR}")
+      MESSAGE("COMMAND = ${MOCK_BINARY} ${PRECICE_CONFIG} ${MOCK_SPEC} | ${CFS_BINARY} ${CFS_ARGS} --noColor ${TEST_FILE_BASENAME}")
+      MESSAGE("WORKING_DIRECTORY = ${_COUPLED_WD}")
+      IF(PROCEED_AFTER_SIMULATION_CRASH)
+        MESSAGE(WARNING "coupled run for test case '${TEST_NAME}' failed. Continuing anyways ...")
+      ELSE()
+        MESSAGE(FATAL_ERROR "coupled run for test case '${TEST_NAME}' failed.")
+      ENDIF()
+    ENDIF()
+  ENDFOREACH()
+ENDMACRO(RUN_COUPLED_SIMULATION)
+
+#-------------------------------------------------------------------------------
 # Run cfstool in specified mode.
 #-------------------------------------------------------------------------------
 MACRO(DIFF_TEST_RESULTS_CFSTOOL EPSILON)

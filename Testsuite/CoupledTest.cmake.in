@@ -1,0 +1,69 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: syntax cmake; space-indent on; indent-width 2; encoding utf-8;
+#-------------------------------------------------------------------------------
+# CoupledTest.cmake - run a preCICE-coupled openCFS test.
+#
+# Like StandardTest.cmake, but launches a mock coupling partner (mock_fluid)
+# concurrently with cfs and then diffs the cfs result against the .h5ref with
+# cfstool. Used by tests under Testsuite/TESTSUIT/preCICE.
+#
+# A test registers itself via (see e.g. TESTSUIT/preCICE/flapFSI2D):
+#   ADD_TEST(<name> ${CMAKE_COMMAND}
+#     -DEPSILON:STRING=1e-5
+#     -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+#     [-DPRECICE_CONFIG:STRING=precice-config.xml]
+#     [-DMOCK_SPEC:STRING=mock_fluid.spec]
+#     -P ${CFS_COUPLED_TEST})
+#-------------------------------------------------------------------------------
+SET(USE_OPENMP "@USE_OPENMP@")
+SET(USE_PETSC "@USE_PETSC@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CMAKE_EXECUTABLE_SUFFIX "@CMAKE_EXECUTABLE_SUFFIX@")
+set(TESTSUITE_CFSTOOL_MODE "@TESTSUITE_CFSTOOL_MODE@")
+set(TESTSUITE_THREADS "@TESTSUITE_THREADS@")
+
+# Paths to the binaries used by a coupled test.
+SET(CFS_BINARY     "${CFS_BINARY_DIR}/bin/cfs${CMAKE_EXECUTABLE_SUFFIX}")
+SET(CFSTOOL_BINARY "${CFS_BINARY_DIR}/bin/cfstool${CMAKE_EXECUTABLE_SUFFIX}")
+SET(MOCK_BINARY    "${CFS_BINARY_DIR}/bin/mock_fluid${CMAKE_EXECUTABLE_SUFFIX}")
+
+# Path to testsuite source / output directories.
+SET(TESTSUITE_SRC_DIR "@TESTSUITE_DIR@")
+SET(TESTSUITE_BIN_DIR "@TESTSUITE_BIN_DIR@")
+
+INCLUDE("${TESTSUITE_SRC_DIR}/TestMacros.cmake")
+
+# defaults for the per-test variables (can be overridden via -D in ADD_TEST)
+IF(NOT PRECICE_CONFIG)
+  SET(PRECICE_CONFIG "precice-config.xml")
+ENDIF()
+IF(NOT MOCK_SPEC)
+  SET(MOCK_SPEC "mock_fluid.spec")
+ENDIF()
+
+#-------------------------------------------------------------------------------
+# Macro with the coupled CFS++ test routine: copy inputs, run mock + cfs
+# concurrently, then compare results_hdf5/*.h5 against *.h5ref via cfstool.
+#-------------------------------------------------------------------------------
+MACRO(CFS_COUPLED_TEST)
+  GENERATE_TEST_NAME_AND_FILE("${CURRENT_TEST_DIR}")
+  DETERMINE_TEST_FILE_LIST()
+  CLEANUP_TEST_DIR()
+  COPY_TEST_FILES("${TEST_FILE_LIST}" "${SKIP_H5REF}")
+
+  # run cfs with the configured number of testsuite threads
+  IF(TESTSUITE_THREADS LESS 2 AND USE_OPENMP)
+    MESSAGE("You are using USE_OPENMP but test only with 1 thread.")
+  ENDIF()
+  SET(CFS_ARGS ${CFS_ARGS} "-t${TESTSUITE_THREADS}")
+
+  # use default cfstool mode if not specified
+  IF("${CFSTOOL_MODE}" STREQUAL "")
+    SET(CFSTOOL_MODE ${TESTSUITE_CFSTOOL_MODE})
+  ENDIF()
+
+  RUN_COUPLED_SIMULATION()
+  DIFF_TEST_RESULTS_CFSTOOL("${EPSILON}" "${CFSTOOL_MODE}")
+ENDMACRO(CFS_COUPLED_TEST)
+
+CFS_COUPLED_TEST()

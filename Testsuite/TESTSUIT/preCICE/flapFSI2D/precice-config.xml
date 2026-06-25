@@ -1,0 +1,64 @@
+<precice-configuration>
+  <!--
+    Minimal 2D FSI coupling for the flapFSI2D CI test.
+      * Fluid : lightweight C++ mock partner (mock_fluid). Writes an analytic
+                downward traction (Stress) on the beam top edge, reads the
+                solid displacement.
+      * Solid : openCFS (mechanic PDE). Reads Stress as a surface load, solves,
+                writes the resulting Displacement.
+    Serial-explicit (Fluid first) => one solve per time window, fully
+    deterministic, so the result can be compared against a committed .h5ref.
+  -->
+
+
+  <log>
+    <sink filter="%Severity% > debug" enabled="false"/>
+  </log>
+
+  <data:vector name="Stress"/>
+  <data:vector name="Displacement"/>
+
+  <mesh name="Fluid-Faces" dimensions="2">
+    <use-data name="Stress"/>
+  </mesh>
+  <mesh name="Solid-Faces" dimensions="2">
+    <use-data name="Stress"/>
+  </mesh>
+  <mesh name="Fluid-Nodes" dimensions="2">
+    <use-data name="Displacement"/>
+  </mesh>
+  <mesh name="Solid-Nodes" dimensions="2">
+    <use-data name="Displacement"/>
+  </mesh>
+
+  <participant name="Fluid">
+    <provide-mesh name="Fluid-Faces"/>
+    <provide-mesh name="Fluid-Nodes"/>
+    <receive-mesh name="Solid-Nodes" from="Solid"/>
+    <write-data name="Stress" mesh="Fluid-Faces"/>
+    <read-data  name="Displacement" mesh="Fluid-Nodes"/>
+    <mapping:nearest-neighbor direction="read" from="Solid-Nodes" to="Fluid-Nodes"
+                              constraint="consistent"/>
+  </participant>
+
+  <participant name="Solid">
+    <provide-mesh name="Solid-Faces"/>
+    <provide-mesh name="Solid-Nodes"/>
+    <receive-mesh name="Fluid-Faces" from="Fluid"/>
+    <write-data name="Displacement" mesh="Solid-Nodes"/>
+    <read-data  name="Stress" mesh="Solid-Faces"/>
+    <mapping:nearest-neighbor direction="read" from="Fluid-Faces" to="Solid-Faces"
+                              constraint="consistent"/>
+  </participant>
+
+  <m2n:sockets acceptor="Fluid" connector="Solid" exchange-directory="."/>
+
+  <coupling-scheme:serial-explicit>
+    <participants first="Fluid" second="Solid"/>
+    <max-time value="5.0e-3"/>
+    <time-window-size value="1.0e-3"/>
+    <exchange data="Stress"       mesh="Fluid-Faces" from="Fluid" to="Solid"/>
+    <exchange data="Displacement" mesh="Solid-Nodes" from="Solid" to="Fluid"/>
+  </coupling-scheme:serial-explicit>
+
+</precice-configuration>

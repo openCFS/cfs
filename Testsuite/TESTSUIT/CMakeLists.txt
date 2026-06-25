@@ -1065,3 +1065,10 @@ if(BUILD_CFSDAT)
     #add_subdirectory(CFSdat/FFT_2D)
   endif(USE_BLAS_LAPACK STREQUAL "MKL")
 endif() # BUILD_CFSDAT
+
+#-------------------------------------------------------------------------------
+# preCICE-coupled tests (cfs + mock_fluid partner). Only when built with preCICE.
+#-------------------------------------------------------------------------------
+if(USE_PRECICE)
+  add_subdirectory(preCICE)
+endif()

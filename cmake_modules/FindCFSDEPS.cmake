@@ -108,7 +108,16 @@ if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
 
-if(USE_EIGEN)
+# preCICE is built from source via cfsdeps, UNLESS the developer points to an
+# already-installed preCICE with -Dprecice_DIR=... (then the adapter falls back
+# to find_package). Building preCICE pulls in eigen + libxml2 as build deps.
+set(CFS_BUILD_PRECICE OFF)
+if(USE_PRECICE AND NOT precice_DIR)
+  set(CFS_BUILD_PRECICE ON)
+endif()
+
+# eigen is also a (header-only) build dependency of preCICE
+if(USE_EIGEN OR CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/eigen/External_EIGEN.cmake")
 endif()
 
@@ -145,9 +154,9 @@ if(USE_XERCES)
 endif()
 
 #-------------------------------------------------------------------------------
-# libxml2 is an alternative for Xerces
+# libxml2 is an alternative for Xerces (and a required build dependency of preCICE)
 #-------------------------------------------------------------------------------
-if(USE_LIBXML2)
+if(USE_LIBXML2 OR CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
 endif()
 
@@ -277,9 +286,12 @@ if(BUILD_HWLOC)
   INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
 endif(BUILD_HWLOC)
 
-# if(USE_PRECICE)
-#   include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
-# endif()
+# preCICE coupling library (built against the cfs boost/eigen/libxml2 above).
+# Exposes PRECICE_LIBRARY / PRECICE_INCLUDE_DIR consumed by source/Utils/preciceAdapter.
+# Skipped when -Dprecice_DIR=... is given (developer-provided preCICE via find_package).
+if(CFS_BUILD_PRECICE)
+  include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
+endif()
 
 # ghost is required for phist or could be used standalone
 if(BUILD_GHOST)

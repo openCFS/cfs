@@ -22,6 +22,7 @@
 #include <def_use_cuda.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_petsc.hh>
+#include <def_use_precice.hh>
 #include <def_use_phist_cg.hh>
 #include <def_use_phist_ev.hh>
 #include <def_use_sgp.hh>
@@ -431,6 +432,13 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(libxml2);
   assert(xerces.active || libxml2.active);
+
+  // multi-physics coupling
+  Dependency precice("preCICE", "USE_PRECICE", LGPL);
+#ifdef USE_PRECICE
+  precice.active = true;
+#endif
+  data.Push_back(precice);
 
 
   // optimizers
