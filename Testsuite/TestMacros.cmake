@@ -189,8 +189,18 @@ MACRO(RUN_COUPLED_CFS_SIMULATION)
   SET(_COUPLED_WD "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}")
   # preCICE leaves an exchange directory behind; start clean
   FILE(REMOVE_RECURSE "${_COUPLED_WD}/precice-run")
+  # IMPORTANT: execute_process chains multiple COMMANDs as a PIPELINE
+  # (partner stdout -> main stdin). Both cfs participants are verbose, and the main
+  # cfs never reads stdin, so the partner would block once the ~64 KB pipe buffer
+  # fills -> deadlock (the run "hangs" under ctest even though each works manually).
+  # Redirect the partner's output to a log file via `sh` so the pipe carries nothing;
+  # the two processes still start concurrently (required for the preCICE handshake).
+  # `exec` makes the partner's exit status propagate as the sh exit status.
+  # (preCICE socket-coupled tests target Unix.)
+  SET(_PARTNER_CFS_ARGS "${CFS_ARGS}")
+  STRING(REPLACE ";" " " _PARTNER_CFS_ARGS "${_PARTNER_CFS_ARGS}")
   EXECUTE_PROCESS(
-    COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${PARTNER_BASENAME}"
+    COMMAND sh -c "exec \"${CFS_BINARY}\" ${_PARTNER_CFS_ARGS} --noColor \"${PARTNER_BASENAME}\" > \"${PARTNER_BASENAME}.log\" 2>&1"
     COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${TEST_FILE_BASENAME}"
     WORKING_DIRECTORY "${_COUPLED_WD}"
     RESULTS_VARIABLE COUPLED_RETVALS
@@ -198,8 +208,8 @@ MACRO(RUN_COUPLED_CFS_SIMULATION)
   FOREACH(_rv ${COUPLED_RETVALS})
     IF(NOT _rv EQUAL 0)
       MESSAGE("ERROR: exit codes=${COUPLED_RETVALS} : ${COUPLED_ERROR}")
-      MESSAGE("COMMAND = ${CFS_BINARY} ${CFS_ARGS} --noColor ${PARTNER_BASENAME} | ${CFS_BINARY} ${CFS_ARGS} --noColor ${TEST_FILE_BASENAME}")
-      MESSAGE("WORKING_DIRECTORY = ${_COUPLED_WD}")
+      MESSAGE("COMMAND = ${CFS_BINARY} ${CFS_ARGS} --noColor ${PARTNER_BASENAME} (-> ${PARTNER_BASENAME}.log)  +  ${CFS_BINARY} ${CFS_ARGS} --noColor ${TEST_FILE_BASENAME}")
+      MESSAGE("WORKING_DIRECTORY = ${_COUPLED_WD} (partner output in ${PARTNER_BASENAME}.log)")
       IF(PROCEED_AFTER_SIMULATION_CRASH)
         MESSAGE(WARNING "coupled cfs+cfs run for test case '${TEST_NAME}' failed. Continuing anyways ...")
       ELSE()
