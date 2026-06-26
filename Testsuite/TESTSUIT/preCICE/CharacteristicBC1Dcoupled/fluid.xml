@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <!--
+    "Fluid" participant of the openCFS<->openCFS characteristic coupling test (replaces the
+    OpenFOAM inner domain with a second openCFS acoustic duct). Duct x in [0, Lf]. A 1-cycle
+    5 kHz burst is launched at S_in (x=0) and propagates +x to the coupling plane S_couple
+    (x=Lf), where the characteristicCouplingBC exchanges the invariants with the Acoustic
+    participant: it writes its outgoing invariant w_out (acouCharacteristic ->
+    AcousticCharacteristicFromFluid) and reads the Acoustic side's w_out as its incoming w_in
+    (AcousticCharacteristicFromAcou -> acouCharacteristicCoupling). This is the coupling
+    partner; its result is not compared (only the Acoustic participant has a .h5ref).
+  -->
+
+  <fileFormats>
+    <input>
+      <gmsh fileName="channel_fluid.msh"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+
+    <preciceCoupling>
+      <participantName name="Fluid"/>
+      <participantMeshList>
+        <participantMeshName name="Fluid-Interface" region="S_couple"/>
+      </participantMeshList>
+      <precice_configFile file="precice-config.xml"/>
+      <sequenceStep>1</sequenceStep>
+    </preciceCoupling>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="S_in"/>
+      <surfRegion name="S_couple"/>
+      <surfRegion name="S_side"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>40</numSteps>
+        <deltaT>2.0e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="V"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <!-- Source: Hann-windowed 1-cycle 5 kHz burst (smooth onset/offset), duration 2e-4 s. -->
+          <normalVelocity name="S_in"
+                          value="(t lt 2e-4) ? (0.5*(1-cos(2*pi*t/2e-4)))*sin(2*pi*5000*t) : 0"/>
+
+          <!-- Coupling plane: characteristicCouplingBC reads w_in (acouCharacteristicCoupling)
+               from the Acoustic participant; the adapter writes w_out (acouCharacteristic). -->
+          <characteristicCouplingBC name="S_couple" volumeRegion="V" sign="1.0">
+            <grid>
+              <defaultGrid quantity="acouCharacteristicCoupling"
+                           dependtype="GENERAL" definedOn="element"/>
+            </grid>
+          </characteristicCouplingBC>
+          <!-- S_side: no BC = sound-hard wall -> keeps the wave 1D. -->
+        </bcsAndLoads>
+
+        <storeResults>
+          <!-- outgoing invariant w_out written to the Acoustic participant via preCICE -->
+          <surfElemResult type="acouCharacteristic">
+            <surfRegionList><surfRegion name="S_couple"/></surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <lis id="default">
+            <precond><jacobi/></precond>
+            <solver><CG/></solver>
+            <maxIter>10000</maxIter>
+            <tolerance>1.0E-10</tolerance>
+            <logging>false</logging>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

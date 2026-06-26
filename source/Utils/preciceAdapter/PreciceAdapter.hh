@@ -123,9 +123,15 @@ namespace CoupledField
 
 
         /**
-         * Convert the result name specified in precice's config to openCFS result name
+         * Convert the result name specified in precice's config to openCFS result name.
+         * @param isWrite true for write-data, false for read-data. Needed for the
+         *        characteristic (impedance-matched) coupling, where the openCFS quantity
+         *        is role-dependent (write -> outgoing invariant acouCharacteristic,
+         *        read -> incoming invariant acouCharacteristicCoupling) so two openCFS
+         *        participants can couple symmetrically. For all other data names the
+         *        mapping is the same for read and write and isWrite is ignored.
          */
-        std::tuple<std::string, SolutionType> convertResultNamesToCFS(const std::string& precicename);
+        std::tuple<std::string, SolutionType> convertResultNamesToCFS(const std::string& precicename, bool isWrite);
         // --- End of helper functions ---
 
         

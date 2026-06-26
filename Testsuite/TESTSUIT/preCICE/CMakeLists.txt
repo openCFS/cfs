@@ -3,3 +3,5 @@
 # Testsuite/CoupledTest.cmake.in. Only added when cfs is built with USE_PRECICE
 # (gated in the parent TESTSUIT/CMakeLists.txt).
 add_subdirectory(flapFSI2D)
+add_subdirectory(SmoothPrescribedFlap)
+add_subdirectory(CharacteristicBC1Dcoupled)

@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <!--
+    "Acoustic" participant (main, compared against the .h5ref) of the openCFS<->openCFS
+    characteristic (impedance-matched) acoustic coupling test. Far-field duct x in [Lf, Lf+La].
+    The "Fluid" participant launches a 1-cycle 5 kHz plane wave that crosses the coupling plane
+    S_couple (x=Lf) into this domain (acouPotential), propagates to S_far and is absorbed.
+
+    Coupling at S_couple (impedance-matched characteristic):
+      - reads  AcousticCharacteristicFromFluid -> acouCharacteristicCoupling (w_in),
+        consumed by the characteristicCouplingBC.
+      - writes acouCharacteristic (w_out = p' + rho0 c0 u_n') -> AcousticCharacteristicFromAcou,
+        which the Fluid participant reads as its incoming invariant.
+    A clean transmission (nonzero acouPressure propagating at c0 in this domain, small reflected
+    acouCharacteristic) demonstrates the impedance-matched coupling. The committed .h5ref locks it.
+  -->
+
+  <fileFormats>
+    <input>
+      <gmsh fileName="channel_acou.msh"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+
+    <preciceCoupling>
+      <participantName name="Acoustic"/>
+      <participantMeshList>
+        <!-- coupling surface; element centres are exchanged (acouCharacteristic is SURF_ELEM) -->
+        <participantMeshName name="Acoustic-Mesh" region="S_couple"/>
+      </participantMeshList>
+      <precice_configFile file="precice-config.xml"/>
+      <sequenceStep>1</sequenceStep>
+    </preciceCoupling>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="S_couple"/>
+      <surfRegion name="S_far"/>
+      <surfRegion name="S_side"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>40</numSteps>
+        <deltaT>2.0e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="V"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <!-- Incoming invariant w_in from the Fluid participant, fed through preCICE
+               (CoefFunctionGridElemDefaultPrecice) into the impedance-matched BC. -->
+          <characteristicCouplingBC name="S_couple" volumeRegion="V" sign="1.0">
+            <grid>
+              <defaultGrid quantity="acouCharacteristicCoupling"
+                           dependtype="GENERAL" definedOn="element"/>
+            </grid>
+          </characteristicCouplingBC>
+
+          <!-- Far end: first-order absorbing BC. -->
+          <absorbingBCs name="S_far" volumeRegion="V"/>
+          <!-- S_side: no BC = sound-hard wall -> keeps the wave 1D. -->
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPressure"><allRegions/></nodeResult>
+          <!-- exported outgoing invariant w_out (also written to the Fluid participant) -->
+          <surfElemResult type="acouCharacteristic">
+            <surfRegionList><surfRegion name="S_couple"/></surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <lis id="default">
+            <precond><jacobi/></precond>
+            <solver><CG/></solver>
+            <maxIter>10000</maxIter>
+            <tolerance>1.0E-10</tolerance>
+            <logging>false</logging>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

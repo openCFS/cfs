@@ -178,6 +178,38 @@ MACRO(RUN_COUPLED_SIMULATION)
 ENDMACRO(RUN_COUPLED_SIMULATION)
 
 #-------------------------------------------------------------------------------
+# Like RUN_COUPLED_SIMULATION, but the coupling partner is a SECOND openCFS
+# instance (cfs+cfs) instead of the mock_fluid binary. Used for openCFS<->openCFS
+# preCICE tests (e.g. the two-domain characteristic acoustic coupling). The partner
+# participant's problem name is PARTNER_BASENAME (<PARTNER_BASENAME>.xml); the main
+# participant (compared against the .h5ref) is TEST_FILE_BASENAME. Both run in the
+# same working directory and share the preCICE exchange directory.
+#-------------------------------------------------------------------------------
+MACRO(RUN_COUPLED_CFS_SIMULATION)
+  SET(_COUPLED_WD "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}")
+  # preCICE leaves an exchange directory behind; start clean
+  FILE(REMOVE_RECURSE "${_COUPLED_WD}/precice-run")
+  EXECUTE_PROCESS(
+    COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${PARTNER_BASENAME}"
+    COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${TEST_FILE_BASENAME}"
+    WORKING_DIRECTORY "${_COUPLED_WD}"
+    RESULTS_VARIABLE COUPLED_RETVALS
+    ERROR_VARIABLE COUPLED_ERROR)
+  FOREACH(_rv ${COUPLED_RETVALS})
+    IF(NOT _rv EQUAL 0)
+      MESSAGE("ERROR: exit codes=${COUPLED_RETVALS} : ${COUPLED_ERROR}")
+      MESSAGE("COMMAND = ${CFS_BINARY} ${CFS_ARGS} --noColor ${PARTNER_BASENAME} | ${CFS_BINARY} ${CFS_ARGS} --noColor ${TEST_FILE_BASENAME}")
+      MESSAGE("WORKING_DIRECTORY = ${_COUPLED_WD}")
+      IF(PROCEED_AFTER_SIMULATION_CRASH)
+        MESSAGE(WARNING "coupled cfs+cfs run for test case '${TEST_NAME}' failed. Continuing anyways ...")
+      ELSE()
+        MESSAGE(FATAL_ERROR "coupled cfs+cfs run for test case '${TEST_NAME}' failed.")
+      ENDIF()
+    ENDIF()
+  ENDFOREACH()
+ENDMACRO(RUN_COUPLED_CFS_SIMULATION)
+
+#-------------------------------------------------------------------------------
 # Run cfstool in specified mode.
 #-------------------------------------------------------------------------------
 MACRO(DIFF_TEST_RESULTS_CFSTOOL EPSILON)

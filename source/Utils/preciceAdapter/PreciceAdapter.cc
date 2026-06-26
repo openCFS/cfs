@@ -230,7 +230,23 @@ namespace CoupledField
     }
 
 
-    std::tuple<std::string, SolutionType> PreciceAdapter::convertResultNamesToCFS(const std::string& precicename) {
+    std::tuple<std::string, SolutionType> PreciceAdapter::convertResultNamesToCFS(const std::string& precicename, bool isWrite) {
+        // Characteristic (impedance-matched) coupling: the openCFS quantity is determined by
+        // ROLE, not by the (owner-tagged) data name. Every openCFS participant writes its own
+        // outgoing invariant w_out = p' + rho0 c0 u_n' (acouCharacteristic, a post-processing
+        // SURF_ELEM result) and reads the partner's outgoing invariant as its incoming w_in
+        // (acouCharacteristicCoupling, consumed by the characteristicCouplingBC). Handling it by
+        // role lets two openCFS acoustic participants couple symmetrically, while the single
+        // openCFS<->OpenFOAM case is unchanged (Acoustic writes ...FromAcou -> acouCharacteristic,
+        // reads ...FromFluid -> acouCharacteristicCoupling). The data names stay owner-tagged in
+        // the preCICE config so the physical meaning never flips with wave direction.
+        if (precicename.rfind("AcousticCharacteristic", 0) == 0) {
+            if (isWrite)
+                return {"acouCharacteristic", SolutionType::ACOU_CHARACTERISTIC};
+            else
+                return {"acouCharacteristicCoupling", SolutionType::ACOU_CHARACTERISTIC_COUPLING};
+        }
+
         static const std::unordered_map<std::string, std::tuple<std::string, SolutionType>> conversionMap = {
             {"Temperature", {"heatTemperature", SolutionType::HEAT_TEMPERATURE}},
             {"Displacement", {"mechDisplacement", SolutionType::MECH_DISPLACEMENT}},
@@ -255,16 +271,9 @@ namespace CoupledField
             // work with perturbation quantities.
             {"PerturbationPressure", {"fluidMechPressure", SolutionType::FLUIDMECH_PRESSURE}},
             {"Velocity", {"fluidMechVelocity", SolutionType::FLUIDMECH_VELOCITY}},
-            {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}},
-            // Characteristic (impedance-matched) flow<->acoustics coupling. Two owner-tagged
-            // scalar fields (named by the participant that produces them, so the meaning never
-            // flips with wave direction). Both are surface-element quantities.
-            //   - openCFS writes its own outgoing invariant w_out = p' + rho0 c0 u_n'
-            //     (acouCharacteristic post-processing result).
-            //   - openCFS reads the fluid's outgoing invariant as its incoming w_in
-            //     (acouCharacteristicCoupling, consumed by the characteristicCouplingBC).
-            {"AcousticCharacteristicFromAcou",  {"acouCharacteristic",         SolutionType::ACOU_CHARACTERISTIC}},
-            {"AcousticCharacteristicFromFluid", {"acouCharacteristicCoupling", SolutionType::ACOU_CHARACTERISTIC_COUPLING}}
+            {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
+            // NOTE: the characteristic invariants (data names starting with
+            // "AcousticCharacteristic") are handled role-based above, not via this map.
         };
 
         auto it = conversionMap.find(precicename);
@@ -306,7 +315,7 @@ namespace CoupledField
         for (const auto &entry : activeParticipantConfig_.writeData) {
             ResultConfig config;
             config.precicename = entry.name;
-            auto [tempName, tempSolutionType] = convertResultNamesToCFS(config.precicename);
+            auto [tempName, tempSolutionType] = convertResultNamesToCFS(config.precicename, /*isWrite=*/true);
             config.cfsname = tempName;
             config.solutiontype = tempSolutionType;
             config.meshName = entry.mesh;
@@ -351,7 +360,7 @@ namespace CoupledField
         for (const auto &entry : activeParticipantConfig_.readData) {
             ResultConfig config;
             config.precicename = entry.name;
-            auto [tempName, tempSolutionType] = convertResultNamesToCFS(config.precicename);
+            auto [tempName, tempSolutionType] = convertResultNamesToCFS(config.precicename, /*isWrite=*/false);
             config.cfsname = tempName;
             config.solutiontype = tempSolutionType;
             config.meshName = entry.mesh;
@@ -435,10 +444,10 @@ namespace CoupledField
 
         // Determine mesh usage (node-based vs element-based) directly from active preCICE data definitions.
         std::set<std::string> usedMeshNames;
-        auto collectUsage = [&](const std::vector<DataEntry>& entries) {
+        auto collectUsage = [&](const std::vector<DataEntry>& entries, bool isWrite) {
             for (const auto& entry : entries) {
                 usedMeshNames.insert(entry.mesh);
-                auto mapped = convertResultNamesToCFS(entry.name);
+                auto mapped = convertResultNamesToCFS(entry.name, isWrite);
                 ResultType rt = mapDefinedOnToResultType(ResultInfo::MapSolTypeToDefinedOn(std::get<1>(mapped)));
                 CouplingMeshData& md = meshDataByName_[entry.mesh];
                 if (rt == ResultType::NODE) {
@@ -448,8 +457,8 @@ namespace CoupledField
                 }
             }
         };
-        collectUsage(activeParticipantConfig_.readData);
-        collectUsage(activeParticipantConfig_.writeData);
+        collectUsage(activeParticipantConfig_.readData, /*isWrite=*/false);
+        collectUsage(activeParticipantConfig_.writeData, /*isWrite=*/true);
 
         if (usedMeshNames.empty()) {
             EXCEPTION("PreciceAdapter: no read-data/write-data mesh usage found for participant '" << participantName_ << "'.");

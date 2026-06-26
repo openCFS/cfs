@@ -129,6 +129,8 @@ set(CFS_STANDARD_TEST "${CFS_BINARY_DIR}/testsuite/StandardTest.cmake")
 set(PYTHON_TEST "${CFS_BINARY_DIR}/testsuite/PythonTest.cmake")
 # driver for preCICE-coupled tests (mock partner + cfs), see TESTSUIT/preCICE
 set(CFS_COUPLED_TEST "${CFS_BINARY_DIR}/testsuite/CoupledTest.cmake")
+# driver for preCICE-coupled openCFS<->openCFS tests (cfs + cfs), see TESTSUIT/preCICE
+set(CFS_COUPLED_CFS_TEST "${CFS_BINARY_DIR}/testsuite/CoupledCfsTest.cmake")
 
 # Define path to info.xml compare script (for eigenvalue and other stuff)
 set(COMPARE_INFO_XML "${CMAKE_CURRENT_SOURCE_DIR}/compare_info_xml.py")
@@ -227,3 +229,4 @@ configure_file("PythonTest.cmake.in" "${PYTHON_TEST}" @ONLY)
 
 # Configure the preCICE coupled test driver.
 configure_file("CoupledTest.cmake.in" "${CFS_COUPLED_TEST}" @ONLY)
+configure_file("CoupledCfsTest.cmake.in" "${CFS_COUPLED_CFS_TEST}" @ONLY)

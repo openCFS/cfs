@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <!--
+    Test of the SmoothPDE "prescribed displacement" mode fed via preCICE.
+    A small preCICE "Dummy" partner (mock_fluid) writes a spatially-uniform, linearly-ramped
+    displacement field; openCFS reads it on the whole-volume NODE mesh of region "Solid" and the
+    SmoothPDE injects it directly into SMOOTH_DISPLACEMENT (no solve), stored as smoothDisplacement.
+
+    Data path:
+      preCICE "DisplacementVolume" ->(adapter) SMOOTH_DISPLACEMENT read buffer (nodal)
+      ->(prescribedDisplacement grid quantity="smoothDisplacement") SmoothPDE solution.
+
+    With nearest-neighbour mapping from the single Dummy vertex, every node receives the same
+    vector, so smoothDisplacement = u(t) = (1e-3, 5e-4, 0)*min(t/0.1, 1) everywhere.
+  -->
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="SmoothPrescribedFlap_mesh.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml"/>
+
+    <preciceCoupling>
+      <participantName name="Solid"/>
+      <participantMeshList>
+        <!-- whole-volume NODE mesh of the flap body -->
+        <participantMeshName name="Solid-Volume" region="Solid"/>
+      </participantMeshList>
+      <precice_configFile file="precice-config.xml"/>
+      <sequenceStep>1</sequenceStep>
+    </preciceCoupling>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="Solid" material="smoothMat"/>
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="order1"><isoOrder>1</isoOrder></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integ1">
+      <method>Gauss</method>
+      <order>3</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>20</numSteps>
+        <deltaT>1e-2</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <smooth subType="3d">
+        <regionList>
+          <region name="Solid" polyId="order1" integId="integ1"/>
+        </regionList>
+
+        <!-- Externally prescribed displacement, read from preCICE. The grid quantity names the
+             openCFS read result (smoothDisplacement = SMOOTH_DISPLACEMENT) the adapter fills. -->
+        <prescribedDisplacement>
+          <vector name="Solid">
+            <grid>
+              <defaultGrid quantity="smoothDisplacement" dependtype="GENERAL" definedOn="node"/>
+            </grid>
+          </vector>
+        </prescribedDisplacement>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <regionList><region name="Solid"/></regionList>
+          </nodeResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <lis id="default">
+            <precond><jacobi/></precond>
+            <solver><CG/></solver>
+            <maxIter>1000</maxIter>
+            <tolerance>1.0E-9</tolerance>
+            <logging>false</logging>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

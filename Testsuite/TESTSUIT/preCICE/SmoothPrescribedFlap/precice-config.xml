@@ -1,0 +1,48 @@
+<precice-configuration>
+  <!--
+    Standalone test of the openCFS SmoothPDE prescribed-displacement read path.
+      * Dummy : lightweight C++ mock partner (mock_fluid). Provides a single-vertex
+                mesh and writes a uniform, linearly-ramped DisplacementVolume.
+      * Solid : openCFS (SmoothPDE). Receives the value on its whole-volume NODE mesh
+                via nearest-neighbour mapping and injects it into SMOOTH_DISPLACEMENT
+                (no solve), exporting smoothDisplacement.
+    Serial-explicit (Dummy first) => one write per time window, fully deterministic,
+    so the result can be compared against a committed .h5ref.
+  -->
+
+  <log>
+    <sink filter="%Severity% > debug" enabled="false"/>
+  </log>
+
+  <data:vector name="DisplacementVolume"/>
+
+  <mesh name="Dummy-Mesh" dimensions="3">
+    <use-data name="DisplacementVolume"/>
+  </mesh>
+  <mesh name="Solid-Volume" dimensions="3">
+    <use-data name="DisplacementVolume"/>
+  </mesh>
+
+  <participant name="Dummy">
+    <provide-mesh name="Dummy-Mesh"/>
+    <write-data name="DisplacementVolume" mesh="Dummy-Mesh"/>
+  </participant>
+
+  <participant name="Solid">
+    <provide-mesh name="Solid-Volume"/>
+    <receive-mesh name="Dummy-Mesh" from="Dummy"/>
+    <read-data name="DisplacementVolume" mesh="Solid-Volume"/>
+    <mapping:nearest-neighbor direction="read" from="Dummy-Mesh" to="Solid-Volume"
+                              constraint="consistent"/>
+  </participant>
+
+  <m2n:sockets acceptor="Dummy" connector="Solid" exchange-directory="."/>
+
+  <coupling-scheme:serial-explicit>
+    <participants first="Dummy" second="Solid"/>
+    <max-time value="0.2"/>
+    <time-window-size value="1e-2"/>
+    <exchange data="DisplacementVolume" mesh="Dummy-Mesh" from="Dummy" to="Solid"/>
+  </coupling-scheme:serial-explicit>
+
+</precice-configuration>
