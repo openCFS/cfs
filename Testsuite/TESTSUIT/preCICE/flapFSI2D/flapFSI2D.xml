@@ -62,10 +62,11 @@
             <comp dof="x"/>
             <comp dof="y"/>
           </fix>
-          <!-- fluid traction read from preCICE applied on the top edge -->
+          <!-- fluid traction read from preCICE (dedicated coupling input mechNormalStressPrecice,
+               distinct from the PDE-computed mechNormalStress) applied on the top edge -->
           <forceDensity name="interface">
             <grid>
-              <defaultGrid quantity="mechNormalStress" dependtype="GENERAL" definedOn="element">
+              <defaultGrid quantity="mechNormalStressPrecice" dependtype="GENERAL" definedOn="element">
                 <globalFactor>1</globalFactor>
               </defaultGrid>
             </grid>
@@ -78,7 +79,15 @@
               <region name="beam"/>
             </regionList>
           </nodeResult>
+          <!-- the genuine PDE-computed surface normal stress (now unambiguous: the coupling
+               input lives in mechNormalStressPrecice) -->
           <surfElemResult type="mechNormalStress">
+            <surfRegionList>
+              <surfRegion name="interface" neighborRegion="beam"/>
+            </surfRegionList>
+          </surfElemResult>
+          <!-- the preCICE-read fluid traction itself, to lock the coupling input -->
+          <surfElemResult type="mechNormalStressPrecice">
             <surfRegionList>
               <surfRegion name="interface" neighborRegion="beam"/>
             </surfRegionList>

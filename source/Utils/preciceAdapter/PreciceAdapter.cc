@@ -258,7 +258,11 @@ namespace CoupledField
             // the distinct full name avoids clashing with the FSI "Displacement" exchange.
             {"DisplacementVolume", {"smoothDisplacement", SolutionType::SMOOTH_DISPLACEMENT}},
             {"Force", {"mechForce", SolutionType::MECH_FORCE}},
-            {"Stress", {"mechNormalStress", SolutionType::MECH_NORMAL_STRESS}},
+            // Read-only coupling input: the partner's surface traction is applied as a load via a
+            // grid CoefFunction. Mapped to the DEDICATED result mechNormalStressPrecice so it never
+            // aliases the mechanic PDE's own computed mechNormalStress post-processing result (which
+            // would make a stored mechNormalStress non-deterministic - two producers, one name).
+            {"Stress", {"mechNormalStressPrecice", SolutionType::MECH_NORMAL_STRESS_PRECICE}},
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
             {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},

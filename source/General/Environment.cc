@@ -100,6 +100,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
+    // Dedicated result for the preCICE-read surface traction (applied as a load via a grid
+    // CoefFunction). Kept separate from the PDE-computed MECH_NORMAL_STRESS so an externally
+    // imposed coupling input never aliases an internally computed post-processing result.
+    SolutionTypeEnum.Add(MECH_NORMAL_STRESS_PRECICE, "mechNormalStressPrecice");
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN, "mechDyadicStrain");
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
     SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
@@ -1251,6 +1255,7 @@ namespace CoupledField {
       case MECH_STRESS:
       case MECH_IRR_STRESS:
       case MECH_NORMAL_STRESS:
+      case MECH_NORMAL_STRESS_PRECICE:
       case MECH_THERMAL_STRESS:
       case MECH_PRINCIPAL_STRESS:
       case MECH_PRINCIPAL_STRESS_MIN:

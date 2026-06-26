@@ -540,6 +540,7 @@ namespace CoupledField {
       // ============================================
       case MECH_NORMAL_DISPLACEMENT:
       case MECH_NORMAL_STRESS:
+      case MECH_NORMAL_STRESS_PRECICE:
       case MECH_NORMAL_VELOCITY:
       case MECH_NORMAL_STRUCT_INTENSITY:
         return ResultInfo::SURF_ELEM;
