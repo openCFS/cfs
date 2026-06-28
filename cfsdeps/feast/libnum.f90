@@ -2996,11 +2996,10 @@ SUBROUTINE wdcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   !    ia(1:N)   = row_start
   !    ia(2:N+1) = row_end
   !----------------------------------------------------------------
-  call mkl_sparse_d_create_csr( csrA,                       &
+  stat = mkl_sparse_d_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wdcsrmm: mkl_sparse_d_create_csr failed, stat=',stat
      stop
@@ -3042,15 +3041,14 @@ SUBROUTINE wdcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   !----------------------------------------------------------------
   ! 4. Execute  B := alpha * op(A) * X  +  beta * B
   !----------------------------------------------------------------
-  call mkl_sparse_d_mm( operation,                        &
+  stat = mkl_sparse_d_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wdcsrmm: mkl_sparse_d_mm failed, stat=',stat
      stop
@@ -3059,7 +3057,7 @@ SUBROUTINE wdcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   !----------------------------------------------------------------
   ! 5. Destroy handle (does NOT free a/ia/ja, caller owns them)
   !----------------------------------------------------------------
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call dcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
@@ -3497,11 +3495,10 @@ SUBROUTINE wzcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   include 'feast_mkl_spblas.fi'
   integer :: ldx, ldb
 
-  call mkl_sparse_z_create_csr( csrA,                       &
+  stat = mkl_sparse_z_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wzcsrmm: mkl_sparse_z_create_csr failed, stat=',stat
      stop
@@ -3530,21 +3527,20 @@ SUBROUTINE wzcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
      ldx = M ; ldb = N
   end if
 
-  call mkl_sparse_z_mm( operation,                        &
+  stat = mkl_sparse_z_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wzcsrmm: mkl_sparse_z_mm failed, stat=',stat
      stop
   end if
 
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call zcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
@@ -3572,11 +3568,10 @@ SUBROUTINE wzhcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   include 'feast_mkl_spblas.fi'
   integer :: ldx, ldb
 
-  call mkl_sparse_z_create_csr( csrA,                       &
+  stat = mkl_sparse_z_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wzhcsrmm: mkl_sparse_z_create_csr failed, stat=',stat
      stop
@@ -3606,21 +3601,20 @@ SUBROUTINE wzhcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
      ldx = M ; ldb = N
   end if
 
-  call mkl_sparse_z_mm( operation,                        &
+  stat = mkl_sparse_z_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wzhcsrmm: mkl_sparse_z_mm failed, stat=',stat
      stop
   end if
 
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call zhcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
@@ -3648,11 +3642,10 @@ SUBROUTINE wscsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   include 'feast_mkl_spblas.fi'
   integer :: ldx, ldb
 
-  call mkl_sparse_s_create_csr( csrA,                       &
+  stat = mkl_sparse_s_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wscsrmm: mkl_sparse_s_create_csr failed, stat=',stat
      stop
@@ -3679,21 +3672,20 @@ SUBROUTINE wscsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
      ldx = M ; ldb = N
   end if
 
-  call mkl_sparse_s_mm( operation,                        &
+  stat = mkl_sparse_s_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wscsrmm: mkl_sparse_s_mm failed, stat=',stat
      stop
   end if
 
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call scsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
@@ -3721,11 +3713,10 @@ SUBROUTINE wccsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   include 'feast_mkl_spblas.fi'
   integer :: ldx, ldb
 
-  call mkl_sparse_c_create_csr( csrA,                       &
+  stat = mkl_sparse_c_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wccsrmm: mkl_sparse_c_create_csr failed, stat=',stat
      stop
@@ -3754,21 +3745,20 @@ SUBROUTINE wccsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
      ldx = M ; ldb = N
   end if
 
-  call mkl_sparse_c_mm( operation,                        &
+  stat = mkl_sparse_c_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wccsrmm: mkl_sparse_c_mm failed, stat=',stat
      stop
   end if
 
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call ccsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
@@ -3796,11 +3786,10 @@ SUBROUTINE wchcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
   include 'feast_mkl_spblas.fi'
   integer :: ldx, ldb
 
-  call mkl_sparse_c_create_csr( csrA,                       &
+  stat = mkl_sparse_c_create_csr( csrA,                       &
                                  FEAST_SPARSE_INDEX_BASE_ONE, &
                                  N, M,                        &
-                                 ia(1), ia(2), ja(1), a(1),  &
-                                 stat )
+                                 ia(1), ia(2), ja(1), a(1) )
   if (stat /= 0) then
      write(*,*) 'wchcsrmm: mkl_sparse_c_create_csr failed, stat=',stat
      stop
@@ -3830,21 +3819,20 @@ SUBROUTINE wchcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)
      ldx = M ; ldb = N
   end if
 
-  call mkl_sparse_c_mm( operation,                        &
+  stat = mkl_sparse_c_mm( operation,                        &
                          alpha,                            &
                          csrA,                             &
                          descrA,                           &
                          FEAST_SPARSE_LAYOUT_COLUMN_MAJOR, &
                          X(1), rhs, ldx,                   &
                          beta,                             &
-                         B(1), ldb,                        &
-                         stat )
+                         B(1), ldb )
   if (stat /= 0) then
      write(*,*) 'wchcsrmm: mkl_sparse_c_mm failed, stat=',stat
      stop
   end if
 
-  call mkl_sparse_destroy( csrA, stat )
+  stat = mkl_sparse_destroy( csrA )
 
 #else
   call chcsrmm(UPLO,TRANS,N,M,rhs,alpha,a,ia,ja,X,beta,B)

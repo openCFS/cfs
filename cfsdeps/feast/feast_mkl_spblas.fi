@@ -6,6 +6,134 @@
   integer(4) :: descrA(3)     ! matrix_descr     - type, mode, diag
   integer(4) :: stat, operation
 
+  ! The MKL Inspector-Executor routines are C functions returning sparse_status_t.
+  ! Two things must be right:
+  !  (1) Capture the return value: stat = mkl_sparse_...(...). Calling them as
+  !      subroutines with a trailing stat argument discards the return value and
+  !      leaves stat uninitialized, which on Windows/MSVC reads stack garbage and
+  !      spuriously reports failure (passes on Linux/older MKL only by luck).
+  !  (2) Resolve the symbol independent of the Fortran compiler's name mangling.
+  !      A bare `external` makes the compiler decorate the name (lowercase+trailing
+  !      underscore on Linux gfortran/ifx, uppercase on Windows) and only links by
+  !      luck if MKL exports a matching alias. Instead we give explicit
+  !      BIND(C, name='MKL_SPARSE_..._...') interfaces - the same canonical symbols
+  !      Intel's mkl_spblas.f90 module binds to - so resolution is identical on
+  !      Linux and Windows regardless of mangling convention.
+  ! The integer dummies below are ABI/layout compatible with MKL's derived types:
+  ! SPARSE_MATRIX_T (a C pointer) <-> integer(c_intptr_t) csrA, and MATRIX_DESCR
+  ! (3x C int) <-> integer(c_int) descrA(3). All arguments are passed by reference,
+  ! matching MKL's Fortran wrapper (rows/cols/ld* use default integer = MKL_INT).
+  interface
+     ! ---- mkl_sparse_?_create_csr ----
+     function mkl_sparse_d_create_csr(A,indexing,rows,cols,rows_start,rows_end,col_indx,values) &
+              bind(C, name='MKL_SPARSE_D_CREATE_CSR')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_double
+        integer(c_intptr_t), intent(inout) :: A
+        integer(c_int),      intent(in)    :: indexing
+        integer,             intent(in)    :: rows, cols
+        integer,             intent(in)    :: rows_start(*), rows_end(*), col_indx(*)
+        real(c_double),      intent(in)    :: values(*)
+        integer(c_int) :: mkl_sparse_d_create_csr
+     end function
+     function mkl_sparse_s_create_csr(A,indexing,rows,cols,rows_start,rows_end,col_indx,values) &
+              bind(C, name='MKL_SPARSE_S_CREATE_CSR')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_float
+        integer(c_intptr_t), intent(inout) :: A
+        integer(c_int),      intent(in)    :: indexing
+        integer,             intent(in)    :: rows, cols
+        integer,             intent(in)    :: rows_start(*), rows_end(*), col_indx(*)
+        real(c_float),       intent(in)    :: values(*)
+        integer(c_int) :: mkl_sparse_s_create_csr
+     end function
+     function mkl_sparse_z_create_csr(A,indexing,rows,cols,rows_start,rows_end,col_indx,values) &
+              bind(C, name='MKL_SPARSE_Z_CREATE_CSR')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_double_complex
+        integer(c_intptr_t),     intent(inout) :: A
+        integer(c_int),          intent(in)    :: indexing
+        integer,                 intent(in)    :: rows, cols
+        integer,                 intent(in)    :: rows_start(*), rows_end(*), col_indx(*)
+        complex(c_double_complex), intent(in)  :: values(*)
+        integer(c_int) :: mkl_sparse_z_create_csr
+     end function
+     function mkl_sparse_c_create_csr(A,indexing,rows,cols,rows_start,rows_end,col_indx,values) &
+              bind(C, name='MKL_SPARSE_C_CREATE_CSR')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_float_complex
+        integer(c_intptr_t),      intent(inout) :: A
+        integer(c_int),           intent(in)    :: indexing
+        integer,                  intent(in)    :: rows, cols
+        integer,                  intent(in)    :: rows_start(*), rows_end(*), col_indx(*)
+        complex(c_float_complex), intent(in)    :: values(*)
+        integer(c_int) :: mkl_sparse_c_create_csr
+     end function
+     ! ---- mkl_sparse_?_mm ----
+     function mkl_sparse_d_mm(operation,alpha,A,descr,layout,x,columns,ldx,beta,y,ldy) &
+              bind(C, name='MKL_SPARSE_D_MM')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_double
+        integer(c_int),      intent(in)    :: operation
+        real(c_double),      intent(in)    :: alpha
+        integer(c_intptr_t), intent(in)    :: A
+        integer(c_int),      intent(in)    :: descr(3)
+        integer(c_int),      intent(in)    :: layout
+        real(c_double),      intent(in)    :: x(*)
+        integer,             intent(in)    :: columns, ldx
+        real(c_double),      intent(in)    :: beta
+        real(c_double),      intent(inout) :: y(*)
+        integer,             intent(in)    :: ldy
+        integer(c_int) :: mkl_sparse_d_mm
+     end function
+     function mkl_sparse_s_mm(operation,alpha,A,descr,layout,x,columns,ldx,beta,y,ldy) &
+              bind(C, name='MKL_SPARSE_S_MM')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_float
+        integer(c_int),      intent(in)    :: operation
+        real(c_float),       intent(in)    :: alpha
+        integer(c_intptr_t), intent(in)    :: A
+        integer(c_int),      intent(in)    :: descr(3)
+        integer(c_int),      intent(in)    :: layout
+        real(c_float),       intent(in)    :: x(*)
+        integer,             intent(in)    :: columns, ldx
+        real(c_float),       intent(in)    :: beta
+        real(c_float),       intent(inout) :: y(*)
+        integer,             intent(in)    :: ldy
+        integer(c_int) :: mkl_sparse_s_mm
+     end function
+     function mkl_sparse_z_mm(operation,alpha,A,descr,layout,x,columns,ldx,beta,y,ldy) &
+              bind(C, name='MKL_SPARSE_Z_MM')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_double_complex
+        integer(c_int),      intent(in)    :: operation
+        complex(c_double_complex), intent(in) :: alpha
+        integer(c_intptr_t), intent(in)    :: A
+        integer(c_int),      intent(in)    :: descr(3)
+        integer(c_int),      intent(in)    :: layout
+        complex(c_double_complex), intent(in)    :: x(*)
+        integer,             intent(in)    :: columns, ldx
+        complex(c_double_complex), intent(in)    :: beta
+        complex(c_double_complex), intent(inout) :: y(*)
+        integer,             intent(in)    :: ldy
+        integer(c_int) :: mkl_sparse_z_mm
+     end function
+     function mkl_sparse_c_mm(operation,alpha,A,descr,layout,x,columns,ldx,beta,y,ldy) &
+              bind(C, name='MKL_SPARSE_C_MM')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t, c_float_complex
+        integer(c_int),      intent(in)    :: operation
+        complex(c_float_complex), intent(in) :: alpha
+        integer(c_intptr_t), intent(in)    :: A
+        integer(c_int),      intent(in)    :: descr(3)
+        integer(c_int),      intent(in)    :: layout
+        complex(c_float_complex), intent(in)    :: x(*)
+        integer,             intent(in)    :: columns, ldx
+        complex(c_float_complex), intent(in)    :: beta
+        complex(c_float_complex), intent(inout) :: y(*)
+        integer,             intent(in)    :: ldy
+        integer(c_int) :: mkl_sparse_c_mm
+     end function
+     ! ---- mkl_sparse_destroy ----
+     function mkl_sparse_destroy(A) bind(C, name='MKL_SPARSE_DESTROY')
+        use, intrinsic :: iso_c_binding, only: c_int, c_intptr_t
+        integer(c_intptr_t), intent(inout) :: A
+        integer(c_int) :: mkl_sparse_destroy
+     end function
+  end interface
+
   integer(4), parameter :: FEAST_SPARSE_INDEX_BASE_ONE           = 1
   integer(4), parameter :: FEAST_SPARSE_OPERATION_NON_TRANSPOSE  = 10
   integer(4), parameter :: FEAST_SPARSE_OPERATION_TRANSPOSE      = 11
