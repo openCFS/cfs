@@ -11,7 +11,7 @@ import numpy as np
 def evaluate(name: str | os.PathLike,
              fstart: int,
              fstop: int,
-             fnum: int) -> os.PathLike:
+             fnum: int) -> pathlib.Path:
     xml = cfs_utils.open_xml(f'{name}.xml')
     # if it does not specify multi frequency add it
     cfs_utils.replace(xml, '//cfs:costFunction/@multiple_excitation', "true")
@@ -118,14 +118,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = pathlib.Path(args.name)
 
+    cmd = ["cfs", "-t", str(args.t)]
+
     # parse density file
-    density_path = pathlib.Path(f"{path.parent}/{path.name}.density.xml")
+    density_path = None
     if args.ersatz is not None:
         density_path = pathlib.Path(args.ersatz)
-    print(f"Density path {density_path}")
+        print(f"Density path {density_path}")
+        cmd += ["-x", density_path.absolute()]
 
     # threshold density file
     if args.th is not None:
+        if density_path is None:
+            raise ValueError("No density file given.")
         new_density_path = pathlib.Path(f"{density_path.parent}/{path.name}_eval.density.xml")
         print(new_density_path)
         density.mod_density(density_path,
@@ -141,8 +146,8 @@ if __name__ == "__main__":
         # if not given create form optimization file
         param_path = evaluate(path.with_suffix(""), args.flower, args.fupper, args.fnum)
     print(f"Parameter path {param_path}")
+    cmd += ["-p", param_path.absolute(), f"{path.name}_eval"]
 
-    cmd = ["cfs", "-t", str(args.t), "-p", param_path.absolute(), "-x", density_path.absolute(), f"{path.name}_eval"]
     # parse mesh
     if args.mesh:
         mesh_path = pathlib.Path(args.mesh)
