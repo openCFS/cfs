@@ -8,23 +8,24 @@ import os
 import h5py
 import numpy as np
 
-def evaluate(name: str | os.PathLike,
+def evaluate(inpath: pathlib.PurePath,
+             outpath: pathlib.PurePath,
              fstart: int,
              fstop: int,
-             fnum: int) -> pathlib.Path:
-    xml = cfs_utils.open_xml(f'{name}.xml')
+             fnum: int) -> None:
+    xml = cfs_utils.open_xml(inpath)
     # if it does not specify multi frequency add it
-    cfs_utils.replace(xml, '//cfs:costFunction/@multiple_excitation', "true")
+    if fnum > 1:
+        cfs_utils.replace(xml, '//cfs:costFunction/@multiple_excitation', "true")
+    else:
+        cfs_utils.replace(xml, '//cfs:costFunction/@multiple_excitation', "false")
     cfs_utils.replace(xml, '//cfs:optimizer/@type', "evaluate")
     cfs_utils.replace(xml, '//cfs:commit/@mode', "each_forward")
     cfs_utils.replace(xml, '//cfs:numFreq', fnum)
     cfs_utils.replace(xml, '//cfs:startFreq', fstart)
     cfs_utils.replace(xml, '//cfs:stopFreq', fstop)
     cfs_utils.replace(xml, '//cfs:sampling', "linear")
-    # change to relative paths
-    relative_paths(xml)
-    xml.write(f"{name}_eval.xml")
-    return pathlib.Path(f"{name}_eval.xml")
+    xml.write(outpath)
 
 
 def enable_anim(cfs_file: str | os.PathLike,
@@ -80,17 +81,6 @@ def threshold(th=0.5, **kwargs):
     return rho_out, rho_out
 
 
-def relative_paths(xml):
-    mesh_path = cfs_utils.xpath(xml, "//cfs:mesh/@fileName")
-    # if path is given relative from home, there is probably a reason, else replace
-    if not mesh_path.startswith("~"):
-        cfs_utils.replace(xml, "//cfs:mesh/@fileName", f"../{mesh_path}")  
-    mat_path = cfs_utils.xpath(xml, "//cfs:materialData/@file")
-    # if path is given relative from home, there is probably a reason, else replace
-    if not mat_path.startswith("~"):
-        cfs_utils.replace(xml, "//cfs:materialData/@file", f"../{mat_path}")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="evaluate",
@@ -139,12 +129,19 @@ if __name__ == "__main__":
         density_path = new_density_path
         print(f"Updated density path after thresholding {density_path}")
 
-    # parse simulation input file
+    # copy/create eval simulation input file
+    param_path = path.with_name(f"{path.name}_eval").with_suffix(".xml")
     if args.param is not None:
-        param_path = pathlib.Path(args.param)
+        # copy and edit
+        in_path = pathlib.Path(args.param)
+        evaluate(in_path.with_suffix(".xml"),
+                 param_path,
+                 args.flower, args.fupper, args.fnum)
     else:
-        # if not given create form optimization file
-        param_path = evaluate(path.with_suffix(""), args.flower, args.fupper, args.fnum)
+        # if not given create form optimization file "{name}_eval.xml"
+        evaluate(path.with_suffix(".xml"),
+                 param_path,
+                 args.flower, args.fupper, args.fnum)
     print(f"Parameter path {param_path}")
     cmd += ["-p", param_path.absolute(), f"{path.name}_eval"]
 
@@ -155,6 +152,7 @@ if __name__ == "__main__":
 
     # run simulation
     print(f"Starting simulation run in cwd {path.parent}")
+    path.parent.mkdir(parents=True, exist_ok=True)  # create folder if it doesnt exist
     subprocess.run(cmd,
                    cwd=path.parent,
                    check=True)
