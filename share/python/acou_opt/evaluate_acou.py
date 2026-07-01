@@ -115,7 +115,6 @@ if __name__ == "__main__":
     if args.ersatz is not None:
         density_path = pathlib.Path(args.ersatz)
         print(f"Density path {density_path}")
-        cmd += ["-x", density_path.absolute()]
 
     # threshold density file
     if args.th is not None:
@@ -128,6 +127,9 @@ if __name__ == "__main__":
                             lambda **kwargs: threshold(th=args.th, **kwargs))
         density_path = new_density_path
         print(f"Updated density path after thresholding {density_path}")
+
+    if density_path is not None:
+        cmd += ["-x", density_path.absolute()]
 
     # copy/create eval simulation input file
     param_path = path.with_name(f"{path.name}_eval").with_suffix(".xml")
