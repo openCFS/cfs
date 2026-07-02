@@ -40,6 +40,7 @@ struct MeshSpec {
   bool write = false;                       // true: write data, false: read data
   std::vector<double> coords;               // flattened, size = nVerts * dim
   std::vector<precice::VertexID> ids;       // filled by setMeshVertices
+  std::vector<double> loadVector;           // optional per-mesh write value (empty -> use global)
 };
 
 struct Spec {
@@ -79,6 +80,11 @@ Spec parseSpec(const std::string &path) {
       std::string role;
       ls >> m.name >> role >> m.dataName;
       m.write = (role == "write");
+      // optional trailing numbers on the mesh line: a per-mesh write value, used instead of
+      // the global loadVector (so e.g. Stress [Pa] and DisplacementVolume [m] can have very
+      // different magnitudes when one participant writes several data fields).
+      double mv;
+      while (ls >> mv) m.loadVector.push_back(mv);
       // next line: vertex count, then that many coordinate lines
       int nv = 0;
       std::string countLine;
@@ -129,13 +135,14 @@ int main(int argc, char **argv) {
       return spec.rampTime > 0.0 ? std::min(t / spec.rampTime, 1.0) : 1.0;
     };
 
-    // helper: fill a "write" mesh's buffer with loadVector * factor
+    // helper: fill a "write" mesh's buffer with (per-mesh or global) loadVector * factor
     auto fillWrite = [&](const MeshSpec &m, double factor, std::vector<double> &buf) {
+      const std::vector<double> &lv = m.loadVector.empty() ? spec.loadVector : m.loadVector;
       const size_t nv = m.ids.size();
       buf.assign(nv * dim, 0.0);
       for (size_t i = 0; i < nv; ++i)
         for (int k = 0; k < dim; ++k)
-          buf[i * dim + k] = spec.loadVector[k] * factor;
+          buf[i * dim + k] = (k < static_cast<int>(lv.size()) ? lv[k] : 0.0) * factor;
     };
 
     std::vector<double> buf;
@@ -152,9 +159,15 @@ int main(int argc, char **argv) {
     participant.initialize();
 
     double t = 0.0;
+    double tCheckpoint = 0.0;
     while (participant.isCouplingOngoing()) {
+      // Implicit coupling: a time window may be re-iterated. The mock's only state is its
+      // local time t (all written data is an analytic function of t). Save it at the start
+      // of a window and restore it whenever preCICE asks us to re-iterate, so every iteration
+      // of the same window writes the same data. For serial/parallel-explicit schemes these
+      // checkpoint requests never fire and the logic reduces to advancing t once per window.
       if (participant.requiresWritingCheckpoint()) {
-        // serial-explicit: nothing to store; data is purely analytic
+        tCheckpoint = t;
       }
 
       const double dt = participant.getMaxTimeStepSize();
@@ -171,10 +184,13 @@ int main(int argc, char **argv) {
       }
 
       participant.advance(dt);
-      t += dt;
 
       if (participant.requiresReadingCheckpoint()) {
-        // serial-explicit: never requested
+        // window not converged -> re-iterate from the saved time
+        t = tCheckpoint;
+      } else {
+        // window converged -> advance to the next one
+        t += dt;
       }
     }
 

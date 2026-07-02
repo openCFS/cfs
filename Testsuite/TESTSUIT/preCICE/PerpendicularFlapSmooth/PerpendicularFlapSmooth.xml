@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <!--
+    "Solid" participant of the full PerpendicularFlapSmooth coupling (OpenFOAM replaced by the
+    mock_fluid partner). Two PDEs on one preCICE participant, iterative (parallel-implicit) coupling:
+      * mechanic FSI on region "Solid": reads the fluid traction on the wetted interface
+        (mechNormalStressPrecice, applied as a forceDensity) and writes its displacement.
+      * prescribed SmoothPDE on region "Fluid": reads the partner's whole-volume mesh deformation
+        (DisplacementVolume -> smoothDisplacement) and injects it without solving.
+    Deterministic: the mock writes analytic (time-only) data and restores its state on re-iteration.
+  -->
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PerpendicularFlapSmooth_mesh.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml"/>
+
+    <preciceCoupling>
+      <participantName name="Solid"/>
+      <participantMeshList>
+        <participantMeshName name="Solid-Nodes1" region="SolidSide_Interface"/>
+        <participantMeshName name="Solid-Faces1" region="SolidSide_Interface"/>
+        <!-- whole-volume NODE mesh of the fluid domain for the SmoothPDE deformation -->
+        <participantMeshName name="Solid-FluidVol" region="Fluid"/>
+      </participantMeshList>
+      <precice_configFile file="precice-config.xml"/>
+      <sequenceStep>1</sequenceStep>
+    </preciceCoupling>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="Solid" material="test"/>
+      <region name="Fluid" material="smoothMat"/>
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="order1"><isoOrder>1</isoOrder></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integ1">
+      <method>Gauss</method>
+      <order>3</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>1e-2</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="Solid" polyId="order1" integId="integ1"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="SolidFixed">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <!-- plane strain: no out-of-plane displacement -->
+          <fix name="frontAndBack_solid">
+            <comp dof="z"/>
+          </fix>
+          <!-- fluid traction read from preCICE (dedicated coupling input mechNormalStressPrecice) -->
+          <forceDensity name="SolidSide_Interface">
+            <grid>
+              <defaultGrid quantity="mechNormalStressPrecice" dependtype="GENERAL" definedOn="element">
+                <globalFactor>1</globalFactor>
+              </defaultGrid>
+            </grid>
+          </forceDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <regionList><region name="Solid"/></regionList>
+          </nodeResult>
+          <surfElemResult type="mechNormalStress">
+            <surfRegionList><surfRegion name="SolidSide_Interface" neighborRegion="Solid"/></surfRegionList>
+          </surfElemResult>
+          <surfElemResult type="mechNormalStressPrecice">
+            <surfRegionList><surfRegion name="SolidSide_Interface" neighborRegion="Solid"/></surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </mechanic>
+
+      <smooth subType="3d">
+        <regionList>
+          <region name="Fluid" polyId="order1" integId="integ1"/>
+        </regionList>
+        <prescribedDisplacement>
+          <vector name="Fluid">
+            <grid>
+              <defaultGrid quantity="smoothDisplacement" dependtype="GENERAL" definedOn="node"/>
+            </grid>
+          </vector>
+        </prescribedDisplacement>
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <regionList><region name="Fluid"/></regionList>
+          </nodeResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <!-- two independent PDEs (no shared DOFs); an empty couplingList is still required -->
+    <couplingList/>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <lis id="default">
+            <precond><jacobi/></precond>
+            <solver><CG/></solver>
+            <maxIter>10000</maxIter>
+            <tolerance>1.0E-10</tolerance>
+            <logging>false</logging>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

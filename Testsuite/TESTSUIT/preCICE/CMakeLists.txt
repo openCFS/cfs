@@ -5,3 +5,4 @@
 add_subdirectory(flapFSI2D)
 add_subdirectory(SmoothPrescribedFlap)
 add_subdirectory(CharacteristicBC1Dcoupled)
+add_subdirectory(PerpendicularFlapSmooth)
