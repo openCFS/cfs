@@ -57,6 +57,16 @@ if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   include("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
 endif()
 
+# preCICE is built from source via cfsdeps, UNLESS the developer points to an
+# already-installed preCICE with -Dprecice_DIR=... (then the adapter falls back
+# to find_package). Building preCICE pulls in eigen + libxml2 as build deps.
+# Decided BEFORE zlib/boost/libxml2: those switch their build strategy
+# (shared / -fPIC) when preCICE is built - see their External_*.cmake.
+set(CFS_BUILD_PRECICE OFF)
+if(USE_PRECICE AND NOT precice_DIR)
+  set(CFS_BUILD_PRECICE ON)
+endif()
+
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
@@ -106,14 +116,6 @@ endif()
   
 if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
-endif()
-
-# preCICE is built from source via cfsdeps, UNLESS the developer points to an
-# already-installed preCICE with -Dprecice_DIR=... (then the adapter falls back
-# to find_package). Building preCICE pulls in eigen + libxml2 as build deps.
-set(CFS_BUILD_PRECICE OFF)
-if(USE_PRECICE AND NOT precice_DIR)
-  set(CFS_BUILD_PRECICE ON)
 endif()
 
 # Optional MPI / PETSc for preCICE (ccmake-visible cache options USE_PRECICE_MPI /

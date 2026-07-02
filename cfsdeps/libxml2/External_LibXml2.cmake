@@ -21,6 +21,14 @@ add_standard_mirrors_or_set_local()
  # we'll disable fortran for ipopt as it is not needed
 use_c_and_fortran(ON OFF)
 
+# preCICE embeds libxml2 into its shared libprecice.so, so it needs a -fPIC build.
+# The lib stays static (a plain C archive embeds cleanly, nothing extra to ship);
+# only the configure flags below switch. DEPS_ID gives the -fPIC variant its own
+# precompiled cache name so a cached non-PIC zip is not reused.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(DEPS_ID "pic")
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
@@ -33,7 +41,15 @@ set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 set_configure_default()
-set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --disable-shared --without-ftp --without-html --without-http --without-icu --without-iconv --without-python --without-modules --without-lzma)    
+set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --disable-shared --without-ftp --without-html --without-http --without-icu --without-iconv --without-python --without-modules --without-lzma)
+
+# --with-pic: see DEPS_ID above. --without-zlib: otherwise undefined gz* refs get
+# embedded into the shared libprecice.so (which has no DT_NEEDED libz), breaking
+# every consumer's link. preCICE only parses plain XML config files, and cfs
+# handles .xml.gz itself via boost::iostreams, not via libxml2.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --with-pic --without-zlib)
+endif()
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
@@ -73,62 +89,3 @@ endif()
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
-
-# ---------------------------------------------------------------------------
-# libxml2 for preCICE (only when preCICE is built from source: CFS_BUILD_PRECICE).
-# preCICE embeds libxml2 into its shared libprecice.so, so it needs a -fPIC build.
-# libxml2 is small and a plain C static archive embeds cleanly into libprecice.so
-# (it was not part of the boost link error), so we always build a static -fPIC
-# copy of the SAME version here rather than detecting a system one - this also
-# avoids find_package(LibXml2) clobbering the cfsdeps LIBXML2_LIBRARY that cfs
-# itself may use. The default build above is left untouched. Exposed as
-# LIBXML2_PIC_ROOT for cfsdeps/precice/External_PRECICE.cmake.
-# NOTE: not validated in this environment - verify on the build machine.
-# ---------------------------------------------------------------------------
-if(CFS_BUILD_PRECICE AND UNIX)
-  set(LIBXML2_PIC_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/libxml2-pic")
-  set(LIBXML2_PIC_SRC     "${LIBXML2_PIC_PREFIX}/src/libxml2-pic")
-  set(LIBXML2_PIC_INSTALL "${LIBXML2_PIC_PREFIX}/install")
-  set(LIBXML2_PIC_ROOT "${LIBXML2_PIC_INSTALL}" CACHE INTERNAL "libxml2 root hint for preCICE" FORCE)
-  # -nz tags the no-zlib variant: distinct cache name so an older libxml2-pic that
-  # was built WITH zlib (undefined gz* in libprecice.so) is not reused. The default
-  # libxml2 cache name (above) is unaffected.
-  set(LIBXML2_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/libxml2-pic-nz_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
-
-  if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${LIBXML2_PIC_ZIP}")
-    # reuse the cached -fPIC libxml2: only unpack it into the install prefix
-    ExternalProject_Add(libxml2-pic
-      PREFIX ${LIBXML2_PIC_PREFIX}
-      DOWNLOAD_COMMAND "" CONFIGURE_COMMAND "" BUILD_COMMAND ""
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${LIBXML2_PIC_INSTALL}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${LIBXML2_PIC_INSTALL} ${CMAKE_COMMAND} -E tar xzf ${LIBXML2_PIC_ZIP})
-  else()
-    # in-source autotools build (like the default), but with --with-pic
-    ExternalProject_Add(libxml2-pic
-      PREFIX ${LIBXML2_PIC_PREFIX}
-      SOURCE_DIR ${LIBXML2_PIC_SRC}
-      BINARY_DIR ${LIBXML2_PIC_SRC}
-      URL ${PACKAGE_MIRRORS}
-      URL_MD5 ${PACKAGE_MD5}
-      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
-      DOWNLOAD_NAME ${PACKAGE_FILE}
-      DOWNLOAD_NO_PROGRESS ON
-      # --without-zlib/--without-lzma: a plain static libxml2.a that does NOT pull in
-      # gz*/lzma symbols. Otherwise those undefined refs get embedded into the shared
-      # libprecice.so (which has no DT_NEEDED libz), breaking every consumer's link.
-      # preCICE only parses plain XML config files, so compression support is unused.
-      CONFIGURE_COMMAND ./configure --prefix=${LIBXML2_PIC_INSTALL} --disable-shared --with-pic
-                        --without-ftp --without-html --without-http --without-icu --without-iconv
-                        --without-python --without-modules --without-lzma --without-zlib
-      BUILD_COMMAND make
-      INSTALL_COMMAND make install
-      LOG_BUILD 1)
-    if(${CFS_DEPS_PRECOMPILED})
-      ExternalProject_Add_Step(libxml2-pic store-precompiled
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CFS_DEPS_CACHE_DIR}/precompiled
-        COMMAND ${CMAKE_COMMAND} -E chdir ${LIBXML2_PIC_INSTALL} ${CMAKE_COMMAND} -E tar czf ${LIBXML2_PIC_ZIP} .
-        DEPENDEES install)
-    endif()
-  endif()
-  set(CFSDEPS ${CFSDEPS} libxml2-pic)
-endif()

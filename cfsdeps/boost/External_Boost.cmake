@@ -51,15 +51,39 @@ endif()
  # we'll disable fortran for lis by not using saamg which is fast, but very sensitive to system condition
 use_c_and_fortran(ON OFF)
 
+# openCFS usually builds all dependencies static for a self-contained package.
+# preCICE (libprecice.so, always a shared lib) however links *shared* boost and
+# locates it via find_package(Boost CONFIG), which the static build cannot serve.
+# So when preCICE is built from source the strategy of THIS single boost build
+# switches to shared (implies -fPIC) with the boost CMake config files; cfs and
+# preCICE then use the same boost. The .so files are copied to <build>/lib and
+# shipped in the package like DLLs on Windows (redistributables.cmake installs
+# lib/, the cfs binary finds them via rpath $ORIGIN/../lib).
+# DEPS_ID gives the shared variant its own precompiled cache name; DEPS_LIB_TYPE
+# "dynamic" packs lib/*.so* and lib/cmake into the precompiled zip.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(CFS_BOOST_SHARED ON)
+  set(DEPS_ID "shared")
+  set(DEPS_LIB_TYPE "dynamic")
+  set(_BOOST_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+else()
+  set(CFS_BOOST_SHARED OFF)
+  set(_BOOST_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-# generate BOOST_LIBRARY=PACKAGE_LIBARAY with os specific list of static libs. 
-set_package_library_list_lib_prefix("boost_atomic;boost_iostreams;boost_program_options;boost_thread;boost_chrono;boost_log;boost_regex;boost_unit_test_framework;boost_date_time;boost_log_setup;boost_serialization;boost_filesystem") 
+# generate BOOST_LIBRARY=PACKAGE_LIBRARY with os specific list of libs (static or
+# shared, see CFS_BOOST_SHARED above). Always lib prefix, which is what b2 produces
+# even on Windows (like set_package_library_list_lib_prefix, but suffix-aware).
+foreach(_BOOST_LIB boost_atomic boost_iostreams boost_program_options boost_thread boost_chrono boost_log boost_regex boost_unit_test_framework boost_date_time boost_log_setup boost_serialization boost_filesystem)
+  list(APPEND PACKAGE_LIBRARY ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/lib${_BOOST_LIB}${_BOOST_LIB_SUFFIX})
+endforeach()
 
 # to not always need to have all libs from BOOST_LIBRARY - no need for cache variables
-set(BOOST_SERIALIZATION_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_serialization${CMAKE_STATIC_LIBRARY_SUFFIX})
-set(BOOST_THREAD_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_thread${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(BOOST_SERIALIZATION_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_serialization${_BOOST_LIB_SUFFIX})
+set(BOOST_THREAD_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_thread${_BOOST_LIB_SUFFIX})
 
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
@@ -102,8 +126,27 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 # if not, build newly and possibly pack the stuff
 else()
   # even with the list in boostrap a lot of unnecessary stuff would be build
-  # 1.81.0 set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --no-cmake-config) 
-  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-math --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave  --no-cmake-config)
+  # 1.81.0 set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --no-cmake-config)
+  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-math --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave)
+
+  if(CFS_BOOST_SHARED)
+    # keep the boost CMake config (preCICE finds boost via find_package(Boost CONFIG);
+    # FindBoost module mode is gone in cmake >= 3.30). libboost_iostreams.so links the
+    # shared cfsdeps libz.so (a non-PIC static libz.a cannot be embedded); the rpath
+    # lets each libboost_*.so find its neighbours (libz.so) in <build|package>/lib
+    # without LD_LIBRARY_PATH. \$ORIGIN: b2 runs the linker through sh, the backslash
+    # keeps the shell from expanding $ORIGIN (must reach the linker literally).
+    # Should the rpath not survive, the loader falls back to the system libz.so.1
+    # (ABI-stable and universally present), so this degrades gracefully.
+    if(APPLE)
+      set(_B2_LINK link=shared "linkflags=-Wl,-rpath,@loader_path")
+    else()
+      set(_B2_LINK link=shared "linkflags=-Wl,-rpath,\\$ORIGIN")
+    endif()
+  else()
+    # the static libs need no cmake config files (cfs links them via BOOST_LIBRARY)
+    set(_B2_LINK link=static --no-cmake-config)
+  endif()
 
   if(WIN32)
     # compile cfs with BOOST_ALL_NO_LIB  and make sure _WIN32_WINNT matches cfs 
@@ -141,7 +184,7 @@ else()
     CONFIGURE_COMMAND ${BOOTSTRAP} 
     # on Windows calling b2 might result in security issues (access violation)
     # --threading=multi seems to work even with USE_OPENMP=OFF on all systems?!
-    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=${_BUILD} debug-symbols=${_DS} install
+    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} ${_B2_LINK} address-model=64 threading=multi runtime-link=shared variant=${_BUILD} debug-symbols=${_DS} install
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
     # Wrap build step in script to log output, since it's super long and clutters the pipeline
@@ -172,85 +215,10 @@ endif()
 # boost 1.78 by default still uses std::unary_function which is removed in C++17
 add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
 
-# ---------------------------------------------------------------------------
-# Boost for preCICE (only when preCICE is built from source: CFS_BUILD_PRECICE).
-#
-# preCICE 3.x is always a SHARED library and links *shared* boost (libprecice.so
-# gets DT_NEEDED libboost_*.so); it also uses find_package(Boost CONFIG). The
-# default cfsdeps boost above is static and built with --no-cmake-config, so
-# preCICE cannot use it. The default build above is left completely untouched
-# (same version 1.78, used by cfs and everything else that pins it).
-#
-# Detect-or-build: if a suitable *shared* boost (with a CMake config) is already
-# available (system / build image), preCICE links that and we build nothing.
-# Otherwise build a shared copy of the SAME version here, into its own prefix,
-# and install the .so into the cfs build's lib/ so cfs finds it at runtime
-# (rpath $ORIGIN/../lib) and it ships in the package. iostreams uses the system
-# zlib (universally present) to avoid linking the non-PIC cfsdeps zlib.
-#
-# NOTE: not validated in this environment - verify on the build machine.
-# ---------------------------------------------------------------------------
-if(CFS_BUILD_PRECICE AND UNIX)
-  # 1) detect an already-available shared boost with the components preCICE needs
-  set(_PRECICE_BOOST_SAVE_STATIC "${Boost_USE_STATIC_LIBS}")
-  set(Boost_USE_STATIC_LIBS OFF)
-  find_package(Boost 1.74 CONFIG QUIET COMPONENTS log log_setup program_options thread)
-  set(Boost_USE_STATIC_LIBS "${_PRECICE_BOOST_SAVE_STATIC}")
-
-  if(Boost_FOUND)
-    # preCICE's own find_package(Boost CONFIG) will locate the same system boost.
-    message(STATUS "preCICE: found shared Boost ${Boost_VERSION} (${Boost_DIR}) - not building a boost copy")
-    set(PRECICE_BOOST_ROOT "" CACHE INTERNAL "boost root hint for preCICE (empty = use system)" FORCE)
-  else()
-    message(STATUS "preCICE: no suitable shared Boost found - building shared boost ${PACKAGE_VER} in cfsdeps")
-    set(BOOST_PIC_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/boost-pic")
-    set(BOOST_PIC_INSTALL "${BOOST_PIC_PREFIX}/install")
-    set(PRECICE_BOOST_ROOT "${BOOST_PIC_INSTALL}" CACHE INTERNAL "boost root hint for preCICE" FORCE)
-    set(BOOST_PIC_ZIP "${CFS_DEPS_CACHE_DIR}/precompiled/boost-pic_${PACKAGE_VER}${DEPS_VER}_${CFS_ARCH_STR}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}.tar.gz")
-
-    if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${BOOST_PIC_ZIP}")
-      # reuse the cached shared boost: unpack it into the install prefix
-      ExternalProject_Add(boost-pic
-        PREFIX ${BOOST_PIC_PREFIX}
-        DOWNLOAD_COMMAND "" CONFIGURE_COMMAND "" BUILD_COMMAND ""
-        INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${BOOST_PIC_INSTALL}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${BOOST_PIC_INSTALL} ${CMAKE_COMMAND} -E tar xzf ${BOOST_PIC_ZIP})
-    else()
-      # shared build WITH the boost CMake config (preCICE uses find_package CONFIG).
-      # No --user-config: b2 uses the toolset compiler from PATH and the system zlib
-      # for iostreams (the cfsdeps zlib is static/non-PIC and cannot go into a .so).
-      set(_PIC_WITHOUT --without-python --without-graph_parallel --without-mpi --without-container
-                       --without-context --without-math --without-contract --without-coroutine
-                       --without-graph --without-stacktrace --without-fiber --without-wave)
-      ExternalProject_Add(boost-pic
-        PREFIX ${BOOST_PIC_PREFIX}
-        BINARY_DIR ${BOOST_PIC_PREFIX}/src/boost-pic
-        URL ${PACKAGE_MIRRORS}
-        URL_MD5 ${PACKAGE_MD5}
-        DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
-        DOWNLOAD_NAME ${PACKAGE_FILE}
-        DOWNLOAD_NO_PROGRESS ON
-        CONFIGURE_COMMAND ${BOOTSTRAP}
-        BUILD_COMMAND ./b2 ${_PIC_WITHOUT} --layout=system --prefix=${BOOST_PIC_INSTALL} ${TOOLSET}
-                      define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
-                      cflags=-fPIC cxxflags=-fPIC link=shared address-model=64
-                      threading=multi variant=release install
-        INSTALL_COMMAND ""
-        LOG_BUILD 1)
-      if(${CFS_DEPS_PRECOMPILED})
-        ExternalProject_Add_Step(boost-pic store-precompiled
-          COMMAND ${CMAKE_COMMAND} -E make_directory ${CFS_DEPS_CACHE_DIR}/precompiled
-          COMMAND ${CMAKE_COMMAND} -E chdir ${BOOST_PIC_INSTALL} ${CMAKE_COMMAND} -E tar czf ${BOOST_PIC_ZIP} .
-          DEPENDEES install)
-      endif()
-    endif()
-
-    # make the shared boost .so available in the cfs build lib/ (runtime rpath + packaging)
-    ExternalProject_Add_Step(boost-pic copy-so-to-lib
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib
-      COMMAND sh -c "cp -a ${BOOST_PIC_INSTALL}/lib/libboost_*.so* ${CMAKE_BINARY_DIR}/lib/ 2>/dev/null || true"
-      DEPENDEES install)
-
-    set(CFSDEPS ${CFSDEPS} boost-pic)
-  endif()
+# Boost.Log requires this define when linking the shared lib (the other compiled
+# boost libs behave the same either way on gcc/clang). Deliberately NOT
+# BOOST_ALL_DYN_LINK: that would also switch Boost.Test conventions, but the
+# unittests use the header-only boost/test/included variant.
+if(CFS_BOOST_SHARED)
+  add_compile_definitions(BOOST_LOG_DYN_LINK)
 endif()

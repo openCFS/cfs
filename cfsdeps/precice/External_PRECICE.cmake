@@ -41,6 +41,8 @@ set_precompiled_pckg_file()
 # is ignored), so the artifact is libprecice.so, not a static .a. Set the library
 # variable manually to the shared lib (set_package_library_list would assume .a).
 set(PACKAGE_LIBRARY "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_SHARED_LIBRARY_PREFIX}precice${CMAKE_SHARED_LIBRARY_SUFFIX}")
+# pack lib/*.so* (versioned + symlink) and lib/cmake into the precompiled zip
+set(DEPS_LIB_TYPE "dynamic")
 # set_standard_variables() also sets DEPS_PREFIX / DEPS_SOURCE and the clean-precice target
 # (PRECICE_LIBRARY = the .so above, PRECICE_INCLUDE_DIR = <build>/include).
 set_standard_variables()
@@ -91,15 +93,22 @@ if(USE_PRECICE_PETSC AND USE_PETSC)
     -DPETSC_ARCH:STRING=)
 endif()
 
-# boost + libxml2 follow the detect-or-build model (see cfsdeps/boost + cfsdeps/libxml2):
-# if a system/shared copy was detected, *_ROOT is empty and preCICE finds it itself;
-# if we built a copy, point preCICE at its prefix (single-path, package-case *_ROOT,
-# honored via CMP0074). preCICE links *shared* boost, so no Boost_USE_STATIC_LIBS.
-if(PRECICE_BOOST_ROOT)
-  list(APPEND DEPS_ARGS -DBoost_ROOT:PATH=${PRECICE_BOOST_ROOT})
-endif()
-if(LIBXML2_PIC_ROOT)
-  list(APPEND DEPS_ARGS -DLibXml2_ROOT:PATH=${LIBXML2_PIC_ROOT})
+# boost + libxml2 are the single cfsdeps builds; their strategy switches when
+# preCICE is built (shared boost with CMake config / static -fPIC libxml2, see
+# their External_*.cmake). Both install into the cfs build dir, so point preCICE
+# there (package-case *_ROOT, honored via CMP0074). Boost is found via its CMake
+# config in <build>/lib/cmake, libxml2 via the FindLibXml2 module.
+list(APPEND DEPS_ARGS
+  -DBoost_ROOT:PATH=${CMAKE_BINARY_DIR}
+  -DLibXml2_ROOT:PATH=${CMAKE_BINARY_DIR})
+
+# libprecice.so must find the shipped libboost_*.so next to itself in lib/ on its
+# own: RUNPATH (the modern DT_RPATH replacement the linker emits for the cfs
+# binary) is not inherited by dependencies, so the cfs rpath does not help here.
+if(APPLE)
+  list(APPEND DEPS_ARGS -DCMAKE_INSTALL_RPATH:STRING=@loader_path)
+elseif(UNIX)
+  list(APPEND DEPS_ARGS -DCMAKE_INSTALL_RPATH:STRING=$ORIGIN)
 endif()
 
 # --- generic final block for cmake packages with no patch and no postinstall ---
@@ -134,16 +143,10 @@ else()
   endif()
 endif()
 
-# preCICE needs (header-only) eigen and, when we build them ourselves, the
-# boost / libxml2 copies first. Under the detect-or-build model those targets
-# only exist when a system copy was NOT found, so guard with TARGET checks.
-add_dependencies(precice eigen)
-if(TARGET boost-pic)
-  add_dependencies(precice boost-pic)
-endif()
-if(TARGET libxml2-pic)
-  add_dependencies(precice libxml2-pic)
-endif()
+# preCICE builds against the cfsdeps installs: (header-only) eigen, the shared
+# boost and the static -fPIC libxml2 (both always cfsdeps targets when
+# CFS_BUILD_PRECICE, see FindCFSDEPS.cmake include conditions).
+add_dependencies(precice eigen boost libxml2)
 # with PETSc mapping against the cfsdeps PETSc, build preCICE after petsc
 if(USE_PRECICE_PETSC AND TARGET petsc)
   add_dependencies(precice petsc)
