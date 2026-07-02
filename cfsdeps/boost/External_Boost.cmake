@@ -71,6 +71,49 @@ else()
   set(_BOOST_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
+# The cfsdeps *_LIBRARY cache variables and the ExternalProject stamps are
+# write-once per build directory. Toggling USE_PRECICE in an already configured
+# directory (also the normal ccmake flow: first configure with defaults, then
+# enable it) switches the boost strategy (static <-> shared), but the cached
+# BOOST_LIBRARY and possibly already built libs silently stay the other variant;
+# the build then dies late with "No rule to make target 'lib/libboost_atomic.a'".
+# Detect the switch and self-heal: drop the stale cache entries and discard the
+# affected dependency builds (stamps + libs) so they are rebuilt in the new
+# variant. zlib/libxml2/precice change with the switch too (PIC / shipped
+# libz.so) but keep identical lib paths, so boost is the detectable canary.
+# The distinct precompiled zips (DEPS_ID) of both variants stay in the cfsdeps
+# cache and are reused on a flip back.
+if(DEFINED BOOST_LIBRARY)
+  string(REPLACE "." "\\." _BOOST_SUFFIX_RE "${_BOOST_LIB_SUFFIX}")
+  list(GET BOOST_LIBRARY 0 _BOOST_CACHED_FIRST)
+  if(NOT _BOOST_CACHED_FIRST MATCHES "${_BOOST_SUFFIX_RE}$")
+    message(STATUS "boost strategy switched to ${DEPS_LIB_TYPE} (USE_PRECICE toggled): "
+      "boost/zlib/libxml2/precice will be rebuilt in the new variant")
+    unset(BOOST_LIBRARY CACHE)
+    unset(BOOST_INCLUDE_DIR CACHE)
+    # discard stamps + extracted sources (src) and the installs of the affected
+    # deps so their next build starts clean (stale objects with the wrong
+    # PIC-ness would otherwise be reused, e.g. by the libxml2 autotools build).
+    # NOT the whole cfsdeps/<name> dir: it holds configure-time generated
+    # scripts (zlib's were already written - it is included before boost).
+    # Sources re-extract from the tarballs in CFS_DEPS_CACHE_DIR, no re-download.
+    foreach(_STALE_DEP boost zlib libxml2 precice)
+      file(REMOVE_RECURSE
+        "${CMAKE_BINARY_DIR}/cfsdeps/${_STALE_DEP}/src"
+        "${CMAKE_BINARY_DIR}/cfsdeps/${_STALE_DEP}/install")
+    endforeach()
+    # remove stale libs of the other variant from <build>/lib (would otherwise
+    # linger and even get shipped by redistributables.cmake)
+    file(GLOB _BOOST_STALE_LIBS
+      "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_*"
+      "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libprecice*"
+      "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libz${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+    if(_BOOST_STALE_LIBS)
+      file(REMOVE ${_BOOST_STALE_LIBS})
+    endif()
+  endif()
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
