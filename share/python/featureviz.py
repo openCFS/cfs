@@ -4,6 +4,7 @@
 import os
 import sys
 import argparse
+import tempfile
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -300,7 +301,8 @@ if __name__ == '__main__':
   parser.add_argument('--grid', help="draw the mesh grid on the rendered density/reference cells", action='store_true')
   parser.add_argument('--reference', help="overlay a reference .density.xml beneath the main density, shown in blue (implies --density)")
 
-  parser.add_argument('--noshow', help="don't show the image", action='store_true')  
+  parser.add_argument('--noshow', help="don't show the image", action='store_true')
+  parser.add_argument('--detach', help="open the image in an external viewer and return immediately; the window persists after the app ends", action='store_true')
   parser.add_argument('--noaxis', help="dont plot axis and ticks", action='store_true')
 
   args = parser.parse_args()
@@ -371,6 +373,12 @@ if __name__ == '__main__':
     print("write '" + args.save + "'")
     fig.savefig(args.save, bbox_inches='tight')
   if not args.noshow:
-    fig.show()
-    input("Press Enter to terminate.")
+    if args.detach:
+      # save to a temp file and hand it to the OS viewer (like show_density.py); the window persists after we exit
+      fd, tmp = tempfile.mkstemp(suffix='.png')
+      os.close(fd)
+      fig.savefig(tmp, bbox_inches='tight')
+      Image.open(tmp).show()
+    else:
+      plt.show()
 
