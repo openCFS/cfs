@@ -473,15 +473,16 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
     StdVector<FeatureVariable>& P = s->points.First();
     StdVector<FeatureVariable>& Q = s->points.Last();
 
-    // assume nothing fixed
-    if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
+    // fixed nodes are constants: LocalCondition drops them from the sparsity pattern and Hessian
+    // (EffectiveOptIndex() == -1). Without any free node the length is constant -> no constraint.
+    if(f->GetType() == Function::DISTANCE)
     {
-      if (f->GetType() == Function::DISTANCE)
-        throw Exception("distance constraints currently only for non-fixed nodes");
-      // else: Bending
-      if (FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && (!s->IsExtended()))
-        continue; // won't add empty constraint if all points are fixed -> next noodle
+      if(FeatureVariable::CountRealVariables(P) + FeatureVariable::CountRealVariables(Q) == 0)
+        continue; // next noodle
     }
+    else // Bending. Note IsFixed() is true for any fixed component
+      if(FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && !s->IsExtended())
+        continue; // won't add empty constraint if all points are fixed -> next noodle
 
     // px is element, then py, then qx then qy
     nodes.Push_back(&P[1]);

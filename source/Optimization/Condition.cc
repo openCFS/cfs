@@ -924,6 +924,14 @@ const Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext() co
 }
 
 
+/** fixed (or mapped) feature variables are not part of the optimization space and drop out of
+ * sparsity patterns: -1, otherwise the opt index (e.g. a 'distance' node on a partially fixed pill) */
+static int OptIndexIfVariable(const BaseDesignElement* bde)
+{
+  const FeatureVariable* fv = dynamic_cast<const FeatureVariable*>(bde);
+  return fv != nullptr ? fv->EffectiveOptIndex() : (int) bde->GetOptIndex();
+}
+
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
   if(IsAdjointBased())
@@ -936,9 +944,14 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
   if(this->isFiltered())
     return ((Condition*) this)->GetSparsityPattern().GetSize();
   else {
-    // some local constraints have non-uniform neighbor size, e.g. curvature in shape mapping
+    // some local constraints have non-uniform neighbor size, e.g. curvature in shape mapping.
+    // the element itself is not a neighbor of itself, therefore i starts at -1
     const Function::Local::Identifier& id = GetCurrentVirtualContext();
-    return id.neighbor.GetSize() +1; // the element itself is not a neighbor of itself, therefore +1
+    unsigned int nnz = 0;
+    for(int i = -1, nn = id.neighbor.GetSize(); i < nn; i++)
+      if(OptIndexIfVariable(id.GetElement(i)) >= 0)
+        nnz++;
+    return nnz;
   }
 }
 
@@ -961,7 +974,9 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     BaseDesignElement* bde = id.GetElement(i);
     assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = bde->GetOptIndex();
+    int other_idx = OptIndexIfVariable(bde);
+    if(other_idx < 0)
+      continue; // fixed feature variables are constants
     indices.push_back(other_idx);
 
     if(this->isFiltered())
@@ -1057,13 +1072,19 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
   case DISTANCE:
   {
     // c = ||Q-P|| over the four node coordinates [px py qx qy] (neighbor order -1,0,1,2, see
-    // CalcDistance); the full 4x4 (row, col) opt-index pairs, profile p is absent. CalcHessian fills
-    // the matching 16 values.
-    const int o[4] = { (int) id.GetElement(-1)->GetOptIndex(), (int) id.GetElement(0)->GetOptIndex(),
-                       (int) id.GetElement(1)->GetOptIndex(),  (int) id.GetElement(2)->GetOptIndex() };
-    hess_sparsity_.Resize(16, 2);
-    for(int i = 0, k = 0; i < 4; i++)
-      for(int j = 0; j < 4; j++, k++)
+    // CalcDistance); fixed nodes are constants and drop out, the (row, col) opt-index pairs of the
+    // free nodes remain, profile p is absent. CalcHessian fills the matching values.
+    int o[4];
+    int nf = 0;
+    for(int i = -1; i <= 2; i++)
+    {
+      int oi = OptIndexIfVariable(id.GetElement(i));
+      if(oi >= 0)
+        o[nf++] = oi;
+    }
+    hess_sparsity_.Resize(nf * nf, 2);
+    for(int i = 0, k = 0; i < nf; i++)
+      for(int j = 0; j < nf; j++, k++)
       {
         hess_sparsity_(k, 0) = o[i];
         hess_sparsity_(k, 1) = o[j];
@@ -1147,9 +1168,15 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
                             { b,  c, -b, -c},
                             {-a, -b,  a,  b},
                             {-b, -c,  b,  c}};
-    for(int i = 0, k = 0; i < 4; i++)
-      for(int j = 0; j < 4; j++, k++)
-        out[k] = factor * H[i][j];
+    // fixed nodes drop out, matching GetHessianSparsityPattern()
+    int pos[4];
+    int nf = 0;
+    for(int i = -1; i <= 2; i++)
+      if(OptIndexIfVariable(id.GetElement(i)) >= 0)
+        pos[nf++] = i + 1;
+    for(int i = 0, k = 0; i < nf; i++)
+      for(int j = 0; j < nf; j++, k++)
+        out[k] = factor * H[pos[i]][pos[j]];
     break;
   }
   default:

@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="40" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="42" infoRejectCounter="0">
   <summary>
-    <timer id="0" wall-clock="0.3275s" wall="0.327505" cpu="0.321564" calls="1"/>
+    <timer id="0" wall-clock="0.4758s" wall="0.475809" cpu="0.367152" calls="1"/>
     <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
     <memory final="133"/>
   </summary>
   <header id="">
-    <environment started="03-Jul-26 19:28:31" host="MacBook-Pro"/>
+    <environment started="03-Jul-26 23:25:00" host="MacBook-Pro"/>
     <python version="3.14.3 free-threading build (main, Feb  3 2026, 15:32:20) [Clang 17.0.0 (clang-1700.6.3.2)]" file="/Users/fwein/code/cfs/share/python/tracking.py"/>
     <progOpts problem="hessian_alpha" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/FeatureMapping/hessian_alpha/hessian_alpha.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
       <cfs version="26.06" name="Kaum Konvergenz" build="RELEASE" git_commit="05b0c49c173119d3fff553bba65dea99e641150b" git_branch="fwein_geometry" compiled="Jul  3 2026" exe="cfs"/>
@@ -20,18 +20,18 @@
       </coordinateSystems>
       <grids>
         <grid gridId="default" dimensions="2" elements="100" nodes="121">
-          <timer id="5" wall-clock="0.0007211s" wall="0.000721124" cpu="0.000722" calls="2"/>
+          <timer id="5" wall-clock="0.001353s" wall="0.00135254" cpu="0.001182" calls="2"/>
           <readMesh>
-            <timer id="6" wall-clock="0.0002739s" wall="0.000273917" cpu="0.000272" calls="1" sub="true" parent="5"/>
+            <timer id="6" wall-clock="0.0004664s" wall="0.000466375" cpu="0.000464" calls="1" sub="true" parent="5"/>
           </readMesh>
           <finishInit>
-            <timer id="7" wall-clock="8.346e-05s" wall="8.3459e-05" cpu="8.3e-05" calls="1" sub="true" parent="5"/>
+            <timer id="7" wall-clock="0.0001943s" wall="0.000194333" cpu="0.000195" calls="1" sub="true" parent="5"/>
           </finishInit>
           <userDefined>
             <timer id="8" wall-clock="5.84e-07s" wall="5.84e-07" cpu="0" calls="1" sub="true" parent="7"/>
           </userDefined>
           <mapFacesEdges>
-            <timer id="15" label="mapFacesEdges" wall-clock="3.658e-05s" wall="3.6583e-05" cpu="3.7e-05" calls="2" sub="true"/>
+            <timer id="15" label="mapFacesEdges" wall-clock="2.775e-05s" wall="2.775e-05" cpu="2.9e-05" calls="2" sub="true"/>
           </mapFacesEdges>
         </grid>
       </grids>
@@ -41,26 +41,26 @@
       <namedNodes>
         <nodes name="top" count="11"/>
         <nodes name="left" count="11"/>
-        <nodes name="right" count="11"/>
         <nodes name="bottom_left" count="1" coord="(0,0)"/>
         <nodes name="bottom_right" count="1" coord="(1,0)"/>
         <nodes name="top_left" count="1" coord="(0,1)"/>
         <nodes name="bottom" count="11"/>
+        <nodes name="right" count="11"/>
         <nodes name="top_right" count="1" coord="(1,1)"/>
       </namedNodes>
       <namedElements/>
       <globalMathParser dt="0" f="0" nx="10" ny="10" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer id="38" wall-clock="0.003845s" wall="0.00384467" cpu="0.003843" calls="68"/>
+      <timer id="38" wall-clock="0.004577s" wall="0.00457654" cpu="0.00457" calls="72"/>
     </results>
   </header>
   <output>
     <hdf5>
-      <timer id="2" wall-clock="0.0004075s" wall="0.0004075" cpu="0.000413" calls="1"/>
+      <timer id="2" wall-clock="0.0005153s" wall="0.000515292" cpu="0.000539" calls="1"/>
     </hdf5>
     <info>
-      <timer id="4" wall-clock="1.417e-06s" wall="1.417e-06" cpu="3e-06" calls="1"/>
+      <timer id="4" wall-clock="8.208e-06s" wall="8.208e-06" cpu="9e-06" calls="1"/>
       <calculation>
         <process/>
       </calculation>
@@ -69,7 +69,7 @@
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer id="16" wall-clock="0.006991s" wall="0.00699117" cpu="0.006998" calls="1"/>
+        <timer id="16" wall-clock="0.00765s" wall="0.00765008" cpu="0.007672" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -160,27 +160,29 @@
           <cg>
             <summary>
               <setup>
-                <timer id="28" label="setup_cg" wall-clock="1.883e-05s" wall="1.8832e-05" cpu="1.9e-05" calls="13"/>
+                <timer id="28" label="setup_cg" wall-clock="2.388e-05s" wall="2.3876e-05" cpu="2.3e-05" calls="15"/>
               </setup>
               <solve>
-                <timer id="29" label="solve_cg" wall-clock="0.0001979s" wall="0.000197916" cpu="0.0002" calls="13"/>
+                <timer id="29" label="solve_cg" wall-clock="0.0002726s" wall="0.000272585" cpu="0.000286" calls="15"/>
               </solve>
-              <statistics avgIterations="1" avgResReduction="1.0464"/>
+              <statistics avgIterations="1" avgResReduction="1.0368"/>
             </summary>
             <process>
               <solver numIter="1" finalNorm="0.65062" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.36329" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.37052" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.33135" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.35381" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.32034" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.34662" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.31687" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.34347" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.31412" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.3407" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.31161" solutionIsOkay="no"/>
-              <solver numIter="1" finalNorm="0.33846" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.35992" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.37126" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.45976" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.33193" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.31946" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.36539" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.30377" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.36215" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.30032" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.3604" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.29748" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.35791" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.29549" solutionIsOkay="no"/>
+              <solver numIter="1" finalNorm="0.35571" solutionIsOkay="no"/>
             </process>
           </cg>
         </solver>
@@ -188,7 +190,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer id="30" wall-clock="5.458e-06s" wall="5.458e-06" cpu="5e-06" calls="13"/>
+                <timer id="30" wall-clock="6.083e-06s" wall="6.083e-06" cpu="1e-05" calls="15"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer id="31" wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -201,28 +203,28 @@
         </process>
       </mechanic>
       <graph nnz="3472">
-        <timer id="24" wall-clock="0.000493s" wall="0.000493" cpu="0.000522" calls="1" sub="true" parent="16"/>
+        <timer id="24" wall-clock="0.0006039s" wall="0.000603917" cpu="0.000625" calls="1" sub="true" parent="16"/>
         <finalize>
-          <timer id="25" wall-clock="4.479e-05s" wall="4.4792e-05" cpu="6.5e-05" calls="1" sub="true" parent="24"/>
+          <timer id="25" wall-clock="3.654e-05s" wall="3.6542e-05" cpu="5e-05" calls="1" sub="true" parent="24"/>
         </finalize>
         <sort>
-          <timer id="26" wall-clock="2.254e-05s" wall="2.2542e-05" cpu="3.1e-05" calls="1" sub="true" parent="24"/>
+          <timer id="26" wall-clock="2.283e-05s" wall="2.2833e-05" cpu="3.1e-05" calls="1" sub="true" parent="24"/>
         </sort>
         <rows number="220" min="8" max="18" mean="15.782" estimated_row_size="100"/>
         <reorder type="Metis">
-          <timer id="27" wall-clock="0.0002358s" wall="0.000235833" cpu="0.000237" calls="1" sub="true" parent="24"/>
+          <timer id="27" wall-clock="0.0003174s" wall="0.000317375" cpu="0.000317" calls="1" sub="true" parent="24"/>
         </reorder>
       </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer id="20" wall-clock="0.0009743s" wall="0.000974251" cpu="0.001641" calls="26"/>
+          <timer id="20" wall-clock="0.001266s" wall="0.00126604" cpu="0.002166" calls="30"/>
           <matrices>
-            <timer id="21" wall-clock="0.0009045s" wall="0.000904543" cpu="0.001563" calls="13" sub="true" parent="20"/>
+            <timer id="21" wall-clock="0.001164s" wall="0.00116409" cpu="0.002059" calls="15" sub="true" parent="20"/>
           </matrices>
           <rhs>
-            <timer id="22" wall-clock="4.925e-05s" wall="4.9249e-05" cpu="5e-05" calls="13" sub="true" parent="20"/>
+            <timer id="22" wall-clock="7.858e-05s" wall="7.8583e-05" cpu="7.8e-05" calls="15" sub="true" parent="20"/>
           </rhs>
         </assemble>
       </summary>
@@ -240,17 +242,18 @@
         <constraint type="python" name="alpha_sum" linear="no" access="plain" bound_value="1.01" bound="upperBound" design="default">
           <python curvature="alpha_sum_curvature" eval="alpha_sum_eval" grad="alpha_sum_grad" name="alpha_sum" script="kernel"/>
         </constraint>
+        <constraint type="distance" name="distance_(node)" parameter="0" linear="no" access="plain" locality="function_specific" local_size="1" periodic="no" bound_value="0.05" bound="lowerBound" design="node"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer id="17" wall-clock="0.000457s" wall="0.000457042" cpu="0.000459" calls="8"/>
+          <timer id="17" wall-clock="0.0005571s" wall="0.000557125" cpu="0.000556" calls="8"/>
         </setup_design>
         <features>
           <mapping>
-            <timer id="18" label="features_map" wall-clock="0.001588s" wall="0.00158829" cpu="0.001588" calls="13" sub="true"/>
+            <timer id="18" label="features_map" wall-clock="0.002066s" wall="0.00206621" cpu="0.002059" calls="15" sub="true"/>
           </mapping>
           <gradient>
-            <timer id="19" label="features_grad" wall-clock="0.0003655s" wall="0.000365501" cpu="0.000356" calls="55" sub="true"/>
+            <timer id="19" label="features_grad" wall-clock="0.000375s" wall="0.000375039" cpu="0.000372" calls="52" sub="true"/>
           </gradient>
           <combine type="p-norm" param="3"/>
           <boundary type="quintic" transition="0.1" extension="0"/>
@@ -294,7 +297,7 @@
       <python>
         <summary>
           <python>
-            <timer id="33" wall-clock="0.1185s" wall="0.118495" cpu="0.118349" calls="118"/>
+            <timer id="33" wall-clock="0.1857s" wall="0.185711" cpu="0.139318" calls="119"/>
           </python>
         </summary>
         <python>
@@ -312,40 +315,41 @@
     </optimizer>
     <summary>
       <eval_objective>
-        <timer id="34" wall-clock="0.001645s" wall="0.00164517" cpu="0.001638" calls="98"/>
+        <timer id="34" wall-clock="0.002134s" wall="0.00213446" cpu="0.002129" calls="99"/>
       </eval_objective>
       <eval_constraints>
-        <timer id="35" wall-clock="6.417e-05s" wall="6.4168e-05" cpu="5.9e-05" calls="13"/>
+        <timer id="35" wall-clock="8.441e-05s" wall="8.4414e-05" cpu="8.3e-05" calls="14"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer id="36" wall-clock="0.0002911s" wall="0.000291123" cpu="0.000291" calls="26"/>
+        <timer id="36" wall-clock="0.000302s" wall="0.000302038" cpu="0.0003" calls="24"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer id="37" wall-clock="0.0002701s" wall="0.000270083" cpu="0.000268" calls="29"/>
+        <timer id="37" wall-clock="0.0003062s" wall="0.000306163" cpu="0.000305" calls="28"/>
       </eval_grad_constraints>
       <functions>
-        <track min="0.58807" max="3.2776" oscillations="0"/>
-        <alpha_sum min="0.98401" max="1.3" oscillations="2"/>
+        <track min="0.58701" max="3.2776" oscillations="0"/>
+        <alpha_sum min="0.98329" max="1.3" oscillations="4"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.29534" track="3.27759208610296" alpha_sum="1.3"/>
-      <iteration number="1" duration="0.0024095" track="1.6748803985414" alpha_sum="1.26737958672653"/>
-      <iteration number="2" duration="0.0020992" track="1.04954600332684" alpha_sum="1.01595410051003"/>
-      <iteration number="3" duration="0.0021229" track="1.04151823319448" alpha_sum="1.00539260667512"/>
-      <iteration number="4" duration="0.002035" track="0.868462548052425" alpha_sum="0.984466261804305"/>
-      <iteration number="5" duration="0.0020074" track="0.834864284533542" alpha_sum="0.984013222079329"/>
-      <iteration number="6" duration="0.001371" track="0.834864284533542" alpha_sum="0.984013222079329"/>
-      <iteration number="7" duration="0.0021236" track="0.671554025481232" alpha_sum="0.99654382436199"/>
-      <iteration number="8" duration="0.0022349" track="0.637223949035879" alpha_sum="0.999792706983302"/>
-      <iteration number="9" duration="0.0014548" track="0.637223949035879" alpha_sum="0.999792706983302"/>
-      <iteration number="10" duration="0.0022007" track="0.596095517425887" alpha_sum="1.00428980640089"/>
-      <iteration number="11" duration="0.0021324" track="0.593969920664561" alpha_sum="1.00428284455545"/>
-      <iteration number="12" duration="0.0014328" track="0.593969920664561" alpha_sum="1.00428284455545"/>
-      <iteration number="13" duration="0.0021528" track="0.588610498143873" alpha_sum="1.00470896522063"/>
-      <iteration number="14" duration="0.0021215" track="0.588070101946859" alpha_sum="1.00468501481022"/>
-      <iteration number="15" duration="0.0021385" track="0.588069767828184" alpha_sum="1.00468497586154"/>
-      <iteration number="16" duration="0.00091512" track="0.588069767828184" alpha_sum="1.00468497586154"/>
+      <iteration number="0" duration="0.43828" track="3.27759208610296" alpha_sum="1.3" min_abs_distance_node="0.9" infeas_count_distance_node="0"/>
+      <iteration number="1" duration="0.0026489" track="1.76778677831161" alpha_sum="1.26263582500905" min_abs_distance_node="0.89936" infeas_count_distance_node="0"/>
+      <iteration number="2" duration="0.002298" track="1.08628915077307" alpha_sum="1.0267708761417" min_abs_distance_node="0.93558" infeas_count_distance_node="0"/>
+      <iteration number="3" duration="0.0020463" track="1.08628915077307" alpha_sum="0.983287622805426" min_abs_distance_node="0.56183" infeas_count_distance_node="0"/>
+      <iteration number="4" duration="0.0024154" track="0.828974760305969" alpha_sum="1.0063371282725" min_abs_distance_node="0.89354" infeas_count_distance_node="0"/>
+      <iteration number="5" duration="0.001547" track="0.828974760305969" alpha_sum="1.0063371282725" min_abs_distance_node="0.89354" infeas_count_distance_node="0"/>
+      <iteration number="6" duration="0.0023515" track="0.67342677160602" alpha_sum="0.996139034032233" min_abs_distance_node="0.8906" infeas_count_distance_node="0"/>
+      <iteration number="7" duration="0.0026518" track="0.636781625693601" alpha_sum="0.999462092468797" min_abs_distance_node="0.87896" infeas_count_distance_node="0"/>
+      <iteration number="8" duration="0.0016595" track="0.636781625693601" alpha_sum="0.999462092468797" min_abs_distance_node="0.87896" infeas_count_distance_node="0"/>
+      <iteration number="9" duration="0.0023556" track="0.595219031109372" alpha_sum="1.00429087682729" min_abs_distance_node="0.90132" infeas_count_distance_node="0"/>
+      <iteration number="10" duration="0.00258" track="0.59356614217149" alpha_sum="1.00428141395832" min_abs_distance_node="0.9143" infeas_count_distance_node="0"/>
+      <iteration number="11" duration="0.0017738" track="0.59356614217149" alpha_sum="1.00428141395832" min_abs_distance_node="0.9143" infeas_count_distance_node="0"/>
+      <iteration number="12" duration="0.0023446" track="0.588455560309982" alpha_sum="1.00470828550862" min_abs_distance_node="0.93219" infeas_count_distance_node="0"/>
+      <iteration number="13" duration="0.0023189" track="0.588013825594317" alpha_sum="1.00468033651694" min_abs_distance_node="0.94252" infeas_count_distance_node="0"/>
+      <iteration number="14" duration="0.0015766" track="0.588013825594317" alpha_sum="1.00468033651694" min_abs_distance_node="0.94252" infeas_count_distance_node="0"/>
+      <iteration number="15" duration="0.0024071" track="0.587007857155686" alpha_sum="1.00436764817234" min_abs_distance_node="0.95561" infeas_count_distance_node="0"/>
+      <iteration number="16" duration="0.0021507" track="0.587007561326889" alpha_sum="1.00436761001648" min_abs_distance_node="0.95561" infeas_count_distance_node="0"/>
+      <iteration number="17" duration="0.0010173" track="0.587007561326889" alpha_sum="1.00436761001648" min_abs_distance_node="0.95561" infeas_count_distance_node="0"/>
     </process>
   </optimization>
 </cfsInfo>
