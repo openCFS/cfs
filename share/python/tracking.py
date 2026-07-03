@@ -65,9 +65,10 @@ def reward_curvature(opt):
 
 
 # The alpha sum J = sum_f alpha_f is the pruning objective (minimal feature material) for the
-# formulation min sum alpha s.t. tracking <= eps. It lives directly on the shape variables
-# (design="feature" in the xml): eval/grad work in the full feature variable space
-# [Px Py Qx Qy p alpha] per pill as by cfs.feature_mapping_get_parameters(). The objective is linear,
+# formulation min sum alpha s.t. tracking <= eps. It lives directly on the shape variables:
+# eval/grad work in the full feature variable space [Px Py Qx Qy p alpha] per pill as by
+# cfs.feature_mapping_get_parameters() - cfs recognizes the gradient space by its size and adds it
+# onto the shape variables without the density chain. The objective is linear,
 # so its exact Hessian is zero; the curvature (in density space) is zero as well - with it the cfs
 # shape Hessian machinery correctly returns an all-zero objective Hessian.
 NV_ALPHA = 6  # variables per pill when the geometry variable alpha is active
