@@ -63,7 +63,9 @@ use_c_and_fortran(ON OFF)
 # "dynamic" packs lib/*.so* and lib/cmake into the precompiled zip.
 if(CFS_BUILD_PRECICE AND UNIX)
   set(CFS_BOOST_SHARED ON)
-  set(DEPS_ID "shared")
+  # -a: bump the letter when only the shared build changed (the first shared
+  # builds had a broken empty DT_RUNPATH from an unsurvivable $ORIGIN linkflag)
+  set(DEPS_ID "shared-a")
   set(DEPS_LIB_TYPE "dynamic")
   set(_BOOST_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
@@ -174,17 +176,18 @@ else()
 
   if(CFS_BOOST_SHARED)
     # keep the boost CMake config (preCICE finds boost via find_package(Boost CONFIG);
-    # FindBoost module mode is gone in cmake >= 3.30). libboost_iostreams.so links the
-    # shared cfsdeps libz.so (a non-PIC static libz.a cannot be embedded); the rpath
-    # lets each libboost_*.so find its neighbours (libz.so) in <build|package>/lib
-    # without LD_LIBRARY_PATH. \$ORIGIN: b2 runs the linker through sh, the backslash
-    # keeps the shell from expanding $ORIGIN (must reach the linker literally).
-    # Should the rpath not survive, the loader falls back to the system libz.so.1
-    # (ABI-stable and universally present), so this degrades gracefully.
+    # FindBoost module mode is gone in cmake >= 3.30).
+    # Deliberately NO -rpath,$ORIGIN linkflags on Linux: a literal $ORIGIN does not
+    # survive b2's sh-executed link commands (it ends up as an EMPTY runpath entry,
+    # which means CWD-search and, worse, a present DT_RUNPATH disables DT_RPATH
+    # inheritance from the executable). The cfs executables carry a classic,
+    # inherited DT_RPATH instead (see --disable-new-dtags below), through which
+    # libboost_iostreams.so finds the shipped libz.so.
     if(APPLE)
+      # macOS has no rpath inheritance - give the dylibs their own loader path
       set(_B2_LINK link=shared "linkflags=-Wl,-rpath,@loader_path")
     else()
-      set(_B2_LINK link=shared "linkflags=-Wl,-rpath,\\$ORIGIN")
+      set(_B2_LINK link=shared)
     endif()
   else()
     # the static libs need no cmake config files (cfs links them via BOOST_LIBRARY)
@@ -264,4 +267,20 @@ add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE)
 # unittests use the header-only boost/test/included variant.
 if(CFS_BOOST_SHARED)
   add_compile_definitions(BOOST_LOG_DYN_LINK)
+
+  # With shared deps the executables must reliably load THEIR OWN libs from
+  # lib/ (libprecice.so, libboost_*.so, libz.so): emit classic DT_RPATH instead
+  # of DT_RUNPATH. DT_RPATH ranks BEFORE LD_LIBRARY_PATH and is inherited for
+  # the whole loaded tree, so
+  #  * a developer environment with LD_LIBRARY_PATH=<own precice install>
+  #    cannot hijack libprecice.so.3 with a foreign build (linked against a
+  #    different boost -> two boost versions in one process -> mixed-ABI heap
+  #    corruption, seen as malloc abort at exit), and
+  #  * transitive deps (libboost_iostreams.so -> libz.so.1) resolve from the
+  #    shipped lib/ although the boost libs carry no rpath of their own.
+  # Applies to build tree and installed package alike ($ORIGIN/../lib, see the
+  # CMAKE_BUILD_RPATH block in the top-level CMakeLists.txt).
+  if(NOT APPLE)
+    add_link_options("LINKER:--disable-new-dtags")
+  endif()
 endif()
