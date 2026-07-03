@@ -726,7 +726,8 @@
                             <xsd:enumeration value="iterations_limit" />
                             <xsd:enumeration value="timing_level" />
                             <xsd:enumeration value="verify_level" />
-                             <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="major_step_limit" />
                             <xsd:enumeration value="major_print_level" />
                             <xsd:enumeration value="minor_print_level" />
                             <xsd:enumeration value="print_frequency" />
