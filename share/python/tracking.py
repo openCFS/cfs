@@ -62,3 +62,36 @@ def track_curvature(opt):
 def reward_curvature(opt):
   # reward is linear in rho, so d^2 J_reward/drho_e^2 = 0
   return np.zeros(cfs.get_num_pseudo_density())
+
+
+# The alpha sum J = sum_f alpha_f is the pruning objective (minimal feature material) for the
+# formulation min sum alpha s.t. tracking <= eps. It lives directly on the shape variables
+# (design="feature" in the xml): eval/grad work in the full feature variable space
+# [Px Py Qx Qy p alpha] per pill as by cfs.feature_mapping_get_parameters(). The objective is linear,
+# so its exact Hessian is zero; the curvature (in density space) is zero as well - with it the cfs
+# shape Hessian machinery correctly returns an all-zero objective Hessian.
+NV_ALPHA = 6  # variables per pill when the geometry variable alpha is active
+
+def _alpha_indices():
+  n = cfs.feature_mapping_num_parameters()
+  assert n % NV_ALPHA == 0, 'alpha_sum expects %d variables per pill (with alpha)' % NV_ALPHA
+  return n, np.arange(NV_ALPHA - 1, n, NV_ALPHA)
+
+
+def alpha_sum_eval(opt):
+  n, idx = _alpha_indices()
+  z = np.zeros(n)
+  cfs.feature_mapping_get_parameters(z)
+  return float(np.sum(z[idx]))
+
+
+def alpha_sum_grad(opt):
+  n, idx = _alpha_indices()
+  g = np.zeros(n)
+  g[idx] = 1.0
+  return g
+
+
+def alpha_sum_curvature(opt):
+  # linear in the design, no density dependence at all
+  return np.zeros(cfs.get_num_pseudo_density())

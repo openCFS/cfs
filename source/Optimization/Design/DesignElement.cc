@@ -1211,7 +1211,8 @@ void DesignElement::SetEnums()
   type.Add(FEATURE_MAPPING_PY, "feature_var_Py");
   type.Add(FEATURE_MAPPING_QX, "feature_var_Qx");
   type.Add(FEATURE_MAPPING_QY, "feature_var_Qy");
-  type.Add(FEATURE_MAPPING_P,  "feature_var_P");        
+  type.Add(FEATURE_MAPPING_P,  "feature_var_P");
+  type.Add(FEATURE_MAPPING_ALPHA, "feature_var_alpha");
   type.Add(CP, "controlpoint");
   type.Add(ALL_FEATURES, "allFeatures");   // e.g. featureDistance -> min of all distances
   type.Add(FEATURE, "feature");            // 0-based index specified in "generic" as number

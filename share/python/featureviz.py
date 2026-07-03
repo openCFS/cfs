@@ -22,6 +22,7 @@ class Global:
     self.n = [10, 10, 1]       # [nx, ny, nz]
     self.transition = -1.0   # optional transition zone width, -1 means not set
     self.extension = 0.0     # optional outward enlargement of the transition zone (asymmetric Bezier)
+    self.alpha_q = 1.0       # penalization exponent q of the geometry variable alpha (density scales with alpha^q)
 
 glob = Global()
 
@@ -47,13 +48,15 @@ colors = ['tab:blue', 'tab:green', 'tab:red', 'c', 'm', 'y', 'tab:orange', 'tab:
 def matplotlib_color_coder(id):
   return colors[id % len(colors)]
     
-class Pill: 
+class Pill:
   # @param id starting from 0
   # @param base sum of all len(optvar()) of all previous shapes. Starts with 0
-  def __init__(self,id,base,P,Q,p):
+  # @param alpha optional geometry variable in [0,1] scaling the feature density as alpha^q * rho
+  def __init__(self,id,base,P,Q,p,alpha=1.0):
     self.id = id
     self.base = base
     self.color = matplotlib_color_coder(id)
+    self.alpha = alpha
     self.set(P,Q,p)
 
   def set(self, P,Q,p):
@@ -116,6 +119,8 @@ def read_xml(filename, density = False, set = None, quiet = False):
     glob.transition = float(pn[0].attrib['transition'])
     if 'extension' in pn[0].attrib:
       glob.extension = float(pn[0].attrib['extension'])
+    if 'alpha_q' in pn[0].attrib: # only written when the geometry variable alpha is used
+      glob.alpha_q = float(pn[0].attrib['alpha_q'])
 
   shapes = []
   sq = 'last()' if set == None else '@id="' + str(set) + '"'
@@ -152,9 +157,12 @@ def read_xml(filename, density = False, set = None, quiet = False):
     Qy = float(ut.xpath(data, base + '[@dof="y"][@tip="end"]/@design'))
     # width of noodle is 2*w -> don't confuse with P
     p  = float(ut.xpath(data, base + '[@type="profile"]/@design'))
+    # the optional geometry variable alpha (older files and runs without alpha lack it)
+    al = data.xpath(base + '[@type="alpha"]/@design')
+    alpha = float(al[0]) if len(al) == 1 else 1.0
 
     base = sum([len(s.optvar()) for s in shapes])
-    pill = Pill(id=idx, base=base, P=(Px,Py), Q=(Qx,Qy), p=p)
+    pill = Pill(id=idx, base=base, P=(Px,Py), Q=(Qx,Qy), p=p, alpha=alpha)
     shapes.append(pill)
     # print('# read pill', pill)
       
@@ -201,8 +209,8 @@ def plot_rho(fig, domain, rho, ref=None, grid=False):
           xs, ys = cell(x, y)
           ax.fill(xs, ys, color=(0, 0, 0), alpha=n, zorder=1, antialiased=False, **edge)
 
-def plot_outline(s, sub, p, fill, linestyle='-'):
-  # code based on Patrick Jung's pltviz.py 
+def plot_outline(s, sub, p, fill, linestyle='-', fill_alpha=0.2, line_alpha=1.0):
+  # code based on Patrick Jung's pltviz.py
 
   L = np.hypot(s.U[0], s.U[1])
   if L < 1e-12 or s.p <= 0:
@@ -230,11 +238,11 @@ def plot_outline(s, sub, p, fill, linestyle='-'):
   codes = [Path.MOVETO] + [Path.LINETO]*(len(pts)-2) + [Path.CLOSEPOLY]
   verts = np.vstack([pts[:-1], pts[0]])  # close
   path = Path(verts,codes)
-  if fill:  
-    sub.add_patch(PathPatch(path, facecolor=s.color, edgecolor="none", alpha=0.2, zorder=10))
+  if fill:
+    sub.add_patch(PathPatch(path, facecolor=s.color, edgecolor="none", alpha=fill_alpha, zorder=10))
 
   # contour
-  sub.add_patch(PathPatch(path, facecolor="none", edgecolor=s.color, linewidth=2, zorder=10, capstyle="round", joinstyle="round", linestyle=linestyle))
+  sub.add_patch(PathPatch(path, facecolor="none", edgecolor=s.color, linewidth=2, zorder=10, capstyle="round", joinstyle="round", linestyle=linestyle, alpha=line_alpha))
 
 def plot_data(res, shapes, detail, domain, ghost):
   # domain is typically [[0.0, 0.0], [1.0, 1.0]]
@@ -279,11 +287,14 @@ def plot_data(res, shapes, detail, domain, ghost):
         sub.add_line(plt.Line2D((CL[0],CR[0]),(CL[1],CR[1]), alpha=lineopacity, color= c))
         plt.annotate('$2p' + tail, CC, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
 
+    # the geometry variable alpha fades the pill out: the filling and the transition zone lines scale
+    # with the density factor alpha^q, the solid outline is only dimmed (stays clearly visible)
+    aq = s.alpha ** glob.alpha_q
     # outline of the pill
-    plot_outline(s, sub, s.p, fill=True)
+    plot_outline(s, sub, s.p, fill=True, fill_alpha=0.2*aq, line_alpha=0.3 + 0.7*s.alpha)
     if detail >= 2:
-      plot_outline(s, sub, s.p - .5*glob.transition, fill=False, linestyle=':')                  # solid side, dist = -transition/2
-      plot_outline(s, sub, s.p + .5*glob.transition + glob.extension, fill=False, linestyle=':') # void side, dist = +(transition/2 + extension)
+      plot_outline(s, sub, s.p - .5*glob.transition, fill=False, linestyle=':', line_alpha=aq)                  # solid side, dist = -transition/2
+      plot_outline(s, sub, s.p + .5*glob.transition + glob.extension, fill=False, linestyle=':', line_alpha=aq) # void side, dist = +(transition/2 + extension)
 
   return fig
 

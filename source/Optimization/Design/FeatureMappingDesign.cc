@@ -50,6 +50,16 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
   OpenGradPlot(pn); // check "gradplot" and create file
   hessexport_ = pn->Get("hessexport")->As<bool>();
 
+  // the optional geometry variable alpha (Norato's size variable) scales each feature density as alpha^q * rho
+  if(pn->Has("alpha"))
+  {
+    has_alpha_ = true;
+    alpha_q_ = pn->Get("alpha")->Get("q")->As<double>();
+    num_var_by_feature = 6; // nodes, profile, alpha - needs to be set before SetupDesign()
+    if(anisotropic)
+      throw Exception("the geometry variable 'alpha' is not yet implemented for anisotropic feature mapping");
+  }
+
   // map
   SetupMapping();
 
@@ -552,7 +562,9 @@ FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateA
   ip->loc.Set(ref[0]+dx, ref[1]+dy); 
 
   item_ip->rho.Resize(nf);
-  item_ip->drho_ds_full.Resize(nf * num_var_by_feature); // 5 variables per feature
+  if(has_alpha_)
+    item_ip->rho_org.Resize(nf);
+  item_ip->drho_ds_full.Resize(nf * num_var_by_feature); // 5 variables per feature, 6 with alpha
   
   // LOG_DBG3(fm) << "SDCAI c=" << center.ToString() << " dx=" << dx << " dy=" << dy << " ext=" << item_ip->ToString();
   return ip;
@@ -574,8 +586,8 @@ void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
 {
   FeaturedDesign::SetupDesign(pn);
  
-  // the order is nodes, profile, [alpha|
-  for(Feature& pill : pills)
+  // the order is nodes, profile, [alpha]
+  for(Pill& pill : pills)
   {
     for(auto& p : pill.points) // P, [inner], Q
       for(auto& v : p)
@@ -583,8 +595,8 @@ void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
 
     AddVariable(&(pill.p));
 
-    // if(pill.HasAlpha())
-    //   AddVariable(&(pill.alpha));
+    if(pill.has_alpha)
+      AddVariable(&(pill.alpha));
   }
 
   // post process mapping
@@ -955,6 +967,21 @@ void FeatureMappingDesign::MapFeatureToDensity()
       // sort drho_drho_ds_vec in the full d_rho_ds vector
       for(unsigned int si = 0; si < num_var_by_feature; si++)
         ext->drho_ds_full[fi * num_var_by_feature + si] = drho_ds_vec[si];
+
+      // the geometry variable alpha scales the feature density as rho_hat = alpha^q * rho (Norato's size
+      // variable). We store rho_hat and its chain (alpha^q * drho/ds and drho_hat/dalpha = q*alpha^(q-1)*rho)
+      // so all consumers (combine, gradient, Jacobian) work on rho_hat. Note the alpha column lives on the
+      // whole feature footprint, not only on the transition zone.
+      if(has_alpha_)
+      {
+        double a = pills[fi].alpha.GetPlainDesignValue();
+        double aq = std::pow(a, alpha_q_);
+        ext->rho_org[fi] = ext->rho[fi]; // keep the unscaled rho for the alpha Hessian entries
+        ext->drho_ds_full[fi * num_var_by_feature + ALPHA_VAR] = alpha_q_ * std::pow(a, alpha_q_ - 1.0) * ext->rho[fi];
+        for(unsigned int si = 0; si < ALPHA_VAR; si++)
+          ext->drho_ds_full[fi * num_var_by_feature + si] *= aq;
+        ext->rho[fi] *= aq;
+      }
     }
     // combine for the element the rho of all features to the remaining element rho
     double rho = cmb_fnc->Eval(ext->rho);
@@ -1061,11 +1088,14 @@ void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<
     // for each feature
     for(unsigned int f = 0; f < pills.GetSize(); f++)
     {
-      // the rho_e of this feature 
-      double rho_e_f = ext->rho[f];
+      // skip when the whole d_rho/d_z row of this feature vanishes (fully solid/void element, gradient is
+      // zero) but stay if we have the special result. Without alpha this is equivalent to the former
+      // rho == 1 || rho == rhomin check; with alpha the interior elements stay alive via the alpha column.
+      bool zero_row = true;
+      for(unsigned int s = 0; s < num_var_by_feature && zero_row; s++)
+        zero_row = ext->drho_ds_full[f * num_var_by_feature + s] == 0.0;
 
-      // skip when we have constant feature rho_e (gradient is zero) but stay if we have the special result
-      if((rho_e_f == 1 || rho_e_f == rhomin) && dmrho_drho_res_idx[f] == -1)
+      if(zero_row && dmrho_drho_res_idx[f] == -1)
         continue;
 
       // derivative of rho_f aggregation of all features (1.0 single feature)
@@ -1075,7 +1105,7 @@ void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<
       {
         item.elemval->specialResult[dmrho_drho_res_idx[f]] = dmax_drho_f;
         LOG_DBG3(fm) << "IGH f=" << f << " dmax_drho_f=" << dmax_drho_f << " -> s_r[" << dmrho_drho_res_idx[f] << "]";
-        if(rho_e_f == 1 || rho_e_f == rhomin) // in that case drho_ds is zero and all results contain this
+        if(zero_row) // in that case drho_ds is zero and all results contain this
           continue;
       }
 
@@ -1109,8 +1139,8 @@ void FeatureMappingDesign::CalcShapeJacobian(Matrix<double>& D) const
   // columns). Chain rule per element e and feature f:
   //   D[e][f,s] = (d_mrho_e/d_rho_f) * (d_rho_f/d_s)
   //   - d_mrho_e/d_rho_f : aggregation sensitivity (cmb_fnc->Grad, couples overlapping features)
-  //   - d_rho_f/d_s      : geometric, precomputed in ItemIP::drho_ds_full
-  // Fully solid (rho==1) / void (rho==rhomin) elements are skipped -> d_rho_f/d_s = 0 there (D sparse).
+  //   - d_rho_f/d_s      : geometric, precomputed in ItemIP::drho_ds_full (with alpha incl. its column)
+  // Rows with a vanishing chain (fully solid/void without alpha) are skipped (D sparse).
   // D carries the element coupling, so the objective Hessian term is D^T diag(curv) D.
 
   unsigned int N_full = pills.GetSize() * num_var_by_feature;
@@ -1122,9 +1152,13 @@ void FeatureMappingDesign::CalcShapeJacobian(Matrix<double>& D) const
     const ItemIP* ext = dynamic_cast<const ItemIP*>(map[e].extension);
     for(unsigned int f = 0; f < pills.GetSize(); f++)
     {
-      double rho_e_f = ext->rho[f];
-      if(rho_e_f == 1 || rho_e_f == rhomin)
-        continue; // outside the transition zone d_rho_f/d_s is zero
+      // skip when the whole chain row vanishes (fully solid/void feature without alpha; with alpha the
+      // alpha column keeps the footprint alive), as in IsotropicGradientHelper()
+      bool zero_row = true;
+      for(unsigned int s = 0; s < num_var_by_feature && zero_row; s++)
+        zero_row = ext->drho_ds_full[f * num_var_by_feature + s] == 0.0;
+      if(zero_row)
+        continue;
 
       double dmrho_drho_f = cmb_fnc->Grad(ext->rho, f);
       for(unsigned int s = 0; s < num_var_by_feature; s++)
@@ -1148,9 +1182,22 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
   Vector<double> ddist_ds(nv);
   Matrix<double> hd; // 5x5 distance Hessian per integration point
   Matrix<double> rh(nv, nv); // d^2 rho_e^f/(d_s_i d_s_j), eqn 'rho_hess' in the tracking paper
+  Vector<double> rho_s(ALPHA_VAR); // unscaled d_rho_f/d_s for the mixed alpha-s Hessian entries
   StdVector<IntegrationPoint*> elem_ip;
   StdVector<unsigned int> active;
   active.Reserve(pills.GetSize());
+
+  // per-feature alpha factors: rho_hat = a^q rho, first and second derivative of a^q
+  Vector<double> aq(pills.GetSize(), 1.0), daq(pills.GetSize(), 0.0), ddaq(pills.GetSize(), 0.0);
+  if(has_alpha_)
+    for(unsigned int f = 0; f < pills.GetSize(); f++)
+    {
+      double a = pills[f].alpha.GetPlainDesignValue();
+      aq[f]   = std::pow(a, alpha_q_);
+      daq[f]  = alpha_q_ * std::pow(a, alpha_q_ - 1.0);
+      // q(q-1) a^(q-2); exactly zero for q=1, and we take the (one-sided) limit 0 at a=0 for q < 2
+      ddaq[f] = alpha_q_ == 1.0 || (a == 0.0 && alpha_q_ < 2.0) ? 0.0 : alpha_q_ * (alpha_q_ - 1.0) * std::pow(a, alpha_q_ - 2.0);
+    }
 
   for(const Item& item : map)
   {
@@ -1160,11 +1207,17 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
 
     ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
 
-    // the features with non-constant rho_e_f in this element
+    // the features contributing in this element: any non-zero chain entry (transition zone; with alpha
+    // also the footprint via the alpha column) or a non-zero pure alpha curvature on the footprint
     active.Resize(0); // keeps capacity
     for(unsigned int f = 0; f < pills.GetSize(); f++)
-      if(!(ext->rho[f] == 1 || ext->rho[f] == rhomin))
+    {
+      bool zero_row = true;
+      for(unsigned int s = 0; s < nv && zero_row; s++)
+        zero_row = ext->drho_ds_full[f*nv + s] == 0.0;
+      if(!zero_row || (has_alpha_ && ddaq[f] != 0.0 && ext->rho_org[f] != 0.0))
         active.Push_back(f);
+    }
     if(active.IsEmpty())
       continue;
 
@@ -1179,12 +1232,16 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
             H_agg[f*nv + i][g*nv + j] += w_e * agg * ext->drho_ds_full[f*nv + i] * ext->drho_ds_full[g*nv + j];
       }
 
-    // feature term: w_e * d_mrho/d_rho_f * d^2 rho_f/(d_s_i d_s_j) with
+    // feature term: w_e * d_mrho/d_rho_hat_f * d^2 rho_hat_f/(d_z_i d_z_j) with the geometric part
     // d^2 rho_f/(d_s_i d_s_j) = 1/N_ip * sum_ip (H''*dd_i*dd_j + H'*d^2d_ij)
+    // and with alpha: rho_hat = a^q rho, so the s-s block scales by a^q, the mixed alpha-s entries are
+    // (a^q)' * d_rho/d_s (first-order data) and the alpha-alpha entry is (a^q)'' * rho (eqn
+    // 'geom_var_hess' in the tracking paper)
     ext->GetAllIP(elem_ip);
     for(unsigned int f : active)
     {
       rh.Init();
+      rho_s.Init();
       for(const IntegrationPoint* ip : elem_ip)
       {
         double dist = ip->dist[f];
@@ -1194,10 +1251,24 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
         double Hp  = bnd_fnc->Grad(dist);
         double Hpp = bnd_fnc->Hessian(dist); // throws for poly which is only C^1
         pills[f].GradDistance(ip->loc, ip->part[f], ddist_ds);
-        pills[f].HessDistance(ip->loc, ip->part[f], hd);
-        for(unsigned int i = 0; i < nv; i++)
-          for(unsigned int j = 0; j < nv; j++)
+        pills[f].HessDistance(ip->loc, ip->part[f], hd); // 5x5, the geometry variables only
+        for(unsigned int i = 0; i < ALPHA_VAR; i++)
+          for(unsigned int j = 0; j < ALPHA_VAR; j++)
             rh[i][j] += (Hpp * ddist_ds[i] * ddist_ds[j] + Hp * hd[i][j]) / N_ip;
+        if(has_alpha_)
+          for(unsigned int j = 0; j < ALPHA_VAR; j++)
+            rho_s[j] += Hp * ddist_ds[j] / N_ip; // unscaled d_rho_f/d_s_j
+      }
+
+      if(has_alpha_)
+      {
+        for(unsigned int i = 0; i < ALPHA_VAR; i++)
+        {
+          for(unsigned int j = 0; j < ALPHA_VAR; j++)
+            rh[i][j] *= aq[f];
+          rh[ALPHA_VAR][i] = rh[i][ALPHA_VAR] = daq[f] * rho_s[i];
+        }
+        rh[ALPHA_VAR][ALPHA_VAR] = ddaq[f] * ext->rho_org[f];
       }
 
       double dmrho_drho_f = cmb_fnc->Grad(ext->rho, f);
@@ -1347,7 +1418,7 @@ void FeatureMappingDesign::WriteHessExportFile()
     hessexport_root_->Get("features")->SetValue(Nf);
     hessexport_root_->Get("varsPerFeature")->SetValue(nv);
     // the local variable order within a feature block, matches GradDistance()/HessDistance()
-    hessexport_root_->Get("variables")->SetValue(std::string("Px Py Qx Qy P"));
+    hessexport_root_->Get("variables")->SetValue(std::string(has_alpha_ ? "Px Py Qx Qy P alpha" : "Px Py Qx Qy P"));
   }
 
   PtrParamNode iteration = hessexport_root_->Get("iteration", ParamNode::APPEND);
@@ -1605,6 +1676,8 @@ void FeatureMappingDesign::AddToDensityHeader(PtrParamNode header)
   PtrParamNode pn = header->Get("featureMapping");
   pn->Get("transition")->SetValue(transition);
   pn->Get("extension")->SetValue(extension); // only relevant for bezier
+  if(has_alpha_)
+    pn->Get("alpha_q")->SetValue(alpha_q_); // featureviz.py scales the drawn pills by alpha^q
 }
 
 
@@ -1635,6 +1708,9 @@ void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
   for(unsigned int i = 0; i < pnl.GetSize(); i++)
   {
     pills[i].Parse(pnl[i], i);
+    // the global <alpha> gives the defaults, an optional <alpha> in the pill overrides (e.g. fixed or map)
+    if(has_alpha_)
+      pills[i].ParseAlpha(pnl[i]->Has("alpha") ? pnl[i]->Get("alpha") : base->Get("alpha"), i);
     features_[i] = &pills[i];
   }
 }
@@ -1645,6 +1721,26 @@ void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
   for(const IntegrationPoint* ip : ips)
     ss << ip->loc.ToString() + " ";
   return ss.str();
+}
+
+void FeatureMappingDesign::Pill::ParseAlpha(PtrParamNode pn, int idx)
+{
+  alpha.Parse(pn, idx, DesignElement::FEATURE_MAPPING_ALPHA);
+  has_alpha = true;
+  opt_variables_ += alpha.IsVariable() ? 1 : 0;
+}
+
+void FeatureMappingDesign::Pill::GetAllVariables(StdVector<FeatureVariable*>& out) const
+{
+  // as the base but with the optional alpha appended after the profile, reserve to avoid expansion
+  out.Clear();
+  out.Reserve(GetTotalVariables());
+  for(const StdVector<FeatureVariable>& vec : points)
+    for(const FeatureVariable& var : vec)
+      out.Push_back(const_cast<FeatureVariable*>(&var));
+  out.Push_back(const_cast<FeatureVariable*>(&p));
+  if(has_alpha)
+    out.Push_back(const_cast<FeatureVariable*>(&alpha));
 }
 
 void FeatureMappingDesign::Pill::Update()
@@ -1728,7 +1824,9 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
-  assert(out.GetSize() == 5);
+  assert(out.GetSize() == 5 || (has_alpha && out.GetSize() == 6));
+  if(has_alpha)
+    out[5] = 0.0; // the distance does not depend on the geometry variable alpha
 
   switch(part)
   {
@@ -2231,6 +2329,8 @@ double FeatureMappingDesign::P_Norm::Grad(const Vector<double>& projected, unsig
   double sum = 0.0;
   for(double v : projected)
     sum += std::pow(v, p);
+  if(sum == 0.0)
+    return 0.0; // the p-norm is not differentiable at the origin (all rho zero, e.g. alpha=0 with rhomin=0), avoid inf*0=NaN
   double res = std::pow(sum, 1.0/p - 1.0) * std::pow(projected[num],p-1); // to be multiplied with d_rho_s/d_s
   LOG_DBG3(fm) << "PN:G by " << num << " v=" << projected.ToString() << " p=" << p << " -> " << res;
   return res;

@@ -2739,6 +2739,11 @@
           <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariableMapping">
+        <xsd:annotation>
+          <xsd:documentation>Overrides the global featureMapping alpha for this pill, e.g. fixed="1" for a non-removable pill or map to share alpha. Requires the global alpha element</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="comment" type="xsd:token">
       <xsd:annotation>
@@ -2843,6 +2848,21 @@
   <!-- classic feature mapping base with C++ implementation -->
   <xsd:complexType name="DT_FeatureMapping">
     <xsd:sequence>
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>Adds a geometry variable alpha in [0,1] to every pill (Norato's size variable), scaling the feature density as alpha^q * rho. Allows the optimizer to remove features. With q &gt; 1 assume a groundmaterial as the density can drop below rhomin. A pill can override with its own alpha element (e.g. fixed)</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="initial" type="xsd:token" use="required" />
+          <xsd:attribute name="lower" type="xsd:token" use="required" />
+          <xsd:attribute name="upper" type="xsd:token" use="required" />
+          <xsd:attribute name="q" type="xsd:float" use="optional" default="1">
+            <xsd:annotation>
+              <xsd:documentation>SIMP-like penalization exponent on alpha in the mapped (stiffness) density. Note a volume constraint should see alpha linearly, e.g. via an analytic python volume function</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
       <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">

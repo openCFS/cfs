@@ -23,6 +23,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/SplineBoxDesign.hh"
@@ -989,6 +990,24 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
     elements.Reserve(n);
     for(int i = 0; i < n; i++)
       elements.Push_back(static_cast<DesignElement*>(aspace->GetAuxDesignElement(i)));
+  }
+  else if(design_ == DesignElement::FEATURE)
+  {
+    // the function lives directly on the feature/shape variables (e.g. an analytic python volume or an
+    // alpha sum over the feature geometry). The shape variables are no DesignElement (sibling
+    // FeatureVariable), so elements stays empty (as for shape mapping) and ErsatzMaterial::CalcPython()
+    // adds the gradient (full variable space, as by cfs.feature_mapping_get_parameters) onto the shape
+    // variables directly, where WriteGradientToExtern() picks it up without the density chain.
+    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space);
+    if(fd == nullptr)
+      throw Exception("design 'feature' for a function requires a feature based design (featureMapping, spaghetti)");
+    for(int i = 0; i < fd->GetNumberOfFeatureMappingVariables(); i++)
+    {
+      FeatureVariable* var = dynamic_cast<FeatureVariable*>(fd->GetFeaturedDesignElement((unsigned int) i));
+      assert(var != nullptr);
+      if(var->map != "")
+        throw Exception("design 'feature' functions do not support mapped ('map') feature variables yet");
+    }
   }
   else
   {

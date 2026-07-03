@@ -370,12 +370,31 @@ void PythonOptimizer::EvalConstraintHessian(PyObject *args)
   // the bound sign). Constraints without an exact Hessian contribute nothing.
   ConditionContainer::VirtualView* view = optimization->constraints.view;
   StdVector<double> out;
+  Matrix<double> Hg;
+  bool grads_done = false; // the dense shape Hessian needs the constraint gradients (w_e), evaluate lazily once
   for(int c = 0; c < m; c++)
   {
     Condition* g = view->Get(c);
     Matrix<unsigned int>& hp = g->GetHessianSparsityPattern();
     if(hp.GetNumRows() == 0)
+    {
+      // a global constraint with an exact shape Hessian (e.g. a python tracking constraint with
+      // 'curvature' on a feature mapping design) contributes dense
+      if(v[c] == 0.0 || g->IsLocal())
+        continue;
+      if(!grads_done)
+      {
+        const unsigned int nnz = optimization->constraints.view->CalcNumberOfJacobianNonZeros();
+        StdVector<double> jac(nnz);
+        BaseOptimizer::EvalGradConstraints(n, x.GetPointer(), m, nnz, true, false, jac);
+        grads_done = true;
+      }
+      if(optimization->GetDesign()->CalcShapeHessian(g, Hg))
+        for(int i = 0; i < n; i++)
+          for(int j = 0; j < n; j++)
+            H[i][j] += v[c] * Hg[i][j];
       continue;
+    }
     out.Resize(hp.GetNumRows());
     g->CalcHessian(out, 1.0);
     for(unsigned int k = 0; k < hp.GetNumRows(); k++)

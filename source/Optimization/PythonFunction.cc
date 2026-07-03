@@ -4,6 +4,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
@@ -218,8 +219,12 @@ bool Function::CalcCurvaturePython(Vector<double>& diag)
   PythonKernel::CheckPythonReturn(ret);
 
   diag.Fill(ret, true); // decref
-  if(diag.GetSize() != elements.GetSize())
-    EXCEPTION("the python curvature function shall return a numpy array of size " << elements.GetSize()
+  // functions on the shape variables (design="feature", e.g. alpha_sum) have empty elements but the
+  // curvature diagonal still lives in density space (one entry per pseudo density element)
+  unsigned int expect = GetDesignType() == DesignElement::FEATURE
+      ? domain->GetOptimization()->GetDesign()->GetNumberOfElements() : elements.GetSize();
+  if(diag.GetSize() != expect)
+    EXCEPTION("the python curvature function shall return a numpy array of size " << expect
               << " (number of elements) but got " << diag.GetSize());
 
   return true;
@@ -278,14 +283,29 @@ double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivati
   else
   {
     Vector<double> grad(pyret, false);
-    if(grad.GetSize() != f->elements.GetSize())
-      EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize());
-
-    for(unsigned int i = 0; i < grad.GetSize(); i++)
+    if(f->GetDesignType() == DesignElement::FEATURE)
     {
-      DesignElement* de = f->elements[i];
-      de->AddGradient(f, grad[i]);
-      LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      // the function lives directly on the feature/shape variables (design="feature"): the gradient
+      // comes in the full variable space (as by cfs.feature_mapping_get_parameters) and goes onto the
+      // shape variables where WriteGradientToExtern() picks it up without the density chain
+      FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(GetDesign());
+      assert(fd != nullptr); // checked in Function::SetElements()
+      if((int) grad.GetSize() != fd->GetNumberOfFeatureMappingVariables())
+        EXCEPTION("got gradient of size " << grad.GetSize() << " expected the full feature variable space " << fd->GetNumberOfFeatureMappingVariables());
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+        fd->GetFeaturedDesignElement(i)->AddGradient(f, grad[i]);
+    }
+    else
+    {
+      if(grad.GetSize() != f->elements.GetSize())
+        EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize());
+
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+      {
+        DesignElement* de = f->elements[i];
+        de->AddGradient(f, grad[i]);
+        LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      }
     }
   }
 
