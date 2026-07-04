@@ -2752,8 +2752,21 @@
         </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
-   
+
   <!-- end of DT_Pill -->
+
+  <!-- root element for an external feature file, see the 'external' element within 'featureMapping'.
+       As a global element it validates as document root against CFS.xsd, which also fills the defaults -->
+  <xsd:element name="features">
+    <xsd:annotation>
+      <xsd:documentation>Root element for an external feature mapping file, referenced via the 'external' element within 'featureMapping'. The content is read as if the features were local</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
 
   <!-- A noodle is part of a spaghetti(ParamNode) -->
   <xsd:complexType name="DT_Noodle">
@@ -2864,7 +2877,15 @@
           </xsd:attribute>
         </xsd:complexType>
       </xsd:element>
-      <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      <xsd:element name="external" minOccurs="0" maxOccurs="unbounded">
+        <xsd:annotation>
+          <xsd:documentation>Loads features from an external file with root element 'features' containing pill elements. The file is validated against this schema, so the defaults apply as for local pills. The external features come first (files in order, each in file order), then the local pills - e.g. an external base skeleton with a varying number of features plus special local pills. At least one feature from either source is required</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="file" type="xsd:string" use="required" />
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="pill" minOccurs="0" maxOccurs="unbounded" type="DT_Pill" />
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">
       <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary from void to solid</xsd:documentation></xsd:annotation>

@@ -8,6 +8,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include <map>
@@ -1702,7 +1703,28 @@ int FeatureMappingDesign::CountKey(const std::string& key) const
 
 void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
 {
-  StdVector<PtrParamNode> pnl = base->GetList("pill");
+  // external feature files (root element 'features', validated against the same schema so the
+  // defaults apply) and local pills - the schema fixes the order external*, pill*, so the external
+  // features come first. E.g. an external base skeleton with a varying number of features plus
+  // special local pills
+  StdVector<PtrParamNode> pnl;
+  for(PtrParamNode child : base->GetChildren())
+  {
+    if(child->GetName() == "pill")
+      pnl.Push_back(child);
+    if(child->GetName() == "external")
+    {
+      std::string file = child->Get("file")->As<std::string>();
+      std::string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
+      PtrParamNode root = XmlReader::ParseFile(file, schema, "http://www.cfs++.org/simulation");
+      if(root->GetName() != "features")
+        throw Exception("root element of external feature file '" + file + "' needs to be 'features'");
+      for(PtrParamNode pill : root->GetList("pill"))
+        pnl.Push_back(pill);
+    }
+  }
+  if(pnl.IsEmpty()) // the schema cannot express at least one pill from either source
+    throw Exception("no features given, neither as local pills nor via external files");
   pills.Resize(pnl.GetSize());
   features_.Resize(pnl.GetSize());
   for(unsigned int i = 0; i < pnl.GetSize(); i++)
