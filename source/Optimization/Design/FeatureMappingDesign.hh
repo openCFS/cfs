@@ -3,7 +3,6 @@
 
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Utils/ToolsFull.hh"
-#include <forward_list>
 
 namespace CoupledField
 {
@@ -361,8 +360,8 @@ private:
    * for efficient determination where we are outside/inside/need integration. After SetupMapping() */
   void SetupFixedIntegrationPoints();
 
-  /** distances of the given ip to all features - the expensive part of the mapping, hence parallel */
-  void CalcIpDistances(StdVector<IntegrationPoint*>& ips) const;
+  /** distances of the first n ips to all features - the expensive part of the mapping, hence parallel */
+  void CalcIpDistances(StdVector<IntegrationPoint>& ips, unsigned int n) const;
 
   /** little helper */
   void SetupParsedFeatures(PtrParamNode base) override;
@@ -442,7 +441,6 @@ private:
   /** We extend FeaturedDesign::Item to hold our integration points as extension. */
   struct ItemIP : FeaturedDesign::ItemExtension
   {
-    typedef enum { CORNER, INNER } Storage;
     StdVector<IntegrationPoint*> corner; // shared integration points at mesh cell corners - constant
     StdVector<IntegrationPoint*> inner;  // higher order integration, also shared at edges
     Point center; // barycenter for debug and some order stuff
@@ -461,15 +459,8 @@ private:
     StdVector<IntegrationPoint*> GetAllIP();
   };
 
-  /* helper for SetupDesign() to create an ip and add it to the extension of the given item
-   @param ref the to be created integration point is ref + (dx,dy,dz) */
-  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy, double dz = 0.0);
-
-  /** helper for SetupDesign() to add ip at extension of item to corner or inner. */
-  void SetupDesignAddIP(ItemIP::Storage storage, Item& item, IntegrationPoint* ip);
-
   /** when we have nodal results, we set up here the mapping from node to index in corners. -1 for no mapping */
-  void SetupNodeIPMap(); 
+  void SetupNodeIPMap();
 
   /** convenience helper which does the dynamic_cast */
   inline ItemIP* GetItemIP(unsigned int item_idx); 
@@ -506,12 +497,32 @@ private:
    * @see SetupNodeIPMap(); */
   StdVector<int> node_ip_result_map; 
 
-  /** If integration order is 1 or > 2 there are the "inner" ip, 
-   * however many of them are also shared on edges by 2 Item for order > 2.
-   * We have a list as we don't know in advance the number of ip in the design and we must not Resize, otherwise
-   * ItemIP::inner would dangle. 
-   * For order > 2 we dynamically delete the data and recreate by MapFeatureToDensity() */ 
-  std::forward_list<IntegrationPoint> inners;
+  /** The non-corner "inner" integration points. For order 1 the static element barycenters. For
+   * order > 2 the first num_inner_ entries are the current dynamic lattice points, rebuilt by
+   * MapFeatureToDensity() each mapping: the vector only grows (high-water mark) and slots are
+   * reused, so their dist/part allocations survive and mappings are allocation free after the
+   * first one. All ItemIP::inner pointers are re-wired each mapping after the final Resize,
+   * hence no dangling */
+  StdVector<IntegrationPoint> inners_;
+
+  /** the used entries of inners_, inners_.GetSize() is the high-water mark */
+  unsigned int num_inner_ = 0;
+
+  /** inverse of Item::lexicographic_pos: design element index by virtual cell of the regular
+   * lexicographic box, -1 where the domain is not design (e.g. a fixed region) */
+  StdVector<int> lex_to_item_;
+
+  /** working array for order > 2: slot+1 in inners_ by refined global lattice point
+   * ((order-1)*n+1 points per direction) or 0. Reused over the mappings, the memory scales
+   * with (order-1)^dim * cells */
+  StdVector<int> lattice_slot_;
+
+  /** working array for order > 2: is the element crossed by a transition zone, i.e. does it get
+   * inner integration points? */
+  StdVector<char> item_active_;
+
+  /** coordinate origin (lower node) of the virtual lexicographic mesh box */
+  Point origin_;
 
   /** Add Pill : public Feature once needed */
   StdVector<Pill> pills;

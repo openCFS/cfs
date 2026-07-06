@@ -166,7 +166,7 @@ void FeatureMappingDesign::ToInfo(ErsatzMaterial* em)
 void FeatureMappingDesign::SetupMapping()
 {
   FeaturedDesign::SetupMapping();
-  assert(map.GetSize() == nx_ * ny_ * nz_); // nz_ is 1 for 2D
+  assert(map.GetSize() <= nx_ * ny_ * nz_); // nz_ is 1 for 2D. Not all cells of the virtual box need to be design
 
   for(Item& item : map)
   {
@@ -174,7 +174,17 @@ void FeatureMappingDesign::SetupMapping()
     if(order > 1)
       item_ip->corner.Reserve(dim_ == 2 ? 4 : 8); // max 4 corners for 2D, 8 for 3D
     item.extension = item_ip; // ~Item() will delete this
-  } 
+  }
+
+  // inverse of Item::lexicographic_pos: design element by virtual cell, -1 where the domain is not
+  // design (e.g. a fixed region). The element/node numbering is assumed lexicographic (regular mesh)
+  lex_to_item_.Resize(n_.Product());
+  lex_to_item_.Init(-1);
+  for(unsigned int i = 0; i < map.GetSize(); i++)
+  {
+    assert(map[i].lexicographic_pos >= 0 && map[i].lexicographic_pos < (int) n_.Product());
+    lex_to_item_[map[i].lexicographic_pos] = i;
+  }
 }
 
 const FeatureMappingDesign::Pill& FeatureMappingDesign::GetFeatureForResult(const ResultDescription& rd) const
@@ -559,48 +569,6 @@ inline const FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsig
 }
 
 
-FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy, double dz)
-{
-  IntegrationPoint* ip = nullptr;
-  unsigned int nf = features_.GetSize();  
-  if(storage == ItemIP::CORNER)
-  {
-    corners.Push_back(IntegrationPoint());
-    ip = &corners.Last();
-    assert(item_ip->corner.GetCapacity() > item_ip->corner.GetSize()); 
-    item_ip->corner.Push_back(ip); // the item shares the corner point
-  }
-  else
-  {
-    ip = &(inners.emplace_front()); // inners has unpredicted size for order > 2, hence no resize allowed and we use a list
-    assert(item_ip->inner.GetCapacity() > item_ip->inner.GetSize()); 
-    item_ip->inner.Push_back(ip);
-  }
-  ip->dist.Resize(nf);
-  ip->part.Resize(nf, FeatureVariable::NO_TIP);
-  ip->loc.Set(ref[0]+dx, ref[1]+dy, ref[2]+dz); // ref[2] and dz are 0 in 2D
-
-  item_ip->rho.Resize(nf);
-  if(has_alpha_)
-    item_ip->rho_org.Resize(nf);
-  item_ip->drho_ds_full.Resize(nf * num_var_by_feature);
-  
-  // LOG_DBG3(fm) << "SDCAI c=" << center.ToString() << " dx=" << dx << " dy=" << dy << " ext=" << item_ip->ToString();
-  return ip;
-}
-
-void FeatureMappingDesign::SetupDesignAddIP(FeatureMappingDesign::ItemIP::Storage storage, FeatureMappingDesign::Item& item, FeatureMappingDesign::IntegrationPoint* ip)
-{
-  ItemIP* item_ip = dynamic_cast<ItemIP*>(item.extension);
-  assert(item_ip != nullptr); 
-  StdVector<IntegrationPoint*>& vec = (storage == ItemIP::CORNER) ? item_ip->corner : item_ip->inner;
-  assert(vec.GetCapacity() > vec.GetSize()); 
-  assert(ip != nullptr);
-  vec.Push_back(ip); 
-  LOG_DBG3(fm) << "SDCAI item=" << item.lexicographic_pos << " s=" << (storage == ItemIP::CORNER ? "corner" : "inner") << " ip=" << ip->loc.ToString() 
-               << " item_ip=" << item_ip->ToString() << " vec.size=" << vec.GetSize();
-}
-
 void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
 {
   FeaturedDesign::SetupDesign(pn);
@@ -664,105 +632,80 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
     LOG_DBG3(fm) << "SD e=" << item.elemval->elem->elemNum << " c=" << center.ToString();
   }
 
+  // per-item data sizes, independent of the integration order
+  unsigned int nf = features_.GetSize();
+  for(Item& item : map)
+  {
+    ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+    ext->rho.Resize(nf);
+    if(has_alpha_)
+      ext->rho_org.Resize(nf);
+    ext->drho_ds_full.Resize(nf * num_var_by_feature);
+  }
+
+  // origin (lower node) of the virtual lexicographic box from the first element's barycenter
+  int fp = map.First().lexicographic_pos;
+  unsigned int fx = fp % nx_, fy = (fp / nx_) % ny_, fz = fp / (nx_ * ny_);
+  const Point& fc = GetItemIP(0)->center;
+  origin_.Set(fc[0] - (fx + 0.5)*dx_, fc[1] - (fy + 0.5)*dx_, dim_ == 3 ? fc[2] - (fz + 0.5)*dx_ : 0.0);
+
   if(order == 1)
   {
-    for(Item& item : map)
+    // one static barycenter ip per element
+    inners_.Resize(map.GetSize());
+    num_inner_ = map.GetSize();
+    for(unsigned int i = 0; i < map.GetSize(); i++)
     {
-      ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-      assert(ext->inner.GetCapacity() == 0);
-      assert(ext->corner.GetCapacity() == 0);
-      ext->inner.Reserve(1);
-      SetupDesignCreateAddIP(ItemIP::INNER, ext->center, ext, 0.0, 0.0); // barycenter
+      ItemIP* ext = GetItemIP(i);
+      IntegrationPoint& ip = inners_[i];
+      ip.loc = ext->center;
+      ip.dist.Resize(nf);
+      ip.part.Resize(nf, FeatureVariable::NO_TIP);
+      ext->inner.Push_back(&ip);
     }
   }
-  if(order >= 2 && dim_ == 3) // for order > 2 we have corners fixed and inner dynamically handled in MapFeatureToDensity()
+  else // for order > 2 the corners are fixed and the inner ip are dynamically handled in MapFeatureToDensity()
   {
-    // in 3D we traverse the virtual node grid: each node is a corner ip, created at its "home"
-    // element (the one having the node as lower corner, clamped at the upper domain boundary)
-    // and shared with all other up to 8 adjacent elements
-    corners.Reserve((nx_+1) * (ny_+1) * (nz_+1)); // corners are the element nodes. We don't care about the ordering
-    for(unsigned int z = 0; z <= nz_; z++)
+    // we traverse the virtual node grid: each node is a corner ip, shared by its up to 4/8
+    // adjacent design elements. Nodes without any design element around are skipped (the domain
+    // does not need to be fully design)
+    unsigned int mz = dim_ == 3 ? nz_ + 1 : 1; // node counts per direction
+    corners.Reserve((nx_+1) * (ny_+1) * mz); // upper bound - the ip pointers in the items must stay valid
+    for(unsigned int z = 0; z < mz; z++)
     {
       for(unsigned int y = 0; y <= ny_; y++)
       {
         for(unsigned int x = 0; x <= nx_; x++)
         {
-          unsigned int ex = std::min(x, nx_-1);
-          unsigned int ey = std::min(y, ny_-1);
-          unsigned int ez = std::min(z, nz_-1);
-          ItemIP* home = GetItemIP(LexicographicPos(ex, ey, ez));
-          // the node is the lower corner of its home element, at the upper boundary the upper corner of the last element
-          IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, home->center, home,
-              x == nx_ ? dx_/2 : -dx_/2, y == ny_ ? dx_/2 : -dx_/2, z == nz_ ? dx_/2 : -dx_/2);
-          for(unsigned int az = (z > 0 ? z-1 : 0); az <= ez; az++)
-            for(unsigned int ay = (y > 0 ? y-1 : 0); ay <= ey; ay++)
-              for(unsigned int ax = (x > 0 ? x-1 : 0); ax <= ex; ax++)
-                if(!(ax == ex && ay == ey && az == ez))
-                  SetupDesignAddIP(ItemIP::CORNER, map[LexicographicPos(ax, ay, az)], ip);
+          // the adjacent design cells (clamped ranges, in 2D only z=0)
+          ItemIP* adj[8];
+          int n_adj = 0;
+          for(unsigned int az = (z > 0 ? z-1 : 0); az <= std::min(z, nz_-1); az++)
+            for(unsigned int ay = (y > 0 ? y-1 : 0); ay <= std::min(y, ny_-1); ay++)
+              for(unsigned int ax = (x > 0 ? x-1 : 0); ax <= std::min(x, nx_-1); ax++)
+              {
+                int it = lex_to_item_[LexicographicPos(ax, ay, az)];
+                if(it >= 0)
+                  adj[n_adj++] = GetItemIP(it);
+              }
+          if(n_adj == 0)
+            continue; // node of a non-design part of the box
+
+          corners.Push_back(IntegrationPoint());
+          IntegrationPoint& ip = corners.Last();
+          ip.loc.Set(origin_[0] + x*dx_, origin_[1] + y*dx_, dim_ == 3 ? origin_[2] + z*dx_ : 0.0);
+          ip.dist.Resize(nf);
+          ip.part.Resize(nf, FeatureVariable::NO_TIP);
+          for(int a = 0; a < n_adj; a++)
+            adj[a]->corner.Push_back(&ip);
         }
       }
     }
   }
-  if(order >= 2 && dim_ == 2)
-  {
-    corners.Reserve((nx_+1) * (ny_+1)); // corners are the element nodes, hence larger. We don't care about the ordering
-
-    // we traverse the map elements and set the corners - usually the right lower one
-    // Attention!!! We assume lexicographic ordering here!!
-    for(unsigned int y = 0; y < ny_; y++)
-    {
-      for(unsigned int x = 0; x < nx_; x++)
-      {
-        Item& item = map[y * nx_ + x];
-        ItemIP* iip = dynamic_cast<ItemIP*>(item.extension);
-        center = iip->center;
-
-        // o ----- A
-        // |       |
-        // |   c   | c == center
-        // |       |
-        // B ----- X
-  
-        // the "home" ip for this element is X - max three other elements share this ip
-        IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, -dx_/2); // right lower corner X
-        if(y > 0)
-          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); // the item below shares the corner point X
-        if(y > 0 && x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + (x+1)], ip); // diagonal below/right
-        if(x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right
-        
-        // special handling for upper most row  
-        if(y == ny_-1) // right side but above
-        {  
-          // add IP A (right but above)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, dx_/2); // right upper corner A
-          if(x < nx_-1)
-            SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right neighbor
-        }
-        // special handling vor first column
-        if(x == 0) // left side 
-        {
-          // add IP V (below but left)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, -dx_/2); // left lower corner B
-          if(y > 0)
-            SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); 
-        }
-        if(x == 0 && y == ny_-1) // left upper corner o
-        {
-          // this node o is not shared by anyone
-          SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, +dx_/2); // left upper corner o
-        }
-      } 
-    } // end of y,x loop
-  } // order >= 2 - corner
 
   // optional debug logging
   for(unsigned int i = 0; i < corners.GetSize(); i++)
     LOG_DBG3(fm) << "SFIP: corners[" << i << "].loc=" << corners[i].loc.ToString();
-
- for(IntegrationPoint& ip : inners)
-    LOG_DBG3(fm) << "SFIP: inners IP loc=" << ip.loc.ToString();
 
   for(Item& item : map)
     LOG_DBG3(fm) << "SFIP: map " << item.lexicographic_pos << " ext: " << item.extension->ToString();
@@ -806,14 +749,15 @@ StdVector<FeatureMappingDesign::IntegrationPoint*> FeatureMappingDesign::ItemIP:
   return out;
 }
 
-void FeatureMappingDesign::CalcIpDistances(StdVector<IntegrationPoint*>& ips) const
+void FeatureMappingDesign::CalcIpDistances(StdVector<IntegrationPoint>& ips, unsigned int n) const
 {
+  assert(n <= ips.GetSize());
   #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-  for(int i = 0; i < (int) ips.GetSize(); i++)
+  for(int i = 0; i < (int) n; i++)
   {
-    IntegrationPoint* ip = ips[i];
+    IntegrationPoint& ip = ips[i];
     for(unsigned int f = 0; f < pills.GetSize(); f++)
-      ip->dist[f] = pills[f].Distance(ip->loc, &(ip->part[f]));
+      ip.dist[f] = pills[f].Distance(ip.loc, &(ip.part[f]));
   }
 }
 
@@ -828,221 +772,104 @@ void FeatureMappingDesign::MapFeatureToDensity()
   for(Feature* f : features_)
     f->Update();
   
-  // for order=1 we have a fixed ip in the barycenter for each Item in the constant inners list
-  // for order=2 we have fixed nodal ip in inners and refer to Item - constant
-  // for order>2 we clear here inners and keep corners constant
-
-
-  // We first make inners/corners to determine the distances for each Item
-  // when we next traverse map, we know where we need higher integration
-  // finally, when we have all IP with distances, we can compute the density
+  // order 1: static barycenter ip, order >= 2: static corner ip at the element nodes,
+  // order > 2: additionally the dynamic inner lattice points for elements in a transition zone
   if(order == 1)
-  {
-    StdVector<IntegrationPoint*> ipl; // pointer list so CalcIpDistances() can parallelize
-    ipl.Reserve(map.GetSize()); // one barycenter ip per element
-    for(IntegrationPoint& ip : inners)
-      ipl.Push_back(&ip);
-    CalcIpDistances(ipl);
-  }
+    CalcIpDistances(inners_, num_inner_);
   else
   {
-    StdVector<IntegrationPoint*> ipl; // for order >= 2
-    ipl.Reserve(corners.GetSize());
-    for(IntegrationPoint& ip : corners)
-      ipl.Push_back(&ip);
-    CalcIpDistances(ipl);
+    CalcIpDistances(corners, corners.GetSize());
 
     if(order > 2)
     {
-      // we do not know yet the shape to rho mapping. 
-      // we store an InterpolationPoint ip in the inners forward_list and point to them from the ItemIP::inner vector
-      // this is necessary as we don't the final number of elements and must not resize a vector.
-      // 1) we check for an item (mesh element) if it will become gray. We do this by using the above calculated corner distances
-      // 2) we add inner integration points for this element. The difficulty is, that each ip is shared by up to 4 other items.
-      //    The difficulty is to handle that when we create the ip, we add it to the other involved items.
-      // 3) we calculate the distance via the inners list such that the order * order ip of the element (of which are 4 corners) are present
-      // 4) we can now apply the boundary function (polynomial) to the distances (by feature) and integrate the rho for each feature
-      // 6) finally, we compute the density by combining the rho values for each feature
-      
-      // we clear the inner points, as we will add them dynamically
-      // we reserve the space for all inner points and use the capcity as flag to fill them dynamically
-      // we do this in advance to not have to call IsConstant() when we check the two edges below
-      for(Item& item : map)
-      {
-        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-        ext->inner.Clear(false); // clear and do not keep capacity
-        assert(ext->inner.GetCapacity() == 0);
-        if(!bnd_fnc->IsConstant(ext))
-          ext->inner.Reserve(dim_ == 2 ? order * order - 4 : order * order * order - 8); // we reserve the space for all inner points, but not the corners
+      // Dynamic inner integration points for the elements crossed by a transition zone. The points
+      // live on the global refined lattice with q = order-1 subdivisions per element, so shared
+      // points (on element faces and edges) have a unique global lattice index and no ownership or
+      // sequential creation is needed. Four passes, all but the cheap compaction parallel:
+      // 1) mark the lattice points of all active elements (element corners excluded, they are the
+      //    static corner ip), 2) compact: assign consecutive inners_ slots, 3) fill the slots -
+      //    reused slots keep their dist/part allocations, so this is allocation free after the
+      //    first mapping - and compute the distances, 4) wire ItemIP::inner of the active elements
+      unsigned int q = order - 1;
+      unsigned int mx = q*nx_ + 1; // lattice points per direction
+      unsigned int my = q*ny_ + 1;
+      unsigned int mz = dim_ == 3 ? q*nz_ + 1 : 1;
+      double spacing = dx_ / q;
+      lattice_slot_.Resize(mx * my * mz);
+      lattice_slot_.Init(0);
+      item_active_.Resize(map.GetSize());
 
-        LOG_DBG3(fm) << "MFTD reserve inner order=" << order << " item=" << item.lexicographic_pos 
-                  << " bnd_fct=" << (bnd_fnc->IsConstant(ext) ? "constant" : "non-constant") 
-                  << " inner capacity=" << ext->inner.GetCapacity();
-      }
-      inners.clear(); // we cleared all inner and nothing points to the outdated list any more
-
-      // we traverse the corners and create inner points for each Item where it is necessary
-      Point base; // the left lower corner of the element
-      assert(map.GetSize() == nx_ * ny_ * nz_);
-      if(dim_ == 2)
+      // 1) transition zone check by the corner distances, then mark the element's lattice points
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(int e = 0; e < (int) map.GetSize(); e++)
       {
-      for(unsigned int y = 0; y < ny_; y++)
-      {
-        for(unsigned int x = 0; x < nx_; x++)
-        {
-          Item& item = map[y * nx_ + x];
-          ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-        
-          if(ext->inner.GetCapacity() > 0) // this is our marker
-          {
-            // G --H-- I
-            // |       |
-            // D   E   F 
-            // |       |
-            // A --B-- C
-  
-            base.Set(ext->center[0]-dx_/2, ext->center[1]-dx_/2); // A left lower corner of the element
-            // we think from the left lower corner and for inner elements set all IP which are not left and lower edge
-            // hence, when we are inner, not constant, and our neighbors are also not constant, we set E,F,H (I is corner) only
-            // because the lower horizontal edge B is shared from the element below  (A,C are corner) and D from the element left (A,G are corner)
-            // but we share only, if the lower or left element is not constant, i.e. gets inner points
-            for(unsigned int iy = 0; iy < order; iy++) 
+        ItemIP* ext = GetItemIP(e);
+        ext->inner.Clear(); // keeps the capacity for the re-wiring in 4)
+        item_active_[e] = !bnd_fnc->IsConstant(ext);
+        if(!item_active_[e])
+          continue;
+        unsigned int pos = map[e].lexicographic_pos;
+        unsigned int bx = (pos % nx_) * q; // lattice base of the cell
+        unsigned int by = ((pos / nx_) % ny_) * q;
+        unsigned int bz = (pos / (nx_ * ny_)) * q;
+        for(unsigned int k = 0; k < (dim_ == 3 ? order : 1); k++)
+          for(unsigned int j = 0; j < order; j++)
+            for(unsigned int i = 0; i < order; i++)
             {
-              for(unsigned int ix = 0; ix < order; ix++) 
-              {
-                // skip corner integration points (A,C,G,I) which are aready set and constant
-                if((ix == 0 && iy == 0) || (ix == order-1 && iy == order-1) || (ix == 0 && iy == order-1) || (ix == order-1 && iy == 0))
-                  continue; // skip corners
-              
-                // when the element below is not constant, we get B from it and continue - no corners left (no sharing across corners)
-                if(iy == 0 && y > 0 && GetItemIP((y-1) * nx_ + x)->inner.GetCapacity() > 0) {
-                  LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element below item=" << map[(y-1) * nx_ + x].lexicographic_pos << " capacity=" << GetItemIP((y-1) * nx_ + x)->inner.GetCapacity()
-                               << " will be integrated and we get B from it our inner=" << ext->inner.GetSize();
-                  continue; // skip B, as it is shared with the element below
-                }
-                  
-                if(ix == 0 && x > 0 && GetItemIP(y * nx_ + (x-1))->inner.GetCapacity() > 0) {
-                  LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element left item=" << map[y * nx_ + (x-1)].lexicographic_pos << " capacity=" << GetItemIP(y * nx_ + (x-1))->inner.GetCapacity()
-                               << " will be integrated and we get D from it our inner=" << ext->inner.GetSize();
-                  continue; // skip D, as it is shared with the element left
-                }
-
-                // actually integrate integration point
-                IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*(dx_/(order-1)), iy*(dx_/(order-1)));
-                LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " ip=" << ip->loc.ToString() << " created and added to inner=" << ext->inner.GetSize()
-                             << " capacity=" << ext->inner.GetCapacity();
-
-                // shall we share the upper edge (G),H,I with the upper element? Because of this not parallelizable
-                if(iy == order-1 && y < ny_-1)
-                {
-                  Item& above = map[(y+1) * nx_ + x]; 
-                  if(dynamic_cast<ItemIP*>(above.extension)->inner.GetCapacity() > 0) { // upper edge. The capacity is our marker for non-constant elements
-                    LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
-                                  << " to above " << above.lexicographic_pos << " old inner=" << GetItemIP((y+1) * nx_ + x)->inner.GetSize();
-                    SetupDesignAddIP(ItemIP::INNER, above, ip); // share with upper element
-                  }
-                }
-
-                // shall we share the right edge C,F,I with the right element?
-                if(ix == order-1 && x < nx_-1)
-                {
-                  Item& right = map[y * nx_ + (x+1)];
-                  if(dynamic_cast<ItemIP*>(right.extension)->inner.GetCapacity() > 0) { // right edge
-                    LOG_DBG3(fm) << "MFTD tem=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
-                                 << " with right " << right.lexicographic_pos << " old inner=" << GetItemIP(y * nx_ + (x+1))->inner.GetSize();;
-                    SetupDesignAddIP(ItemIP::INNER, right, ip); // share with right element
-                  }
-                }
-              }
-            } // end iy,ix order loop   
-          } // end filling current element
-        } // end loop of item
-      } // end of y,x loop
-      } // end of 2D
-      else
-      {
-        // 3D: same ownership idea generalized. A lattice point on an element face is shared with
-        // one neighbor, on an element edge with up to 3 further elements (including diagonals).
-        // The non-constant sharing element with the smallest lexicographic position creates the
-        // point and immediately pushes it to the other non-constant sharers - not parallelizable
-        double spacing = dx_/(order-1);
-        for(unsigned int z = 0; z < nz_; z++)
-        {
-          for(unsigned int y = 0; y < ny_; y++)
-          {
-            for(unsigned int x = 0; x < nx_; x++)
-            {
-              unsigned int pos = LexicographicPos(x, y, z);
-              ItemIP* ext = GetItemIP(pos);
-              if(ext->inner.GetCapacity() == 0)
-                continue; // constant element, not integrated - the capacity is our marker
-
-              base.Set(ext->center[0]-dx_/2, ext->center[1]-dx_/2, ext->center[2]-dx_/2); // lower corner of the element
-              for(unsigned int iz = 0; iz < order; iz++)
-              {
-                for(unsigned int iy = 0; iy < order; iy++)
-                {
-                  for(unsigned int ix = 0; ix < order; ix++)
-                  {
-                    bool hx = ix == 0 || ix == order-1; // on a low/high element face in x
-                    bool hy = iy == 0 || iy == order-1;
-                    bool hz = iz == 0 || iz == order-1;
-                    if(hx && hy && hz)
-                      continue; // skip the 8 element corners which are already set and constant
-
-                    // the elements sharing this lattice point: per dimension our index plus the
-                    // neighbor when the point lies on the low/high face (-1 = no neighbor)
-                    int xc[2] = {(int) x, ix == 0 && x > 0 ? (int) x-1 : (ix == order-1 && x+1 < nx_ ? (int) x+1 : -1)};
-                    int yc[2] = {(int) y, iy == 0 && y > 0 ? (int) y-1 : (iy == order-1 && y+1 < ny_ ? (int) y+1 : -1)};
-                    int zc[2] = {(int) z, iz == 0 && z > 0 ? (int) z-1 : (iz == order-1 && z+1 < nz_ ? (int) z+1 : -1)};
-
-                    // collect the non-constant sharers; one with a smaller position owns the point
-                    // and pushed it to us already when it was processed
-                    unsigned int sharer[7];
-                    int n_sharer = 0;
-                    bool foreign = false;
-                    for(int a = 0; a < 2 && !foreign; a++)
-                      for(int b = 0; b < 2 && !foreign; b++)
-                        for(int c = 0; c < 2 && !foreign; c++)
-                        {
-                          if((a && xc[1] < 0) || (b && yc[1] < 0) || (c && zc[1] < 0) || a+b+c == 0)
-                            continue; // no neighbor in this direction, or ourselves
-                          unsigned int p = LexicographicPos(xc[a], yc[b], zc[c]);
-                          if(GetItemIP(p)->inner.GetCapacity() == 0)
-                            continue; // constant element, gets no inner ip
-                          if(p < pos)
-                            foreign = true;
-                          else
-                            sharer[n_sharer++] = p;
-                        }
-                    if(foreign)
-                      continue; // the owner created the point and we already have it
-
-                    IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*spacing, iy*spacing, iz*spacing);
-                    LOG_DBG3(fm) << "MFTD item=" << pos << " ix=" << ix << " iy=" << iy << " iz=" << iz << " ip=" << ip->loc.ToString()
-                                 << " created, inner=" << ext->inner.GetSize() << " shared " << n_sharer << " times";
-                    for(int s = 0; s < n_sharer; s++)
-                      SetupDesignAddIP(ItemIP::INNER, map[sharer[s]], ip);
-                  }
-                }
-              } // end iz,iy,ix order loop
+              if(i % q == 0 && j % q == 0 && (dim_ == 2 || k % q == 0))
+                continue; // element corner
+              lattice_slot_[((bz + k)*my + (by + j))*mx + (bx + i)] = 1; // write races store the same value
             }
-          }
-        } // end of z,y,x loop
-      } // end of 3D
+      }
 
-      // the dynamic inner points are set, we can now finally compute the distances
-      StdVector<IntegrationPoint*> inner_ipl;
-      inner_ipl.Reserve((unsigned int) std::distance(inners.begin(), inners.end()));
-      for(IntegrationPoint& ip : inners)
-        inner_ipl.Push_back(&ip);
-      CalcIpDistances(inner_ipl);
+      // 2) compact: consecutive slots (1-based, 0 stays unused)
+      unsigned int cnt = 0;
+      for(unsigned int g = 0; g < lattice_slot_.GetSize(); g++)
+        if(lattice_slot_[g] != 0)
+          lattice_slot_[g] = ++cnt;
+      num_inner_ = cnt;
+      if(inners_.GetSize() < cnt)
+        inners_.Resize(cnt); // grow only: the ItemIP::inner pointers are re-wired below in 4)
 
-      LOG_DBG(fm) << "MFTD order=" << order << " inners=" << std::distance(inners.begin(), inners.end());
-      for(IntegrationPoint& ip : inners) 
-        LOG_DBG3(fm) << "MFTD inners loc=" << ip.loc.ToString();
+      // 3) fill the slots
+      unsigned int nf = pills.GetSize();
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(long g = 0; g < (long) lattice_slot_.GetSize(); g++)
+      {
+        if(lattice_slot_[g] == 0)
+          continue;
+        IntegrationPoint& ip = inners_[lattice_slot_[g] - 1];
+        unsigned int gx = g % mx, gy = (g / mx) % my, gz = g / (mx * my);
+        ip.loc.Set(origin_[0] + gx*spacing, origin_[1] + gy*spacing, dim_ == 3 ? origin_[2] + gz*spacing : 0.0);
+        ip.dist.Resize(nf); // no-op for a reused slot
+        ip.part.Resize(nf); // set by CalcIpDistances
+      }
+      CalcIpDistances(inners_, num_inner_);
+
+      // 4) wire the active elements to their slots, same lattice enumeration as the marking
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(int e = 0; e < (int) map.GetSize(); e++)
+      {
+        if(!item_active_[e])
+          continue;
+        ItemIP* ext = GetItemIP(e);
+        unsigned int pos = map[e].lexicographic_pos;
+        unsigned int bx = (pos % nx_) * q;
+        unsigned int by = ((pos / nx_) % ny_) * q;
+        unsigned int bz = (pos / (nx_ * ny_)) * q;
+        for(unsigned int k = 0; k < (dim_ == 3 ? order : 1); k++)
+          for(unsigned int j = 0; j < order; j++)
+            for(unsigned int i = 0; i < order; i++)
+            {
+              if(i % q == 0 && j % q == 0 && (dim_ == 2 || k % q == 0))
+                continue; // element corner
+              unsigned int slot = lattice_slot_[((bz + k)*my + (by + j))*mx + (bx + i)];
+              assert(slot > 0);
+              ext->inner.Push_back(&inners_[slot - 1]);
+            }
+      }
+
+      LOG_DBG(fm) << "MFTD order=" << order << " inner ip=" << num_inner_;
     } // end of order > 2
   } // end of order >= 2
 
