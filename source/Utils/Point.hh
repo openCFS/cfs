@@ -60,20 +60,20 @@ public:
     return data[0] == t.data[0] && data[1] == t.data[1] && data[2] == t.data[2];
   }
 
-  inline Point& operator+=(const Point& t);
+  Point& operator+=(const Point& t); // defined in Point.cc, hence must not be inline
   inline Point operator+(const Point& t) const {
     assert(data.GetSize() == t.data.GetSize());
     return Point(data[0]+t.data[0], data[1]+t.data[1], data[2] + t.data[2]);
   }  
 
-  inline Point& operator-=(const Point& t);
+  Point& operator-=(const Point& t);
   Point operator-(const Point& t) const {
     assert(data.GetSize() == t.data.GetSize());
     return Point(data[0]-t.data[0], data[1]-t.data[1], data[2]-t.data[2]);
   }
 
-  inline Point& operator*=(double factor);
-  inline Point operator*(double factor) const;
+  Point& operator*=(double factor);
+  Point operator*(double factor) const;
 
   /** scale the point */
   inline Point&  operator/=(double factor) {

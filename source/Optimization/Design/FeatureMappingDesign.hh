@@ -114,12 +114,12 @@ protected:
     void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const override;
 
     /** second derivatives of the distance, symmetric. For p always zero.
-     * @param out resized to 5x5 and fully set */
+     * @param out resized to num_var_by_feature^2 and fully set */
     void HessDistance(const Point& X, FeatureVariable::Tip part, Matrix<double>& out) const override;
 
     /** exact Hessian of the pill length ||Q-P|| (the native 'distance' constraint) w.r.t. the feature
-     * variables [Px Py Qx Qy P]; the profile p does not enter. Purely geometric (no transition
-     * function), so independent of the boundary order. @param out resized to 5x5 and fully set. */
+     * variables [Px Py (Pz) Qx Qy (Qz) P]; the profile p does not enter. Purely geometric (no transition
+     * function), so independent of the boundary order. @param out resized to num_var_by_feature^2 and fully set. */
     void HessLength(Matrix<double>& out) const;
 
     /** calculate the gradient of the angle in the anisotropic case, 0 for p
@@ -134,12 +134,12 @@ protected:
     // this are helper variables for Pill for efficient distance calculation. Call Update() on every change!
     // P and Q are in Feature
     Point U; // normalized vector Q-P
-    Point V; // normal to U
+    Point V; // normal to U - 2D only, in 3D the perpendicular direction depends on the point
     double length = 0.0; // || start_ - end_ ||
-    double length2 = 0.0; // dx*dx + dy*dy w.o. sqrt
-    double dx = 0.0; // the x-component of the vector from start to end
-    double dy = 0.0; // 
-    double dp_norm = 0.0; // Q_x*P_y - Q_y*P_x
+    double length2 = 0.0; // length^2
+    double dx = 0.0; // the x-component of the vector from start to end - 2D only
+    double dy = 0.0; // 2D only
+    double dp_norm = 0.0; // Q_x*P_y - Q_y*P_x - 2D only
   };
 
   /** base class for boundary function */
@@ -438,8 +438,8 @@ private:
   };
 
   /* helper for SetupDesign() to create an ip and add it to the extension of the given item
-   @param ref the to be created integration point is ref + (dx,dy) */
-  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy);
+   @param ref the to be created integration point is ref + (dx,dy,dz) */
+  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy, double dz = 0.0);
 
   /** helper for SetupDesign() to add ip at extension of item to corner or inner. */
   void SetupDesignAddIP(ItemIP::Storage storage, Item& item, IntegrationPoint* ip);
@@ -491,8 +491,9 @@ private:
 
   /** Add Pill : public Feature once needed */
   StdVector<Pill> pills;
-  /** the number of variables by feature, assume constant for all features */
-  const unsigned int num_var_by_feature = 5;
+  /** the number of variables by feature, assume constant for all features.
+   * The order matches Feature::GetAllVariables(): 2D [Px Py Qx Qy p], 3D [Px Py Pz Qx Qy Qz p] */
+  const unsigned int num_var_by_feature = 2 * dim_ + 1;
 
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;

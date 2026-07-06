@@ -32,6 +32,8 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
   assert(method == ErsatzMaterial::FEATURE_MAPPING || method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT);
 
   anisotropic = method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
+  if(anisotropic && dim_ == 3)
+    throw Exception("anisotropic feature mapping is only implemented in 2D");
   PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(ErsatzMaterial::FEATURE_MAPPING)); // featureMappingAniso has also a featureMapping element
 
   combine_ = combine.Parse(pn->Get("combine")->As<string>());
@@ -152,7 +154,7 @@ void FeatureMappingDesign::ToInfo(ErsatzMaterial* em)
 void FeatureMappingDesign::SetupMapping()
 {
   FeaturedDesign::SetupMapping();
-  assert(map.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() == nx_ * ny_ * nz_); // nz_ is 1 for 2D
 
   for(Item& item : map)
   {
@@ -186,11 +188,22 @@ const FeatureMappingDesign::Pill& FeatureMappingDesign::GetFeatureForResult(cons
 
 int FeatureMappingDesign::GetVariableForResult(const ResultDescription& rd) const
 {
-   int s = rd.design - DE::FEATURE_MAPPING_PX;
-   if(s < 0 || s >= (int) num_var_by_feature)
-     throw Exception("expect result 'detail' from 'feature_var_Px', ..., 'feature_var_P'");
-   assert(s >= 0 && s < (int) num_var_by_feature);
-   return s;
+  // the per-feature variable slot in GetAllVariables()/GradDistance() order:
+  // 2D [Px Py Qx Qy p], 3D [Px Py Pz Qx Qy Qz p]. The enum order differs as PZ/QZ were appended
+  if((rd.design == DE::FEATURE_MAPPING_PZ || rd.design == DE::FEATURE_MAPPING_QZ) && dim_ == 2)
+    throw Exception("result 'design' 'feature_var_Pz'/'feature_var_Qz' is 3D only");
+  switch(rd.design)
+  {
+  case DE::FEATURE_MAPPING_PX: return 0;
+  case DE::FEATURE_MAPPING_PY: return 1;
+  case DE::FEATURE_MAPPING_PZ: return 2;
+  case DE::FEATURE_MAPPING_QX: return dim_;
+  case DE::FEATURE_MAPPING_QY: return dim_ + 1;
+  case DE::FEATURE_MAPPING_QZ: return 5;
+  case DE::FEATURE_MAPPING_P:  return 2 * dim_;
+  default:
+    throw Exception("expect result 'design' from 'feature_var_Px', ..., 'feature_var_P'");
+  }
 }
 
 
@@ -530,7 +543,7 @@ inline const FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsig
 }
 
 
-FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy)
+FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy, double dz)
 {
   IntegrationPoint* ip = nullptr;
   unsigned int nf = features_.GetSize();  
@@ -549,10 +562,10 @@ FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateA
   }
   ip->dist.Resize(nf);
   ip->part.Resize(nf, FeatureVariable::NO_TIP);
-  ip->loc.Set(ref[0]+dx, ref[1]+dy); 
+  ip->loc.Set(ref[0]+dx, ref[1]+dy, ref[2]+dz); // ref[2] and dz are 0 in 2D
 
   item_ip->rho.Resize(nf);
-  item_ip->drho_ds_full.Resize(nf * num_var_by_feature); // 5 variables per feature
+  item_ip->drho_ds_full.Resize(nf * num_var_by_feature);
   
   // LOG_DBG3(fm) << "SDCAI c=" << center.ToString() << " dx=" << dx << " dy=" << dy << " ext=" << item_ip->ToString();
   return ip;
@@ -612,60 +625,79 @@ void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
   assert(opt_shape_param_.GetCapacity() == opt_shape_param_.GetSize());
 }
 
-void FeatureMappingDesign::SetupFixedIntegrationPoints()  
+void FeatureMappingDesign::SetupFixedIntegrationPoints()
 {
-  assert(dim_ == 2); 
-
   assert(features_.GetSize() >= 1);
   Grid* grid = domain->GetGrid();
   Matrix<double> coords;
   Point center;
 
-  assert(map.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() == nx_ * ny_ * nz_); // nz_ is 1 for 2D
+
+  // all integration points are anchored at the element barycenters.
+  // we are not sure about node ordering for pathological cases and therefore recompute everything
+  // from the element barycenter. The same time we assume that the map ordering is lexicographic!!
+  for(Item& item : map)
+  {
+    assert(item.elemval != nullptr);
+    grid->GetElemNodesCoord(coords, item.elemval->elem->connect, false); // obtain element nodal coords, no update
+    LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
+    dynamic_cast<ItemIP*>(item.extension)->center = center;
+    LOG_DBG3(fm) << "SD e=" << item.elemval->elem->elemNum << " c=" << center.ToString();
+  }
 
   if(order == 1)
   {
-    for(unsigned int y = 0; y < ny_; y++)
+    for(Item& item : map)
     {
-      for(unsigned int x = 0; x < nx_; x++)
+      ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+      assert(ext->inner.GetCapacity() == 0);
+      assert(ext->corner.GetCapacity() == 0);
+      ext->inner.Reserve(1);
+      SetupDesignCreateAddIP(ItemIP::INNER, ext->center, ext, 0.0, 0.0); // barycenter
+    }
+  }
+  if(order >= 2 && dim_ == 3) // for order > 2 we have corners fixed and inner dynamically handled in MapFeatureToDensity()
+  {
+    // in 3D we traverse the virtual node grid: each node is a corner ip, created at its "home"
+    // element (the one having the node as lower corner, clamped at the upper domain boundary)
+    // and shared with all other up to 8 adjacent elements
+    corners.Reserve((nx_+1) * (ny_+1) * (nz_+1)); // corners are the element nodes. We don't care about the ordering
+    for(unsigned int z = 0; z <= nz_; z++)
+    {
+      for(unsigned int y = 0; y <= ny_; y++)
       {
-        Item& item = map[y * nx_ + x];
-        DesignElement* de = item.elemval;
-        assert(de != nullptr);
-        grid->GetElemNodesCoord(coords, de->elem->connect, false); // obtain element nodal coords, no update. )
-        LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
-        LOG_DBG3(fm) << "SD y=" << y << " x=" << x << " e=" << de->elem->elemNum << " c=" << center.ToString();// << " coords=" << coords.ToString();
-        
-        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);      
-        assert(ext->inner.GetCapacity() == 0); 
-        assert(ext->corner.GetCapacity() == 0); 
-        ext->inner.Reserve(1);
-        ext->center = center;
-        SetupDesignCreateAddIP(ItemIP::INNER, center, ext, 0.0, 0.0); // barycenter
+        for(unsigned int x = 0; x <= nx_; x++)
+        {
+          unsigned int ex = std::min(x, nx_-1);
+          unsigned int ey = std::min(y, ny_-1);
+          unsigned int ez = std::min(z, nz_-1);
+          ItemIP* home = GetItemIP(LexicographicPos(ex, ey, ez));
+          // the node is the lower corner of its home element, at the upper boundary the upper corner of the last element
+          IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, home->center, home,
+              x == nx_ ? dx_/2 : -dx_/2, y == ny_ ? dx_/2 : -dx_/2, z == nz_ ? dx_/2 : -dx_/2);
+          for(unsigned int az = (z > 0 ? z-1 : 0); az <= ez; az++)
+            for(unsigned int ay = (y > 0 ? y-1 : 0); ay <= ey; ay++)
+              for(unsigned int ax = (x > 0 ? x-1 : 0); ax <= ex; ax++)
+                if(!(ax == ex && ay == ey && az == ez))
+                  SetupDesignAddIP(ItemIP::CORNER, map[LexicographicPos(ax, ay, az)], ip);
+        }
       }
     }
   }
-  if(order >= 2) // for order > 2 we have corners fixed and inner dynamically handled in MapFeatureToDensity()
+  if(order >= 2 && dim_ == 2)
   {
     corners.Reserve((nx_+1) * (ny_+1)); // corners are the element nodes, hence larger. We don't care about the ordering
 
-    // we traverse the map elements and set the corners - usually the right lower one 
-    // Attention!!! We assume lexicographic ordering here!! 
+    // we traverse the map elements and set the corners - usually the right lower one
+    // Attention!!! We assume lexicographic ordering here!!
     for(unsigned int y = 0; y < ny_; y++)
     {
       for(unsigned int x = 0; x < nx_; x++)
       {
         Item& item = map[y * nx_ + x];
-        DesignElement* de = item.elemval;
-        assert(de != nullptr);
-        // we are not sure about node ordering for pathological cases and therefore recompute everything from the element barycenter
-        // the same time we assume that y/x ordering is lexicographic!!                                    
-        grid->GetElemNodesCoord(coords, de->elem->connect, false); // obtain element nodal coords, no update. )
-        LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
-        LOG_DBG3(fm) << "SD y=" << y << " x=" << x << " e=" << de->elem->elemNum << " c=" << center.ToString();// << " coords=" << coords.ToString();
-        
         ItemIP* iip = dynamic_cast<ItemIP*>(item.extension);
-        iip->center = center;
+        center = iip->center;
 
         // o ----- A
         // |       |
@@ -812,9 +844,9 @@ void FeatureMappingDesign::MapFeatureToDensity()
       {
         ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
         ext->inner.Clear(false); // clear and do not keep capacity
-        assert(ext->inner.GetCapacity() == 0); 
+        assert(ext->inner.GetCapacity() == 0);
         if(!bnd_fnc->IsConstant(ext))
-          ext->inner.Reserve(order * order - 4); // we reserve the space for all inner points, but not the corners
+          ext->inner.Reserve(dim_ == 2 ? order * order - 4 : order * order * order - 8); // we reserve the space for all inner points, but not the corners
 
         LOG_DBG3(fm) << "MFTD reserve inner order=" << order << " item=" << item.lexicographic_pos 
                   << " bnd_fct=" << (bnd_fnc->IsConstant(ext) ? "constant" : "non-constant") 
@@ -823,8 +855,10 @@ void FeatureMappingDesign::MapFeatureToDensity()
       inners.clear(); // we cleared all inner and nothing points to the outdated list any more
 
       // we traverse the corners and create inner points for each Item where it is necessary
-      Point base((int) dim_); // the left lower corner of the element
-      assert(map.GetSize() == nx_ * ny_);
+      Point base; // the left lower corner of the element
+      assert(map.GetSize() == nx_ * ny_ * nz_);
+      if(dim_ == 2)
+      {
       for(unsigned int y = 0; y < ny_; y++)
       {
         for(unsigned int x = 0; x < nx_; x++)
@@ -899,8 +933,80 @@ void FeatureMappingDesign::MapFeatureToDensity()
           } // end filling current element
         } // end loop of item
       } // end of y,x loop
+      } // end of 2D
+      else
+      {
+        // 3D: same ownership idea generalized. A lattice point on an element face is shared with
+        // one neighbor, on an element edge with up to 3 further elements (including diagonals).
+        // The non-constant sharing element with the smallest lexicographic position creates the
+        // point and immediately pushes it to the other non-constant sharers - not parallelizable
+        double spacing = dx_/(order-1);
+        for(unsigned int z = 0; z < nz_; z++)
+        {
+          for(unsigned int y = 0; y < ny_; y++)
+          {
+            for(unsigned int x = 0; x < nx_; x++)
+            {
+              unsigned int pos = LexicographicPos(x, y, z);
+              ItemIP* ext = GetItemIP(pos);
+              if(ext->inner.GetCapacity() == 0)
+                continue; // constant element, not integrated - the capacity is our marker
 
-      // the dynamic inner points are set, we can now finally compute the distances - parallelizable  
+              base.Set(ext->center[0]-dx_/2, ext->center[1]-dx_/2, ext->center[2]-dx_/2); // lower corner of the element
+              for(unsigned int iz = 0; iz < order; iz++)
+              {
+                for(unsigned int iy = 0; iy < order; iy++)
+                {
+                  for(unsigned int ix = 0; ix < order; ix++)
+                  {
+                    bool hx = ix == 0 || ix == order-1; // on a low/high element face in x
+                    bool hy = iy == 0 || iy == order-1;
+                    bool hz = iz == 0 || iz == order-1;
+                    if(hx && hy && hz)
+                      continue; // skip the 8 element corners which are already set and constant
+
+                    // the elements sharing this lattice point: per dimension our index plus the
+                    // neighbor when the point lies on the low/high face (-1 = no neighbor)
+                    int xc[2] = {(int) x, ix == 0 && x > 0 ? (int) x-1 : (ix == order-1 && x+1 < nx_ ? (int) x+1 : -1)};
+                    int yc[2] = {(int) y, iy == 0 && y > 0 ? (int) y-1 : (iy == order-1 && y+1 < ny_ ? (int) y+1 : -1)};
+                    int zc[2] = {(int) z, iz == 0 && z > 0 ? (int) z-1 : (iz == order-1 && z+1 < nz_ ? (int) z+1 : -1)};
+
+                    // collect the non-constant sharers; one with a smaller position owns the point
+                    // and pushed it to us already when it was processed
+                    unsigned int sharer[7];
+                    int n_sharer = 0;
+                    bool foreign = false;
+                    for(int a = 0; a < 2 && !foreign; a++)
+                      for(int b = 0; b < 2 && !foreign; b++)
+                        for(int c = 0; c < 2 && !foreign; c++)
+                        {
+                          if((a && xc[1] < 0) || (b && yc[1] < 0) || (c && zc[1] < 0) || a+b+c == 0)
+                            continue; // no neighbor in this direction, or ourselves
+                          unsigned int p = LexicographicPos(xc[a], yc[b], zc[c]);
+                          if(GetItemIP(p)->inner.GetCapacity() == 0)
+                            continue; // constant element, gets no inner ip
+                          if(p < pos)
+                            foreign = true;
+                          else
+                            sharer[n_sharer++] = p;
+                        }
+                    if(foreign)
+                      continue; // the owner created the point and we already have it
+
+                    IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*spacing, iy*spacing, iz*spacing);
+                    LOG_DBG3(fm) << "MFTD item=" << pos << " ix=" << ix << " iy=" << iy << " iz=" << iz << " ip=" << ip->loc.ToString()
+                                 << " created, inner=" << ext->inner.GetSize() << " shared " << n_sharer << " times";
+                    for(int s = 0; s < n_sharer; s++)
+                      SetupDesignAddIP(ItemIP::INNER, map[sharer[s]], ip);
+                  }
+                }
+              } // end iz,iy,ix order loop
+            }
+          }
+        } // end of z,y,x loop
+      } // end of 3D
+
+      // the dynamic inner points are set, we can now finally compute the distances - parallelizable
       for(IntegrationPoint& ip : inners)
         for(unsigned int i = 0; i < pills.GetSize(); i++)
           ip.dist[i] = pills[i].Distance(ip.loc, &(ip.part[i]));
@@ -936,7 +1042,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
   {
     ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
     LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
-    assert(order <= 2 || (ext->GetAllIP().GetSize() == 4 || ext->GetAllIP().GetSize() ==std::pow(order,dim_))); // we have at least corners, but for order > 2 we have also inner points
+    assert(order <= 2 || (ext->GetAllIP().GetSize() == std::pow(2,dim_) || ext->GetAllIP().GetSize() == std::pow(order,dim_))); // we have at least corners, but for order > 2 we have also inner points
     for(unsigned int fi = 0; fi < pills.GetSize(); fi++)
     {
       // collect all computed distances from all element integration points by feature number
@@ -1146,7 +1252,7 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
 
   // working data
   Vector<double> ddist_ds(nv);
-  Matrix<double> hd; // 5x5 distance Hessian per integration point
+  Matrix<double> hd; // nv x nv distance Hessian per integration point
   Matrix<double> rh(nv, nv); // d^2 rho_e^f/(d_s_i d_s_j), eqn 'rho_hess' in the tracking paper
   StdVector<IntegrationPoint*> elem_ip;
   StdVector<unsigned int> active;
@@ -1347,7 +1453,7 @@ void FeatureMappingDesign::WriteHessExportFile()
     hessexport_root_->Get("features")->SetValue(Nf);
     hessexport_root_->Get("varsPerFeature")->SetValue(nv);
     // the local variable order within a feature block, matches GradDistance()/HessDistance()
-    hessexport_root_->Get("variables")->SetValue(std::string("Px Py Qx Qy P"));
+    hessexport_root_->Get("variables")->SetValue(std::string(dim_ == 2 ? "Px Py Qx Qy P" : "Px Py Pz Qx Qy Qz P"));
   }
 
   PtrParamNode iteration = hessexport_root_->Get("iteration", ParamNode::APPEND);
@@ -1511,7 +1617,7 @@ inline void FeatureMappingDesign::CalcGradRhoByFeature(const Item& item, const F
   // for all integration points of the element
   ext->GetAllIP(elem_ip);
   LOG_DBG3(fm) << "CGRBF: item=" << item.lexicographic_pos << " f=" << f << " inner=" << ext->inner.GetSize() << " elem_ip=" << elem_ip.GetSize() << " num_var_by_feature=" << num_var_by_feature;
-  assert(elem_ip.GetSize() ==4 || (int) elem_ip.GetSize() == N_ip); 
+  assert(elem_ip.GetSize() == std::pow(2,dim_) || (int) elem_ip.GetSize() == N_ip); // corners only or full order lattice
   for(IntegrationPoint* ip : elem_ip)
   {
     // now we have the actual point X and distance for each IP know which part is closest
@@ -1649,21 +1755,25 @@ void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
 
 void FeatureMappingDesign::Pill::Update()
 {
-  assert(domain->GetDim() == 2);
   assert(points.GetSize() >= 2);
-  assert(P.data.GetSize() >= 2); // make it 2D
-  P.Set(points.First()[0].GetPlainDesignValue(), points.First()[1].GetPlainDesignValue());
-  Q.Set(points.Last()[0].GetPlainDesignValue(), points.Last()[1].GetPlainDesignValue());
+  P.Set(points.First()[0].GetPlainDesignValue(), points.First()[1].GetPlainDesignValue(),
+        dim_ == 3 ? points.First()[2].GetPlainDesignValue() : 0.0);
+  Q.Set(points.Last()[0].GetPlainDesignValue(), points.Last()[1].GetPlainDesignValue(),
+        dim_ == 3 ? points.Last()[2].GetPlainDesignValue() : 0.0);
 
   length = P.Dist(Q); // || Q - P ||
   length2 = length*length;
 
   U = (Q-P) / length;
-  V.Set(U[1], -U[0]);
 
-  dx = Q[0] - P[0]; // x-component of the vector from start to end
-  dy = Q[1] - P[1]; // y-component
-  dp_norm = Q[0] * P[1] - Q[1] * P[0]; // end_x*start_y - end_y*start_x
+  if(dim_ == 2) // in 3D the perpendicular direction depends on the point, no helpers to precompute
+  {
+    V.Set(U[1], -U[0]);
+
+    dx = Q[0] - P[0]; // x-component of the vector from start to end
+    dy = Q[1] - P[1]; // y-component
+    dp_norm = Q[0] * P[1] - Q[1] * P[0]; // end_x*start_y - end_y*start_x
+  }
 
   // only required in the anisotropic case
   bool aniso = domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
@@ -1687,27 +1797,33 @@ void FeatureMappingDesign::Pill::Update()
 double FeatureMappingDesign::Pill::Distance(const Point& X, FeatureVariable::Tip* part) const
 {
   assert(points.GetSize() >= 2);
-  assert(X.data.GetSize() >= 2);
-  assert(P.data.GetSize() >= 2);
-  assert(Q.data.GetSize() >= 2);
-  assert(dim_ == 2);
 
   double pval = this->p.GetPlainDesignValue();
   double dist = -1;
 
   // test if we are in the region of the straight bar
-  // if np.dot((X - self.Q), self.U0) <= 0 and np.dot((X - self.P), self.U0) >= 0: 
-  //    projected_distance = abs(np.dot((X - self.Q), self.V0)) 
+  // if np.dot((X - self.Q), self.U0) <= 0 and np.dot((X - self.P), self.U0) >= 0:
+  //    projected_distance = abs(np.dot((X - self.Q), self.V0))
   // Point XQ = X-Q;
   // LOG_DBG(fm) << "P:CD U.Dot(X-Q)=" << U.Dot(X-Q) << " U.Dot(X-P)=" << U.Dot(X-P) << " X-Q=" << XQ.ToString();
   if(length > 0 && U.Dot(X-Q) <= 0 && U.Dot(X-P) >= 0)
   {
-    // distance to line segment https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    dist = std::abs(V.Dot(X-Q)) - pval;
-    if(part) 
+    if(dim_ == 2)
+    {
+      // distance to line segment https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+      dist = std::abs(V.Dot(X-Q)) - pval;
+      // double dl = (std::abs(dy*X[0] - dx*X[0] + dp_norm) / length) - pval;
+    }
+    else
+    {
+      // 3D capsule: perpendicular distance to the axis ||w - (U.w) U|| via Pythagoras
+      Point w = X - P;
+      double t = U.Dot(w);
+      dist = std::sqrt(std::max(w.Dot(w) - t*t, 0.0)) - pval; // max guards rounding for points on the axis
+    }
+    if(part)
       *part = FeatureVariable::INNER;
-    // double dl = (std::abs(dy*X[0] - dx*X[0] + dp_norm) / length) - pval;
-    LOG_DBG(fm) << "P:CD X=" << X.ToString() << " p=" << pval << " P=" << P.ToString() << " Q=" << P.ToString() << " -> line=" << dist;
+    LOG_DBG(fm) << "P:CD X=" << X.ToString() << " p=" << pval << " P=" << P.ToString() << " Q=" << Q.ToString() << " -> line=" << dist;
   }
   else
   {
@@ -1728,27 +1844,47 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
-  assert(out.GetSize() == 5);
+  assert(out.GetSize() == 2*dim_ + 1);
 
   switch(part)
   {
-    // same order as in DE::FEATURE_MAPPING_PX, ...
+    // variable order [Px Py (Pz) Qx Qy (Qz) p] as in GetAllVariables()
   case FeatureVariable::START:
-    out[0] = (P[0]-X[0])/X.Dist(P); 
-    out[1] = (P[1]-X[1])/X.Dist(P);
-    out[2] = 0.0;
-    out[3] = 0.0;
-    out[4] = -1.0; // p
-    break;
   case FeatureVariable::END:
-    out[0] = 0.0; 
-    out[1] = 0.0;
-    out[2] = (Q[0]-X[0])/X.Dist(Q);
-    out[3] = (Q[1]-X[1])/X.Dist(Q);
-    out[4] = -1.0; // p
+  {
+    // d = ||X-C|| - p with the cap center C = P or Q, the other node does not enter
+    const Point& C = part == FeatureVariable::START ? P : Q;
+    int o = part == FeatureVariable::START ? 0 : dim_; // index offset of the block
+    out.Init(0.0);
+    for(unsigned int d = 0; d < dim_; d++)
+      out[o+d] = (C[d]-X[d])/X.Dist(C);
+    out[2*dim_] = -1.0; // p
     break;
+  }
   case FeatureVariable::INNER:
   {
+    if(dim_ == 3)
+    {
+      // envelope theorem for the foot point c = P + beta*(Q-P) of the infinite axis: with the
+      // unit normal n = (X-c)/||X-c|| we get d_d/d_P = -(1-beta)*n and d_d/d_Q = -beta*n
+      Point w = X - P;
+      double beta = U.Dot(w) / length;
+      Point r = w - (Q-P)*beta; // = X - c, perpendicular to the axis
+      double dn = std::sqrt(r.Dot(r)); // = dist + p
+      // on the axis the direction n is undefined (cone tip of the distance function). Such a point
+      // is strictly inside the pill and the H'(dist) factor is zero, we pick the subgradient 0
+      out.Init(0.0);
+      if(dn > 0.0)
+      {
+        for(unsigned int d = 0; d < 3; d++)
+        {
+          out[d]   = -(1.0-beta) * r[d]/dn;
+          out[3+d] = -beta * r[d]/dn;
+        }
+      }
+      out[6] = -1.0; // p
+      break;
+    }
     // wolframalpha
     // diff (V0*(X0-Q0)+V1*(X1-Q1)) by Q1
     // V0 = ((Q1-P1) / sqrt((Q0-P0)**2 + (Q1-P1)**2))
@@ -1791,7 +1927,7 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
-  out.Resize(5, 5);
+  out.Resize(2*dim_ + 1, 2*dim_ + 1);
   out.Init(); // the p row/column stays zero in all cases as the distance is linear in p
 
   switch(part)
@@ -1802,18 +1938,45 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
     // d = ||X-C|| - p with C = P or Q. The Hessian w.r.t. C is the projector
     // (I - m*m^T)/R with R = ||X-C|| and m = (C-X)/R, all other entries are zero
     const Point& C = part == FeatureVariable::START ? P : Q;
-    int o = part == FeatureVariable::START ? 0 : 2; // index offset of the 2x2 block
+    int o = part == FeatureVariable::START ? 0 : dim_; // index offset of the block
     double R = X.Dist(C);
-    double mx = (C[0]-X[0])/R;
-    double my = (C[1]-X[1])/R;
-    out[o][o]     = (1.0 - mx*mx)/R;
-    out[o][o+1]   = -mx*my/R;
-    out[o+1][o]   = out[o][o+1];
-    out[o+1][o+1] = (1.0 - my*my)/R;
+    for(unsigned int i = 0; i < dim_; i++)
+      for(unsigned int j = 0; j < dim_; j++)
+        out[o+i][o+j] = ((i == j ? 1.0 : 0.0) - (C[i]-X[i])/R * (C[j]-X[j])/R)/R;
     break;
   }
   case FeatureVariable::INNER:
   {
+    if(dim_ == 3)
+    {
+      // differentiate the envelope gradient from GradDistance: with the foot parameter
+      // beta = U.(X-P)/length, r = X-P-beta*(Q-P), dn = ||r||, n = r/dn and the projector
+      // Pi = I - n*n^T the blocks are (verified against finite differences)
+      //   H_PP = -dn/length^2 * m1*m1^T + (1-beta)^2/dn * Pi   with m1 =  n + (1-beta)*(Q-P)/dn
+      //   H_PQ = -dn/length^2 * m1*m2^T + beta*(1-beta)/dn * Pi with m2 = -n + beta*(Q-P)/dn
+      //   H_QQ = -dn/length^2 * m2*m2^T + beta^2/dn * Pi
+      Point v = Q - P;
+      Point w = X - P;
+      double beta = U.Dot(w) / length;
+      Point r = w - v*beta;
+      double dn = std::sqrt(r.Dot(r));
+      if(dn == 0.0)
+        break; // on the axis the distance is not differentiable, keep zeros as in GradDistance
+      Point n = r / dn;
+      Point m1 = n + v*((1.0-beta)/dn);
+      Point m2 = v*(beta/dn) - n;
+      double f = dn/length2;
+      for(int i = 0; i < 3; i++)
+        for(int j = 0; j < 3; j++)
+        {
+          double Pi = (i == j ? 1.0 : 0.0) - n[i]*n[j];
+          out[i][j]     = -f*m1[i]*m1[j] + (1.0-beta)*(1.0-beta)/dn * Pi;
+          out[i][3+j]   = -f*m1[i]*m2[j] + beta*(1.0-beta)/dn * Pi;
+          out[3+i][j]   = -f*m2[i]*m1[j] + beta*(1.0-beta)/dn * Pi;
+          out[3+i][3+j] = -f*m2[i]*m2[j] + beta*beta/dn * Pi;
+        }
+      break;
+    }
     // d = sg*n/D - p with the numerator n = V.(X-Q)*D and D = ||Q-P|| = length, see GradDistance.
     // Product/chain rule in structured form (verified with sympy):
     //   Hess(n/D) = Hess(n)/D - (gn*gD^T + gD*gn^T)/D^2 + n*(2*gD*gD^T/D^3 - Hess(D)/D^2)
@@ -1848,17 +2011,16 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
 void FeatureMappingDesign::Pill::HessLength(Matrix<double>& out) const
 {
   // the native 'distance' constraint is c = ||Q-P|| = length. Its exact Hessian w.r.t.
-  // (Px,Py,Qx,Qy) is the [[Hv,-Hv],[-Hv,Hv]] block with Hv = (I - U U^T)/length and U = (Q-P)/length -
-  // exactly the Hess(D) term documented in HessDistance()'s INNER case. The profile p is linear
-  // (absent), so its row/column stays zero.
-  out.Resize(5, 5);
+  // (Px,Py,(Pz),Qx,Qy,(Qz)) is the [[Hv,-Hv],[-Hv,Hv]] block with Hv = (I - U U^T)/length and
+  // U = (Q-P)/length - exactly the Hess(D) term documented in HessDistance()'s INNER case.
+  // The profile p is linear (absent), so its row/column stays zero.
+  int d = (int) dim_;
+  out.Resize(2*d + 1, 2*d + 1);
   out.Init();
   assert(length > 0.0);
-  const double Hv[2][2] = {{(1.0 - U[0]*U[0])/length, -U[0]*U[1]/length},
-                           {-U[0]*U[1]/length, (1.0 - U[1]*U[1])/length}};
-  for(int i = 0; i < 4; i++)
-    for(int j = 0; j < 4; j++)
-      out[i][j] = (i/2 == j/2 ? 1.0 : -1.0) * Hv[i%2][j%2];
+  for(int i = 0; i < 2*d; i++)
+    for(int j = 0; j < 2*d; j++)
+      out[i][j] = (i/d == j/d ? 1.0 : -1.0) * ((i%d == j%d ? 1.0 : 0.0) - U[i%d]*U[j%d])/length;
 }
 
 inline double FeatureMappingDesign::Pill::GradAngle(int s) const

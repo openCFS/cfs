@@ -1992,6 +1992,12 @@
       <xsd:enumeration value="feature_var_P">
         <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by profile width</xsd:documentation></xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Pz">
+        <xsd:annotation><xsd:documentation>3D only: for featureDistance/Projected to 'gradDistance' by start tip z with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Qz">
+        <xsd:annotation><xsd:documentation>3D only: for featureDistance/Projected to 'gradDistance' by end tip z with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
       <!-- all elasticity tensor coefficients for elast FMO -->
       <xsd:enumeration value="mech_all" />
       <!-- trace for piezo FMO for permitivity -->

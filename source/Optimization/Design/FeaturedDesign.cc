@@ -256,7 +256,7 @@ void FeaturedDesign::WriteGradientFile()
   if(!gradplot_.is_open())
     return; // obviously the option was not set
 
-  gradplot_.precision(5);
+  gradplot_.precision(10); // enough digits for finite difference checks on the gradient
   gradplot_.flags(std::ios::scientific);
 
   int iter = opt->GetCurrentIteration();
@@ -459,7 +459,8 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(!features_.IsEmpty());
   vem.Reserve(features_.GetSize()); // assume nothing fixed
 
-  assert(dim_ == 2);
+  if(dim_ == 3) // Function::Local::Identifier::CalcDistance() and the sparsity/Hessian code are 2D
+    throw Exception("local '" + Function::type.ToString(f->GetType()) + "' constraints are not implemented for 3D features yet");
   StdVector<BaseDesignElement*> nodes;
 
   bool two_signs = locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS;
