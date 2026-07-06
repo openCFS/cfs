@@ -648,7 +648,7 @@ namespace CoupledField
     }
 
 
-    void PreciceAdapter::RegisterTimeStepReadData(){
+    void PreciceAdapter::RegisterTimeStepReadData(bool atWindowStart){
         // initial state case: wait until all coupled PDEs are initialized before
         // pushing read data into their result contexts.
         if(pdes_.empty()){
@@ -669,7 +669,11 @@ namespace CoupledField
             }
         }
 
-       
+        // Normal per-iteration read: sample at the end of the current window (deltaT).
+        // Post-convergence refresh (atWindowStart): Advance() has completed the window,
+        // so relative time 0 of the new window is the CONVERGED end of the completed one.
+        const double relativeReadTime = atWindowStart ? 0.0 : tp->GetDeltaT();
+
         //TODO handle nodal and element cases. Maybe handle it based on the particular result
         // like expectResultType nodes or elements
         // loop over the required results that we need - defined in the precice config
@@ -687,7 +691,7 @@ namespace CoupledField
                 participant_->readData(result->getConfig().meshName,
                                         result->getConfig().precicename,
                                         md.preciceElemNums,
-                                        dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT(),
+                                        relativeReadTime,
                                         const_cast<std::vector<double>&>(result->getFlatData()));
                 // Let the result object convert the flat data into its internal map.
                 result->readData(md.cfsElemNums,
@@ -698,7 +702,7 @@ namespace CoupledField
                 participant_->readData(result->getConfig().meshName,
                                         result->getConfig().precicename,
                                         md.preciceNodeNums,
-                                        dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT(),
+                                        relativeReadTime,
                                         const_cast<std::vector<double>&>(result->getFlatData()));
                 result->readData(md.cfsNodeNums,
                                 dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT());

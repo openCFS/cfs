@@ -23,7 +23,7 @@ namespace CoupledField
             // No-op
         }
 
-        void RegisterTimeStepReadData() override {
+        void RegisterTimeStepReadData(bool atWindowStart = false) override {
             // No-op
         }
 

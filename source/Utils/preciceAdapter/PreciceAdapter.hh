@@ -37,7 +37,7 @@ namespace CoupledField
                 // Main adapter methods
                 void initialize(Domain *domain, SinglePDE* pde) override;
                 void RegisterTimeStepWriteData() override;
-                void RegisterTimeStepReadData() override;
+                void RegisterTimeStepReadData(bool atWindowStart = false) override;
                 void finalize() override;
                 Vector<Double> GetElemResult(SolutionType solType, int elemNum) override;
                 Vector<Double> GetNodeResult(SolutionType solType, int nodeNum) override;

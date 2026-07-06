@@ -886,6 +886,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
   }
   
+  // forward to all contained PDEs (see BaseSolveStep::RefreshPrescribed())
+  void IterSolveStep::RefreshPrescribed() {
+    for (UInt i = 0; i < rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->RefreshPrescribed();
+    }
+  }
+
   // ========================================================================
   //  STATIC COUPLED ITERATION
   // ========================================================================

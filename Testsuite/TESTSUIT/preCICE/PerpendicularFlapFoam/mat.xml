@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="test">
+    <mechanical>
+      <density>
+        <linear>
+          <real>3000</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>4e6</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

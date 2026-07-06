@@ -193,6 +193,16 @@ namespace CoupledField {
         // ==========================================
       }
       else{ // iteration converged — now safe to write output and advance time
+        // NOTE on read-data staleness: the stored read results hold the value of the
+        // last pre-solve read. Under serial-implicit (second participant) that IS the
+        // converged sample. Under parallel-implicit it is one iterate stale - and a
+        // post-convergence re-read (RegisterTimeStepReadData(atWindowStart=true) +
+        // RefreshPrescribed(), hooks kept below) does NOT fix that reliably: preCICE
+        // 3.4.1 serves passive exchanged data (no convergence measure/acceleration)
+        // nondeterministically right after advance() - see the reproduction report
+        // 'precice-passive-data-read-nondeterminism.md'. Re-enable the refresh once
+        // the preCICE issue is resolved.
+
         // writing results in output-file(s)
         resHandler->BeginStep( actTimeStep_, actTime_ );
         // Mark PreCICE read results as updated so ResultHandler writes them

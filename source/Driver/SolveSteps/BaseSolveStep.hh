@@ -51,6 +51,13 @@ namespace CoupledField
 
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() = 0;
+
+    /** Re-apply prescribed external fields (no-op for regular solve steps).
+     * Called by TransientDriverPrecice after a coupling window CONVERGED and the
+     * preCICE read buffers were refreshed to the converged sample, so that
+     * prescribed solutions (e.g. SmoothPDE prescribedDisplacement) reflect the
+     * converged data instead of the last-used iteration's read. */
+    virtual void RefreshPrescribed() {}
     
     //! initialize timestepping special variables
     virtual void InitTimeStepping(){

@@ -220,6 +220,40 @@ MACRO(RUN_COUPLED_CFS_SIMULATION)
 ENDMACRO(RUN_COUPLED_CFS_SIMULATION)
 
 #-------------------------------------------------------------------------------
+# Like RUN_COUPLED_SIMULATION, but the coupling partner is a real OpenFOAM solver
+# using the cfsdeps OpenFOAM + openfoam-adapter (requires OPENFOAM_ENV_SCRIPT,
+# the openfoam-env.sh of the cfs build dir). The partner runs from the SAME
+# working directory as cfs via `-case ${FOAM_CASE_DIR}`, so the (relative)
+# preCICE m2n exchange directory is identical for both participants. blockMesh
+# generates the fluid mesh at test time (no polyMesh files in the repo). All
+# partner output goes to log files (see the pipe-deadlock note in
+# RUN_COUPLED_CFS_SIMULATION); `exec` propagates the solver's exit status.
+#-------------------------------------------------------------------------------
+MACRO(RUN_COUPLED_FOAM_SIMULATION)
+  SET(_COUPLED_WD "${TESTSUITE_BIN_DIR}/${CURRENT_TEST_SUBDIR}")
+  # preCICE leaves an exchange directory behind; start clean
+  FILE(REMOVE_RECURSE "${_COUPLED_WD}/precice-run")
+  EXECUTE_PROCESS(
+    COMMAND bash -c "source '${OPENFOAM_ENV_SCRIPT}' > log.openfoam-env 2>&1 && blockMesh -case '${FOAM_CASE_DIR}' > log.blockMesh 2>&1 && exec ${FOAM_SOLVER} -case '${FOAM_CASE_DIR}' > log.${FOAM_SOLVER} 2>&1"
+    COMMAND "${CFS_BINARY}" ${CFS_ARGS} --noColor "${TEST_FILE_BASENAME}"
+    WORKING_DIRECTORY "${_COUPLED_WD}"
+    RESULTS_VARIABLE COUPLED_RETVALS
+    ERROR_VARIABLE COUPLED_ERROR)
+  FOREACH(_rv ${COUPLED_RETVALS})
+    IF(NOT _rv EQUAL 0)
+      MESSAGE("ERROR: exit codes=${COUPLED_RETVALS} : ${COUPLED_ERROR}")
+      MESSAGE("COMMAND = ${FOAM_SOLVER} -case ${FOAM_CASE_DIR} (logs: log.openfoam-env, log.blockMesh, log.${FOAM_SOLVER})  +  ${CFS_BINARY} ${CFS_ARGS} --noColor ${TEST_FILE_BASENAME}")
+      MESSAGE("WORKING_DIRECTORY = ${_COUPLED_WD}")
+      IF(PROCEED_AFTER_SIMULATION_CRASH)
+        MESSAGE(WARNING "coupled cfs+OpenFOAM run for test case '${TEST_NAME}' failed. Continuing anyways ...")
+      ELSE()
+        MESSAGE(FATAL_ERROR "coupled cfs+OpenFOAM run for test case '${TEST_NAME}' failed.")
+      ENDIF()
+    ENDIF()
+  ENDFOREACH()
+ENDMACRO(RUN_COUPLED_FOAM_SIMULATION)
+
+#-------------------------------------------------------------------------------
 # Run cfstool in specified mode.
 #-------------------------------------------------------------------------------
 MACRO(DIFF_TEST_RESULTS_CFSTOOL EPSILON)

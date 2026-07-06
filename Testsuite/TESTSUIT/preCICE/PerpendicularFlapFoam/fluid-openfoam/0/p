@@ -1,0 +1,50 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    s_inlet
+    {
+        type            zeroGradient;
+    }
+
+    s_outlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    s_FluidSide_Interface1
+    {
+        type            zeroGradient;
+    }
+    
+    s_FluidSide_Interface2
+    {
+        type            zeroGradient;
+    }
+    
+    s_FluidSide_Interface3
+    {
+        type            zeroGradient;
+    }
+    
+    s_walls
+    {
+        type            zeroGradient;
+    }
+
+    s_frontAndBack_fluid
+    {
+        type            empty;
+    }
+}

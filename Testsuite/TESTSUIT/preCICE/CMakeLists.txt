@@ -6,3 +6,12 @@ add_subdirectory(flapFSI2D)
 add_subdirectory(SmoothPrescribedFlap)
 add_subdirectory(CharacteristicBC1Dcoupled)
 add_subdirectory(PerpendicularFlapSmooth)
+
+# Tests coupling cfs with a REAL OpenFOAM solver need the cfsdeps OpenFOAM +
+# openfoam-adapter (USE_OPENFOAM builds). openfoam-env.sh only exists in such
+# builds - e.g. the CI test stage (packed cfs install, no OpenFOAM) skips them.
+if(EXISTS "${CFS_BINARY_DIR}/openfoam-env.sh")
+  add_subdirectory(PerpendicularFlapFoam)
+else()
+  message(STATUS "preCICE: no ${CFS_BINARY_DIR}/openfoam-env.sh (build without USE_OPENFOAM) - skipping OpenFOAM-coupled tests")
+endif()

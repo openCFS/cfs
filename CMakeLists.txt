@@ -153,6 +153,8 @@ set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
 option(USE_PRECICE "Enable preCICE support" ${USE_PRECICE_DEFAULT} )
+# partner solver for real coupled openCFS<->OpenFOAM tests; requires USE_PRECICE
+option(USE_OPENFOAM "Build OpenFOAM + the preCICE OpenFOAM adapter (coupled testing only)" ${USE_OPENFOAM_DEFAULT})
 
 
 # icc has issues with boost asio, so simply disable this rare feature

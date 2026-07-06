@@ -1,0 +1,48 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (10 0 0);
+
+boundaryField
+{
+    s_inlet
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+    s_outlet
+    {
+        type            zeroGradient;
+    }
+    s_FluidSide_Interface1
+    {
+        type            movingWallVelocity;
+        value           uniform (0 0 0);
+    }
+    s_FluidSide_Interface2
+    {
+        type            movingWallVelocity;
+        value           uniform (0 0 0);
+    }
+    s_FluidSide_Interface3
+    {
+        type            movingWallVelocity;
+        value           uniform (0 0 0);
+    }
+    s_walls
+    {
+        type            noSlip;
+    }
+
+    s_frontAndBack_fluid
+    {
+        type            empty;
+    }
+}

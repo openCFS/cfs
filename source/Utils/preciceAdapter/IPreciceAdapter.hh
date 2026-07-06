@@ -41,9 +41,18 @@ namespace CoupledField
         virtual void RegisterTimeStepWriteData() = 0;
 
         /**
-         * Reads data needed for the current time step
+         * Reads data needed for the current time step.
+         *
+         * atWindowStart = false (default): read at relativeReadTime = deltaT (end of the
+         * current time window) - the normal per-iteration read before solving.
+         * atWindowStart = true: read at relativeReadTime = 0. Meant for AFTER Advance()
+         * completed a CONVERGED window: relative time 0 of the new window is exactly the
+         * converged end of the completed one. The per-iteration reads leave the buffers
+         * holding the last-used (pre-convergence) iterate; for passive channels (data
+         * without a convergence measure, e.g. DisplacementVolume) that iterate is not
+         * reproducible across runs - the converged sample is. See TransientDriverPrecice.
          */
-        virtual void RegisterTimeStepReadData() = 0;
+        virtual void RegisterTimeStepReadData(bool atWindowStart = false) = 0;
 
 
         virtual bool IsCouplingOngoing() = 0;

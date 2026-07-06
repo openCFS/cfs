@@ -41,6 +41,9 @@ namespace CoupledField
     virtual void SolveStepTrans() override { ApplyPrescribed(); }
     virtual void PostStepTrans() override {}
 
+    //! re-inject the (refreshed) external field, see BaseSolveStep::RefreshPrescribed()
+    virtual void RefreshPrescribed() override { ApplyPrescribed(); }
+
     //----------------------- HARMONIC (unsupported) -----------------------
     virtual void PreStepHarmonic() override {}
     virtual void SolveStepHarmonic() override

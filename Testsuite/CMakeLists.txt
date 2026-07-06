@@ -131,6 +131,11 @@ set(PYTHON_TEST "${CFS_BINARY_DIR}/testsuite/PythonTest.cmake")
 set(CFS_COUPLED_TEST "${CFS_BINARY_DIR}/testsuite/CoupledTest.cmake")
 # driver for preCICE-coupled openCFS<->openCFS tests (cfs + cfs), see TESTSUIT/preCICE
 set(CFS_COUPLED_CFS_TEST "${CFS_BINARY_DIR}/testsuite/CoupledCfsTest.cmake")
+# driver for preCICE-coupled openCFS<->OpenFOAM tests (cfs + real OpenFOAM solver).
+# openfoam-env.sh only exists in USE_OPENFOAM builds - tests using this driver are
+# gated on its existence in TESTSUIT/preCICE/CMakeLists.txt.
+set(CFS_COUPLED_FOAM_TEST "${CFS_BINARY_DIR}/testsuite/CoupledFoamTest.cmake")
+set(OPENFOAM_ENV_SCRIPT "${CFS_BINARY_DIR}/openfoam-env.sh")
 
 # Define path to info.xml compare script (for eigenvalue and other stuff)
 set(COMPARE_INFO_XML "${CMAKE_CURRENT_SOURCE_DIR}/compare_info_xml.py")
@@ -230,3 +235,4 @@ configure_file("PythonTest.cmake.in" "${PYTHON_TEST}" @ONLY)
 # Configure the preCICE coupled test driver.
 configure_file("CoupledTest.cmake.in" "${CFS_COUPLED_TEST}" @ONLY)
 configure_file("CoupledCfsTest.cmake.in" "${CFS_COUPLED_CFS_TEST}" @ONLY)
+configure_file("CoupledFoamTest.cmake.in" "${CFS_COUPLED_FOAM_TEST}" @ONLY)
