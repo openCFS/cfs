@@ -459,8 +459,8 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(!features_.IsEmpty());
   vem.Reserve(features_.GetSize()); // assume nothing fixed
 
-  if(dim_ == 3) // Function::Local::Identifier::CalcDistance() and the sparsity/Hessian code are 2D
-    throw Exception("local '" + Function::type.ToString(f->GetType()) + "' constraints are not implemented for 3D features yet");
+  if(dim_ == 3 && f->GetType() == Function::BENDING) // distance is dim-aware, bending (spaghetti) is not
+    throw Exception("local 'bending' constraints are not implemented for 3D features yet");
   StdVector<BaseDesignElement*> nodes;
 
   bool two_signs = locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS;
@@ -474,20 +474,22 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
     StdVector<FeatureVariable>& P = s->points.First();
     StdVector<FeatureVariable>& Q = s->points.Last();
 
-    // assume nothing fixed
-    if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
+    // fixed nodes are constants: LocalCondition drops them from the sparsity pattern and Hessian
+    // (EffectiveOptIndex() == -1). Without any free node the length is constant -> no constraint.
+    if(f->GetType() == Function::DISTANCE)
     {
-      if (f->GetType() == Function::DISTANCE)
-        throw Exception("distance constraints currently only for non-fixed nodes");
-      // else: Bending
-      if (FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && (!s->IsExtended()))
-        continue; // won't add empty constraint if all points are fixed -> next noodle
+      if(FeatureVariable::CountRealVariables(P) + FeatureVariable::CountRealVariables(Q) == 0)
+        continue; // next noodle
     }
+    else // Bending. Note IsFixed() is true for any fixed component
+      if(FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && !s->IsExtended())
+        continue; // won't add empty constraint if all points are fixed -> next noodle
 
-    // px is element, then py, then qx then qy
-    nodes.Push_back(&P[1]);
-    nodes.Push_back(&Q[0]);
-    nodes.Push_back(&Q[1]);
+    // px is the element, then the remaining P components, then all of Q: 2D [py qx qy], 3D [py pz qx qy qz]
+    for(unsigned int d = 1; d < dim_; d++)
+      nodes.Push_back(&P[d]);
+    for(unsigned int d = 0; d < dim_; d++)
+      nodes.Push_back(&Q[d]);
 
     if(f->GetType() == Function::DISTANCE)
     {

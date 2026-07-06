@@ -3456,6 +3456,24 @@ double Function::Local::Identifier::CalcCurvatureGradient(int neigh_idx) const
 
 double Function::Local::Identifier::CalcDistance(int neigh_idx, bool grad) const
 {
+  if(domain->GetDim() == 3) // no bending in 3D, hence the coordinates are exactly [px | py pz qx qy qz]
+  {
+    assert(neighbor.GetSize() == 5);
+    double C[6]; // P and Q
+    for(int i = 0; i < 6; i++)
+      C[i] = GetElement(i-1)->GetPlainDesignValue();
+    double r2 = 0.0;
+    for(int d = 0; d < 3; d++)
+      r2 += (C[3+d]-C[d]) * (C[3+d]-C[d]);
+    double dist = std::sqrt(r2);
+    if(!grad)
+      return dist;
+    int i = neigh_idx + 1; // the coordinate index
+    assert(i >= 0 && i < 6);
+    int d = i < 3 ? i : i - 3;
+    return (i < 3 ? -1.0 : 1.0) * (C[3+d]-C[d])/dist;
+  }
+
   assert(neighbor.GetSize() >= 3); // to be also used by CalcBending()
   double px = GetElement(-1)->GetPlainDesignValue();
   double py = GetElement(0)->GetPlainDesignValue();

@@ -134,12 +134,22 @@ def solve():
     cons.append(NonlinearConstraint(constr, gl, gu, jac=constr_jac, hess=constr_hess))
 
   # trust-constr tolerances; defaults are tight, the testsuite loosens them via <option> for a quick run
-  gtol = float(glob.options.get('gtol', 1e-7))
-  xtol = float(glob.options.get('xtol', 1e-9))
+  opts = {'maxiter': glob.maxiter,
+          'gtol': float(glob.options.get('gtol', 1e-7)),
+          'xtol': float(glob.options.get('xtol', 1e-9)),
+          'verbose': int(glob.options.get('verbose', 0))}
+  # further numeric trust-constr options pass through verbatim. Notably initial_barrier_parameter
+  # (default 0.1): a larger value (e.g. 1.0) keeps the early iterates away from the variable bounds,
+  # which can be the difference between a clean KKT point and a spurious xtol stall (see the
+  # hessian_alpha pruning test, where the default collapses the trust region on the compensation ridge).
+  for k in ('barrier_tol', 'initial_tr_radius', 'initial_barrier_parameter',
+            'initial_barrier_tolerance', 'initial_constr_penalty'):
+    if k in glob.options:
+      opts[k] = float(glob.options[k])
   res = minimize(eval, x0, jac=grad, hess=hess, bounds=bounds,
                  constraints=cons, method='trust-constr',
-                 options={'maxiter': glob.maxiter, 'gtol': gtol, 'xtol': xtol, 'verbose': 0},
+                 options=opts,
                  callback=lambda xk, *rest: commit(xk))  # trust-constr: callback(xk, state)
-  print('hessian.py: solve done J=%.6e %s' % (res.fun, res.message))
+  print('hessian.py: solve done J=%.6e nit=%d status=%d %s' % (res.fun, res.nit, res.status, res.message))
   commit(res.x)  # export trust-constr's endpoint (the iteration cap is set in the .xml, see there)
   return 0

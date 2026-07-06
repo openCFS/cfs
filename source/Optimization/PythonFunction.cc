@@ -4,6 +4,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
@@ -278,14 +279,36 @@ double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivati
   else
   {
     Vector<double> grad(pyret, false);
-    if(grad.GetSize() != f->elements.GetSize())
-      EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize());
-
-    for(unsigned int i = 0; i < grad.GetSize(); i++)
+    // a python function returns its gradient either in density space (size = elements, e.g. tracking -
+    // chained through drho/ds by the design) or, for a feature based design, directly in the full
+    // feature variable space (size as by cfs.feature_mapping_get_parameters, e.g. an analytic volume
+    // or alpha sum over the feature geometry - as the native distance constraint no density chain).
+    // We recognize the space by the size; on the rare collision density space wins.
+    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(GetDesign());
+    if(fd != nullptr && grad.GetSize() != f->elements.GetSize()
+       && (int) grad.GetSize() == fd->GetNumberOfFeatureMappingVariables())
     {
-      DesignElement* de = f->elements[i];
-      de->AddGradient(f, grad[i]);
-      LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+      {
+        FeatureVariable* var = dynamic_cast<FeatureVariable*>(fd->GetFeaturedDesignElement(i));
+        assert(var != nullptr);
+        if(var->map != "")
+          EXCEPTION("python functions on the feature variables do not support mapped ('map') variables yet");
+        var->AddGradient(f, grad[i]);
+      }
+    }
+    else
+    {
+      if(grad.GetSize() != f->elements.GetSize())
+        EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize()
+                  << (fd != nullptr ? " (density space) or " + std::to_string(fd->GetNumberOfFeatureMappingVariables()) + " (feature variable space)" : ""));
+
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+      {
+        DesignElement* de = f->elements[i];
+        de->AddGradient(f, grad[i]);
+        LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      }
     }
   }
 

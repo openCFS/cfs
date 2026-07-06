@@ -868,6 +868,10 @@ void SnOpt::SetNumericValue(const std::string& key, double value)
   {
     option = "Violation Limit";
   }
+  else if(key == "major_step_limit")
+  {
+    option = "Major step limit";
+  }
      
   if(!option.empty())
   {

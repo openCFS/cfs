@@ -924,6 +924,14 @@ const Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext() co
 }
 
 
+/** fixed (or mapped) feature variables are not part of the optimization space and drop out of
+ * sparsity patterns: -1, otherwise the opt index (e.g. a 'distance' node on a partially fixed pill) */
+static int OptIndexIfVariable(const BaseDesignElement* bde)
+{
+  const FeatureVariable* fv = dynamic_cast<const FeatureVariable*>(bde);
+  return fv != nullptr ? fv->EffectiveOptIndex() : (int) bde->GetOptIndex();
+}
+
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
   if(IsAdjointBased())
@@ -936,9 +944,14 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
   if(this->isFiltered())
     return ((Condition*) this)->GetSparsityPattern().GetSize();
   else {
-    // some local constraints have non-uniform neighbor size, e.g. curvature in shape mapping
+    // some local constraints have non-uniform neighbor size, e.g. curvature in shape mapping.
+    // the element itself is not a neighbor of itself, therefore i starts at -1
     const Function::Local::Identifier& id = GetCurrentVirtualContext();
-    return id.neighbor.GetSize() +1; // the element itself is not a neighbor of itself, therefore +1
+    unsigned int nnz = 0;
+    for(int i = -1, nn = id.neighbor.GetSize(); i < nn; i++)
+      if(OptIndexIfVariable(id.GetElement(i)) >= 0)
+        nnz++;
+    return nnz;
   }
 }
 
@@ -961,7 +974,9 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
     BaseDesignElement* bde = id.GetElement(i);
     assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = bde->GetOptIndex();
+    int other_idx = OptIndexIfVariable(bde);
+    if(other_idx < 0)
+      continue; // fixed feature variables are constants
     indices.push_back(other_idx);
 
     if(this->isFiltered())
@@ -1056,14 +1071,21 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     break;
   case DISTANCE:
   {
-    // c = ||Q-P|| over the four node coordinates [px py qx qy] (neighbor order -1,0,1,2, see
-    // CalcDistance); the full 4x4 (row, col) opt-index pairs, profile p is absent. CalcHessian fills
-    // the matching 16 values.
-    const int o[4] = { (int) id.GetElement(-1)->GetOptIndex(), (int) id.GetElement(0)->GetOptIndex(),
-                       (int) id.GetElement(1)->GetOptIndex(),  (int) id.GetElement(2)->GetOptIndex() };
-    hess_sparsity_.Resize(16, 2);
-    for(int i = 0, k = 0; i < 4; i++)
-      for(int j = 0; j < 4; j++, k++)
+    // c = ||Q-P|| over the node coordinates [px py (pz) qx qy (qz)] (neighbor order -1,0,..., see
+    // CalcDistance); fixed nodes are constants and drop out, the (row, col) opt-index pairs of the
+    // free nodes remain, profile p is absent. CalcHessian fills the matching values.
+    int nc = 2 * domain->GetDim(); // number of node coordinates
+    int o[6];
+    int nf = 0;
+    for(int i = -1; i <= nc - 2; i++)
+    {
+      int oi = OptIndexIfVariable(id.GetElement(i));
+      if(oi >= 0)
+        o[nf++] = oi;
+    }
+    hess_sparsity_.Resize(nf * nf, 2);
+    for(int i = 0, k = 0; i < nf; i++)
+      for(int j = 0; j < nf; j++, k++)
       {
         hess_sparsity_(k, 0) = o[i];
         hess_sparsity_(k, 1) = o[j];
@@ -1129,27 +1151,58 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
   }
   case DISTANCE:
   {
-    // exact Hessian of c = ||Q-P|| w.r.t. [px py qx qy]: the [[Hv,-Hv],[-Hv,Hv]] block with
+    // exact Hessian of c = ||Q-P|| w.r.t. [px py (pz) qx qy (qz)]: the [[Hv,-Hv],[-Hv,Hv]] block with
     // Hv = (I - dd^T/r^2)/r, d = Q-P, r = |d| (same as FeatureMappingDesign::Pill::HessLength). The
-    // 16 values match the (row,col) order of GetHessianSparsityPattern().
+    // values match the (row,col) order of GetHessianSparsityPattern().
     Function::Local::Identifier& id = GetCurrentVirtualContext();
-    double px = id.GetElement(-1)->GetPlainDesignValue();
-    double py = id.GetElement(0)->GetPlainDesignValue();
-    double qx = id.GetElement(1)->GetPlainDesignValue();
-    double qy = id.GetElement(2)->GetPlainDesignValue();
-    double dx = qx - px, dy = qy - py;
-    double r2 = dx*dx + dy*dy, r = std::sqrt(r2);
-    assert(r > 0.0);
-    double a = (1.0 - dx*dx/r2) / r;
-    double b = -dx*dy / (r2*r);
-    double c = (1.0 - dy*dy/r2) / r;
-    const double H[4][4] = {{ a,  b, -a, -b},
-                            { b,  c, -b, -c},
-                            {-a, -b,  a,  b},
-                            {-b, -c,  b,  c}};
-    for(int i = 0, k = 0; i < 4; i++)
-      for(int j = 0; j < 4; j++, k++)
-        out[k] = factor * H[i][j];
+    int dim = domain->GetDim();
+    int nc = 2 * dim; // number of node coordinates
+    double H[6][6];
+    if(dim == 2)
+    {
+      double px = id.GetElement(-1)->GetPlainDesignValue();
+      double py = id.GetElement(0)->GetPlainDesignValue();
+      double qx = id.GetElement(1)->GetPlainDesignValue();
+      double qy = id.GetElement(2)->GetPlainDesignValue();
+      double dx = qx - px, dy = qy - py;
+      double r2 = dx*dx + dy*dy, r = std::sqrt(r2);
+      assert(r > 0.0);
+      double a = (1.0 - dx*dx/r2) / r;
+      double b = -dx*dy / (r2*r);
+      double c = (1.0 - dy*dy/r2) / r;
+      const double H2[4][4] = {{ a,  b, -a, -b},
+                               { b,  c, -b, -c},
+                               {-a, -b,  a,  b},
+                               {-b, -c,  b,  c}};
+      for(int i = 0; i < 4; i++)
+        std::copy(H2[i], H2[i]+4, H[i]);
+    }
+    else
+    {
+      double C[6]; // P and Q as in CalcDistance
+      for(int i = 0; i < 6; i++)
+        C[i] = id.GetElement(i-1)->GetPlainDesignValue();
+      double d[3] = {C[3]-C[0], C[4]-C[1], C[5]-C[2]};
+      double r2 = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+      double r = std::sqrt(r2);
+      assert(r > 0.0);
+      for(int i = 0; i < 6; i++)
+        for(int j = 0; j < 6; j++)
+        {
+          int di = i < 3 ? i : i - 3;
+          int dj = j < 3 ? j : j - 3;
+          H[i][j] = (i/3 == j/3 ? 1.0 : -1.0) * ((di == dj ? 1.0 : 0.0) - d[di]*d[dj]/r2)/r;
+        }
+    }
+    // fixed nodes drop out, matching GetHessianSparsityPattern()
+    int pos[6];
+    int nf = 0;
+    for(int i = -1; i <= nc - 2; i++)
+      if(OptIndexIfVariable(id.GetElement(i)) >= 0)
+        pos[nf++] = i + 1;
+    for(int i = 0, k = 0; i < nf; i++)
+      for(int j = 0; j < nf; j++, k++)
+        out[k] = factor * H[pos[i]][pos[j]];
     break;
   }
   default:

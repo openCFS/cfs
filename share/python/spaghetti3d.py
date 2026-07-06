@@ -100,7 +100,7 @@ class Global:
     self.order = 1
     self.silent = False
     self.vtk_lists = False
-    self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
+    self.num_threads = int(os.environ.get('OMP_NUM_THREADS', 1))
     self.design = ['density']
     self.anisotropic = False
     self.base_tensor = np.zeros((3,6,6))

@@ -126,6 +126,26 @@ protected:
      * @param s index 0 ... 4 */
     inline double GradAngle(int s) const;
 
+    /** parse the optional geometry variable alpha (Norato's size variable) which scales the
+     * feature density. @param pn the pill's own <alpha> or the global one from <featureMapping> */
+    void ParseAlpha(PtrParamNode pn, int idx);
+
+    /** append alpha when present */
+    void GetAllVariables(StdVector<FeatureVariable*>& out) const override;
+
+    int GetTotalVariables() const override { return Feature::GetTotalVariables() + (has_alpha ? 1 : 0); }
+
+    void ToInfo(PtrParamNode in) override
+    {
+      Feature::ToInfo(in);
+      if(has_alpha)
+        alpha.ToInfo(in->Get("alpha", ParamNode::APPEND));
+    }
+
+    /** the optional geometry variable in [0,1], scaling the feature density as alpha^q * rho */
+    FeatureVariable alpha;
+    bool has_alpha = false;
+
     double angle = -1.0; // only for anisotropic
 
     /** material tensor rotated by angle. Only anisotropic */ 
@@ -337,9 +357,12 @@ private:
   /** add our extension */
   void SetupMapping() override;
 
-  /** for feature mapping we have fixed integration points to be shared over elements (Item) 
+  /** for feature mapping we have fixed integration points to be shared over elements (Item)
    * for efficient determination where we are outside/inside/need integration. After SetupMapping() */
   void SetupFixedIntegrationPoints();
+
+  /** distances of the given ip to all features - the expensive part of the mapping, hence parallel */
+  void CalcIpDistances(StdVector<IntegrationPoint*>& ips) const;
 
   /** little helper */
   void SetupParsedFeatures(PtrParamNode base) override;
@@ -423,8 +446,9 @@ private:
     StdVector<IntegrationPoint*> corner; // shared integration points at mesh cell corners - constant
     StdVector<IntegrationPoint*> inner;  // higher order integration, also shared at edges
     Point center; // barycenter for debug and some order stuff
-    Vector<double> rho; // integrated rho for each feature to be combined. Necessary for gradient calculation
-    Vector<double> drho_ds_full; // for any variable of any feature
+    Vector<double> rho; // integrated rho for each feature to be combined; with alpha the scaled rho_hat = alpha^q * rho
+    Vector<double> rho_org; // the unscaled rho, only filled with alpha (for the alpha Hessian entries)
+    Vector<double> drho_ds_full; // for any variable of any feature; with alpha the scaled chain incl. the alpha column
         
     std::string ToString() override;
     
@@ -491,9 +515,18 @@ private:
 
   /** Add Pill : public Feature once needed */
   StdVector<Pill> pills;
-  /** the number of variables by feature, assume constant for all features.
-   * The order matches Feature::GetAllVariables(): 2D [Px Py Qx Qy p], 3D [Px Py Pz Qx Qy Qz p] */
-  const unsigned int num_var_by_feature = 2 * dim_ + 1;
+  /** the number of variables by feature, assume constant for all features; +1 with the geometry
+   * variable alpha. The order matches Pill::GetAllVariables(): [Px Py (Pz) Qx Qy (Qz) p (alpha)] */
+  unsigned int num_var_by_feature = 2 * dim_ + 1;
+
+  /** index of the geometry variable alpha within a feature's variables (after nodes and profile) */
+  const unsigned int ALPHA_VAR = 2 * dim_ + 1;
+
+  /** do the pills have the geometry variable alpha (global <alpha> element)? Then num_var_by_feature is 2*dim_+2 */
+  bool has_alpha_ = false;
+
+  /** SIMP-like penalization exponent q for alpha: rho_hat = alpha^q * rho */
+  double alpha_q_ = 1.0;
 
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;

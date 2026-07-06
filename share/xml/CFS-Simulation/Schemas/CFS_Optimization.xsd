@@ -726,7 +726,8 @@
                             <xsd:enumeration value="iterations_limit" />
                             <xsd:enumeration value="timing_level" />
                             <xsd:enumeration value="verify_level" />
-                             <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="major_step_limit" />
                             <xsd:enumeration value="major_print_level" />
                             <xsd:enumeration value="minor_print_level" />
                             <xsd:enumeration value="print_frequency" />
@@ -1998,6 +1999,9 @@
       <xsd:enumeration value="feature_var_Qz">
         <xsd:annotation><xsd:documentation>3D only: for featureDistance/Projected to 'gradDistance' by end tip z with feature idx in 'generic'</xsd:documentation></xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="feature_var_alpha">
+        <xsd:annotation><xsd:documentation>the geometry variable alpha (requires the 'alpha' element in 'featureMapping') with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
       <!-- all elasticity tensor coefficients for elast FMO -->
       <xsd:enumeration value="mech_all" />
       <!-- trace for piezo FMO for permitivity -->
@@ -2745,6 +2749,11 @@
           <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariableMapping">
+        <xsd:annotation>
+          <xsd:documentation>Overrides the global featureMapping alpha for this pill, e.g. fixed="1" for a non-removable pill or map to share alpha. Requires the global alpha element</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="comment" type="xsd:token">
       <xsd:annotation>
@@ -2752,8 +2761,21 @@
         </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
-   
+
   <!-- end of DT_Pill -->
+
+  <!-- root element for an external feature file, see the 'external' element within 'featureMapping'.
+       As a global element it validates as document root against CFS.xsd, which also fills the defaults -->
+  <xsd:element name="features">
+    <xsd:annotation>
+      <xsd:documentation>Root element for an external feature mapping file, referenced via the 'external' element within 'featureMapping'. The content is read as if the features were local</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
 
   <!-- A noodle is part of a spaghetti(ParamNode) -->
   <xsd:complexType name="DT_Noodle">
@@ -2849,7 +2871,30 @@
   <!-- classic feature mapping base with C++ implementation -->
   <xsd:complexType name="DT_FeatureMapping">
     <xsd:sequence>
-      <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>Adds a geometry variable alpha in [0,1] to every pill (Norato's size variable), scaling the feature density as alpha^q * rho. Allows the optimizer to remove features. With q &gt; 1 assume a groundmaterial as the density can drop below rhomin. A pill can override with its own alpha element (e.g. fixed)</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="initial" type="xsd:token" use="required" />
+          <xsd:attribute name="lower" type="xsd:token" use="required" />
+          <xsd:attribute name="upper" type="xsd:token" use="required" />
+          <xsd:attribute name="q" type="xsd:float" use="optional" default="1">
+            <xsd:annotation>
+              <xsd:documentation>SIMP-like penalization exponent on alpha in the mapped (stiffness) density. Note a volume constraint should see alpha linearly, e.g. via an analytic python volume function</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="external" minOccurs="0" maxOccurs="unbounded">
+        <xsd:annotation>
+          <xsd:documentation>Loads features from an external file with root element 'features' containing pill elements. The file is validated against this schema, so the defaults apply as for local pills. The external features come first (files in order, each in file order), then the local pills - e.g. an external base skeleton with a varying number of features plus special local pills. At least one feature from either source is required</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="file" type="xsd:string" use="required" />
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="pill" minOccurs="0" maxOccurs="unbounded" type="DT_Pill" />
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">
       <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary from void to solid</xsd:documentation></xsd:annotation>

@@ -23,28 +23,4 @@
       </elasticity>
     </mechanical>
   </material>
-
-  <material name="void">
-    <mechanical>
-      <density>
-        <linear> 
-          <real>1e-8</real>
-        </linear>
-      </density>
-      <!-- Data as in the 99-lines code by Sigmund -->
-      <elasticity>
-        <linear>
-          <isotropic>
-            <elasticityModulus>
-              <real>1e-6</real>
-            </elasticityModulus>
-            <poissonNumber>
-              <real>0.3</real>
-            </poissonNumber>
-          </isotropic>
-        </linear>
-      </elasticity>
-    </mechanical>
-  </material>
-
 </cfsMaterialDataBase>

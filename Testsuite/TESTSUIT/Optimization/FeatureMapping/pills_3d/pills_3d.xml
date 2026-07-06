@@ -15,7 +15,9 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     <description>
       Minimal compliance 3D cantilever with four capsule features: support at the left face,
       load at (1, 0.5, 0.5) in -y. The four pills start as a pyramid from the left corners
-      towards the load point.
+      towards the load point. The native local 'distance' constraint bounds the pill length
+      ||Q-P|| from above and is active at the optimum (all four lengths end at 1). The void
+      is modelled by ground material instead of a physical_lower bound.
 
       Mesh is bulk3d_10.mesh (create_mesh.py --type bulk3d --res 10)
     </description>
@@ -86,6 +88,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
       <stopping type="designChange" queue="2" value="1e-2"/>
     </costFunction>
     <constraint type="volume" bound="upperBound" value="0.12" mode="constraint" linear="false"/>
+    <!-- upper bound on the pill length ||Q-P||, active at the optimum (unconstrained length ~1.08) -->
+    <constraint type="distance" design="node" bound="upperBound" value="1"/>
 
     <optimizer type="dumas_gcmma" maxIterations="50">
     </optimizer>
@@ -129,7 +133,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
           <profile initial="0.1" lower="0.05" upper="0.2"/>
         </pill>
       </featureMapping>
-      <design name="density" initial="0.5" physical_lower="1e-3" upper="1.0"/>
+      <design name="density" initial="0.5" lower="0" upper="1.0" groundmaterial="void"/>
 
       <transferFunction type="identity" application="mech"/>
       <export save="all" write="iteration"/>
