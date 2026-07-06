@@ -1,0 +1,10 @@
+# Source this file to run coupled OpenFOAM<->openCFS cases with this cfs build:
+#   source @CMAKE_BINARY_DIR@/openfoam-env.sh
+# Provides the OpenFOAM environment (solvers, adapter lib in FOAM_LIBBIN) and the
+# pkg-config path of the cfsdeps preCICE.
+# Generated from cfsdeps/openfoam-adapter/openfoam-env.sh.in - do not edit.
+if [ -n "@OPENFOAM_MPI_BINDIR@" ]; then
+  export PATH="@OPENFOAM_MPI_BINDIR@:$PATH"
+fi
+source "@OPENFOAM_DIR@/etc/bashrc"
+export PKG_CONFIG_PATH="@CMAKE_BINARY_DIR@/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"

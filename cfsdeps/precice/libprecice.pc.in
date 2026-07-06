@@ -1,0 +1,17 @@
+# pkg-config file for the cfsdeps preCICE, pointing at the cfs build dir.
+# For consumers outside the cfs cmake world (e.g. the preCICE OpenFOAM adapter,
+# cfsdeps/openfoam-adapter). The rpath lets consumer libs find libprecice.so.3
+# at runtime without LD_LIBRARY_PATH; --disable-new-dtags makes it a classic
+# DT_RPATH, which ranks BEFORE LD_LIBRARY_PATH - so a developer environment
+# pointing at another preCICE install cannot hijack the coupled tests (same
+# reasoning as for the cfs executables, see cfsdeps/boost/External_Boost.cmake).
+# Generated from cfsdeps/precice/libprecice.pc.in - do not edit.
+prefix=@CMAKE_BINARY_DIR@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libprecice
+Description: preCICE coupling library (openCFS cfsdeps build)
+Version: @PACKAGE_VER@
+Libs: -L${libdir} -Wl,--disable-new-dtags -Wl,-rpath,${libdir} -lprecice
+Cflags: -I${includedir}

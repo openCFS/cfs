@@ -341,6 +341,19 @@ if(CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
 endif()
 
+# OpenFOAM + preCICE OpenFOAM adapter: the partner solver for real coupled
+# openCFS<->OpenFOAM tests. Build order per precice.org: dependencies ->
+# preCICE -> OpenFOAM -> OpenFOAM adapter (enforced via add_dependencies).
+# Test-only (GPL): run as external programs, never linked or shipped with cfs.
+if(USE_OPENFOAM)
+  if(NOT CFS_BUILD_PRECICE)
+    message(FATAL_ERROR "USE_OPENFOAM requires USE_PRECICE (without precice_DIR): "
+      "the OpenFOAM adapter is built against the cfsdeps preCICE")
+  endif()
+  include("${CFSDEPS_DIR}/openfoam/External_OpenFOAM.cmake")
+  include("${CFSDEPS_DIR}/openfoam-adapter/External_OpenFOAMAdapter.cmake")
+endif()
+
 # ghost is required for phist or could be used standalone
 if(BUILD_GHOST)
   # we use the cfs-fork of ghost and download the stuff via bitbuket

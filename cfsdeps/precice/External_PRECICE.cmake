@@ -152,5 +152,11 @@ if(USE_PRECICE_PETSC AND TARGET petsc)
   add_dependencies(precice petsc)
 endif()
 
+# pkg-config file for consumers outside the cfs cmake world (e.g. the preCICE
+# OpenFOAM adapter, see cfsdeps/openfoam-adapter). Points at the cfs build dir,
+# where the precice install lands both freshly built and precompiled-restored.
+configure_file("${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/libprecice.pc.in"
+               "${CMAKE_BINARY_DIR}/lib/pkgconfig/libprecice.pc" @ONLY)
+
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
