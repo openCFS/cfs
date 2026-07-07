@@ -38,17 +38,54 @@ set(DEPS_SOURCE "${DEPS_PREFIX}/src/${PACKAGE_NAME}") # becomes WM_PROJECT_DIR
 # consumed by cfsdeps/openfoam-adapter and the coupled testsuite
 set(OPENFOAM_DIR "${DEPS_SOURCE}" CACHE INTERNAL "OpenFOAM project dir (WM_PROJECT_DIR)" FORCE)
 
-# OpenFOAM builds with the system gcc and the system OpenMPI (WM_MPLIB=SYSTEMOPENMPI,
-# the same MPI cfs/preCICE use). mpicc is not necessarily in the default PATH
-# (e.g. Fedora installs it to /usr/lib64/openmpi/bin).
+# OpenFOAM builds with the system gcc and a system MPI (WM_MPLIB=SYSTEMOPENMPI).
+# Consistent with openCFS' own policy of not building MPI via cfsdeps (so a tuned
+# HPC MPI can be used - see the USE_MPI note in the top-level CMakeLists.txt), the
+# MPI is expected from the environment/image, NOT from cfsdeps. mpicc is not
+# necessarily in the default PATH (e.g. Fedora / RHEL install it to
+# /usr/lib64/openmpi/bin); the generated build scripts prepend OPENFOAM_MPI_BINDIR.
 find_program(OPENFOAM_MPICC mpicc HINTS /usr/lib64/openmpi/bin /usr/lib/openmpi/bin)
 mark_as_advanced(OPENFOAM_MPICC)
 if(OPENFOAM_MPICC)
   get_filename_component(OPENFOAM_MPI_BINDIR "${OPENFOAM_MPICC}" DIRECTORY)
 else()
   set(OPENFOAM_MPI_BINDIR "")
-  message(STATUS "openfoam: no mpicc found - the OpenFOAM build relies on the caller's environment")
 endif()
+
+# ---------------------------------------------------------------------------
+# Fail fast & legibly on a build environment that lacks OpenFOAM's prerequisites.
+# Unlike every other cfsdep, OpenFOAM is not self-contained: its wmake toolchain
+# shells out to flex, it links the system zlib, and it builds its parallel layer
+# against the system MPI (see above). None of these are provided by cfsdeps. If
+# they are missing the build dies ~10 s into an opaque wmake log (a flex/zlib/mpi
+# error buried in <build>/cfsdeps/openfoam/.../openfoam-build-*.log), so make the
+# requirement explicit here, at configure time, with the exact packages to install.
+find_program(OPENFOAM_FLEX flex)
+find_path(OPENFOAM_ZLIB_H zlib.h)
+mark_as_advanced(OPENFOAM_FLEX OPENFOAM_ZLIB_H)
+set(_openfoam_missing "")
+if(NOT OPENFOAM_FLEX)
+  list(APPEND _openfoam_missing "flex")
+endif()
+if(NOT OPENFOAM_ZLIB_H)
+  list(APPEND _openfoam_missing "zlib headers (zlib-devel / zlib1g-dev)")
+endif()
+if(NOT OPENFOAM_MPICC)
+  list(APPEND _openfoam_missing "an MPI wrapper 'mpicc' (openmpi-devel / libopenmpi-dev)")
+endif()
+if(_openfoam_missing)
+  string(REPLACE ";" "\n    - " _openfoam_missing_list "    - ${_openfoam_missing}")
+  message(FATAL_ERROR
+    "USE_OPENFOAM=ON, but this build environment is missing OpenFOAM prerequisites:\n"
+    "${_openfoam_missing_list}\n\n"
+    "  OpenFOAM is built from source by cfsdeps but, unlike the other deps, relies on\n"
+    "  a few system packages. Install them, e.g.:\n"
+    "    RHEL/CentOS:    yum install -y flex zlib-devel openmpi-devel\n"
+    "    Fedora:         dnf install -y flex zlib-devel openmpi-devel\n"
+    "    Debian/Ubuntu:  apt-get install -y flex zlib1g-dev libopenmpi-dev\n"
+    "  If mpicc lives in a non-standard location, put it on PATH before configuring.")
+endif()
+# ---------------------------------------------------------------------------
 
 # standard precompiled cache name, but as .tar.gz (symlinks, see header comment).
 # use_c_and_fortran only feeds the naming; OpenFOAM builds with the system gcc.

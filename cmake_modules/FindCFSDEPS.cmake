@@ -121,25 +121,22 @@ endif()
 # Optional MPI / PETSc for preCICE (ccmake-visible cache options USE_PRECICE_MPI /
 # USE_PRECICE_PETSC). openCFS does not build MPI itself and builds PETSc via cfsdeps
 # only when USE_PETSC is set; preCICE's MPI/PETSc features are built against whatever
-# openCFS/the system provides. Each option defaults ON when:
-#   * openCFS itself is configured for it (USE_MPI / USE_PETSC) - then the compilers
-#     are already mpicxx wrappers and the same MPI/PETSc is reused, or
-#   * a system copy is detected (find_package(MPI) / pkg-config PETSc).
-# Otherwise default OFF -> the plain build without that feature. The cache options
-# let the user force either feature in ccmake. PETSc mapping requires MPI, so
-# enabling USE_PRECICE_PETSC forces USE_PRECICE_MPI on.
+# openCFS/the system provides.
+#
+# MPI is tied to OpenFOAM: OpenFOAM is always built against a system MPI
+# (WM_MPLIB=SYSTEMOPENMPI, whose presence is enforced in
+# cfsdeps/openfoam/External_OpenFOAM.cmake), so whenever USE_OPENFOAM is set that MPI
+# is guaranteed available and preCICE is built with it too. USE_PRECICE_MPI is thus a
+# dependent option: forced ON (and non-editable) while USE_OPENFOAM is on - it flips
+# with the OpenFOAM switch - and a free, user-editable choice otherwise, defaulting to
+# openCFS' own MPI build (USE_MPI, e.g. pulled in by USE_PETSC).
+#
+# PETSc mapping requires MPI, so enabling USE_PRECICE_PETSC forces USE_PRECICE_MPI on.
 if(CFS_BUILD_PRECICE)
   # --- MPI ---
-  set(_precice_mpi_default OFF)
-  if(USE_MPI)
-    set(_precice_mpi_default ON)
-  else()
-    find_package(MPI QUIET)
-    if(MPI_FOUND OR MPI_CXX_FOUND)
-      set(_precice_mpi_default ON)
-    endif()
-  endif()
-  option(USE_PRECICE_MPI "Build preCICE with MPI communication (against openCFS/system MPI)" ${_precice_mpi_default})
+  cmake_dependent_option(USE_PRECICE_MPI
+    "Build preCICE with MPI communication (against openCFS/system MPI)"
+    "${USE_MPI}" "NOT USE_OPENFOAM" ON)
 
   # --- PETSc (requires MPI) ---
   set(_precice_petsc_default OFF)
