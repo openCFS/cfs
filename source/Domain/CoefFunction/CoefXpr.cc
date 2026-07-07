@@ -90,7 +90,7 @@ std::string CoefXpr::OpToString( OpType op ) {
       return "/";
       break;
     case OP_MULT_TENSOR:
-      return "\u2297";
+      return "\xE2\x8A\x97"; // tensor product sign U+2297 in UTF-8    
       break;
     default:
       EXCEPTION("No string representation for operand type");
