@@ -11,7 +11,7 @@ When computing the postProcResult via the ResultFunctor, vWire1 does not suffer 
 For vWire2 the computation looks different since the voltage level used for the computation is high while the entries for elemMatR used in the ResultFunctor are also relatively large (roughly 1e5 - see sim_log.txt).
 Hence, getting accurate results which should lie somewhere way below 1e-10 is not possible due to numerical inaccuracies, leading to fluctuating results in the range of 1e-9 to 1e-8.
 For vWire1 we get down to below 1e-20 due to the small voltage levels.
-Hence, testing the result for vWire in a relative sense can be quite annyoing/unstable.
+Hence, testing the result for vWire in a relative sense can be quite annyoing/non-stable.
 The elecPowerDensity also suffers this problem but a bit differently since the values in general are way higher since the kernel used for the calculation in the CoefFunctionFormBased gives values in the range of 1e15.
 One way to combat this problem would be to change the geometry.
 

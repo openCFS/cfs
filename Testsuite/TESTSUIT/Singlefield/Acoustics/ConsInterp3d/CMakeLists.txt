@@ -12,5 +12,3 @@ ADD_TEST(${TEST_NAME}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-# this test fails sporadically, hence, we set it to unstable
-# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")

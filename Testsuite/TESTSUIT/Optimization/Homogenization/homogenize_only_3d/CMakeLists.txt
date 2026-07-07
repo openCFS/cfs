@@ -12,6 +12,3 @@ ADD_TEST(${TEST_NAME}
   -DTEST_INFO_XML:STRING="ON"
   -P ${CFS_STANDARD_TEST}
 )
-
-# this test fails consistently in parallel runs, hence, we set it to unstable
-# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
