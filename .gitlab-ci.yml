@@ -560,20 +560,40 @@ rhel:9:
       - job_execution_timeout
   needs: []
 
+# regular gcc9 dependencies (default deps) for the non-max gcc9 builds
+# (linux:gcc9 / gcc9min / gcc9closed). Lean centos7-gcc9 image, no preCICE/OpenFOAM -
+# those live in cfsdeps:gcc9max below, so the regular builds neither pull the heavier
+# _max image (OpenMPI) nor lose their precompiled cache (which is keyed on ${IMAGE}).
 cfsdeps:gcc9:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
-    # build+cache preCICE here so the gcc9max build (MAX_CONFIG_OPTIONS, which
-    # enables USE_PRECICE) consumes the precompiled package instead of building
-    # preCICE in the build stage (avoids build-stage timeouts).
-    # USE_OPENFOAM: openfoam itself comes precompiled from largedeps:gcc9 (this
-    # job then only unpacks it and builds the small openfoam-adapter on top).
-    CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
     IMAGE: centos7-gcc9
-  # consume the precompiled openfoam tar.gz if the largedeps job ran (analog of
-  # the cfsdeps:msvc2022 <- largedeps:msvc2022 pattern)
+
+# max gcc9 dependencies for the OpenFOAM/preCICE-enabled builds (linux:gcc9max*).
+# Uses the centos7-gcc9_max image (flex + zlib-devel + openmpi-devel needed by OpenFOAM)
+# and build+caches preCICE here so the gcc9max build (MAX_CONFIG_OPTIONS -> USE_PRECICE)
+# consumes the precompiled package instead of building preCICE in the build stage
+# (avoids build-stage timeouts). OpenFOAM itself comes precompiled from largedeps:gcc9
+# (this job then only unpacks it and builds the small openfoam-adapter on top).
+cfsdeps:gcc9max:
+  extends: .cfsdeps
+  variables:
+    <<: *cfsdeps-variables
+    CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
+    IMAGE: centos7-gcc9_max
   needs:
+    # reuse the default-dep precompiled packages from the regular gcc9 job: same
+    # compiler/platform (GNU 9.3.1 / RHEL_7), so vtk/hdf5/metis/cgns/... are identical
+    # and are unpacked here instead of rebuilt. Only the preCICE-specific variants
+    # (boost/zlib/libxml2 built shared/-fPIC -> different package name), preCICE itself
+    # and the openfoam-adapter are (re)built in this job.
+    # NOTE: relies on OpenMPI staying OFF the default PATH in the _max image (as it is),
+    # so no dep silently builds an MPI variant under the same name.
+    - job: cfsdeps:gcc9
+      optional: true
+    # consume the precompiled openfoam tar.gz if the largedeps job ran (analog of
+    # the cfsdeps:msvc2022 <- largedeps:msvc2022 pattern)
     - job: largedeps:gcc9
       optional: true
 
@@ -584,7 +604,7 @@ largedeps:gcc9:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
-    IMAGE: centos7-gcc9
+    IMAGE: centos7-gcc9_max
     # USE_PRECICE is required by USE_OPENFOAM (FindCFSDEPS gate); precice itself
     # is NOT built here - only the ${TARGET} target is.
     CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
@@ -832,26 +852,26 @@ cfsdeps:msvc2022:
 linux:gcc9max-debug:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc9
+    IMAGE: centos7-gcc9_max
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
-  needs: 
-    - job: cfsdeps:gcc9
+  needs:
+    - job: cfsdeps:gcc9max
       optional: true
 
 # maximal build using as many options as possible
 linux:gcc9max:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc9
+    IMAGE: centos7-gcc9_max
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
-  needs: 
-    - job: cfsdeps:gcc9
+  needs:
+    - job: cfsdeps:gcc9max
       optional: true
 
 linux:gcc9:
