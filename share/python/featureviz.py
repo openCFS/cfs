@@ -28,11 +28,15 @@ glob = Global()
 
 
 # minimal and maximal are vectors.
-def create_figure(res, minimal, maximal, scale):
+# @param fig reuse this figure (e.g. the persistent window of the interactive set traversal)
+def create_figure(res, minimal, maximal, scale, fig=None):
   # calculate dpi such that the maximum dimension equals res / dpi
   dpi = res / 100.0 * scale
 
-  fig = plt.figure(dpi=100, figsize=(round(dpi * maximal[0]), round(dpi * maximal[1])))
+  if fig is None:
+    fig = plt.figure(dpi=100, figsize=(round(dpi * maximal[0]), round(dpi * maximal[1])))
+  else:
+    fig.clf()
   ax = fig.add_subplot(111)
   ax.set_xlim(minimal[0], maximal[0])
   ax.set_ylim(minimal[1], maximal[1])
@@ -248,7 +252,7 @@ def plot_outline(s, sub, p, fill, linestyle='-', fill_alpha=0.2, line_alpha=1.0)
   # contour
   sub.add_patch(PathPatch(path, facecolor="none", edgecolor=s.color, linewidth=2, zorder=10, capstyle="round", joinstyle="round", linestyle=linestyle, alpha=line_alpha))
 
-def plot_data(res, shapes, detail, domain, ghost):
+def plot_data(res, shapes, detail, domain, ghost, fig=None):
   # domain is typically [[0.0, 0.0], [1.0, 1.0]]
   LL = np.array(domain[0]) # lower left
   UR = np.array(domain[1]) # upper right
@@ -260,9 +264,9 @@ def plot_data(res, shapes, detail, domain, ghost):
   Dy = (maximal[1] - minimal[1])
   scale = 1 / max(Dx, Dy)
 
-  lineopacity = 0.5 if args.gray else 1 # opacity value for plotting lines and points    
+  lineopacity = 0.5 if args.gray else 1 # opacity value for plotting lines and points
 
-  fig, sub = create_figure(res, minimal, maximal, scale)
+  fig, sub = create_figure(res, minimal, maximal, scale, fig)
 
   if detail >= 1: # we plot the domain line alo for ghost=0 as we might have --noaxis
     # draw real domain
@@ -302,41 +306,214 @@ def plot_data(res, shapes, detail, domain, ghost):
 
   return fig
 
+# reads the tabular text file (e.g. the cfs .plot.dat, '#' comment lines are skipped) for --plot
+# @param spec [file, optional x column, optional y column]. Columns are 1-based indices or names
+#        from the '#1:iter\t2:compliance\t...' header (a prefix suffices), defaults 1 and 2
+# @return dict with iter (first column), x, y and axis labels
+def read_plot_dat(spec):
+  path = spec[0]
+  if not os.path.exists(path):
+    print("error: cannot find --plot file '" + path + "'")
+    sys.exit()
+  data = np.loadtxt(path, comments='#', ndmin=2)
+  names = []
+  with open(path) as f:
+    first = f.readline().strip()
+  if first.startswith('#') and ':' in first: # cfs style '#1:iter\t2:compliance\t...'
+    names = [t.split(':',1)[1].strip() for t in first[1:].split('\t') if ':' in t]
+    if len(names) != data.shape[1]:
+      names = []
+
+  def col(key, default):
+    if key is None:
+      return default
+    if key.isdigit():
+      return int(key) - 1
+    for i, n in enumerate(names):
+      if n.startswith(key):
+        return i
+    print("error: --plot column '" + key + "' not found in", names if names else 'headerless ' + path)
+    sys.exit()
+
+  ix = col(spec[1] if len(spec) > 1 else None, 0)
+  iy = col(spec[2] if len(spec) > 2 else None, 1)
+  labels = [names[i] if names else 'column ' + str(i+1) for i in (ix, iy)]
+  return {'iter': data[:,0], 'x': data[:,ix], 'y': data[:,iy], 'xlabel': labels[0], 'ylabel': labels[1]}
+
+# the .plot.dat row of a set: sets are written per iteration, so match the set id against the iter column
+# @return row index or None
+def plot_dat_row(plot, set_id):
+  row = np.nonzero(plot['iter'] == float(set_id))[0]
+  return row[0] if len(row) else None
+
 # renders 3D pills with vtk instead of matplotlib: interactive window, or --save to .png/.pdf/.eps
 # (off-screen screenshot) or .vtp (polydata for ParaView, e.g. to overlay with the density from the .cfs result)
-def visualize_3d(shapes, domain, args):
+# @param file the .density.xml, needed to traverse sets
+# @param sets for --interactive the list of set ids: Right/Left keys switch sets within the window,
+#        the camera persists
+# @param plot optional read_plot_dat() result shown as accompanying chart window with a marker
+#        following the current set
+def visualize_3d(shapes, domain, args, file=None, sets=None, plot=None):
   import vtk
   from matplotlib.colors import to_rgb
-  from matviz_vtk import create_capsule_polydata, generate_outline_box, show_write_vtk
+  from matviz_vtk import create_capsule_polydata, generate_outline_box, show_write_vtk, save_screenshot
 
-  append = vtk.vtkAppendPolyData()
-  for s in shapes:
-    if s.p < 1e-10: # omit zero-width shapes
-      continue
-    # the geometry variable alpha fades the pill towards white by the density factor alpha^q
-    # (translucent actors would need depth sorting); alpha is also attached as point array for ParaView
-    aq = s.alpha ** glob.alpha_q
-    rgb = (1.0 - aq) + aq * np.array(to_rgb(s.color))
-    append.AddInputData(create_capsule_polydata(s.P, s.Q, s.p, color=rgb, scalar=s.alpha))
-  append.Update()
-  poly = append.GetOutput()
-  if poly.GetNumberOfPoints() == 0:
-    print('nothing to visualize: all shapes have zero profile')
+  if args.save and args.save.endswith('.vtp'):
+    # single polydata for ParaView with per-point 'Colors' and the geometry variable as 'alpha' array
+    append = vtk.vtkAppendPolyData()
+    for s in shapes:
+      if s.p < 1e-10: # omit zero-width shapes
+        continue
+      append.AddInputData(create_capsule_polydata(s.P, s.Q, s.p, color=to_rgb(s.color), scalar=s.alpha))
+    append.Update()
+    show_write_vtk(append.GetOutput(), 800, args.save)
     return
 
+  renderer = vtk.vtkRenderer()
+  renderer.SetBackground(1, 1, 1)
+  # one actor per shape, kept when traversing sets - update() only exchanges geometry and properties
+  mappers = []
   actors = []
+  for _ in shapes:
+    mapper = vtk.vtkPolyDataMapper()
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    renderer.AddActor(actor)
+    mappers.append(mapper)
+    actors.append(actor)
+
+  def update(shapes):
+    for s, mapper, actor in zip(shapes, mappers, actors):
+      actor.SetVisibility(s.p >= 1e-10) # omit zero-width shapes
+      if s.p < 1e-10:
+        continue
+      mapper.SetInputData(create_capsule_polydata(s.P, s.Q, s.p))
+      actor.GetProperty().SetColor(to_rgb(s.color))
+      # the geometry variable alpha scales the density with alpha^q -> shown as transparency, with a
+      # floor so switched-off features stay clearly visible (like the dimmed outline in 2D); --alpha
+      # is a global base opacity on top (see through overlaps, 1.0 for opaque publication shots)
+      actor.GetProperty().SetOpacity(args.alpha * (0.3 + 0.7 * s.alpha ** glob.alpha_q))
+  update(shapes)
+
   if args.detail >= 1 and domain is not None:
-    LL = np.array(domain[0])
-    UR = np.array(domain[1])
-    box = generate_outline_box(size=list(UR-LL), offset=list(LL))
+    box = generate_outline_box(size=list(np.array(domain[1])-np.array(domain[0])), offset=list(domain[0]))
     mapper = vtk.vtkPolyDataMapper()
     mapper.SetInputData(box)
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
-    actors.append(actor)
+    renderer.AddActor(actor)
 
-  if args.save or not args.noshow:
-    show_write_vtk(poly, 800, args.save, actors)
+  window = vtk.vtkRenderWindow()
+  window.AddRenderer(renderer)
+  window.SetSize(800, 800)
+  # correct blending of intersecting translucent capsules needs depth peeling
+  window.SetAlphaBitPlanes(1)
+  window.SetMultiSamples(0)
+  renderer.SetUseDepthPeeling(1)
+  renderer.SetMaximumNumberOfPeels(50)
+  renderer.SetOcclusionRatio(0.05)
+
+  if args.save:
+    window.Render()
+    save_screenshot(window, args.save)
+    return
+  if args.noshow:
+    return
+
+  window.SetWindowName(str(file) if file else 'featureviz')
+  interactor = vtk.vtkRenderWindowInteractor()
+  interactor.SetRenderWindow(window)
+
+  # accompanying chart of the .plot.dat as a strip below the 3D scene - within the same window, a
+  # second window gets hidden behind terminal/other windows and a matplotlib window cannot share the
+  # vtk event loop. The red marker follows the current set
+  if sets and plot is not None:
+    table = vtk.vtkTable()
+    for name, values in ((plot['xlabel'], plot['x']), (plot['ylabel'], plot['y'])):
+      arr = vtk.vtkFloatArray()
+      arr.SetName(name)
+      for v in values:
+        arr.InsertNextValue(v)
+      table.AddColumn(arr)
+    marker = vtk.vtkTable()
+    for name in (plot['xlabel'], plot['ylabel']):
+      arr = vtk.vtkFloatArray()
+      arr.SetName(name)
+      arr.InsertNextValue(0.0)
+      marker.AddColumn(arr)
+
+    chart = vtk.vtkChartXY()
+    line = chart.AddPlot(vtk.vtkChart.LINE)
+    line.SetInputData(table, 0, 1)
+    line.SetWidth(2.0)
+    dot = chart.AddPlot(vtk.vtkChart.POINTS)
+    dot.SetInputData(marker, 0, 1)
+    dot.SetColor(255, 0, 0, 255)
+    dot.SetMarkerSize(12.0)
+    chart.GetAxis(vtk.vtkAxis.BOTTOM).SetTitle(plot['xlabel'])
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetTitle(plot['ylabel'])
+
+    chart_actor = vtk.vtkContextActor()
+    chart_actor.GetScene().AddItem(chart)
+    strip = 0.27 # fraction of the window height for the chart
+    renderer.SetViewport(0.0, strip, 1.0, 1.0)
+    chart_ren = vtk.vtkRenderer()
+    chart_ren.SetBackground(1, 1, 1)
+    chart_ren.SetViewport(0.0, 0.0, 1.0, strip)
+    chart_ren.AddActor(chart_actor)
+    window.AddRenderer(chart_ren)
+    window.SetSize(800, 1100) # 800x800 scene plus the chart strip
+
+    def update_marker(set_id): # the caller renders the window
+      row = plot_dat_row(plot, set_id)
+      dot.SetVisible(row is not None)
+      if row is not None:
+        marker.SetValue(0, 0, float(plot['x'][row]))
+        marker.SetValue(0, 1, float(plot['y'][row]))
+        marker.Modified()
+    update_marker(sets[0])
+
+  if sets:
+    state = {'idx': 0}
+    def show_set(idx):
+      state['idx'] = idx % len(sets) # wraps also negative numbers
+      shapes, _, _ = read_xml(file, False, str(sets[state['idx']]), quiet=True)
+      update(shapes)
+      window.SetWindowName(file + ' : set ' + str(sets[state['idx']]) + '/' + str(sets[-1]))
+      print('set ' + str(sets[state['idx']]) + '/' + str(sets[-1]))
+      if plot is not None:
+        update_marker(sets[state['idx']])
+      window.Render()
+    def on_key(obj, event):
+      key = obj.GetKeySym()
+      if key in ('Right', 'n', 'space'):
+        show_set(state['idx'] + 1)
+      elif key in ('Left', 'b'):
+        show_set(state['idx'] - 1)
+    interactor.AddObserver('KeyPressEvent', on_key)
+    # the terminal works like the 2D traversal prompt: a repeating timer polls stdin
+    def on_timer(obj, event):
+      import select
+      if select.select([sys.stdin], [], [], 0)[0]:
+        line = sys.stdin.readline()
+        if not line: # EOF, e.g. piped stdin - stop polling
+          obj.RemoveObservers('TimerEvent')
+          return
+        action = line.strip()
+        if action in ('c', 'q', 'x'):
+          obj.TerminateApp()
+        else:
+          show_set(state['idx'] + (-1 if action == 'b' else +1))
+    interactor.AddObserver('TimerEvent', on_timer)
+    window.SetWindowName(file + ' : set ' + str(sets[0]) + '/' + str(sets[-1]))
+
+  window.Render()
+  if sets:
+    interactor.Initialize()
+    interactor.CreateRepeatingTimer(250)
+  interactor.Start() # blocks until the window is closed
+  cam = renderer.GetActiveCamera()
+  print('camera when closing window: {:f} {:f} {:f} {:f} {:f} {:f} {:f}'.format(*cam.GetPosition(), *cam.GetFocalPoint(), cam.GetRoll()))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -347,6 +524,8 @@ if __name__ == '__main__':
   parser.add_argument('--animate', help="save all sets as animated gif", action='store_true')
   parser.add_argument('--detail', help="level of technical details for spaghetti plot", choices=[0, 1, 2, 3], default=1, type=int)
   parser.add_argument('--density', help="visualize additionally the physical density", action='store_true')
+  parser.add_argument('--alpha', help="3D only: global base opacity of the capsules, multiplied on the per-feature alpha", type=float, default=0.7)
+  parser.add_argument('--plot', nargs='+', help="accompany --interactive with a chart following the current set: <data-file> [x-column] [y-column] with columns as 1-based index or header name (defaults 1 2, i.e. iter and objective of a .plot.dat)")
   parser.add_argument('--ghost', help="add ghost domain in fraction of org size", type=float, default=0.0)
   parser.add_argument('--gray', help="plot grayscale image", action='store_true')
   parser.add_argument('--grid', help="draw the mesh grid on the rendered density/reference cells", action='store_true')
@@ -371,29 +550,100 @@ if __name__ == '__main__':
 
   colors = ['tab:gray'] if args.gray else ['tab:blue', 'tab:green', 'tab:red', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
   
+  if args.plot and not args.interactive:
+    print('--plot is only used with --interactive')
+
   if args.interactive or args.animate:
     xml = ut.open_xml(file)
-    if int(xml.xpath('/cfsErsatzMaterial/header/mesh/@z')[0]) > 1:
-      print('--interactive and --animate are not implemented for 3D')
+    d3 = int(xml.xpath('/cfsErsatzMaterial/header/mesh/@z')[0]) > 1
+    if d3 and args.animate:
+      print('--animate is not implemented for 3D')
       sys.exit()
+    plot = read_plot_dat(args.plot) if args.plot and args.interactive else None
     sts = xml.xpath('/cfsErsatzMaterial/set/@id')
-    if args.interactive: 
-      idx = 0
+    if args.interactive:
       print('sets to traverse interactively',sts)
-      while True:
-        #plt.show(block=False)
-        shapes, domain, rho = read_xml(args.input, args.density, str(sts[idx]), quiet=True)
-        fig = plot_data(800,shapes,args.detail,domain, args.ghost)
+      print('in the focused graphics window press: Right/n/space = next set, Left/b = previous set, q = quit')
+      print('or type here in the terminal: Enter = next, b + Enter = back, q + Enter = quit')
+      if d3: # a single vtk window, sets are switched by key within the window or via the terminal
+        shapes, domain, rho = read_xml(args.input, False, str(sts[0]), quiet=True)
+        visualize_3d(shapes, domain, args, file=file, sets=sts, plot=plot)
+        sys.exit()
+
+      # 2D: one persistent figure (keeps window size/position), same dual control as 3D
+      state = {'idx': 0}
+      fig = None
+
+      # accompanying chart of the .plot.dat, the red marker follows the current set
+      pfig = None
+      def update_marker():
+        if pfig is None:
+          return
+        row = plot_dat_row(plot, sts[state['idx']])
+        if row is not None:
+          pmark.set_data([plot['x'][row]], [plot['y'][row]])
+        else:
+          pmark.set_data([], [])
+        pfig.canvas.draw_idle()
+
+      def show_set(idx):
+        global fig
+        state['idx'] = idx % len(sts) # wraps also negative numbers
+        shapes, domain, rho = read_xml(args.input, args.density, str(sts[state['idx']]), quiet=True)
+        fig = plot_data(800, shapes, args.detail, domain, args.ghost, fig=fig)
         if args.density or ref_rho is not None:
           plot_rho(fig, domain, rho, ref_rho, args.grid)
-        fig.show()  
+        fig.canvas.manager.set_window_title(file + ' : set ' + str(sts[state['idx']]) + '/' + str(sts[-1]))
+        print('set ' + str(sts[state['idx']]) + '/' + str(sts[-1]))
+        update_marker()
+        fig.canvas.draw_idle()
+      show_set(0)
 
-        action = input('you see ' + str(set[idx]) + ' press (b)ack, (c)ancel/q/x or any other key + Enter for next: ')
-        if action in ['c','q','x']:
-          break
-        idx += -1 if action == 'b' else +1
-        idx = idx % len(sts) # wraps also negative numbers to 0 ... len(sts)-1
-        plt.close(fig)
+      # created after the main figure so it opens on top of it - the macosx backend offers no window
+      # positioning, drag it aside once, the position persists over the session
+      if plot is not None:
+        pfig = plt.figure(figsize=(8, 4))
+        pax = pfig.add_subplot(111)
+        pax.plot(plot['x'], plot['y'], '-')
+        pmark, = pax.plot([], [], 'ro', markersize=8)
+        pax.set_xlabel(plot['xlabel'])
+        pax.set_ylabel(plot['ylabel'])
+        pfig.canvas.manager.set_window_title(plot['ylabel'] + ' over ' + plot['xlabel'])
+        pfig.tight_layout()
+        update_marker()
+
+      # the default keymap would put Left/Right on the toolbar view history
+      kid = getattr(fig.canvas.manager, 'key_press_handler_id', None)
+      if kid is not None:
+        fig.canvas.mpl_disconnect(kid)
+      def on_key(event):
+        if event.key in ('right', 'n', ' '):
+          show_set(state['idx'] + 1)
+        elif event.key in ('left', 'b'):
+          show_set(state['idx'] - 1)
+        elif event.key == 'q':
+          plt.close('all')
+      fig.canvas.mpl_connect('key_press_event', on_key)
+      # closing the main window (mouse) also ends the accompanying chart, else plt.show() keeps blocking
+      fig.canvas.mpl_connect('close_event', lambda event: plt.close('all'))
+
+      # the terminal works like a prompt: a timer within the gui event loop polls stdin
+      def on_timer():
+        import select
+        if select.select([sys.stdin], [], [], 0)[0]:
+          line = sys.stdin.readline()
+          if not line: # EOF, e.g. piped stdin - stop polling
+            timer.stop()
+            return
+          action = line.strip()
+          if action in ('c', 'q', 'x'):
+            plt.close('all')
+          else:
+            show_set(state['idx'] + (-1 if action == 'b' else +1))
+      timer = fig.canvas.new_timer(interval=250)
+      timer.add_callback(on_timer)
+      timer.start()
+      plt.show() # blocks until the figure is closed
     if args.animate:
       frames = []
       name = file[:-len('.density.xml')] 
@@ -422,7 +672,7 @@ if __name__ == '__main__':
   if glob.n[2] > 1: # 3D is rendered with vtk, the matplotlib code below is 2D only
     if args.density:
       print('the density is not rendered in 3D - load the .cfs result and the pills .vtp in ParaView instead')
-    visualize_3d(shapes, domain, args)
+    visualize_3d(shapes, domain, args, file=file)
     sys.exit()
 
   fig = plot_data(800,shapes,args.detail,domain, args.ghost)
