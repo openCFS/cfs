@@ -118,36 +118,37 @@ if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
 
-# Optional MPI / PETSc for preCICE (ccmake-visible cache options USE_PRECICE_MPI /
-# USE_PRECICE_PETSC). openCFS does not build MPI itself and builds PETSc via cfsdeps
-# only when USE_PETSC is set; preCICE's MPI/PETSc features are built against whatever
-# openCFS/the system provides.
+# preCICE optional MPI / PETSc features. openCFS does not build MPI itself and builds
+# PETSc via cfsdeps only when USE_PETSC is set; preCICE's MPI/PETSc features are built
+# against whatever openCFS/the system provides. Both flags only take EFFECT when preCICE
+# is actually built (USE_PRECICE -> CFS_BUILD_PRECICE).
 #
-# MPI is tied to OpenFOAM: OpenFOAM is always built against a system MPI
-# (WM_MPLIB=SYSTEMOPENMPI, whose presence is enforced in
-# cfsdeps/openfoam/External_OpenFOAM.cmake), so whenever USE_OPENFOAM is set that MPI
-# is guaranteed available and preCICE is built with it too. USE_PRECICE_MPI stays a
-# normal, ccmake-VISIBLE cache option (a cmake_dependent_option would hide it as
-# INTERNAL while forced, so the user could not see its state): while USE_OPENFOAM is on
-# it is forced ON and locked, and it flips back to the free, user-editable default
-# (openCFS' own USE_MPI) when OpenFOAM is switched off again. _USE_PRECICE_MPI_OF_LOCK
-# records OpenFOAM's last state so a user's own choice is preserved across plain
-# reconfigures and only reset on the on->off transition.
+# USE_PRECICE_MPI is exposed UNCONDITIONALLY as a visible cache option (even while
+# preCICE/OpenFOAM are off) so its state is always inspectable in ccmake - only the bool
+# is always present, the forcing/defaulting logic below stays nested. It is tied to
+# OpenFOAM, which is always built against a system MPI (WM_MPLIB=SYSTEMOPENMPI, whose
+# presence is enforced in cfsdeps/openfoam/External_OpenFOAM.cmake): while USE_OPENFOAM
+# is on the flag is forced ON and locked (and USE_OPENFOAM anyway requires USE_PRECICE,
+# see the FATAL gate further below), otherwise it is a free choice defaulting to openCFS'
+# own USE_MPI. _USE_PRECICE_MPI_OF_LOCK records OpenFOAM's last state so a user's own
+# choice is preserved across plain reconfigures and only reset on the on->off transition.
 #
-# PETSc mapping requires MPI, so enabling USE_PRECICE_PETSC forces USE_PRECICE_MPI on.
-if(CFS_BUILD_PRECICE)
-  # --- MPI ---
-  option(USE_PRECICE_MPI "Build preCICE with MPI communication (against openCFS/system MPI)" "${USE_MPI}")
-  if(USE_OPENFOAM)
-    set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI)" FORCE)
-    message(STATUS "preCICE: USE_PRECICE_MPI forced ON by USE_OPENFOAM (OpenFOAM always builds against a system MPI)")
-  elseif(_USE_PRECICE_MPI_OF_LOCK)
-    # OpenFOAM was enabled (and forced MPI on) but is now off -> restore the free default
-    set(USE_PRECICE_MPI "${USE_MPI}" CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI)" FORCE)
-  endif()
-  set(_USE_PRECICE_MPI_OF_LOCK "${USE_OPENFOAM}" CACHE INTERNAL "tracks USE_OPENFOAM to flip USE_PRECICE_MPI back when OpenFOAM is disabled")
+# USE_PRECICE_PETSC stays nested (only shown/used when preCICE is built). PETSc mapping
+# requires MPI, so enabling it forces USE_PRECICE_MPI on.
 
-  # --- PETSc (requires MPI) ---
+# --- MPI (always exposed) ---
+option(USE_PRECICE_MPI "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" "${USE_MPI}")
+if(USE_OPENFOAM)
+  set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
+  message(STATUS "preCICE: USE_PRECICE_MPI forced ON by USE_OPENFOAM (OpenFOAM always builds against a system MPI)")
+elseif(_USE_PRECICE_MPI_OF_LOCK)
+  # OpenFOAM was enabled (and forced MPI on) but is now off -> restore the free default
+  set(USE_PRECICE_MPI "${USE_MPI}" CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
+endif()
+set(_USE_PRECICE_MPI_OF_LOCK "${USE_OPENFOAM}" CACHE INTERNAL "tracks USE_OPENFOAM to flip USE_PRECICE_MPI back when OpenFOAM is disabled")
+
+# --- PETSc (nested: only relevant when preCICE is built) ---
+if(CFS_BUILD_PRECICE)
   set(_precice_petsc_default OFF)
   if(USE_PETSC)
     # openCFS builds PETSc in cfsdeps (see below) - reuse that one
@@ -166,7 +167,7 @@ if(CFS_BUILD_PRECICE)
   # PETSc mapping needs MPI - force MPI on when PETSc is requested
   if(USE_PRECICE_PETSC AND NOT USE_PRECICE_MPI)
     message(STATUS "preCICE: USE_PRECICE_PETSC requires MPI - enabling USE_PRECICE_MPI")
-    set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI)" FORCE)
+    set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
   endif()
 endif()
 
