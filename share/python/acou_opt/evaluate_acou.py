@@ -133,6 +133,7 @@ if __name__ == "__main__":
 
     # copy/create eval simulation input file
     param_path = path.with_name(f"{path.name}_eval").with_suffix(".xml")
+    param_path.parent.mkdir(parents=True, exist_ok=True)  # create folder if it doesnt exist
     if args.param is not None:
         # copy and edit
         in_path = pathlib.Path(args.param)
