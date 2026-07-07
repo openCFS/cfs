@@ -60,25 +60,27 @@ class Pill:
     self.set(P,Q,p)
 
   def set(self, P,Q,p):
-    
-    self.P = np.array(P) # start coordinate
+
+    self.P = np.array(P) # start coordinate, 2D or 3D
     self.Q = np.array(Q) # end coordinate
     self.p = p # profile is full structure thickness
-    
+
     self.U = self.Q - self.P # base line p -> q
     norm_U = np.linalg.norm(self.U)
     if norm_U < 1e-20:
-      self.U[:] = [1e-20,0]
+      self.U[:] = 0.0
+      self.U[0] = 1e-20
       norm_U = np.linalg.norm(self.U)
     self.U0 = self.U / norm_U
-    self.V = np.array((-self.U[1],self.U[0])) # normal to u
-    self.V0 = self.V / np.linalg.norm(self.V)
-   
+    if len(self.P) == 2: # the normal is only defined (and only needed for plotting) in 2D
+      self.V = np.array((-self.U[1],self.U[0])) # normal to u
+      self.V0 = self.V / np.linalg.norm(self.V)
+
     #print('Pill.set P',P,'Q',Q,'p',p,'U',self.U,'U0',self.U0,'V',self.V,'V0',self.V0)
 
-  # @return p_x,p_y,q_x,q_y,p
+  # @return p_x,p_y,(p_z),q_x,q_y,(q_z),p
   def optvar(self):
-    return [self.P[0],self.P[1],self.Q[0],self.Q[1],self.p]
+    return list(self.P) + list(self.Q) + [self.p]
 
   # print the shape info
   def __str__(self):
@@ -100,7 +102,7 @@ def read_xml(filename, density = False, set = None, quiet = False):
   glob.n[0] = int(ut.xpath(header, './mesh/@x'))
   glob.n[1] = int(ut.xpath(header, './mesh/@y'))
   glob.n[2] = int(ut.xpath(header, './mesh/@z'))
-  assert(glob.n[2] == 1)
+  d3 = glob.n[2] > 1
 
   # modern cfs has a mesh domain, very modern optimization domain
   domain = None #
@@ -110,6 +112,9 @@ def read_xml(filename, density = False, set = None, quiet = False):
   if len(pn) == 1: # we assume a single coordinate system
     dic = pn[0].attrib
     domain = [[float(dic['min_x']),float(dic['min_y'])],[float(dic['max_x']),float(dic['max_y'])]]
+    if d3:
+      domain[0].append(float(dic['min_z']))
+      domain[1].append(float(dic['max_z']))
     if not quiet:
       print('read mesh discretization',glob.n,'domain bounds', domain)
 
@@ -138,10 +143,11 @@ def read_xml(filename, density = False, set = None, quiet = False):
       if(child.tag == "element"):
         physical.append(float(child.get("physical" if "physical" in child.attrib else "design")))
     if len(physical) != np.prod(glob.n):
-      print('cannot visualize density: there are',len(physical),'rho_e in the .density.xml set but mesh is',glob.n[0],'x',glob.n[1])
+      print('cannot visualize density: there are',len(physical),'rho_e in the .density.xml set but mesh is',glob.n)
     else:
-      # Fortran order (x changes fastest) 
-      rho = np.reshape(physical,(glob.n[0],glob.n[1]), order='F')
+      # Fortran order (x changes fastest)
+      shape = (glob.n[0],glob.n[1],glob.n[2]) if d3 else (glob.n[0],glob.n[1])
+      rho = np.reshape(physical,shape, order='F')
 
   while True: # exit with break
     idx = len(shapes)
@@ -151,10 +157,8 @@ def read_xml(filename, density = False, set = None, quiet = False):
       break
 
     # our xpath helper in optimization tools expects exactly one hit
-    Px = float(ut.xpath(data, base + '[@dof="x"][@tip="start"]/@design'))
-    Py = float(ut.xpath(data, base + '[@dof="y"][@tip="start"]/@design'))
-    Qx = float(ut.xpath(data, base + '[@dof="x"][@tip="end"]/@design'))                   
-    Qy = float(ut.xpath(data, base + '[@dof="y"][@tip="end"]/@design'))
+    P = [float(ut.xpath(data, base + '[@dof="' + dof + '"][@tip="start"]/@design')) for dof in (('x','y','z') if d3 else ('x','y'))]
+    Q = [float(ut.xpath(data, base + '[@dof="' + dof + '"][@tip="end"]/@design')) for dof in (('x','y','z') if d3 else ('x','y'))]
     # width of noodle is 2*w -> don't confuse with P
     p  = float(ut.xpath(data, base + '[@type="profile"]/@design'))
     # the optional geometry variable alpha (older files and runs without alpha lack it)
@@ -162,7 +166,7 @@ def read_xml(filename, density = False, set = None, quiet = False):
     alpha = float(al[0]) if len(al) == 1 else 1.0
 
     base = sum([len(s.optvar()) for s in shapes])
-    pill = Pill(id=idx, base=base, P=(Px,Py), Q=(Qx,Qy), p=p, alpha=alpha)
+    pill = Pill(id=idx, base=base, P=P, Q=Q, p=p, alpha=alpha)
     shapes.append(pill)
     # print('# read pill', pill)
       
@@ -298,6 +302,42 @@ def plot_data(res, shapes, detail, domain, ghost):
 
   return fig
 
+# renders 3D pills with vtk instead of matplotlib: interactive window, or --save to .png/.pdf/.eps
+# (off-screen screenshot) or .vtp (polydata for ParaView, e.g. to overlay with the density from the .cfs result)
+def visualize_3d(shapes, domain, args):
+  import vtk
+  from matplotlib.colors import to_rgb
+  from matviz_vtk import create_capsule_polydata, generate_outline_box, show_write_vtk
+
+  append = vtk.vtkAppendPolyData()
+  for s in shapes:
+    if s.p < 1e-10: # omit zero-width shapes
+      continue
+    # the geometry variable alpha fades the pill towards white by the density factor alpha^q
+    # (translucent actors would need depth sorting); alpha is also attached as point array for ParaView
+    aq = s.alpha ** glob.alpha_q
+    rgb = (1.0 - aq) + aq * np.array(to_rgb(s.color))
+    append.AddInputData(create_capsule_polydata(s.P, s.Q, s.p, color=rgb, scalar=s.alpha))
+  append.Update()
+  poly = append.GetOutput()
+  if poly.GetNumberOfPoints() == 0:
+    print('nothing to visualize: all shapes have zero profile')
+    return
+
+  actors = []
+  if args.detail >= 1 and domain is not None:
+    LL = np.array(domain[0])
+    UR = np.array(domain[1])
+    box = generate_outline_box(size=list(UR-LL), offset=list(LL))
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(box)
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actors.append(actor)
+
+  if args.save or not args.noshow:
+    show_write_vtk(poly, 800, args.save, actors)
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml")
@@ -333,6 +373,9 @@ if __name__ == '__main__':
   
   if args.interactive or args.animate:
     xml = ut.open_xml(file)
+    if int(xml.xpath('/cfsErsatzMaterial/header/mesh/@z')[0]) > 1:
+      print('--interactive and --animate are not implemented for 3D')
+      sys.exit()
     sts = xml.xpath('/cfsErsatzMaterial/set/@id')
     if args.interactive: 
       idx = 0
@@ -375,6 +418,13 @@ if __name__ == '__main__':
 
   # sets some values in glob!
   shapes, domain, rho = read_xml(file, args.density, args.set)
+
+  if glob.n[2] > 1: # 3D is rendered with vtk, the matplotlib code below is 2D only
+    if args.density:
+      print('the density is not rendered in 3D - load the .cfs result and the pills .vtp in ParaView instead')
+    visualize_3d(shapes, domain, args)
+    sys.exit()
+
   fig = plot_data(800,shapes,args.detail,domain, args.ghost)
   if args.density or ref_rho is not None:
     plot_rho(fig, domain, rho, ref_rho, args.grid)

@@ -77,7 +77,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     <linearSystems>
       <system>
         <solverList>
-          <directLDL/>
+          <ginkgo/>
         </solverList>
       </system>
     </linearSystems>
