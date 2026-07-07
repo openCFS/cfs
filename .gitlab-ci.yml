@@ -808,12 +808,33 @@ cfsdeps:msvc2022:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
 
+# OpenFOAM/preCICE (gcc9max lane) link the image's OpenMPI, installed under
+# /usr/lib64/openmpi but kept OFF the default PATH/loader path. Prepend it so
+# mpirun is found and libmpi.so (pulled in via libprecice.so) resolves at link +
+# run time. On a _max image the dir MUST exist -> fail loudly; else: silent no-op.
+.setup-openmpi-env:
+  script:
+    - |
+      case "$IMAGE" in
+        *_max)
+          if [ -d /usr/lib64/openmpi/bin ]; then
+            export PATH="/usr/lib64/openmpi/bin:$PATH"
+            export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}"
+            echo "openmpi env prepended: mpirun=$(command -v mpirun)"
+          else
+            echo "ERROR: _max image but /usr/lib64/openmpi missing (OpenFOAM/preCICE link libmpi.so)" >&2
+            exit 1
+          fi ;;
+      esac
+
 .gcc_before: &gcc_before
   before_script:
     # debug output
     - gcc --version
     # general build before script
     - !reference [.before-script-build, script]
+    # gcc9max lane: make the image's OpenMPI reachable (loud on _max, no-op else)
+    - !reference [.setup-openmpi-env, script]
 
 .intel_before: &intel_before
   before_script:
@@ -1081,6 +1102,8 @@ windows:msvc2022:
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
     - !reference [.cmake_test_or_install,script]
+    # gcc9max lane: make the image's OpenMPI reachable (loud on _max, no-op else)
+    - !reference [.setup-openmpi-env, script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -1164,7 +1187,10 @@ stable_par:gcc9max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc9
+    # must match the gcc9max build image: the binaries are linked against the
+    # _max image's OpenMPI (preCICE-MPI) and OpenFOAM, so the lean centos7-gcc9
+    # image would fail at runtime with a missing libmpi.so / OpenFOAM libs.
+    IMAGE: centos7-gcc9_max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   needs:
@@ -1178,7 +1204,9 @@ unstable_ser:gcc9max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc9
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs); see
+    # stable_par:gcc9max:linux above.
+    IMAGE: centos7-gcc9_max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1367,7 +1395,8 @@ unstable_par:gcc9max:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9_max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1381,7 +1410,8 @@ broken_ser:gcc9max:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9_max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1398,7 +1428,8 @@ no-slow_ser:gcc9max-debug:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max-debug build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9_max
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"

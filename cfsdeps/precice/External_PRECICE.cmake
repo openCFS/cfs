@@ -82,6 +82,32 @@ set(DEPS_ARGS ${DEPS_ARGS}
   # eigen is header-only and always taken from the normal cfsdeps install.
   -DEigen3_ROOT:PATH=${CMAKE_BINARY_DIR})
 
+# With MPI communication on, preCICE runs its own find_package(MPI). The cfsdeps
+# build uses the plain (non-mpi) compilers, and the CI _max image ships OpenMPI
+# but keeps it OFF the default PATH (so other deps do not silently build MPI
+# variants - see cfsdeps:gcc9max in .gitlab-ci.yml). preCICE's find_package(MPI)
+# then finds nothing and dies with "Could NOT find MPI (missing: MPI_CXX_FOUND)".
+# Locate the MPI wrappers the same way OpenFOAM does (find_program with the RHEL/
+# Fedora openmpi HINTS, falling back to PATH) and hand them to preCICE only, so
+# the "OpenMPI off PATH" invariant stays intact for every other dependency.
+if(USE_PRECICE_MPI)
+  find_program(PRECICE_MPICC  NAMES mpicc          HINTS /usr/lib64/openmpi/bin /usr/lib/openmpi/bin)
+  find_program(PRECICE_MPICXX NAMES mpicxx mpic++  HINTS /usr/lib64/openmpi/bin /usr/lib/openmpi/bin)
+  mark_as_advanced(PRECICE_MPICC PRECICE_MPICXX)
+  if(PRECICE_MPICC AND PRECICE_MPICXX)
+    message(STATUS "preCICE: using MPI wrappers ${PRECICE_MPICXX} / ${PRECICE_MPICC}")
+    list(APPEND DEPS_ARGS
+      -DMPI_C_COMPILER:FILEPATH=${PRECICE_MPICC}
+      -DMPI_CXX_COMPILER:FILEPATH=${PRECICE_MPICXX})
+  else()
+    message(WARNING
+      "preCICE: USE_PRECICE_MPI is ON but no MPI wrapper (mpicc/mpicxx) was found "
+      "in the default PATH or /usr/lib64/openmpi/bin - preCICE's find_package(MPI) "
+      "will likely fail. Install openmpi-devel / libopenmpi-dev, or put the MPI bin "
+      "dir on PATH before configuring.")
+  endif()
+endif()
+
 # When PETSc mapping is on, point preCICE's FindPETSc at openCFS' PETSc:
 #  * USE_PETSC -> the cfsdeps PETSc prefix install (full prefix with lib/petsc/conf,
 #    populated whether freshly built or restored from the precompiled cache),
