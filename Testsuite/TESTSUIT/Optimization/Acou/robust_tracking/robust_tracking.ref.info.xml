@@ -2,15 +2,15 @@
 
 <cfsInfo status="finished" infoWriteCounter="28" infoRejectCounter="0">
   <summary>
-    <timer id="0" wall-clock="0.3887s" wall="0.388724" cpu="0.385982" calls="1"/>
+    <timer id="0" wall-clock="0.4184s" wall="0.418374" cpu="0.40899" calls="1"/>
     <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="202" peak="222"/>
+    <memory final="192" peak="213"/>
   </summary>
   <header id="">
-    <environment started="23-Apr-26 12:37:18" host="TPX1"/>
+    <environment started="08-Jul-26 15:01:03" host="TPX1"/>
     <progOpts problem="robust_tracking" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/robust_tracking/robust_tracking.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.04" name="Just Jacobians" build="RELEASE" git_commit="3aa35952f91ba8fec269129fbe6cdc489e5963fa-modified" git_branch="felhub_wedge" compiled="Apr 23 2026" exe="cfs"/>
+      <cfs version="26.06" name="Kaum Konvergenz" build="RELEASE" git_commit="0a5ce3e23b3ea6e5ad66abdc621b5a3bd1df36b2-modified" git_branch="felhub_multiexfix" compiled="Jul  8 2026" exe="cfs"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain nx="10" ny="36" nz="1">
@@ -19,15 +19,15 @@
       </coordinateSystems>
       <grids>
         <grid gridId="default" dimensions="2" elements="452" nodes="407">
-          <timer id="5" wall-clock="0.0012s" wall="0.00119975" cpu="0.0012" calls="2"/>
+          <timer id="5" wall-clock="0.00137s" wall="0.00136976" cpu="0.00137" calls="2"/>
           <readMesh>
-            <timer id="6" wall-clock="0.0002232s" wall="0.00022321" cpu="0.000224" calls="1" sub="true" parent="5"/>
+            <timer id="6" wall-clock="0.0002656s" wall="0.000265623" cpu="0.000265" calls="1" sub="true" parent="5"/>
           </readMesh>
           <finishInit>
-            <timer id="7" wall-clock="0.0002168s" wall="0.000216759" cpu="0.000217" calls="1" sub="true" parent="5"/>
+            <timer id="7" wall-clock="0.0002545s" wall="0.000254544" cpu="0.000254" calls="1" sub="true" parent="5"/>
           </finishInit>
           <userDefined>
-            <timer id="8" wall-clock="1.205e-06s" wall="1.205e-06" cpu="1e-06" calls="1" sub="true" parent="7"/>
+            <timer id="8" wall-clock="1.399e-06s" wall="1.399e-06" cpu="2e-06" calls="1" sub="true" parent="7"/>
           </userDefined>
           <mapFacesEdges>
             <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
@@ -62,15 +62,15 @@
       <globalMathParser dt="0" f="1000" nx="10" ny="36" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer id="38" wall-clock="0.009337s" wall="0.00933676" cpu="0.009335" calls="154"/>
+      <timer id="40" wall-clock="0.007669s" wall="0.0076693" cpu="0.007673" calls="154"/>
     </results>
   </header>
   <output>
     <hdf5>
-      <timer id="2" wall-clock="0.002702s" wall="0.00270164" cpu="0.002702" calls="1"/>
+      <timer id="2" wall-clock="0.00177s" wall="0.00176956" cpu="0.00177" calls="1"/>
     </hdf5>
     <info>
-      <timer id="4" wall-clock="4.76e-07s" wall="4.76e-07" cpu="0" calls="1"/>
+      <timer id="4" wall-clock="7.38e-07s" wall="7.38e-07" cpu="0" calls="1"/>
       <calculation>
         <process/>
       </calculation>
@@ -80,7 +80,7 @@
     <harmonic>
       <header unit="Hz" sampling="linear" start="1000" end="1000" numFreq="1"/>
       <init_harmonic>
-        <timer id="17" wall-clock="0.009954s" wall="0.00995437" cpu="0.009429" calls="1"/>
+        <timer id="17" wall-clock="0.006859s" wall="0.00685888" cpu="0.006857" calls="1"/>
       </init_harmonic>
     </harmonic>
     <PDE>
@@ -90,6 +90,13 @@
           <region name="S_acou" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
+              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="yes" region="L_in_surf">
+                <coef type="CoefFunctionConst" value="(0.00241848,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
               <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
                 <row pde="acoustic" functionId="0" result="acouPressure"/>
                 <column pde="acoustic" functionId="0" result="acouPressure"/>
@@ -102,24 +109,17 @@
                 <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
-                <row pde="acoustic" functionId="0" result="acouPressure"/>
-                <column pde="acoustic" functionId="0" result="acouPressure"/>
-                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
-              </bilinearForm>
               <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_opt">
                 <row pde="acoustic" functionId="0" result="acouPressure"/>
                 <column pde="acoustic" functionId="0" result="acouPressure"/>
                 <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="yes" region="L_in_surf">
-                <coef type="CoefFunctionConst" value="(0.00241848,0)"/>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
                 <row pde="acoustic" functionId="0" result="acouPressure"/>
                 <column pde="acoustic" functionId="0" result="acouPressure"/>
-                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
               </bilinearForm>
               <bilinearForm integrator="abcIntegrator" type="BBInt" complex="yes" region="L_out_surf">
                 <coef type="CoefFunctionConst" value="(0.00241848,0)"/>
@@ -180,16 +180,23 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
             <summary>
               <setup>
-                <timer id="28" label="setup_pardiso" wall-clock="0.01853s" wall="0.0185269" cpu="0.018519" calls="60"/>
+                <timer id="29" label="setup_pardiso" wall-clock="0.01953s" wall="0.0195269" cpu="0.019535" calls="60"/>
+                <symbfact>
+                  <timer id="38" wall-clock="0.0007204s" wall="0.000720352" cpu="0.000721" calls="1" sub="true" parent="29"/>
+                </symbfact>
+                <numfact>
+                  <timer id="39" wall-clock="0.01703s" wall="0.0170343" cpu="0.017028" calls="60" sub="true" parent="29"/>
+                </numfact>
               </setup>
               <solve>
-                <timer id="29" label="solve_pardiso" wall-clock="0.02526s" wall="0.0252581" cpu="0.025235" calls="180"/>
+                <timer id="30" label="solve_pardiso" wall-clock="0.02721s" wall="0.0272103" cpu="0.027194" calls="180"/>
               </solve>
             </summary>
             <process>
+              <!-- memory in KB-->
               <call number="1">
-                <symbfact cpu="0.000877" wall="0.00087777" peakMem="304" permanentMem="297"/>
-                <numfact cpu="0.000215" wall="0.00021458" peakMem="169"/>
+                <symbfact cpu="0.00072" wall="0.00072029" peakMem="304" permanentMem="297"/>
+                <numfact cpu="0.000399" wall="0.0003998" peakMem="169"/>
               </call>
             </process>
             <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
@@ -199,10 +206,10 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer id="30" wall-clock="4.176e-05s" wall="4.1757e-05" cpu="5.4e-05" calls="60"/>
+                <timer id="31" wall-clock="3.392e-05s" wall="3.3918e-05" cpu="3.7e-05" calls="60"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer id="31" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -212,12 +219,12 @@
         </process>
       </acoustic>
       <graph nnz="3379">
-        <timer id="23" wall-clock="0.001398s" wall="0.0013976" cpu="0.000873" calls="1" sub="true" parent="17"/>
+        <timer id="24" wall-clock="0.000763s" wall="0.000762984" cpu="0.000763" calls="1" sub="true" parent="17"/>
         <finalize>
-          <timer id="24" wall-clock="6.911e-05s" wall="6.9114e-05" cpu="7e-05" calls="1" sub="true" parent="23"/>
+          <timer id="25" wall-clock="5.903e-05s" wall="5.9027e-05" cpu="6e-05" calls="1" sub="true" parent="24"/>
         </finalize>
         <sort>
-          <timer id="25" wall-clock="2.071e-05s" wall="2.0708e-05" cpu="2e-05" calls="1" sub="true" parent="23"/>
+          <timer id="26" wall-clock="2.021e-05s" wall="2.0205e-05" cpu="2e-05" calls="1" sub="true" parent="24"/>
         </sort>
         <rows number="407" min="4" max="9" mean="8.3022" estimated_row_size="100"/>
       </graph>
@@ -225,19 +232,19 @@
     <analysis>
       <summary>
         <assemble>
-          <timer id="19" wall-clock="0.1337s" wall="0.133665" cpu="0.131738" calls="480"/>
+          <timer id="19" wall-clock="0.1487s" wall="0.148672" cpu="0.147175" calls="480"/>
           <matrices>
-            <timer id="20" wall-clock="0.1302s" wall="0.130216" cpu="0.128229" calls="60" sub="true" parent="19"/>
+            <timer id="20" wall-clock="0.1449s" wall="0.144933" cpu="0.143389" calls="60" sub="true" parent="19"/>
           </matrices>
           <rhs>
-            <timer id="21" wall-clock="0.003181s" wall="0.00318103" cpu="0.003178" calls="420" sub="true" parent="19"/>
+            <timer id="21" wall-clock="0.003448s" wall="0.00344827" cpu="0.003441" calls="420" sub="true" parent="19"/>
           </rhs>
         </assemble>
       </summary>
     </analysis>
     <nonlinearConvergence>
       <evaluateNonlinearity>
-        <timer id="22" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+        <timer id="23" wall-clock="0s" wall="0" cpu="0" calls="0"/>
       </evaluateNonlinearity>
     </nonlinearConvergence>
   </sequenceStep>
@@ -253,7 +260,7 @@
       </constraints>
       <designSpace pamping="0" regular="yes" localElementCache="disabled">
         <setup_design>
-          <timer id="18" wall-clock="0.0001499s" wall="0.000149882" cpu="0.000149" calls="4"/>
+          <timer id="18" wall-clock="0.000133s" wall="0.000132988" cpu="0.000132" calls="4"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="3.5" contribution="linear" design="density" robust_excitation="0" elems="200" avg_radius="0.00875" avg_neighbors="28.5">
@@ -265,7 +272,7 @@
           <filter type="maxEdge" value="3.5" contribution="linear" design="density" robust_excitation="2" elems="200" avg_radius="0.00875" avg_neighbors="28.5">
             <tanh eta="0.5" beta="1.000000" scaling="2.1636" offset="-0.58174"/>
           </filter>
-          <timer id="32" wall-clock="0.0006971s" wall="0.000697139" cpu="0.000691" calls="3"/>
+          <timer id="22" wall-clock="0.0006793s" wall="0.0006793" cpu="0.00068" calls="3"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="acoustic" design="density" param="1"/>
@@ -290,7 +297,7 @@
       <snopt>
         <summary snopt_outputfile="robust_tracking.snopt">
           <snopt>
-            <timer id="33" wall-clock="0.004615s" wall="0.00461537" cpu="0.004607" calls="96"/>
+            <timer id="33" wall-clock="0.004987s" wall="0.00498686" cpu="0.004896" calls="96"/>
           </snopt>
           <snopt_exit exit="0" info="32"/>
           <evaluations f_evals="21" g_evals="20" majors="9"/>
@@ -300,16 +307,16 @@
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer id="34" wall-clock="0.007972s" wall="0.00797242" cpu="0.007967" calls="102"/>
+        <timer id="34" wall-clock="0.008882s" wall="0.00888168" cpu="0.008822" calls="102"/>
       </eval_objective>
       <eval_constraints>
-        <timer id="35" wall-clock="0.0006301s" wall="0.000630149" cpu="0.000627" calls="21"/>
+        <timer id="35" wall-clock="0.0006781s" wall="0.000678145" cpu="0.000675" calls="21"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer id="36" wall-clock="0.0005101s" wall="0.000510114" cpu="0.000512" calls="20"/>
+        <timer id="36" wall-clock="0.0005258s" wall="0.000525787" cpu="0.000527" calls="20"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer id="37" wall-clock="0.06035s" wall="0.0603533" cpu="0.060334" calls="20"/>
+        <timer id="37" wall-clock="0.06984s" wall="0.069841" cpu="0.069784" calls="20"/>
       </eval_grad_constraints>
       <break converged="no"/>
       <functions>
@@ -321,57 +328,57 @@
       </functions>
     </summary>
     <process>
-      <iteration number="0" frequency="(mult)" duration="0.12868" slack="85.8225531212422" dynamicOutput_f_0="0.733171022384649" nObj="2">
+      <iteration number="0" frequency="(mult)" duration="0.12925" slack="85.8225531212422" dynamicOutput_f_0="0.733171022384655" nObj="2">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
         <excitation index="2" objective="85.823" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="1" frequency="(mult)" duration="0.015409" slack="71.6451062424844" dynamicOutput_f_0="0.733171022384649" nObj="3">
+      <iteration number="1" frequency="(mult)" duration="0.014538" slack="71.6451062424844" dynamicOutput_f_0="0.733171022384655" nObj="3">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
         <excitation index="2" objective="71.645" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="2" frequency="(mult)" duration="0.039028" slack="0.100286523319184" dynamicOutput_f_0="0.733171022384649" nObj="6">
+      <iteration number="2" frequency="(mult)" duration="0.037981" slack="0.100286523319197" dynamicOutput_f_0="0.733171022384655" nObj="6">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
         <excitation index="2" objective="0.10029" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="3" frequency="(mult)" duration="0.02714" slack="0" dynamicOutput_f_0="0.461019270619782" nObj="8">
+      <iteration number="3" frequency="(mult)" duration="0.045435" slack="0" dynamicOutput_f_0="0.461019270619756" nObj="8">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0038634"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.019511"/>
         <excitation index="2" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_2="0.0015538"/>
       </iteration>
-      <iteration number="4" frequency="(mult)" duration="0.015188" slack="0.00545547667580875" dynamicOutput_f_0="0.469737603003937" nObj="9">
+      <iteration number="4" frequency="(mult)" duration="0.017104" slack="0.00545547667580813" dynamicOutput_f_0="0.469737603003933" nObj="9">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0018559"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.01086"/>
         <excitation index="2" objective="0.0054555" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00087943"/>
       </iteration>
-      <iteration number="5" frequency="(mult)" duration="0.040532" slack="0.00422767490060356" dynamicOutput_f_0="0.463658378418986" nObj="12">
+      <iteration number="5" frequency="(mult)" duration="0.041727" slack="0.00422767490060324" dynamicOutput_f_0="0.463658378418981" nObj="12">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.00080795"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.010267"/>
         <excitation index="2" objective="0.0042277" objective_weight="0.33333" dynamicOutputTracking_f_2="0.001305"/>
       </iteration>
-      <iteration number="6" frequency="(mult)" duration="0.042262" slack="0.00408643719646046" dynamicOutput_f_0="0.466827636164272" nObj="15">
+      <iteration number="6" frequency="(mult)" duration="0.040735" slack="0.00408643719645996" dynamicOutput_f_0="0.466827636164274" nObj="15">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0010048"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.009658"/>
         <excitation index="2" objective="0.0040864" objective_weight="0.33333" dynamicOutputTracking_f_2="0.0010851"/>
       </iteration>
-      <iteration number="7" frequency="(mult)" duration="0.028422" slack="0.00334545709657423" dynamicOutput_f_0="0.465098597012496" nObj="17">
+      <iteration number="7" frequency="(mult)" duration="0.027102" slack="0.00334545709657543" dynamicOutput_f_0="0.465098597012501" nObj="17">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0007172"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0093343"/>
         <excitation index="2" objective="0.0033455" objective_weight="0.33333" dynamicOutputTracking_f_2="0.001216"/>
       </iteration>
-      <iteration number="8" frequency="(mult)" duration="0.027961" slack="0.00277864640930821" dynamicOutput_f_0="0.469346751706489" nObj="19">
+      <iteration number="8" frequency="(mult)" duration="0.04083" slack="0.00277864640930768" dynamicOutput_f_0="0.469346751706494" nObj="19">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.00073675"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0077654"/>
         <excitation index="2" objective="0.0027786" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00095984"/>
       </iteration>
-      <iteration number="9" frequency="(mult)" duration="0.014661" slack="0.00247649403908735" dynamicOutput_f_0="0.474623454076414" nObj="20">
+      <iteration number="9" frequency="(mult)" duration="0.018335" slack="0.00247649403908623" dynamicOutput_f_0="0.474623454076465" nObj="20">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0008034"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0062129"/>
         <excitation index="2" objective="0.0024765" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00065804"/>
       </iteration>
-      <iteration number="10" frequency="(mult)" duration="0.0025133" slack="0.00247649403908735" dynamicOutput_f_0="0.474623454076414" nObj="21">
+      <iteration number="10" frequency="(mult)" duration="0.0027285" slack="0.00247649403908623" dynamicOutput_f_0="0.474623454076465" nObj="21">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0008034"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0062129"/>
         <excitation index="2" objective="0.0024765" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00065804"/>
