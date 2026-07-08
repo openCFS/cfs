@@ -261,10 +261,9 @@ namespace CoupledField {
           // PSEUDO TIME-STEPPING [START]
           // ===================================================================
           if (is_pseudo_time_stepping == 1){   
-            //CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(beta,0.01)))*1*1.256637061e-06*std::pow(10,beta/2)))), CoefXpr::OP_DIV);
             CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
             PtrCoefFct jVec_coefFct = CoefFunction::Generate(mp_, part, jVec);
-            CoefXprVecScalOp p_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, boost::lexical_cast<std::string>(1.256637061e-06*std::pow(10,beta/2)), CoefXpr::OP_MULT);
+            CoefXprVecScalOp p_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, boost::lexical_cast<std::string>(1.256637061e-06*std::pow(10,beta/2)*1/(std::pow(beta,0.01))), CoefXpr::OP_MULT);
             jFct[0] = CoefFunction::Generate(mp_, part, p_times_jVec);
             coilCurrentDens_[actRegion] = jFct[0];
             curInt = GetCurrentDensityInt( 1.0, jFct[0] );
@@ -551,7 +550,7 @@ namespace CoupledField {
           }
           else if (modelName_ == "EBHysteresisModel"){ // (this is the model we want to use!)
             if (dim_ == 2) {
-              p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)));
+              p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
               curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), nlScalCoefm_[actRegion],1.0, updatedGeo_);
             } else {
               curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nlScalCoefm_[actRegion],1.0, updatedGeo_);
@@ -560,7 +559,7 @@ namespace CoupledField {
           }
         } else{ // LINEAR CASE
           //p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(beta,0.01)))*1*mu_regularize*std::pow(10,beta/2)));
-          p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)));
+          p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
           if (dim_ == 2) {
             curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), p,1.0, updatedGeo_);
           } else {
@@ -916,7 +915,7 @@ namespace CoupledField {
             lin1_pts->SetName("(p_nl curlh,curlN): residual");
           } else{ // NONLINEAR CASE, LINEAR SUBREGION
             // CoefFunction represents p_linear * curl(h)
-            p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)));
+            p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
             CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), p, CoefXpr::OP_MULT);
             PtrCoefFct p_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
             if (dim_ == 2) {
