@@ -134,8 +134,6 @@ namespace CoupledField
             matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
             matModelCoefm_[actRegion]->Init(magFieldCoef, modelName_, dim_); 
           }
-
-          //TODO kroppert: I do not like that, we should pass the actSDMat instead of these ParameterMap-stuff
           
           std::map<std::string, double> ParameterMap;
           std::map<std::string, string> StringParameterMap; 
