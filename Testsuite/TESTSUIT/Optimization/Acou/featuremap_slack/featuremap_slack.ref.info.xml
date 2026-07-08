@@ -1,0 +1,417 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="32" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.2697s" wall="0.269684" cpu="0.260518" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="192" peak="213"/>
+  </summary>
+  <header id="">
+    <environment started="08-Jul-26 15:07:37" host="TPX1"/>
+    <progOpts problem="featuremap_slack" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/featuremap_slack/featuremap_slack.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.06" name="Kaum Konvergenz" build="RELEASE" git_commit="0a5ce3e23b3ea6e5ad66abdc621b5a3bd1df36b2-modified" git_branch="felhub_multiexfix" compiled="Jul  8 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="10" ny="30" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="372" nodes="341">
+          <timer id="5" wall-clock="0.001162s" wall="0.0011621" cpu="0.001162" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0002086s" wall="0.000208648" cpu="0.000209" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0002163s" wall="0.000216276" cpu="0.000216" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="1.412e-06s" wall="1.412e-06" cpu="2e-06" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="L_in_surf" id="0" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_in_surf" id="1" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_top_in_surf" id="2" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="L_axi_abh_surf" id="3" type="surface" regular="yes" hom="yes" nodes="21" elems="20" isQuadratic="no"/>
+        <region name="L_top_abh_surf" id="4" type="surface" regular="yes" hom="yes" nodes="21" elems="20" isQuadratic="no"/>
+        <region name="L_out_surf" id="5" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="S_acou" id="6" type="volume" regular="yes" hom="yes" nodes="181" elems="140" isQuadratic="no"/>
+        <region name="S_opt" id="7" type="volume" regular="yes" hom="yes" nodes="99" elems="80" isQuadratic="no"/>
+        <region name="S_void" id="8" type="volume" regular="yes" hom="yes" nodes="99" elems="80" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="11"/>
+        <nodes name="top" count="11"/>
+        <nodes name="left" count="31"/>
+        <nodes name="right" count="31"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(0.05,0)"/>
+        <nodes name="top_left" count="1" coord="(0,0.15)"/>
+        <nodes name="top_right" count="1" coord="(0.05,0.15)"/>
+        <nodes name="L_in" count="11"/>
+        <nodes name="L_out" count="3"/>
+        <nodes name="L_axi" count="31"/>
+        <nodes name="L_top" count="31"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="2000" nx="10" ny="30" nz="1" step="3" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="42" wall-clock="0.01405s" wall="0.0140461" cpu="0.014043" calls="130"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001417s" wall="0.00141721" cpu="0.001417" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="4.89e-07s" wall="4.89e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="1000" end="2000" numFreq="4"/>
+      <init_harmonic>
+        <timer id="17" wall-clock="0.006671s" wall="0.00667072" cpu="0.00667" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="S_opt" damping="none"/>
+          <region name="S_acou" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="yes" region="L_in_surf">
+                <coef type="CoefFunctionConst" value="(0.00241972,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="abcIntegrator" type="BBInt" complex="yes" region="L_out_surf">
+                <coef type="CoefFunctionConst" value="(0.00241972,0)"/>
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="damping" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NormalVelocityIntegrator">
+                <entities name="L_in_surf" size="10" region="L_in_surf"/>
+                <row pde="acoustic" result="acouPressure" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_acou"/>
+            <region name="S_opt"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_acou/>
+                <default order="1"/>
+                <S_opt/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="261" totalNumFreeEqns="261" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="261" lastFreeEqn="261" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="261" lastFreeIndex="261"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer id="30" label="setup_pardiso" wall-clock="0.01236s" wall="0.0123614" cpu="0.012364" calls="72"/>
+                <symbfact>
+                  <timer id="40" wall-clock="0.0005722s" wall="0.000572212" cpu="0.000573" calls="1" sub="true" parent="30"/>
+                </symbfact>
+                <numfact>
+                  <timer id="41" wall-clock="0.01033s" wall="0.0103337" cpu="0.010332" calls="72" sub="true" parent="30"/>
+                </numfact>
+              </setup>
+              <solve>
+                <timer id="31" label="solve_pardiso" wall-clock="0.01247s" wall="0.0124717" cpu="0.012464" calls="144"/>
+              </solve>
+            </summary>
+            <process>
+              <!-- memory in KB-->
+              <call number="1">
+                <symbfact cpu="0.000572" wall="0.0005721" peakMem="245" permanentMem="242"/>
+                <numfact cpu="0.000127" wall="0.0001277" peakMem="95"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="32" wall-clock="3.195e-05s" wall="3.1952e-05" cpu="3.6e-05" calls="72"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="33" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph nnz="2101">
+        <timer id="25" wall-clock="0.0005374s" wall="0.000537363" cpu="0.000537" calls="1" sub="true" parent="17"/>
+        <finalize>
+          <timer id="26" wall-clock="3.98e-05s" wall="3.9795e-05" cpu="4e-05" calls="1" sub="true" parent="25"/>
+        </finalize>
+        <sort>
+          <timer id="27" wall-clock="1.651e-05s" wall="1.651e-05" cpu="1.6e-05" calls="1" sub="true" parent="25"/>
+        </sort>
+        <rows number="261" min="4" max="9" mean="8.0498" estimated_row_size="100"/>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="21" wall-clock="0.08928s" wall="0.0892844" cpu="0.087863" calls="504"/>
+          <matrices>
+            <timer id="22" wall-clock="0.08642s" wall="0.0864208" cpu="0.084989" calls="72" sub="true" parent="21"/>
+          </matrices>
+          <rhs>
+            <timer id="23" wall-clock="0.0026s" wall="0.00260013" cpu="0.002598" calls="432" sub="true" parent="21"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="24" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <optimization haltopt_file="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/featuremap_slack/HALTOPT">
+    <header>
+      <objective type="slack" name="slack" linear="yes" access="plain" term="linear" scale="1" task="minimize"/>
+      <multipleExcitations type="no_type"/>
+      <constraints>
+        <constraint type="reflectedWave" name="reflectedWave" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="0"/>
+        <constraint type="reflectedWave" name="reflectedWave" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="1"/>
+        <constraint type="reflectedWave" name="reflectedWave" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="2"/>
+        <constraint type="reflectedWave" name="reflectedWave" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="3"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes" localElementCache="disabled">
+        <setup_design>
+          <timer id="18" wall-clock="0.0003178s" wall="0.000317786" cpu="0.000316" calls="8"/>
+        </setup_design>
+        <features>
+          <mapping>
+            <timer id="19" label="features_map" wall-clock="0.0005346s" wall="0.000534623" cpu="0.000533" calls="18" sub="true"/>
+          </mapping>
+          <gradient>
+            <timer id="20" label="features_grad" wall-clock="0.0003092s" wall="0.000309156" cpu="0.00032" calls="72" sub="true"/>
+          </gradient>
+          <combine type="p-norm" param="4"/>
+          <boundary type="poly" transition="0.001" extension="0"/>
+          <mesh n="[8, 10, 1]"/>
+        </features>
+        <filters use_mat_filt="yes"/>
+        <transferFunctions>
+          <transferFunction type="simp" application="acoustic" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="4" field_elems="80" field_fe_elemes="80">
+          <design type="density" upperBound="1" lowerBound="1e-09" physicalLowerBound="1e-09"/>
+          <design type="slack" upperBound="1e+06" lowerBound="0"/>
+          <pill id="0">
+            <px type="node" dof="x" tip="start" lower="0" upper="0.05"/>
+            <py type="node" dof="y" tip="start" fixed="0.05"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="0.05"/>
+            <py type="node" dof="y" tip="end" fixed="0.1"/>
+            <p type="profile" lower="0.001" upper="0.1"/>
+          </pill>
+        </designVariables>
+        <regions>
+          <region name="S_opt" elements="80" bimaterial="-" groundmaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="yes" harmonic="yes" eigenvalue="no" bloch="no" material="acoustic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="0.25" load="L_in_surf" frequency="1000"/>
+        <excitation index="1" meta_idx="0" label="1" weight="1" normalized_weight="0.25" load="L_in_surf" frequency="1333.3"/>
+        <excitation index="2" meta_idx="0" label="2" weight="1" normalized_weight="0.25" load="L_in_surf" frequency="1666.7"/>
+        <excitation index="3" meta_idx="0" label="3" weight="1" normalized_weight="0.25" load="L_in_surf" frequency="2000"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <snopt>
+        <summary snopt_outputfile="featuremap_slack.snopt">
+          <snopt>
+            <timer id="35" wall-clock="0.001751s" wall="0.00175135" cpu="0.001753" calls="90"/>
+          </snopt>
+          <snopt_exit exit="0" info="1"/>
+          <evaluations f_evals="19" g_evals="18" majors="11"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
+    </optimizer>
+    <summary problem="SNOPT: finished successfullyv - optimality conditions satisfied" snopt_exit="1">
+      <eval_objective>
+        <timer id="36" wall-clock="0.000832s" wall="0.000831986" cpu="0.00083" calls="92"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="37" wall-clock="0.001539s" wall="0.00153881" cpu="0.001538" calls="19"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="38" wall-clock="0.000116s" wall="0.000115958" cpu="0.000118" calls="18"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="39" wall-clock="0.02426s" wall="0.0242641" cpu="0.024264" calls="18"/>
+      </eval_grad_constraints>
+      <break converged="yes"/>
+      <functions>
+        <slack min="0" max="9998" oscillations="1"/>
+        <reflectedWave min="8247.7" max="8619" oscillations="0"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" frequency="(mult)" duration="0.11567" slack="9998" nObj="2">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7936.8"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1923.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1793.7"/>
+        <excitation index="3" objective="9998" objective_weight="0.25" reflectedWave="8619"/>
+      </iteration>
+      <iteration number="1" frequency="(mult)" duration="0.010095" slack="9996" nObj="3">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7936.8"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1923.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1793.7"/>
+        <excitation index="3" objective="9996" objective_weight="0.25" reflectedWave="8619"/>
+      </iteration>
+      <iteration number="2" frequency="(mult)" duration="0.041928" slack="8619.02907579849" nObj="8">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7936.8"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1923.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1793.7"/>
+        <excitation index="3" objective="8619" objective_weight="0.25" reflectedWave="8619"/>
+      </iteration>
+      <iteration number="3" frequency="(mult)" duration="0.016976" slack="0" nObj="10">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="0" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="4" frequency="(mult)" duration="0.0094229" slack="4.06754863838866" nObj="11">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="4.0675" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="5" frequency="(mult)" duration="0.0099252" slack="16.2701945535546" nObj="12">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="16.27" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="6" frequency="(mult)" duration="0.0099972" slack="52.8781322990525" nObj="13">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="52.878" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="7" frequency="(mult)" duration="0.010613" slack="162.701945535546" nObj="14">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="162.7" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="8" frequency="(mult)" duration="0.00986" slack="492.173385245027" nObj="15">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="492.17" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="9" frequency="(mult)" duration="0.010617" slack="1480.58770437347" nObj="16">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="1480.6" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="10" frequency="(mult)" duration="0.010287" slack="4445.8306617588" nObj="17">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="4445.8" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="11" frequency="(mult)" duration="0.010234" slack="8247.70762525454" nObj="18">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="8247.7" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+      <iteration number="12" frequency="(mult)" duration="0.0020211" slack="8247.70762525454" nObj="19">
+        <excitation index="0" objective="0" objective_weight="0.25" reflectedWave="7600.5"/>
+        <excitation index="1" objective="0" objective_weight="0.25" reflectedWave="1288.7"/>
+        <excitation index="2" objective="0" objective_weight="0.25" reflectedWave="1119.5"/>
+        <excitation index="3" objective="8247.7" objective_weight="0.25" reflectedWave="8247.7"/>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

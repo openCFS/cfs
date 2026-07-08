@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="10" y="30" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.5" lower="1e-9" name="density" region="all" relative_bound="-1.0" scale="false" upper="1"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="1e4" lower="0" name="slack" region="all" relative_bound="-1.0" scale="false" upper="1e6"/>
+    <transferFunction application="acoustic" param="1" type="simp"/>
+    <coordinateSystems>
+      <system name="default"/>
+      <domain min_x="0" max_x="0.05" min_y="0" max_y="0.15"/>
+    </coordinateSystems>
+    <optimizationDomain min_x="0.01" max_x="0.05" min_y="0.05" max_y="0.1"/>
+    <featureMapping transition="0.001" extension="0"/>
+  </header>
+  <set id="12">
+    <element nr="103" type="density" design="1" physical="1"/>
+    <element nr="104" type="density" design="1" physical="1"/>
+    <element nr="105" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="106" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="107" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="108" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="109" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="110" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="113" type="density" design="1" physical="1"/>
+    <element nr="114" type="density" design="1" physical="1"/>
+    <element nr="115" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="116" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="117" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="118" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="119" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="120" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="123" type="density" design="1" physical="1"/>
+    <element nr="124" type="density" design="1" physical="1"/>
+    <element nr="125" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="126" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="127" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="128" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="129" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="130" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="133" type="density" design="1" physical="1"/>
+    <element nr="134" type="density" design="1" physical="1"/>
+    <element nr="135" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="136" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="137" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="138" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="139" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="140" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="143" type="density" design="1" physical="1"/>
+    <element nr="144" type="density" design="1" physical="1"/>
+    <element nr="145" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="146" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="147" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="148" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="149" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="150" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="153" type="density" design="1" physical="1"/>
+    <element nr="154" type="density" design="1" physical="1"/>
+    <element nr="155" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="156" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="157" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="158" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="159" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="160" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="163" type="density" design="1" physical="1"/>
+    <element nr="164" type="density" design="1" physical="1"/>
+    <element nr="165" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="166" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="167" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="168" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="169" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="170" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="173" type="density" design="1" physical="1"/>
+    <element nr="174" type="density" design="1" physical="1"/>
+    <element nr="175" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="176" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="177" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="178" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="179" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="180" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="183" type="density" design="1" physical="1"/>
+    <element nr="184" type="density" design="1" physical="1"/>
+    <element nr="185" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="186" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="187" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="188" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="189" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="190" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="193" type="density" design="1" physical="1"/>
+    <element nr="194" type="density" design="1" physical="1"/>
+    <element nr="195" type="density" design="0.5000000005" physical="0.5000000005"/>
+    <element nr="196" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="197" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="198" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="199" type="density" design="1e-09" physical="1e-09"/>
+    <element nr="200" type="density" design="1e-09" physical="1e-09"/>
+    <slack nr="0" type="slack" design="8247.71"/>
+    <shapeParamElement nr="0" type="node" dof="x" tip="start" shape="0" design="0.00947037"/>
+    <shapeParamElement nr="1" type="node" dof="y" tip="start" shape="0" design="0.05"/>
+    <shapeParamElement nr="2" type="node" dof="x" tip="end" shape="0" design="0.01"/>
+    <shapeParamElement nr="3" type="node" dof="y" tip="end" shape="0" design="0.1"/>
+    <shapeParamElement nr="4" type="profile" shape="0" design="0.0143039"/>
+  </set>
+</cfsErsatzMaterial>

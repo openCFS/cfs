@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - FeatureMapping with Slack</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2026-06-08</date>
+        <description>This file is used to minimize the reflected wave of an acoustic focusing structure with a single feature-mapping pill.
+        It is a multiload optimization for four frequencies, although not necessary, we use slack to include it in this test.
+        This test is not stable for mma, snopt was found best.
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <!-- create_mesh_acou.py -lin 0.05 -labh 0.05 -lout 0.05 -win 0.05 -wch 0.01 -wabh 0.05 -wout 0.01 -o featuremap_slack.mesh 10 -->
+        <output>
+            <hdf5 />
+            <info id="info"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>4</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>2000</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
+                </regionList>
+                <bcsAndLoads>
+                    <normalVelocity name="L_in_surf" value="1"/>
+                    <absorbingBCs volumeRegion="S_acou" name="L_in_surf" />
+                    <absorbingBCs volumeRegion="S_acou" name="L_out_surf" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="physicalPseudoDensity">
+                        <allRegions />
+                    </elemResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="slack" task="minimize" multiple_excitation="true" />
+
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" excitation="0">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" excitation="1">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" excitation="2">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+        <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" excitation="3">
+            <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
+
+        <optimizer type="snopt" maxIterations="500">
+            <snopt>
+                <option type="integer" name="verify_level" value="-1" />
+            </snopt>
+        </optimizer>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="featureMapping">
+            <designSpace local_element_cache="false"/>
+            <featureMapping transition="0.001" order="2" combine="p-norm" p="4">
+                <pill>
+                    <node dof="x" lower="0" initial="0.01" upper="0.05" tip="start"/>
+                    <node dof="y" fixed="0.05" tip="start"/>
+                    <node dof="x" lower="0" initial="0.01" upper="0.05" tip="end" />
+                    <node dof="y" fixed="0.1" tip="end" />
+                    <profile initial="0.01" lower="0.001" upper="0.1" />
+                </pill>
+            </featureMapping>
+
+            <design name="density" initial="0.5" lower="1e-9" upper="1"/>
+            <design name="slack" initial="1e4" lower="0" upper="1e6" />
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+        <commit mode="forward" stride="1"/>
+    </optimization>
+</cfsSimulation>
