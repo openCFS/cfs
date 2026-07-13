@@ -2085,7 +2085,6 @@ void ShapeMapDesign::MapFeatureGradient(Function* f)
   } // end of omp parallel
 
   // write back shape_f_grad
-  // TODO: Here shape_f_grad is wrong, it's double the expected size
   LOG_DBG3(SMD) << "MSG: f=" << f->ToString() << " sfg=" << shape_f_grad.ToString();
 
   assert(shape_f_grad.GetSize() == shape_param_.GetSize());
