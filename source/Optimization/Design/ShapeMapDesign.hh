@@ -44,6 +44,8 @@ public:
   /** write gradient out to the vector, appending with shape gradient
    * Sparse and dense! */
   void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) override;
+  // Helper with additional mapping control for getting the gradient without redoing the mapping
+  void WriteGradientToExternMap(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling, bool map);
 
   /** same as in DesignSpace, setting elements to zero, but also aux elements */
   void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT) override;

@@ -273,6 +273,16 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   if(fd)
     fd->ReadDensityXml(set, lower_violation, upper_violation);
 
+  // parse slack variable
+  PtrParamNode slack = set->Get("slack", ParamNode::ActionType::PASS);
+  if (space->HasSlackVariable() && slack != nullptr) {
+    AuxDesign* auxd = dynamic_cast<AuxDesign*>(space);
+    assert(auxd);
+    auxd->GetSlackDesign()->SetDesign(slack->Get("design")->As<double>());
+    LOG_DBG(density) << "REM: slack=" <<  slack->Get("design")->As<double>() << " set=" << space->GetSlackVariable();
+  }
+  
+  // enforce bounds
   bool enforce_bounds = fd ? false : ReadDensity(pn, elems, force_region, space, lower_violation, upper_violation);
 
   if(lower_violation > 1e-5) {
@@ -397,6 +407,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   if(space_->HasSlackVariable())
   {
     std::stringstream ss;
+    ss.precision(11);
     ss << "<slack nr=\"0\" type=\"slack\" design=\"" << space_->GetSlackVariable() << "\"/>";
     block[base] = ss.str();
     base += 1;
@@ -432,6 +443,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
         ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
       ss << "\" shape=\"" << shape->idx; // legacy density.xml files don't have this attribute
       ss << "\" ref=\"" << shape->GetReferenceId(); // legacy density.xml files don't have this attribute
+      ss.precision(11);
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
       block[base + i] = ss.str();
