@@ -3008,6 +3008,8 @@ void ShapeMapDesign::ShapeParam::ParseSymmetry(ShapeParam* target, const PtrPara
   target->y_sym = pn->Get("bottom_up_sym")->As<string>() != "none";
   target->z_sym = pn->Has("front_back_sym") ? pn->Get("front_back_sym")->As<string>() != "none" : false;
   target->diag  = pn->Get("diagonal_sym")->As<string>() != "none";
+  // the default symmetry plane is 0.5 (set in XSD), so symmetry works on unity square 1 x 1 per default
+  target->sym_plane = pn->Get("sym_plane")->As<double>();
 }
 
 void ShapeMapDesign::ShapeParam::ParseBounds(ShapeParam* target, const PtrParamNode& pn)
@@ -3062,6 +3064,7 @@ void ShapeMapDesign::ShapeParam::CopyBaseCenterProperties(ShapeParam* base)
   y_sym = base->y_sym;
   z_sym = base->z_sym;
   diag = base->diag;
+  sym_plane = base->sym_plane;
 }
 
 void ShapeMapDesign::ShapeParam::FlipOrientation(int center_node)
@@ -3160,7 +3163,6 @@ void ShapeMapDesign::ShapeParam::CopyProperties(const ShapeParam* ref, bool copy
   upper = ref->upper;
   value = ref->value;
   clamp = ref->clamp;
-  max   = ref->max;
   fixed = ref->fixed;
   if(!copy_master_data) // don't make the slave a master
     slave = ref->slave;
@@ -3168,6 +3170,7 @@ void ShapeMapDesign::ShapeParam::CopyProperties(const ShapeParam* ref, bool copy
   y_sym = ref->y_sym;
   z_sym = ref->z_sym;
   diag  = ref->diag;
+  sym_plane = ref->sym_plane;
 }
 
 bool ShapeMapDesign::ShapeParam::ShallInduceMirrorSymmetry() const
@@ -3430,7 +3433,7 @@ inline void ShapeMapDesign::ElementSymmetry::ApplyDesign()
   {
     Virtual& vir = hidden[i];
     assert(!(vir.reciprocal && vir.elem->GetType() != DesignElement::NODE));
-    double val = vir.reciprocal ? (vir.shape->max - base->GetPlainDesignValue()) : base->GetPlainDesignValue();
+    double val = vir.reciprocal ? (2 * vir.shape->sym_plane - base->GetPlainDesignValue()) : base->GetPlainDesignValue();
     vir.elem->SetDesign(val);
     LOG_DBG2(SMD) << "ES:AD base=" << base->GetIndex() << "/" << base->dof_ << " vir=" << vir.elem->GetIndex() << "/" << vir.elem->dof_
         << " r=" << vir.reciprocal << " t=" << vir.elem->GetType() << " o=" << base->GetPlainDesignValue() << " -> " << val;

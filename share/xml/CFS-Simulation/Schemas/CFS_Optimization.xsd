@@ -1166,15 +1166,32 @@
                         </xsd:element>
                       </xsd:sequence>
                       <!-- the center attributes -->
-
-                      <!-- symmetry along the x-axis - y-axis or xy-plane -->
-                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- symmetry along the y-axis - x-axis or xz-plane -->
-                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- symmetry along the z-axis - xy-plane -->
-                      <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- induces shape with dof and orientation flipped. For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar. -->
-                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
+                       <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the x-axis, y-axis, or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the y-axis, x-axis, or xz-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the z-axis or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Induces shape with flipped coordinates.
+                              For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="sym_plane" use="optional" type="xsd:double" default="0.5" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Defines the symmetry plane for the mirror direction (symmetry direction equal to dof).
+                              For clone direction, the shape is always mirrored on the shape center.
+                              The default value is 0.5, so symmetry for a unity square works per default.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                     </xsd:complexType>
                   </xsd:element>
 
@@ -1192,10 +1209,28 @@
                       <!-- alternative to lower, upper and initial -->
                       <xsd:attribute name="fixed" type="xsd:token" use="optional" />
                       <!-- optional symmetries -->
-                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- induces shape with other dof -->
-                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
+                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the x-axis, y-axis, or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the y-axis, x-axis, or xz-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Induces shape with flipped coordinates.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="sym_plane" use="optional" type="xsd:double" default="0.5" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Defines the symmetry plane for the mirror direction (symmetry direction equal to dof).
+                              For clone direction, the shape is always mirrored on the shape center.
+                              The default value is 0.5, so symmetry for a unity square works per default.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                       <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). Overwrites shapeMap relative_*_bound if given. Negative disables. -->
                       <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
                     </xsd:complexType>
