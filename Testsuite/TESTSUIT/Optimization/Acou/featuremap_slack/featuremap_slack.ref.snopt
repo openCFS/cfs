@@ -1,4 +1,4 @@
-      Major iterations limit             500
+      Major iterations limit              15
       Superbasics limit               4
       Verify level              -1
       Minor iterations limit          100000
@@ -40,7 +40,7 @@
  Unbounded step size....  1.00E+20       Superbasics limit......         4       Difference interval....  5.48E-07
  Unbounded objective....  1.00E+15       Reduced Hessian dim....         4       Central difference int.  6.70E-05
  Major step limit.......  2.00E+00       Derivative linesearch..                 Derivative option......         1
- Major iterations limit.       500       Linesearch tolerance...   0.90000       Verify level...........        -1
+ Major iterations limit.        15       Linesearch tolerance...   0.90000       Verify level...........        -1
  Minor iterations limit.    100000       Penalty parameter......  0.00E+00       Major Print Level......         1
                                          Major optimality tol...  2.00E-06
 

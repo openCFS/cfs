@@ -75,7 +75,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
         <constraint type="reflectedWave" mode="constraint" bound="upperBound" value="slack" excitation="3">
             <output><acoustic name="L_in" value="1" surfRegion="L_in_surf" volumeNeighbour="S_acou"/></output></constraint>
 
-        <optimizer type="snopt" maxIterations="500">
+        <optimizer type="snopt" maxIterations="15">
             <snopt>
                 <option type="integer" name="verify_level" value="-1" />
             </snopt>

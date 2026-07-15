@@ -95,7 +95,7 @@
     <element nr="198" type="density" design="1e-09" physical="1e-09"/>
     <element nr="199" type="density" design="1e-09" physical="1e-09"/>
     <element nr="200" type="density" design="1e-09" physical="1e-09"/>
-    <slack nr="0" type="slack" design="8247.71"/>
+    <slack nr="0" type="slack" design="8247.7076253"/>
     <shapeParamElement nr="0" type="node" dof="x" tip="start" shape="0" design="0.00947037"/>
     <shapeParamElement nr="1" type="node" dof="y" tip="start" shape="0" design="0.05"/>
     <shapeParamElement nr="2" type="node" dof="x" tip="end" shape="0" design="0.01"/>
