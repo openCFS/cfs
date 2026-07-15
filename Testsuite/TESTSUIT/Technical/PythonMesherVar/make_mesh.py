@@ -41,8 +41,8 @@ def set_cfs_mesh(opt):
     if x == 0 or x == 1 or y == 0 or y == 1: # coorrdinates are rounded and can be compared
       outer_nodes.append(i) 
    
-  mesh.bc.append(('inclusion_nodes',incl_nodes))
-  mesh.bc.append(('outer_nodes',outer_nodes))
+  mesh.bc['inclusion_nodes'] = incl_nodes
+  mesh.bc['outer_nodes'] = outer_nodes
 
   # we can also write a ansys ascii mesh file
   #write_ansys_mesh(mesh, 'killme.mesh')
