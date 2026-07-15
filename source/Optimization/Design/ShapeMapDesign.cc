@@ -2103,22 +2103,26 @@ void ShapeMapDesign::WriteGradientFile()
   gradplot_.seekp(0);
 
   // set format options
-  gradplot_.precision(8);
+  gradplot_.precision(11);
   gradplot_.setf(std::ios::scientific);
   gradplot_.setf(std::ios::left);
 
-  
   // We need to start the timer so the eval functions work, I dont know if this timer makes sense here
+  ConditionContainer& cc = opt->constraints;
   BaseOptimizer* base = opt->GetOptimizerInstance();
   base->opt_timer->Start();
 
   // METADATA
-  
-  ConditionContainer& cc = opt->constraints;
+  // get number of global constraints
+  unsigned int n_glob = 0;
+  for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++)
+    if (!cc.view->Get(cid)->IsLocalCondition())
+      n_glob++;
   gradplot_ << "# === METADATA ===" << std::endl;
   gradplot_ << std::setw(24) << "# iteration: " << opt->GetCurrentIteration() << std::endl;
   gradplot_ << std::setw(24) << "# n_vars:" << GetNumberOfVariables() << std::endl;
   gradplot_ << std::setw(24) << "# n_constraints:" << cc.view->GetNumberOfActiveConstraints() << std::endl;
+  gradplot_ << std::setw(24) << "# n_glob_constraints:" << n_glob << std::endl;
   gradplot_ << std::setw(24) << "# n_jac_nonzero:" << cc.view->CalcNumberOfJacobianNonZeros() << std::endl;
 
   // VARIABLES
@@ -2127,9 +2131,9 @@ void ShapeMapDesign::WriteGradientFile()
   gradplot_ << std::setw(6) << "# vid" << " " 
     << std::setw(8) << "nr" << " "
     << std::setw(8) << "type" << " " 
-    << std::setw(16) << "design" << " "
-    << std::setw(16) << "lower_bound" << " " 
-    << std::setw(16) << "upper_bound"
+    << std::setw(24) << "design" << " "
+    << std::setw(24) << "lower_bound" << " " 
+    << std::setw(24) << "upper_bound"
     << std::setw(4) << "dof" << " " 
     << std::setw(8) << "shape" << " " 
     << std::setw(4) << "ref" << std::endl;
@@ -2139,9 +2143,9 @@ void ShapeMapDesign::WriteGradientFile()
     gradplot_ << std::setw(6) << vid << " "
       << std::setw(8) << bde->GetIndex() << " "
       << std::setw(8) << bde->type.ToString(bde->GetType()) << " " 
-      << std::setw(16) << bde->GetPlainDesignValue() << " "
-      << std::setw(16) << bde->GetLowerBound() << " " 
-      << std::setw(16) << bde->GetUpperBound() << " ";
+      << std::setw(24) << bde->GetPlainDesignValue() << " "
+      << std::setw(24) << bde->GetLowerBound() << " " 
+      << std::setw(24) << bde->GetUpperBound() << " ";
     // if we have a shape parameter, write addititonal info
     ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(bde);
     if (spe == nullptr)
@@ -2163,9 +2167,9 @@ void ShapeMapDesign::WriteGradientFile()
   gradplot_ << std::endl << "# === CONSTRAINT VALUES ===" << std::endl;
   gradplot_ << std::setw(6) << "# cid" << " " 
     << std::setw(24) << "type" << " " 
-    << std::setw(16) << "value" << " " 
+    << std::setw(24) << "value" << " " 
     << std::setw(16) << "bound_type" << " " 
-    << std::setw(16) << "bound" << " "
+    << std::setw(24) << "bound" << " "
     << std::setw(16) << "local" << std::endl;
   // data
   for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++) {
@@ -2178,9 +2182,9 @@ void ShapeMapDesign::WriteGradientFile()
 
     gradplot_ << std::setw(6) << cid << " " 
     << std::setw(24) << g->type.ToString(g->GetType()) << " " 
-    << std::setw(16) << value << " " 
+    << std::setw(24) << value << " " 
     << std::setw(16) << g->bound.ToString(g->GetBound()) << " "
-    << std::setw(16) << g->GetBoundValue() << " ";
+    << std::setw(24) << g->GetBoundValue() << " ";
     if (g->IsLocalCondition()) {
       LocalCondition* lg = dynamic_cast<LocalCondition*>(g);
       gradplot_ << std::setw(16) << lg->GetCurrentPosition() << std::endl;
@@ -2193,7 +2197,7 @@ void ShapeMapDesign::WriteGradientFile()
   gradplot_ << std::endl << "# === JACOBIAN SPARSE ===" << std::endl;
   gradplot_ << std::setw(6) << "# cid" << " " 
     << std::setw(6) << "vid" << " " 
-    << std::setw(16) << "gradient" << std::endl;
+    << std::setw(24) << "gradient" << std::endl;
   // data
   for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++) {
     Condition* g = cc.view->Get(cid);
@@ -2212,7 +2216,7 @@ void ShapeMapDesign::WriteGradientFile()
       unsigned int vid = pattern[i];
       gradplot_ << std::setw(6) << cid << " " 
         << std::setw(6) << vid << " " 
-        << std::setw(16) << grad[i] << std::endl;
+        << std::setw(24) << grad[i] << std::endl;
     }
   }
   base->opt_timer->Stop();
