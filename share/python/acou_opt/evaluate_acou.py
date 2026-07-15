@@ -104,11 +104,13 @@ if __name__ == "__main__":
                         help="Name of XML parameter file, defaults to {name}.xml")
     parser.add_argument("-x", "--ersatz", type=str,
                         help="Name of ersatz material density file.")
+    parser.add_argument("-e", "--executable", type=str, default="cfs",
+                        help="Path to cfs executable, defaults to cfs")
 
     args = parser.parse_args()
     path = pathlib.Path(args.name)
 
-    cmd = ["cfs", "-t", str(args.t)]
+    cmd = [args.executable, "-t", str(args.t)]
 
     # parse density file
     density_path = None
