@@ -38,7 +38,8 @@ def relative_paths(xml):
         replace(xml, "//cfs:materialData/@file", f"../{mat_path}")
 
 
-def cont_robust(name: str | os.PathLike,
+def cont_robust(executable: str,
+                name: str | os.PathLike,
                 folder: str,
                 cfs_threads: str,
                 mesh: Optional[str],
@@ -118,7 +119,7 @@ def cont_robust(name: str | os.PathLike,
         # store name of density file
         densities += f"{file}.density.xml "
 
-        cmd = ["cfs", "-t", cfs_threads, file]
+        cmd = [executable, "-t", cfs_threads, file]
         if istep != 0:
             density = f"{get_name(name, steps[istep - 1])}.density.xml"
             cmd += ["-x", density]
@@ -161,6 +162,8 @@ if __name__ == "__main__":
                         help="Give START STOP NUM for exponential series. "
                         "For robust the values are mapped to eta."
                         "If NUM = 1 the START value is used for a single simulation.")
+    parser.add_argument("-e", "--executable", type=str, default="cfs",
+                        help="Path to cfs executable, defaults to cfs")
 
     args = parser.parse_args()
     path = pathlib.Path(args.name)
@@ -177,7 +180,8 @@ if __name__ == "__main__":
     start, stop, num = args.factor
     steps = exp_steps(start, stop, int(num))
 
-    cont_robust(path.with_suffix(""),
+    cont_robust(args.executable,
+                path.with_suffix(""),
                 folder,
                 str(args.t),
                 args.mesh,
