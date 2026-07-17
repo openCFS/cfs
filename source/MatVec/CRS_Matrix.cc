@@ -563,9 +563,29 @@ namespace CoupledField {
     colInd_  = myPattern->cidx_;
     rowPtr_  = myPattern->rptr_;
     diagPtr_ = myPattern->diagPtr_;
+
+    // Patterns transferred to the pool usually stem from a matrix graph and
+    // are therefore lexicographically ordered. Detect this once, so entry
+    // lookups can use binary instead of linear search (see AddToMatrixEntry).
+    DetectLexLayout();
   }
 
 
+
+  // **********************
+  //   DetectLexLayout
+  // **********************
+  template<typename T>
+  void CRS_Matrix<T>::DetectLexLayout() {
+
+    for ( UInt i = 0; i < this->nrows_; i++ ) {
+      for ( UInt k = rowPtr_[i] + 1; k < rowPtr_[i+1]; k++ ) {
+        if ( colInd_[k-1] >= colInd_[k] )
+          return; // not sorted: leave the current layout untouched
+      }
+    }
+    currentLayout_ = CRS_Matrix<T>::LEX;
+  }
 
   // **********************
   //   SetSparsityPatternData
@@ -700,10 +720,11 @@ namespace CoupledField {
         diagPtr_[i] = srcDiagPtr[i];
       }
       rowPtr_[this->nrows_] = srcRowPtr[this->nrows_];
-      
-      // Copy layout flag
-      //      currentLayout_ = mat.currentLayout_;
-    } else 
+
+      // Copy layout flag (the nested enum is a distinct type per template
+      // instantiation, but the enumerator values are identical)
+      currentLayout_ = static_cast<subFormat>( mat.GetCurrentLayout() );
+    } else
     {
       EXCEPTION("CRS_Matrix<T>::SetSparsityPattern not yet implemented for complex matrices.");
     }
@@ -1645,7 +1666,14 @@ namespace CoupledField {
         UInt min = *starting;
         UInt max = *colIndices.rbegin();
         UInt size = colIndices.size();
-        if( (max - min) == (size-1)){
+        if( min == 0 && max == this->ncols_ - 1 && (max - min) == (size-1) ){
+          // the column set covers all columns (the free dofs of a block are
+          // numbered contiguously, so this is the standard situation e.g.
+          // when constructing the effective system matrix): no filtering
+          // per entry is needed at all
+          this->Add(alpha, mat);
+        }
+        else if( (max - min) == (size-1)){
           //data is continuous
 #pragma omp parallel for
           for ( Integer i = 0; i < (Integer) this->nnz_; i++ ) {

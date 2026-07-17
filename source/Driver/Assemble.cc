@@ -316,7 +316,7 @@ namespace CoupledField
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
         // get integrator
-        BiLinFormContext & actContext = *forms[iForm];
+        BiLinFormContext& actContext = *forms[iForm];
 
         FEMatrixType destMap = matrixMap_[actContext.GetDestMat()];
 
@@ -499,30 +499,55 @@ namespace CoupledField
       if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
-      if(!isNewtonPart)
+      // Determine once per form, if it has to be assembled in this call.
+      // This avoids re-evaluating the conditions for every entity inside the
+      // parallel region below and keeps the shared state (matReassemble_,
+      // matrixUpdated_) out of the threaded code.
+      StdVector<bool> formActive(forms.GetSize());
+      bool anyActive = false;
+
+      for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
       {
-        // First loop over all integrators to check, if any of them
-        // gets re-assembled
-        // Loop over all bilinearforms
-        bool anyReassemble = false;
+        BiLinFormContext& actContext = *forms[iForm];
 
-        for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
+        // Newton bilinear forms are assembled exclusively in the Newton part
+        bool active = (actContext.IsNewtonBiLinearForm() == isNewtonPart);
+
+        if(active && !isNewtonPart)
         {
-          BiLinFormContext & actContext = *forms[iForm];
-
           // get matrix destinations
           FEMatrixType destMat = actContext.GetDestMat();
           FEMatrixType secDestMat = actContext.GetSecDestMat();
 
           // If assemble was already called and the current destination
-          // matrix must not be reassembled -> continue with next iterator
-          if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-            continue; // check next form
-          anyReassemble = true;
-        } // end form loop
-        if(!anyReassemble)
-          continue; // assemble next bilin form
-      } // end !isNewtonPart
+          // matrix must not be reassembled -> form stays inactive
+          active = matReassemble_[destMat] ||
+                   (secDestMat != NOTYPE && matReassemble_[secDestMat]);
+        }
+        formActive[iForm] = active;
+        anyActive |= active;
+      } // end form loop
+      if(!anyActive)
+        continue; // nothing to assemble for this entitylist-pair
+
+      if(size > 0)
+        matrixUpdated_ = true;
+
+      // Choose how the entities are distributed over the threads. This is
+      // decided once here (not per entity), based on whether a design is
+      // present:
+      //  - With a design (optimization/homogenization) the assembly must be
+      //    reproducible: the involved eigenvalue/homogenization systems are
+      //    nearly singular, so the ~1e-15 differences of a run-dependent
+      //    accumulation order can change the result. Each thread then processes
+      //    a FIXED contiguous range (deterministic - every matrix entry gets one
+      //    fixed partial sum per thread and their atomic merge is commutative).
+      //  - Otherwise the threads grab chunks dynamically via a shared counter,
+      //    which balances the load better (e.g. on performance/efficiency cores)
+      //    and distributes small entity lists over several threads.
+      const bool deterministic = domain->HasDesign();
+      const UInt entityChunk = 32;
+      UInt nextEntity = 0;
 
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
       {
@@ -531,41 +556,64 @@ namespace CoupledField
         StdVector<BiLinearForm *> biLinForms(forms.GetSize());
         biLinForms.Init(NULL);
 
-        UInt chunksize = std::floor(size/numT);
-        UInt start = chunksize * aThread;
-        UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
-
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
           //copy bilinear forms
           // TODO: According to fsanatize, this is a huge memory leak...
           biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
         }
 
-//     #pragma omp critical
-//         {
-//             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
-//         }
-
+        // fixed contiguous range of this thread for the deterministic mode; the
+        // partition is identical to the long-standing static one, so the
+        // assembled matrix is bit-for-bit reproducible independent of threads.
+        UInt sChunk = size / numT;
+        UInt sStart = sChunk * aThread;
+        UInt sEnd   = (aThread == numT-1) ? size : sChunk * (aThread+1);
+        bool staticPending = true;
 
         // Loop over all entities
         EntityIterator it1 = firstEntities.GetIterator();
         EntityIterator it2 = secondEntities.GetIterator();
-        //LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum  << " and " << it2.GetElem()->elemNum;
 
         it1.Begin();
         it2.Begin();
-        //take account for const space
-        if(firstEntities.GetSize() != 1 ) {
-          it1+=start;
-        }
-        if( secondEntities.GetSize() != 1 ) {
-          it2+=start;
-        }
+        // current position of the iterators within the entity lists
+        UInt pos1 = 0;
+        UInt pos2 = 0;
 
         Matrix<Double> elemMatrix;
         Matrix<Complex> elemMatrixC;
         StdVector<Integer> eqnVec1, eqnVec2;
         FeFctIdType fctId1, fctId2;
+
+        while( true ) {
+
+        // determine the next chunk of entities to process
+        UInt start, end;
+        if( deterministic ) {
+          if( !staticPending )   // each thread does its fixed range exactly once
+            break;
+          staticPending = false;
+          start = sStart;
+          end   = sEnd;
+        } else {
+          #pragma omp atomic capture
+          { start = nextEntity; nextEntity += entityChunk; }
+          end = std::min(start + entityChunk, size);
+        }
+        if( start >= end )       // no work left (dynamic) / empty range (static)
+          break;
+
+        // move the iterators to the chunk start; entity lists of size one
+        // (e.g. for FeSpaceConst) always stay at their single entry
+        if( firstEntities.GetSize() != 1 ) {
+          it1 += (start - pos1);
+          pos1 = start;
+        }
+        if( secondEntities.GetSize() != 1 ) {
+          it2 += (start - pos2);
+          pos2 = start;
+        }
+
         for( UInt i = start;i < end; ++i  ) {
 
           LOG_DBG2(assemble) << "AM_Std: elems are " << it1.GetIdString() << " and " << it2.GetIdString();
@@ -573,31 +621,16 @@ namespace CoupledField
           // Loop over all bilinear forms
           for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
-            BiLinFormContext & actContext = *forms[iForm];
-            bool bilinearFormIsNewton =  actContext.IsNewtonBiLinearForm();
-
-            //when we just want to assemble a Newton bilinear form and
-            //the bilinear form is not a Newton one, then go to the next!
-            if ( isNewtonPart && !bilinearFormIsNewton )
+            // skip forms which must not be assembled in this call
+            // (decided once before the parallel region)
+            if( !formActive[iForm] )
               continue;
 
-            //if we want to assemble all bilinear forms except Newton ones
-            //and the bilinear form is a Newton one, then go to next!
-            if ( !isNewtonPart && bilinearFormIsNewton )
-              continue;
+            BiLinFormContext& actContext = *forms[iForm];
 
             // get matrix destinations
             FEMatrixType destMat = actContext.GetDestMat();
             FEMatrixType secDestMat = actContext.GetSecDestMat();
-
-            if ( !isNewtonPart) {
-              // If assemble was already called and the current destination
-              // matrix must not be reassembled -> continue with next iterator
-              if(!matReassemble_[destMat] && (secDestMat == NOTYPE || !matReassemble_[secDestMat]))
-                continue; // check next form
-            }
-            // Update flag
-            matrixUpdated_ = true;
 
             BiLinearForm * form =nullptr;
             form = UseOpenMP() ? biLinForms[iForm] : actContext.GetIntegrator();
@@ -606,9 +639,11 @@ namespace CoupledField
             if(!skipElemAssembly_){
               try {
 
-                // make only output if desired
-                if( printProgressBar_) {
-                  ++progress;
+                // make only output if desired; only the master thread touches
+                // the shared progress display and advances it by the number
+                // of threads, since all threads process similar chunk sizes
+                if( printProgressBar_ && aThread == 0 ) {
+                  progress += numT;
                   std::cout << progStream.str();
                   progStream.str("");
                 }
@@ -710,11 +745,17 @@ namespace CoupledField
             } //if block to skip assembly
           }// loop over bilinearforms
           // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
-          if( firstEntities.GetSize() != 1 )
+          if( firstEntities.GetSize() != 1 ) {
             it1++;
-          if( secondEntities.GetSize() != 1 )
+            pos1++;
+          }
+          if( secondEntities.GetSize() != 1 ) {
             it2++;
-        } // loop over entities
+            pos2++;
+          }
+        } // loop over entities of the chunk
+
+        } // while loop over chunks
         for( UInt iForm = 0; iForm < forms.GetSize()&&UseOpenMP(); ++iForm ) {
           //delete copied bilinear forms
           delete biLinForms[iForm];
@@ -869,7 +910,7 @@ namespace CoupledField
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
 
-          BiLinFormContext & actContext = *forms[iForm];
+          BiLinFormContext& actContext = *forms[iForm];
           bool bilinearFormIsNewton =  actContext.IsNewtonBiLinearForm();
           if( bilinearFormIsNewton ){
             EXCEPTION("Assemble::AssembleMatrices_MultHarm no newton-bilinear forms"
@@ -1161,7 +1202,7 @@ namespace CoupledField
           for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
             // get current context
-            BiLinFormContext & actContext = *forms[iForm];
+            BiLinFormContext& actContext = *forms[iForm];
 
             // get matrix destinations
             FEMatrixType destMat = actContext.GetDestMat();
@@ -1396,7 +1437,7 @@ namespace CoupledField
         // Loop over all bilinearforms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
-          BiLinFormContext & actContext = *forms[iForm];
+          BiLinFormContext& actContext = *forms[iForm];
 
           LOG_DBG(assemble) << "AssembleMatrices for bilinform " << actContext.GetIntegrator()->GetName();
           LOG_DBG2(assemble) << "bilinform=" << actContext.ToString();
@@ -1482,7 +1523,7 @@ namespace CoupledField
 //            else
         // HARD-CODED Section:
                // just take last bilinearform and ask everything from there
-               BiLinFormContext &  actContext = *forms.Last();
+               BiLinFormContext& actContext = *forms.Last();
                //BaseForm * form = actContext.GetIntegrator();
                FEMatrixType destMat = actContext.GetDestMat();
 //               FEMatrixType secDestMat = actContext.GetSecDestMat();

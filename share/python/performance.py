@@ -320,6 +320,44 @@ def has_rel_error(timer_ref, timer, eps=0.1, skip_noise=None):
   return False
       
 
+# 'regression' sub-command: compare ONLY the total wall runtime of a new build
+# against a reference build.
+def total_wall(fname):
+  # The total wall time is the largest timer's wall (the root/'total' timer
+  # encloses the whole run). Read it directly instead of via read_info(), whose
+  # timer-tree ordering can raise on some info.xml structures (e.g. coupled
+  # multi-PDE runs) - here only this single number is needed.
+  xml = open_xml(fname)
+  walls = [float(node.attrib['wall'])
+           for node in xml.xpath("//*[contains(local-name(),'timer')]")
+           if 'wall' in node.attrib]
+  if not walls:
+    raise RuntimeError("no timer with a wall time found in " + fname)
+  return max(walls)
+
+def run_regression(argv):
+  regparser = argparse.ArgumentParser(prog='performance.py regression',
+      description='compare only the total wall runtime of a new build against a reference build')
+  regparser.add_argument('--runtime', action='store_true',
+                         help="compare the total wall runtime (currently the only mode)")
+  regparser.add_argument('--new-runs', nargs='+', required=True,
+                         help="info.xml file(s) of the new build (min wall is taken)")
+  regparser.add_argument('--ref-runs', nargs='+', required=True,
+                         help="info.xml file(s) of the reference build (min wall is taken)")
+  regparser.add_argument('--max-regression', type=float, default=10.0,
+                         help="allowed slowdown of new vs reference in percent (default 10)")
+  regargs = regparser.parse_args(argv)
+  new = min(total_wall(f) for f in regargs.new_runs)
+  ref = min(total_wall(f) for f in regargs.ref_runs)
+  change = (new - ref) / ref * 100.0 if ref > 0 else 0.0
+  slower = change > regargs.max_regression
+  print('runtime: ref={:.2f}s  new={:.2f}s  change={:+.1f}%  (limit +{:.0f}%)  -> {:s}'
+        .format(ref, new, change, regargs.max_regression, 'SLOWER' if slower else 'ok'))
+  sys.exit(1 if slower else 0)
+
+if len(sys.argv) > 1 and sys.argv[1] == 'regression':
+  run_regression(sys.argv[2:])
+
 parser = argparse.ArgumentParser(description='when called with .info.xml the timers of this file are read. Else a performance test is run with -m and -e')
 parser.add_argument("input", nargs='*', help="the xml file to run or the info.xml file(s) to analyze (each with extension)")
 parser.add_argument('--brief', help="brief analysis output to make it within the 1K cdash buffer", action='store_true')

@@ -505,6 +505,12 @@ namespace CoupledField
       unsigned int write_counter = 0;
       /** how often we rejected writing the info.xml-file */
       unsigned int reject_counter = 0;
+
+      /** wall time in seconds the last actual write took. The lazy write
+       * interval is scaled with this duration, such that serializing a large
+       * tree (e.g. transient runs with many logged steps) cannot dominate
+       * the runtime. */
+      double last_write_duration = 0.0;
     };
     
     /** only a root node which is meant to be written with ToFile() needs it.

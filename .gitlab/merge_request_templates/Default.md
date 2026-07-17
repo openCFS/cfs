@@ -14,6 +14,7 @@
 ## Maintainer checks before merge
 
 * [ ] Above mentioned points are completed
+* [ ] Check for performance regressions in the performance testsuite and determine if they are acceptable
 * [ ] Review is approved, and all comments are resolved
 * [ ] New tests are actually running (e.g. check if they appear on CDash)
 

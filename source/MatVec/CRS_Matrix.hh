@@ -378,6 +378,15 @@ namespace CoupledField {
       currentLayout_ = myLayout;
     }
 
+    //! Detect a lexicographically ordered pattern and set the layout flag
+
+    //! Scans the column indices of all rows once and sets currentLayout_ to
+    //! LEX, if every row is sorted in strictly increasing column order.
+    //! Otherwise the layout is left untouched. This enables the logarithmic
+    //! entry search for matrices which adopt an externally created pattern
+    //! (e.g. from the pattern pool), where the ordering is not known.
+    void DetectLexLayout();
+
     //! Sort all rows according to the specified sub-format
 
     //! Calling this method will sort all matrix rows in such a manner that

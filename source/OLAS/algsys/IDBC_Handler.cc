@@ -152,6 +152,7 @@ namespace CoupledField {
     // -------------------------
     addIDBCPossible_ = false;
     remIDBCPossible_ = false;
+    fixedToFreeGatherActive_ = false;
   }
 
 
@@ -331,6 +332,7 @@ namespace CoupledField {
     // -------------------------
     addIDBCPossible_ = false;
     remIDBCPossible_ = false;
+    fixedToFreeGatherActive_ = false;
   }
 
   // **************
@@ -555,6 +557,44 @@ namespace CoupledField {
       curVec->SetEntry(colInd - numFreeDofs_[colBlock] - 1,val);
 
       auxMat_[matID]->MultAdd(*auxVec_,*rhs);
+    }
+
+    // ************************
+    //   QueueFixedToFreeRHS
+    // ************************
+    template <typename T>
+    void IDBC_Handler<T>::QueueFixedToFreeRHS( UInt colBlock,
+                                               UInt colInd,
+                                               const T& val ) {
+
+      LOG_DBG2(idbcElim) << "QueueFixedToFreeRHS:";
+      LOG_DBG2(idbcElim) << "\tcolBlock: " << colBlock;
+      LOG_DBG2(idbcElim) << "\tcolInd:   " << colInd;
+      LOG_DBG2(idbcElim) << "\tvalue:    " << val;
+
+      if( !fixedToFreeGatherActive_ ) {
+        auxVec_->Init();
+        fixedToFreeGatherActive_ = true;
+      }
+      SingleVector * curVec = auxVec_->GetPointer(colBlock);
+      curVec->AddToEntry(colInd - numFreeDofs_[colBlock] - 1,val);
+    }
+
+    // ************************
+    //   FinishFixedToFreeRHS
+    // ************************
+    template <typename T>
+    void IDBC_Handler<T>::FinishFixedToFreeRHS( FEMatrixType matID,
+                                                SBM_Vector *rhs ) {
+
+      LOG_DBG2(idbcElim) << "FinishFixedToFreeRHS: matID: " << matID;
+
+      // nothing was queued since the last call, so there is nothing to apply
+      if( !fixedToFreeGatherActive_ )
+        return;
+
+      auxMat_[matID]->MultAdd(*auxVec_,*rhs);
+      fixedToFreeGatherActive_ = false;
     }
 
   // ************************

@@ -156,6 +156,43 @@ namespace CoupledField {
     //@}
 
     //@{
+    //! Queue a fixed dof value for a batched fixed-to-free RHS update
+
+    //! Batched variant of AddFixedToFreeRHS(): instead of performing one
+    //! matrix-vector product per fixed dof, the values of all fixed dofs are
+    //! first gathered with this method and then applied with a single
+    //! matrix-vector product in FinishFixedToFreeRHS().
+    //! \param colBlock The column block the value is associated with
+    //! \param colInd The index inside the sbm subvector
+    //! \param val  The value we need to multiply
+    virtual void QueueFixedToFreeRHS( UInt colBlock, UInt colInd,
+                                      const Double& val ) {
+      EXCEPTION("BaseIDBC_Handler::QueueFixedToFreeRHS: The derived class does " \
+                << "obviously not support the Double version of this " \
+                << "interface! So it is probably a Complex instance!");
+    }
+
+    virtual void QueueFixedToFreeRHS( UInt colBlock, UInt colInd,
+                                      const Complex& val ) {
+      EXCEPTION("BaseIDBC_Handler::QueueFixedToFreeRHS: The derived class does " \
+                << "obviously not support the Complex version of this " \
+                << "interface! So it is probably a Double instance!");
+    }
+    //@}
+
+    //! Apply all queued fixed dof values to the RHS with one multiplication
+
+    //! Performs rhs += auxMat[matID] * queuedValues for all values gathered
+    //! via QueueFixedToFreeRHS() since the last call of this method.
+    //! The default implementation is a no-op: handlers without fixed dofs
+    //! (e.g. IDBC_HandlerVoid) never get values queued, so there is nothing
+    //! to apply.
+    //! \param matID matrix type to be multiplied with the queued values
+    //! \param rhs  the right hand side we are operating on
+    virtual void FinishFixedToFreeRHS( FEMatrixType matID, SBM_Vector *rhs ) {
+    }
+
+    //@{
     //! Add weight of coupling between a fixed and a free dof into matrix
 
     //! This method provides an interface to add the weight of the coupling

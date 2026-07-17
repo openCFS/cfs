@@ -13,6 +13,7 @@
 
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
+#include <algorithm>
 #include <fstream>
 #include <string>
 #include <utility>
@@ -64,10 +65,15 @@ PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& file
   node->SetName("cfsInfo");
   node->rootNode = new RootNode();
   node->rootNode->filename = filename;
+  // In debug mode we always write, such that the file is up to date e.g.
+  // when inspecting a crash. In release mode the requested laziness is
+  // honoured: without it, every ToFile() call serializes the complete tree,
+  // which makes e.g. transient runs with many logged steps O(n^2) in the
+  // number of steps.
   #ifndef NDEBUG
-    node->rootNode->lazy_write = lazy_write;
-  #else
     node->rootNode->lazy_write = false;
+  #else
+    node->rootNode->lazy_write = lazy_write;
   #endif
   node->rootNode->add_counters = add_counter;
   return node;
@@ -1192,8 +1198,13 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   if(rootNode != NULL)
   {
     // only really write the file if at least a certain amount of time has passed since last write
-    // or if forced. Write always in the debug mode
-    if(rootNode->lazy_write && !force && rootNode->write_timer->IsRunning() && rootNode->write_timer->GetWallTime() < 2.0)
+    // or if forced. Write always in the debug mode.
+    // The interval is scaled with the duration of the last write: serializing
+    // a large tree (e.g. a transient run with thousands of logged steps) takes
+    // substantial time, and with a fixed interval the rewrites would then
+    // consume a growing share of the total runtime.
+    if(rootNode->lazy_write && !force && rootNode->write_timer->IsRunning() &&
+       rootNode->write_timer->GetWallTime() < std::max(2.0, 20.0 * rootNode->last_write_duration))
     {
       rootNode->reject_counter++;
       return;
@@ -1232,6 +1243,10 @@ void ParamNode::ToFile(const std::string& filename, bool force)
   ToXML(out);
 
   out << std::endl;
+
+  // remember how expensive this write was to scale the lazy write interval
+  if(rootNode != NULL && rootNode->write_timer->IsRunning())
+    rootNode->last_write_duration = rootNode->write_timer->GetWallTime();
 }
 
 void ParamNode::Dump(int level) const
