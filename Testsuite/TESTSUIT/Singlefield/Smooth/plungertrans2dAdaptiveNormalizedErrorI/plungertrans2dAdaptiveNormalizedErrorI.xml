@@ -21,7 +21,7 @@
 
   <fileFormats>
     <input>
-      <hdf5 fileName="plungertrans2dAdaptiveNormalizedErrorSmoothingOff.h5ref"/>
+      <hdf5 fileName="plungertrans2dAdaptiveNormalizedErrorI.h5ref"/>
     </input>
     <output>
       <hdf5/>
