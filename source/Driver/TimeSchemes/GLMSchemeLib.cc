@@ -329,7 +329,7 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   // --------------------------------------------------------------------------------
   // Adaptive Timestepping:
   // Stores Previus Timsteps for Errorestimation
-  // The Scheme has been updated so, constant aswell as adaptive timesteps can be used.
+  // The Scheme has been updated so that constant and  adaptive timesteps can be used.
   // w_ -> 1 for constant timstep, the coefficiats then revert back to previus values.
   // --------------------------------------------------------------------------------
   if(!initialized_)
@@ -350,7 +350,6 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   }
   // Adaptive BDF2: the dt history is advanced once per step in AdvanceAdaptiveStep(); this
   // method only (re)computes the tableau, so TransformBC/coupling re-calls leave it untouched.
-
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
    w_ = dtCurrent_/dtPrev1_; // step ratio h_{n+1}/h_n; w_=1 for constant dt -> non adaptive BDF2
@@ -359,17 +358,17 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
   switch(solDerivOrder){
   case 1:
     solDerivOrder_ = 1;
-    schemeCoefs_[0][0] = dtCurrent_ / a0;          // 2*curTStepSize_/3;
-    schemeCoefs_[0][1] = -(1.0 + w_) / a0;         // -4/3;
-    schemeCoefs_[0][2] = w_*w_ / ((1.0 + 2.0*w_));  // 1/3;
+    schemeCoefs_[0][0] = dtCurrent_ / a0;          
+    schemeCoefs_[0][1] = -(1.0 + w_) / a0;         
+    schemeCoefs_[0][2] = w_*w_ / ((1.0 + 2.0*w_)); 
     schemeCoefs_[0][3] = 0;
     schemeCoefs_[1][0] = 1;
     schemeCoefs_[1][1] = 0;
     schemeCoefs_[1][2] = 0;
     schemeCoefs_[1][3] = 0;
-    schemeCoefs_[2][0] = dtCurrent_ / a0;             // 2*curTStepSize_/3;
-    schemeCoefs_[2][1] = (1.0 + w_) / a0;            // 4/3;
-    schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);    // -1/3;
+    schemeCoefs_[2][0] = dtCurrent_ / a0;             
+    schemeCoefs_[2][1] = (1.0 + w_) / a0;            
+    schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);    
     schemeCoefs_[2][3] = 0;
     schemeCoefs_[3][0] = 0;
     schemeCoefs_[3][1] = 1;   // new_glm[1] = old_glm[0] = y_n → tracks y_{n-1} correctly
@@ -386,9 +385,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[0][1] = 0;
     schemeCoefs_[0][2] = 0;
     schemeCoefs_[0][3] = 0;
-    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent_); // 3/(2*curTStepSize_);
-    schemeCoefs_[1][1] =  (1.0 +w_) / dtCurrent_;                 //  2/(curTStepSize_);
-    schemeCoefs_[1][2] = -w_*w_ /((1.0+w_) * dtCurrent_);         // -0.5/curTStepSize_;
+    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent_); 
+    schemeCoefs_[1][1] =  (1.0 +w_) / dtCurrent_;                 
+    schemeCoefs_[1][2] = -w_*w_ /((1.0+w_) * dtCurrent_);         
     schemeCoefs_[1][3] = 0;
     schemeCoefs_[2][0] = 1;
     schemeCoefs_[2][1] = 0;
@@ -398,9 +397,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[3][1] = 1;
     schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
-    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent_); // 3/(2*curTStepSize_);
-    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent_;                     // -2/(curTStepSize_);
-    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent_);            // (0.5/curTStepSize_);
+    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent_); 
+    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent_;                    
+    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent_);            
     schemeCoefs_[4][3] = 0;
     break;
   }

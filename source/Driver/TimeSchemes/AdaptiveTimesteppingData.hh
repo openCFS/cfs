@@ -8,6 +8,7 @@ namespace CoupledField {
 
 class AdaptiveTimesteppingData {
 public:
+
     //! AdaptiveTimesteppingData contains all Data neccesery for the Adaptive Schemes, is part of domain. Includes xml parsing.
     void InitFromXml(PtrParamNode node);
 
@@ -32,7 +33,7 @@ public:
     int    consecutiveNaN_       = 0;     // consecutive NaN-solution steps; abort after threshold
 
     // Multi-field LTE: each field registers via FinishStepLTE(); FinishStep() makes one consistent decision.
-    // fieldLocalErrors_ per field; getControllingError() returns max.
+    // fieldLocalErrors_ per field; getControllingError() returns max. 
     std::vector<double> fieldLocalErrors_;
     bool lteCollected_     = false;  // true once at least one field has registered
     bool stepDecisionMade_ = false;  // true once the first field called ComputeAdaptiveStepSize
