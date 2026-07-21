@@ -858,6 +858,8 @@ namespace CoupledField{
 
     if (r.accepted) {
       atd->totalAcceptedSteps_++;
+      // 1.0001/0.9999 = 0.01% edge tolerance: a step landing essentially at dtMin/dtMax counts as
+      // "at the bound" (clamped, so no re-run); a larger factor would flag steps further from the bound.
       if (r.h_next <= atd->dtMin_ * 1.0001) atd->stepsAtDtMin_++;
       if (r.h_next >= atd->dtMax_ * 0.9999) atd->stepsAtDtMax_++;
     }
