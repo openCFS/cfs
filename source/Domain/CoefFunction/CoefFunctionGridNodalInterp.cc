@@ -379,7 +379,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::PrintNodesToCSV(const StdVector<con
   outFile << "x coord, y coord, z coord, scalar\n";
   for (UInt i=0; i<foundElements.GetSize(); ++i) {
     if (!foundElements[i]) {
-       Vector<Double> coord = nodeGlobCoords[i];
+       const Vector<Double>& coord = nodeGlobCoords[i];
        outFile << coord[0] << ", " << coord[1];
        if(coord.GetSize()==3)
          outFile << ", " << coord[2];

@@ -235,7 +235,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       return mu;
     }
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMu(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> EBHysteresis::EvaluateLocalMu(const StdVector<Double>& dH, const StdVector<Double>& dB, UInt idx){
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
       mu[0][1] = 0.0; //dB[0]/dH[1];
@@ -253,7 +253,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       return mu;
     }
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(const StdVector<Double>& dH, const StdVector<Double>& dB, UInt idx){
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
 
@@ -322,7 +322,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][0] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              //const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -420,7 +420,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[2][1] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -430,7 +430,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
 
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(const StdVector<Double>& dH, const StdVector<Double>& dB, UInt idx){
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
 
@@ -461,7 +461,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][0] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
             } 
         }
@@ -501,7 +501,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[2][1] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
+              const Matrix<Double>& e = mu_[idx];
                 mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
             } 
         }
@@ -509,7 +509,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       return mu;
     }
 
-    StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
+    StdVector<Double> EBHysteresis::inv3x3(const StdVector<Double>& A){
       double detA = 0;
       StdVector<Double> adjA(9); adjA.Init(0.0);
       StdVector<Double> invA(9); invA.Init(0.0);

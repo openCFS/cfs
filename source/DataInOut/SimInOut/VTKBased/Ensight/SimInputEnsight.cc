@@ -350,7 +350,7 @@ void SimInputEnsight::GetResultEntities( UInt sequenceStep,
   }
 
   //we only cover volume regions right now.
-  StdVector<std::string> aRegions =  this->regionNamesOfDim_[dim_];
+  //const StdVector<std::string>& aRegions =  this->regionNamesOfDim_[dim_];
   EntityList::ListType listType;
   switch( info->definedOn ) {
   case ResultInfo::NODE:

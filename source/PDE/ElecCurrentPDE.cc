@@ -177,8 +177,8 @@ namespace CoupledField {
 
       PtrCoefFct coef; // if only a single coef function
 
-      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
+      const StdVector<NonLinType>& matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
 
       if ( matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && nonLinTypes.GetSize() == 0) {
         // purely temperature dependent (no further non linearity)

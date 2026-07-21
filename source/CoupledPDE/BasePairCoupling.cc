@@ -1088,7 +1088,7 @@ namespace CoupledField {
          
          // Obtain field resultFunctor object
          SolutionType solType = fap.resultInfo->resultType;
-         StdVector<std::string> dofNames = fap.resultInfo->dofNames;
+         const StdVector<std::string>& dofNames = fap.resultInfo->dofNames;
          UInt numDofs = dofNames.GetSize();
          std::string solTypeString;
          solTypeString = SolutionTypeEnum.ToString(solType);

@@ -27,13 +27,13 @@ public:
   // just for the computation of the residual, we do not store anything here
   Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);
 
-  Matrix<Double> EvaluateLocalMu(StdVector<Double> E, StdVector<Double> D, UInt idx);
+  Matrix<Double> EvaluateLocalMu(const StdVector<Double>& E, const StdVector<Double>& D, UInt idx);
 
-  Matrix<Double> EvaluateLocalMuDFP(StdVector<Double> E, StdVector<Double> D, UInt idx);
+  Matrix<Double> EvaluateLocalMuDFP(const StdVector<Double>& E, const StdVector<Double>& D, UInt idx);
 
-  Matrix<Double> EvaluateLocalMuGBM(StdVector<Double> E, StdVector<Double> D, UInt idx);
+  Matrix<Double> EvaluateLocalMuGBM(const StdVector<Double>& E, const StdVector<Double>& D, UInt idx);
 
-  StdVector<Double> inv3x3(StdVector<Double> A);
+  StdVector<Double> inv3x3(const StdVector<Double>& A);
 
   Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
 

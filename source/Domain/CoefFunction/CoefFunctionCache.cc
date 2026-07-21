@@ -65,7 +65,7 @@ template<class TYPE> void CoefFunctionCache<TYPE>::GetVector(Vector<TYPE>& coefV
 	//Cached coefVec is second value in pair. For data structure see comment in else
     coefVec = cached_data_vec_[lpm.ptEl->elemNum].second;
 
-    Vector<Double> actlp = lpm.lp.coord;
+    const Vector<Double>& actlp = lpm.lp.coord;
 
     //Distance saved LP to actual LP
     Double dist = actlp.NormL2(cached_data_vec_[lpm.ptEl->elemNum].first);
@@ -97,7 +97,7 @@ template<class TYPE> void CoefFunctionCache<TYPE>::GetTensor(Matrix<TYPE>& coefM
 
     coefMat = cached_data_mat_[lpm.ptEl->elemNum].second;
 
-    Vector<Double> actlp = lpm.lp.coord;
+    const Vector<Double>& actlp = lpm.lp.coord;
     Double dist = actlp.NormL2(cached_data_mat_[lpm.ptEl->elemNum].first);
 
     if (dist > 0.001) {
@@ -118,7 +118,7 @@ template<class TYPE> void CoefFunctionCache<TYPE>::GetScalar(TYPE& coefScal, con
 
     coefScal = cached_data_scal_[lpm.ptEl->elemNum].second;
 
-    Vector<Double> actlp = lpm.lp.coord;
+    const Vector<Double>& actlp = lpm.lp.coord;
     Double dist = actlp.NormL2(cached_data_scal_[lpm.ptEl->elemNum].first);
 
     if (dist > 0.001) {

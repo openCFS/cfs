@@ -1391,6 +1391,9 @@ PtrParamNode Optimization::CommitIteration()
   // option gradplot for some FeaturedDesign, other (e.g. SIMP) ignore
   design->WriteGradientFile();
 
+  // option hessexport for FeatureMappingDesign, others ignore
+  design->WriteHessExportFile();
+
   // this writes the most current solved forward problem via the driver to gid or whatever
   // keep "commitStride == 1 || " for readability!
   bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);

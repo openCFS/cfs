@@ -253,7 +253,7 @@ void HeatPDE::DefineIntegrators() {
     // ====================================================================
 
     //get possible nonlinearities defined in this region
-    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+    const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
     if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
       // ====================================================================
       // nonlinear stiffness integrator
@@ -1023,7 +1023,7 @@ CoupledField::BasePDE::StabilisationType HeatPDE::GetStabilisation(RegionIdType 
   shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
   actSDList->SetRegion( entRegion );
 
-  StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[entRegion];
+  const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[entRegion];
 
   // pass entitylist of fespace / fefunction
   shared_ptr<BaseFeFunction> feFunc = feFunctions_[HEAT_TEMPERATURE];

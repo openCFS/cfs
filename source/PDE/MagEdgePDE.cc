@@ -139,8 +139,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }
 
       //get possible nonlinearities defined in this region
-      StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
+      const StdVector<NonLinType>& matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];   // non-linearity
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );

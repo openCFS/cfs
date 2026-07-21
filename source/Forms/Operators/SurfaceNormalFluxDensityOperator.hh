@@ -49,7 +49,7 @@ public:
   static const UInt DIM_D_MAT = D_DOF;
   //@}
 
-  SurfaceNormalFluxDensityOperator(std::string subType)
+  SurfaceNormalFluxDensityOperator(const std::string& subType)
   {
    if (subType == "2.5d")
    {
@@ -64,7 +64,7 @@ public:
    gradOp_->SetOperator2SurfOperator();
   }
 
-  SurfaceNormalFluxDensityOperator(std::string subType, PtrCoefFct baseOpCoef)
+  SurfaceNormalFluxDensityOperator(const std::string& subType, PtrCoefFct baseOpCoef)
   {
     if (subType == "2.5d")
     {
@@ -311,7 +311,7 @@ public:
   static const UInt DIM_D_MAT = D_DOF;
   //@}
 
-  SurfaceNormalPiezoStrainOperator(std::string subType)
+  SurfaceNormalPiezoStrainOperator(const std::string& subType)
     : SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>(subType), dimNorm_(0)
   {
     this->name_ = "surfNormPiezoStrainOp";
@@ -326,7 +326,7 @@ public:
       EXCEPTION("Subtype '" << subType << "' in SurfaceNormalStressOperator");
   }
 
-  SurfaceNormalPiezoStrainOperator(std::string subType, PtrCoefFct baseOpCoef)
+  SurfaceNormalPiezoStrainOperator(const std::string& subType, PtrCoefFct baseOpCoef)
     : SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>(subType, baseOpCoef), dimNorm_(0)
   {
     this->name_ = "surfNormPiezoStrainOp";

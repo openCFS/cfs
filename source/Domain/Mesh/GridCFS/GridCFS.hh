@@ -128,7 +128,7 @@ namespace CoupledField
     //! \param type is the element type (e.g. Elem::ET_HEXA8)
     //! \param region is the region ID where the element gets assigned to
     //! \param connect is a pointer to the connectivity list
-    void SetElemData(UInt ielem,
+    Elem* SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
                              const UInt* connect) override;
@@ -167,6 +167,28 @@ namespace CoupledField
     //! Get a list with names of all named elements in the grid
     //! \param elemNames list of names of elements
     void GetListElemNames( StdVector<std::string> & elemNames)  override;
+
+    /** implements the 'elemList' and 'nodeList' handling within 'domain' in the .xml.
+     * The user can specify nodes or elements (barycenter) coordinates and named nodes and elements are created.
+     * 'coord' is handled by CreateUserDefinedByCoord(), 'bounds' and 'test' are handled by CreateUserDefinedTraverse() 
+     * and 'expression' and 'list' are handled by CreateUserDefinedBySearch(). 
+     * 'bounds' is much faster than 'list' but only since 03.2026, so almost all 'list' 
+     * shall be 'bounds'.
+     * @param param with param_->Get("domain") or from RegularMesh. Potential elemList and nodeList is processed. */
+    void CreateUserDefinedNodesElems(const PtrParamNode& param);
+
+    /** helper for CreateUserDefinedNodesElems() - handle single node/element defined by coordinate 
+     * Only fills the found_entities vector, is in principle const. */
+    void SelectByCoord(const std::string& name, bool isNode, const PtrParamNode& pn, StdVector<unsigned int>& found_entities);
+
+    /** 'bounds' and 'test' in parallel: Traverse all elements and check if to add to nodes.
+     * As the nodes are traversed in the original order, the entities are also created by sorted index 
+     */
+    void SelectByTraversal(const std::string& name, bool isNode, const PtrParamNode& pn, StdVector<unsigned int>& found_entities);
+
+    /** Create virtual nodes/elements and searches the nearest in the mesh. 
+     *  Implements 'expression' and 'list' */
+    void SelectBySearch(const std::string& name, bool isNode, const PtrParamNode& pn, StdVector<unsigned int>& found_entities);
 
     //@}
 
@@ -301,7 +323,7 @@ namespace CoupledField
     inline const StdVector<Elem*>& GetElemsByNode(UInt node) override
     {
       if (!mappedNodeToElems_)
-        SetNodesToElemsMap();
+        SetNodesToElemsMap(); // is thread-safe
       return mapNodeToElems_[node];
     }
 
@@ -672,26 +694,7 @@ namespace CoupledField
         
     //! Prints information about the grid into the .info.xml file
     void ToInfo(PtrParamNode in);
-    
-    /** implements the 'elemList' and 'nodeList' handling within 'domain' in the .xml.
-     * The user can specify nodes or elements (barycenter) coordinates and named nodes and elements are created.
-     * 'coord' is handled by CreateUserDefinedByCoord(), 'bounds' and 'test' are handled by CreateUserDefinedTraverse() 
-     * and 'expression' and 'list' are handled by CreateUserDefinedBySearch(). 
-     * 'bounds' is much faster than 'list' but only since 03.2026, so almost all 'list' 
-     * shall be 'bounds'. */
-    void CreateUserDefinedNodesElems();
-
-    /** helper for CreateUserDefinedNodesElems() - handle single node/element defined by coordinate */
-    void CreateUserDefinedByCoord(const std::string& name, bool isNode, const PtrParamNode& pn);
-
-    /** 'bounds' and 'test' in parallel: Traverse all elements and check if to add to nodes.
-     * As the nodes are traversed in the original order, the entities are also created by sorted index */
-    unsigned int CreateUserDefinedTraverse(const std::string& name, bool isNode, const PtrParamNode& pn);
-
-    /** Create virtual nodes/elements and searches the nearest in the mesh. 
-     *  Implements 'expression' and 'list' */
-    void CreateUserDefinedBySearch(const std::string& name, bool isNode, const PtrParamNode& pn);
-
+   
     /** find entity with minimum distance. Either node or element barycenter
      * Either with nanoflann (USE_NANOFLANN=ON by default) or by brute force (comparing all elements).
      * @param eps if we find something withing this distance we return it. For nanoflann ignored.

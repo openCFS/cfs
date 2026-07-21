@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsMeshDescription xmlns="http://www.cfs++.org/simulation" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation 
+  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  <!-- See the RegularMesh2D test for the description. 
+       geometryType and region are overwritten by the values in the problem.xml -->
+  <regular geometryType="3d" region="dummy_name_overwritten_by_problem_xml" >
+    <!-- box is optional, the given values are already the defaults -->
+    <box xMax="1.0" yMax="1.0" zMax="1.0" />
+    <!-- ny (and nz) are optional. By default we have hx -> hy (hz). -->
+    <elements nx="5" /> 
+    <!-- one can alternatively define the following (hx is mandatory, hy is optional) -->
+    <!-- <spacing hx="0.05" hy="0.1"/> --> 
+
+    <subRegion name="half">
+      <test condition="x gt 0.5001" />
+    </subRegion>
+  </regular>
+</cfsMeshDescription>

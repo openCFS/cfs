@@ -219,8 +219,8 @@ def print_timer(timers, brief, wall, cpu, cnt=False, ref=None, threshold=0.0):
     if t.wall < threshold and t.wall >= 0:
       continue
     # format for time display
-    format_wall = '{: 6.0f}' if t.wall >= 10000 else '{: 6.2f}'
-    format_cpu = '{: 6.0f}' if t.cpu >= 10000 else '{: 6.2f}'
+    format_wall = '{: 6.0f}' if t.wall >= 10000 else '{: 7.3f}'
+    format_cpu = '{: 6.0f}' if t.cpu >= 10000 else '{: 7.3f}'
 
     prefix = t.prefix()
     l = prefix + t.label

@@ -1135,32 +1135,30 @@ void Domain::CreateCoordinateSystems()
   }
 }
 
-void Domain::RegisterVariables() 
+void Domain::RegisterVariables()
 {
-  PtrParamNode varListNode = param_->Get("domain")->Get("variableList", ParamNode::PASS);
-  if( varListNode ) {
-   ParamNodeList & varNodes = varListNode->GetChildren();
-   ParamNodeList::iterator it = varNodes.Begin();
-   std::string varName, valString;
-   unsigned int handle;
-   handle = mathParser_->GetNewHandle();
-   Double value = 0.0;
-   for(; it != varNodes.End(); it++ ) {
-     (*it)->GetValue("name", varName);
-     (*it)->GetValue("value", valString);
-     // check for reserved variable names
-     if ( (varName == "t") || (varName == "dt") || (varName == "f") || (varName == "step") )
-     {
-       EXCEPTION("The variable '" << varName
-                 << "' is reserved, its value will be set automatically. "
-                 << "Please choose a different name.");
-     }
-     mathParser_->SetExpr(handle, valString);
-     value = mathParser_->Eval(handle);
-     mathParser_->SetValue(MathParser::GLOB_HANDLER, varName, value);
-   }
-   mathParser_->ReleaseHandle(handle);
+  const PtrParamNode& varListNode = param_->Get("domain")->Get("variableList", ParamNode::PASS);
+  if(!varListNode)
+    return;
+
+  static const std::set<std::string> reserved = {"t", "dt", "f", "step"};
+
+  unsigned int handle = mathParser_->GetNewHandle();
+  for(const PtrParamNode& node : varListNode->GetChildren())
+  {
+    std::string varName, valString;
+    node->GetValue("name", varName);
+    node->GetValue("value", valString);
+
+    // check for reserved variable names
+    if(reserved.count(varName) > 0 )
+      throw Exception("The variable '" + varName + "' is reserved and cannot be used for 'variableList', its value will be set automatically.");
+
+    mathParser_->SetExpr(handle, valString);
+    Double value = mathParser_->Eval(handle);
+    mathParser_->SetValue(MathParser::GLOB_HANDLER, varName, value);
   }
+  mathParser_->ReleaseHandle(handle);
 }
 // *************
 //   SetDriver

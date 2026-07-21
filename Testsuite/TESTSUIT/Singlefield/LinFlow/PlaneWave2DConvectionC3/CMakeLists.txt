@@ -12,5 +12,3 @@ ADD_TEST(${TEST_NAME}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-# Test case broken on gcc7 and windows builds (see issue #95)
-#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

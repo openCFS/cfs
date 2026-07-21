@@ -1,5 +1,4 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+#include "Utils/CfsNumpy.hh"
 #include <filesystem>
 #include <boost/algorithm/string/replace.hpp>
 
@@ -125,7 +124,9 @@ void PythonKernel::InitInterpreter()
   string str(c_str);
   boost::replace_all(str, "\n"," ");
   info_->Get("python/version")->SetValue(str);
-  Py_XDECREF(version);
+  // PySys_GetObject returns a borrowed reference: do NOT decref. On a free-threading build the
+  // extra decref freed sys.version (not immortal-protected as on the GIL build) -> use-after-free
+  // corrupting sys.version, which then broke e.g. scipy.io's platform.python_implementation().
 }
 
 PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, const string opt_path, bool preload_numpy)

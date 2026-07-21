@@ -480,8 +480,8 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
         Vector<double> aDouble; 
         if (p_ != 2)
         {
-          aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
-          for (int i=0;i<(int)a->GetNnz();i++) {
+          aDouble.Resize(2*a->GetNumEntries(),0.0); // factor 2 for complex
+          for (int i=0;i<(int)a->GetNumEntries();i++) {
             aDouble[2*i] = a->GetDataPointer()[i].real();
             aDouble[2*i+1] = a->GetDataPointer()[i].imag();
           }
@@ -538,8 +538,8 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
           case 1: { // generalized EVP
             const SCRS_Matrix<Complex>* bc = dynamic_cast<const SCRS_Matrix<Complex>*>(b_);
             SCRS_Matrix<Complex>* b = const_cast<SCRS_Matrix<Complex>*>(bc);
-            Vector<double> bDouble; bDouble.Resize(2*b->GetNnz(),0.0); // factor 2 for complex
-            for (int i=0;i<(int)b->GetNnz();i++) {
+            Vector<double> bDouble; bDouble.Resize(2*b->GetNumEntries(),0.0); // factor 2 for complex
+            for (int i=0;i<(int)b->GetNumEntries();i++) {
               bDouble[2*i] = b->GetDataPointer()[i].real();
               bDouble[2*i+1] = b->GetDataPointer()[i].imag();
             }
@@ -597,7 +597,7 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
         Vector<double> aDouble;
         if (p_ != 2)
         {
-          aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
+          aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex (general CRS: data has nnz entries)
           for (int i=0;i<(int)a->GetNnz();i++) {
             aDouble[2*i] = a->GetDataPointer()[i].real();
             aDouble[2*i+1] = a->GetDataPointer()[i].imag();
@@ -656,7 +656,7 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
           case 1: { // generalized EVP
             const CRS_Matrix<Complex>* bc = dynamic_cast<const CRS_Matrix<Complex>*>(b_);
             CRS_Matrix<Complex>* b = const_cast<CRS_Matrix<Complex>*>(bc);
-            Vector<double> bDouble; bDouble.Resize(2*b->GetNnz(),0.0); // factor 2 for complex
+            Vector<double> bDouble; bDouble.Resize(2*b->GetNnz(),0.0); // factor 2 for complex (general CRS: data has nnz entries)
             for (int i=0;i<(int)b->GetNnz();i++) {
               bDouble[2*i] = b->GetDataPointer()[i].real();
               bDouble[2*i+1] = b->GetDataPointer()[i].imag();
@@ -715,8 +715,8 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
         // setup A-matrix
         const SCRS_Matrix<Complex>* a_const = dynamic_cast<const SCRS_Matrix<Complex>*>(a_);
         SCRS_Matrix<Complex>* a = const_cast<SCRS_Matrix<Complex>*>(a_const);
-        Vector<double> aDouble; aDouble.Resize(2*a->GetNnz(),0.0); // factor 2 for complex
-        for (int i=0;i<(int)a->GetNnz();i++) {
+        Vector<double> aDouble; aDouble.Resize(2*a->GetNumEntries(),0.0); // factor 2 for complex
+        for (int i=0;i<(int)a->GetNumEntries();i++) {
             aDouble[2*i] = a->GetDataPointer()[i].real();
             aDouble[2*i+1] = a->GetDataPointer()[i].imag();
         }
@@ -743,8 +743,8 @@ void FeastEigenSolver::CalculationAttempt(BaseVector& sol, BaseVector& err) {
           {
             const SCRS_Matrix<Complex>* bc = dynamic_cast<const SCRS_Matrix<Complex>*>(b_);
             SCRS_Matrix<Complex>* b = const_cast<SCRS_Matrix<Complex>*>(bc);
-            Vector<double> bDouble; bDouble.Resize(2*b->GetNnz(),0.0); // factor 2 for complex
-            for (int i=0;i<(int)b->GetNnz();i++) {
+            Vector<double> bDouble; bDouble.Resize(2*b->GetNumEntries(),0.0); // factor 2 for complex
+            for (int i=0;i<(int)b->GetNumEntries();i++) {
                 bDouble[2*i] = b->GetDataPointer()[i].real();
                 bDouble[2*i+1] = b->GetDataPointer()[i].imag();
             }

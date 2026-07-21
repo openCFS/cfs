@@ -1,0 +1,259 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer id="0" wall-clock="0.08195s" wall="0.0819452" cpu="0.082159" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="47"/>
+  </summary>
+  <header id="">
+    <environment started="08-Jul-26 17:07:26" host="MacBook-Pro"/>
+    <input>
+      <regular dim="3" region="base" elements="[5, 5, 5]" spacing="[0.2, 0.2, 0.2]" min="[0, 0, 0]">
+        <subRegion name="half" numElems="50"/>
+      </regular>
+    </input>
+    <progOpts problem="RegularMesh3D_external" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Technical/RegularMesh3D_external/RegularMesh3D_external.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.07" name="Kaum Konvergenz" build="RELEASE" git_commit="636a9deb9edf65e9d3984b4a2eb1af9aaa49864a-modified" git_branch="fwein_regular" compiled="Jul  8 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="5" ny="5" nz="5">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="125" nodes="216">
+          <timer id="5" wall-clock="0.0006497s" wall="0.000649708" cpu="0.000652" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0001855s" wall="0.0001855" cpu="0.000187" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="9.621e-05s" wall="9.6209e-05" cpu="9.6e-05" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="1.083e-06s" wall="1.083e-06" cpu="0" calls="2" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="base" id="0" type="volume" regular="yes" hom="yes" nodes="144" elems="75" isQuadratic="no"/>
+        <region name="half" id="1" type="volume" regular="yes" hom="yes" nodes="108" elems="50" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left" count="36"/>
+        <nodes name="right" count="36"/>
+        <nodes name="back" count="36"/>
+        <nodes name="front" count="36"/>
+        <nodes name="bottom" count="36"/>
+        <nodes name="top" count="36"/>
+        <nodes name="left_bottom_back" count="1" coord="(0,0,0)"/>
+        <nodes name="right_bottom_back" count="1" coord="(1,0,0)"/>
+        <nodes name="left_top_back" count="1" coord="(0,1,0)"/>
+        <nodes name="right_top_back" count="1" coord="(1,1,0)"/>
+        <nodes name="left_bottom_front" count="1" coord="(0,0,1)"/>
+        <nodes name="right_bottom_front" count="1" coord="(1,0,1)"/>
+        <nodes name="left_top_front" count="1" coord="(0,1,1)"/>
+        <nodes name="right_top_front" count="1" coord="(1,1,1)"/>
+        <nodes name="bottom_back" count="6"/>
+        <nodes name="bottom_front" count="6"/>
+        <nodes name="bottom_left" count="6"/>
+        <nodes name="bottom_right" count="6"/>
+        <nodes name="top_back" count="6"/>
+        <nodes name="top_front" count="6"/>
+        <nodes name="top_left" count="6"/>
+        <nodes name="top_right" count="6"/>
+        <nodes name="back_left" count="6"/>
+        <nodes name="back_right" count="6"/>
+        <nodes name="front_left" count="6"/>
+        <nodes name="front_right" count="6"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" e="0.001" f="0" nx="5" ny="5" nz="5" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="29" wall-clock="0.0004359s" wall="0.000435916" cpu="0.000421" calls="6"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001208s" wall="0.00120796" cpu="0.001215" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="1.667e-06s" wall="1.667e-06" cpu="3e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer id="16" wall-clock="0.004081s" wall="0.00408108" cpu="0.004106" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="half" damping="none"/>
+          <region name="base" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="base">
+                <coef type="CoefFunctionConst" value="[[1, 0, 0],[0, 1, 0],[0, 0, 1]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="half">
+                <coef type="CoefFunctionConst" value="[[1, 0, 0],[0, 1, 0],[0, 0, 1]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="base" size="75" region="base"/>
+                <coef type="CoefFunctionConst" value="-0.0066666666666666671"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="half" size="50" region="half"/>
+                <coef type="CoefFunctionConst" value="0.040000000000000001"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="base"/>
+            <region name="half"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(1,0)"/>
+          <property name="Heat_Capacity" value="1"/>
+          <property name="Density" value="1"/>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(1,0)"/>
+          <property name="Heat_Capacity" value="1"/>
+          <property name="Density" value="1"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <base/>
+                <default order="1"/>
+                <half/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="left" dofs="" value="0"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="216" totalNumFreeEqns="180" totalNumDirichlet="36">
+            <function id="0" name="heatTemperature" numEqns="216" lastFreeEqn="180" numDirichlet="36">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="216" lastFreeIndex="180"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer id="25" label="setup_directLDL" wall-clock="0.0001071s" wall="0.000107125" cpu="0.000107" calls="1"/>
+              </setup>
+              <solve>
+                <timer id="26" label="solve_directLDL" wall-clock="4.458e-05s" wall="4.4583e-05" cpu="4.5e-05" calls="1"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="27" wall-clock="3.33e-07s" wall="3.33e-07" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="28" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+      <graph nnz="256">
+        <timer id="21" wall-clock="0.0008667s" wall="0.000866708" cpu="0.000893" calls="2" sub="true" parent="16"/>
+        <finalize>
+          <timer id="22" wall-clock="5.771e-05s" wall="5.7709e-05" cpu="6.8e-05" calls="2" sub="true" parent="21"/>
+        </finalize>
+        <sort>
+          <timer id="23" wall-clock="3.5e-05s" wall="3.5e-05" cpu="4.7e-05" calls="2" sub="true" parent="21"/>
+        </sort>
+        <rows number="180" min="0" max="9" mean="1.4222" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="24" wall-clock="0.0005357s" wall="0.000535667" cpu="0.000534" calls="1" sub="true" parent="21"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="17" wall-clock="0.0003287s" wall="0.000328667" cpu="0.000588" calls="2"/>
+          <matrices>
+            <timer id="18" wall-clock="0.0003082s" wall="0.000308166" cpu="0.000568" calls="1" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="1.921e-05s" wall="1.9209e-05" cpu="2e-05" calls="1" sub="true" parent="17"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="20" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

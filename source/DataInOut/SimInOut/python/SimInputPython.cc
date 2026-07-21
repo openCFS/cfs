@@ -9,10 +9,7 @@
 #endif
 
 
-#define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
-//#include <Python.h>
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
+#include "Utils/CfsNumpy.hh"
 #include "SimInputPython.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "MatVec/Vector.hh"
@@ -64,7 +61,7 @@ void SimInputPython::InitModule()
   info_->Get("options")->SetValue(lst);
   // to be continued in ReadMesh()
 
-  import_array1();
+  CfsImportNumpy(); // initialize the shared numpy table (idempotent), see CfsNumpy.hh
 }
 
 

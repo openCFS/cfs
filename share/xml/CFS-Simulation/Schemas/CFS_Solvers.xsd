@@ -1446,6 +1446,33 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                          OLAS_COCR Solver                     == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for OLAS_COCR Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="cocr" type="DT_SolverOLASCOCR" substitutionGroup="SolverBasic"/>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for OLAS_COCR Solver -->
+  <!--   COCR is the complex-symmetric analogue of CR. -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SolverOLASCOCR">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+        <xsd:sequence>
+          <xsd:element name="stoppingRule" type="DT_ItSolvStoppingRule" minOccurs="0"/>
+          <xsd:element name="tol" type="xsd:token" minOccurs="0" default="1e-4"/>
+          <xsd:element name="maxIter" type="xsd:positiveInteger" minOccurs="0" default="2000"/>
+          <xsd:element name="consoleConvergence" type="DT_CFSBool" minOccurs="0" default="no"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->

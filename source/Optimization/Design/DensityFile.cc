@@ -326,7 +326,7 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      in_->Get("dummy")->SetValue(regularize, true);
 
    domain->ToInfo(in_, true); // coordinateSystems and enforce min_x, max_x, ...
-   Matrix<double> bounds = space_->domainBounds;
+   const Matrix<double>& bounds = space_->domainBounds;
    PtrParamNode t = in_->Get("optimizationDomain");
    //  <designBounds min_x="0" max_x="1" min_y="0" max_y="1"/>
    t->Get("min_x")->SetValue(bounds[0][0]);

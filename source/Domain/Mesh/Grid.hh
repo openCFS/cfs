@@ -310,7 +310,9 @@ namespace CoupledField
     //! Reserve memory for a number of elements without adding them
     virtual void ReserveElems(UInt nElems) = 0;
     
-    virtual void SetElemData(UInt ielem,
+    /** Usually sets the initial element data, it then increments numElemTypes_. 
+      Overwriting is also okay, then the type must not change */
+    virtual Elem* SetElemData(UInt ielem,
                              Elem::FEType type,
                              RegionIdType region,
                              const UInt* connect) = 0;
@@ -875,6 +877,9 @@ namespace CoupledField
     //! Raises exception if the connection has not been set yet. 
     void GetConnectedSurfaceRegions(StdVector<RegionIdType>& connecedSurfRegionIds, const RegionIdType& volumeRegionId);
 
+    /** this store optional elemList and nodeList PtrParamNode to be processed by
+     * CreateUserDefinedNodesElems(). SimInputRegular uses it as FinishInit() needs to be called before calling CreateUserDefinedNodesElems() */
+    StdVector<PtrParamNode> pendingDefinedNodesElemsLists; 
 
     /** This is an public auto-start timer. The base for sub-timers */
     shared_ptr<Timer> timer;

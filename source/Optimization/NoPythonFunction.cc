@@ -62,8 +62,16 @@ void Function::SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identi
 PyObject* Function::CallPythonFunction(bool eval)
 {
   assert(false);
-  return NULL;
+  return nullptr;
 }
+
+
+bool Function::CalcCurvaturePython(Vector<double>& diag)
+{
+  assert(false);
+  return false;
+}
+
 
 double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivative)
 {

@@ -12,6 +12,3 @@ ADD_TEST(${TEST_NAME}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-# The LighthillVector test sometimes gives a wrong result, e.g. on Windows.
-# See more information on https://gitlab.com/openCFS/cfs/-/issues/67#note_2088857350
-# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

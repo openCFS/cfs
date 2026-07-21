@@ -217,7 +217,7 @@ void OptimalityCondition::SolveProblem()
           // "fake" constraints
           optimization->CalcConstraintGradient(cc.view->Get(i), &grad);
 
-          LOG_DBG2(ocm) << "e=" << i << " x=" << optimization->GetDesign()->data[i].GetValue(DesignElement::DESIGN, DesignElement::SMART) << " f=" << optimization->CalcConstraint(cc.view->Get(i)) << " df=" << grad.ToString(2);
+          LOG_DBG2(ocm) << "e=" << i << " x=" << optimization->GetDesign()->data[i].GetValue(DesignElement::DESIGN, DesignElement::SMART) << " f=" << optimization->CalcConstraint(cc.view->Get(i)) << " df=" << grad.ToString();
           // agglomerate all gradients of "fake" constraints, chain rule applies
           // d/drho smoothmin(f_1(rho), ..., f_n(rho)) = sum_i d/df_i smoothmin(f_1(rho), ..., f_n(rho)) * d/drho f_i(rho)
           for(unsigned int j = 0; j < grad.GetSize(); ++j)

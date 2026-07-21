@@ -315,7 +315,7 @@ namespace CoupledField {
   void FeH1LagrangeLineVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
     if(supportingPoints_.find(order_) == supportingPoints_.end() )
            supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
-    StdVector<Double> supPoints1D = supportingPoints_[order_];
+    const StdVector<Double>& supPoints1D = supportingPoints_[order_];
 
     //This has to be a nx3 matrix even for 1D
     coordMat.Resize(actNumFncs_,3);
@@ -461,7 +461,7 @@ namespace CoupledField {
   void FeH1LagrangeQuadVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
     if(supportingPoints_.find(order_) == supportingPoints_.end() )
            supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
-    StdVector<Double> supPoints1D = supportingPoints_[order_];
+    const StdVector<Double>& supPoints1D = supportingPoints_[order_];
 
     //This has to be a nx3 matrix even for 1D
     coordMat.Resize(actNumFncs_,3);
@@ -829,7 +829,7 @@ namespace CoupledField {
     void FeH1LagrangeHexVar::GetLocalDOFCoordinates(Matrix<Double> & coordMat){
         if(supportingPoints_.find(order_) == supportingPoints_.end() )
                supportingPoints_[order_] = CalcGaussLobattoPoints(order_);
-        StdVector<Double> supPoints1D = supportingPoints_[order_];
+        const StdVector<Double>& supPoints1D = supportingPoints_[order_];
 
         //This has to be a nx3 matrix even for 1D
         coordMat.Resize(actNumFncs_,3);

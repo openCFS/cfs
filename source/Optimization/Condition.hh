@@ -390,6 +390,11 @@ namespace CoupledField
          return virtual_total_size_;
        }
 
+       /** Total number of nonzeros in the constraint jacobian: sum over all active constraints of
+        * their sparsity pattern size. Used by the optimizers (ipopt, dumas, python sparse interface)
+        * to size the (sparse or densified) constraint jacobian; snopt builds the same inline.
+        * Not const: Get() tunes a potential slope constraint, so we call Done() afterwards. */
+       int CalcNumberOfJacobianNonZeros();
 
      private:
        /** This are the real condition indices of local conditions. Sorted. Used to calculate and navigate in the virtual

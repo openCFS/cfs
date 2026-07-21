@@ -101,7 +101,7 @@ namespace CoupledField
       // set current region and material
       actRegion = regions_[iRegion];
       actSDMat = materials_[actRegion];
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -230,7 +230,7 @@ namespace CoupledField
     {
       // set current region and material
       actRegion = regions_[iRegion];
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -501,7 +501,7 @@ namespace CoupledField
 
       // ========= B field =============
       // Just to find out which linear/nonlinear type is defined in this region
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[*regIt];
       if( nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve" ){
         // hysteretic case
         bCoef->AddRegion(*regIt, nlFluxCoef_);

@@ -794,6 +794,18 @@ bool Function::IsSlackFunction() const
   }
 }
 
+bool Function::CalcCurvature(Vector<double>& diag)
+{
+  switch(type_)
+  {
+  case PYTHON_FUNCTION:
+  case LOCAL_PYTHON_FUNCTION:
+    return CalcCurvaturePython(diag); // implemented in PythonFunction.cc
+  default:
+    return false; // C++ functions provide no curvature information (yet)
+  }
+}
+
 bool Function::IsStateDependent() const
 {
   if(IsAdjointBased())

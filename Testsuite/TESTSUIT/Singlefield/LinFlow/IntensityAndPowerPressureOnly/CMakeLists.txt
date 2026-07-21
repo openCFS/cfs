@@ -12,6 +12,3 @@ ADD_TEST(${TEST_NAME}
   -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
   -P ${CFS_STANDARD_TEST}
 )
-
-# This test fails on gcc12/13 even serial
-# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

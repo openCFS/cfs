@@ -58,6 +58,19 @@ public:
    * Uses node_ip_result_map */
   double GetNodalSpecialResult(unsigned int nodeNumb, const ResultDescription& descr);
 
+  /** Triggered by the 'hessexport' attribute: for each function with curvature information
+   * (Function::CalcCurvature()) append the exact shape Hessian and the current function value to
+   * <simname>.hessian.xml, accumulating one <iteration> block (design variables + Hessian) for all
+   * iterations */
+  void WriteHessExportFile() override;
+
+  /** assemble the exact total shape Hessian of func in optimization variable space (n x n).
+   * For cfs.evalhessian, used by a second-order python optimizer. The objective gradient of func
+   * must have been evaluated before (the aggregation and feature terms need d_func/d_rho_e).
+   * @param H_opt resized to n x n, n = opt_shape_param_.GetSize()
+   * @return false if func has no curvature information */
+  bool CalcShapeHessian(const Function* func, Matrix<double>& H_opt) override;
+
   /** To be used in GetAnisoMechTensor and set in AnisotropicGradientHelper().
    * In the anisotropic case we compute the gradient much different from the isotropic case. 
    * In the isotropic case all it is a product from feature to shape to element to integration point 
@@ -100,6 +113,15 @@ protected:
     /** for efficiency reason calculate all gradients at once. Is a waste for fixed variables */
     void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const override;
 
+    /** second derivatives of the distance, symmetric. For p always zero.
+     * @param out resized to 5x5 and fully set */
+    void HessDistance(const Point& X, FeatureVariable::Tip part, Matrix<double>& out) const override;
+
+    /** exact Hessian of the pill length ||Q-P|| (the native 'distance' constraint) w.r.t. the feature
+     * variables [Px Py Qx Qy P]; the profile p does not enter. Purely geometric (no transition
+     * function), so independent of the boundary order. @param out resized to 5x5 and fully set. */
+    void HessLength(Matrix<double>& out) const;
+
     /** calculate the gradient of the angle in the anisotropic case, 0 for p
      * @param s index 0 ... 4 */
     inline double GradAngle(int s) const;
@@ -126,6 +148,9 @@ protected:
     virtual ~BoundaryFunction() {}
     virtual double Eval(double dist) const = 0; // outside is > 0, inside < 0
     virtual double Grad(double dist) const = 0;
+    /** second derivative for exact Hessian computation, requires a C^2 boundary function.
+     * Implemented by Quintic and Bezier, the default throws as Poly is only C^1. */
+    virtual double Hessian(double dist) const;
     inline void Eval(const Vector<double>& dist, Vector<double>& eval) const;
     bool IsConstant(double dist) const { return dist <= -h || dist >= h; }
     inline bool IsConstant(const ItemIP* item_ip) const;
@@ -153,15 +178,112 @@ protected:
     double h3 = -1;    
   };
 
+  /** symmetric quintic polynomial transition function, the C^2 counterpart of Poly.
+   * With h = transition/2 and s = d/h: H(d) = 1/2 - (15s - 10s^3 + 3s^5)/16, hence
+   * H'(-h) = H'(h) = H''(-h) = H''(h) = 0 and the second derivative is continuous everywhere. */
+  struct Quintic : public BoundaryFunction
+  {
+    Quintic(double transition, double rhomin);
+
+    inline double Eval(double dist) const override;
+    inline double Grad(double dist) const override;
+    double Hessian(double dist) const override;
+  private:
+    double fac = -1;      // (1-rhomin)/16
+    double bias = -1;     // (1+rhomin)/2
+    double grad_fac = -1; // 15*(1-rhomin)/(16*h)
+    double hess_fac = -1; // 15*(1-rhomin)/(4*h*h)
+  };
+
+  /** Quintic Bezier based transition function with optional asymmetric transition zone.
+    * The curve is parameterized by t in [0,1] with control points W_i. Used via sampling. 
+    * See bezier test for paper reference. */
+  struct Bezier : public BoundaryFunction
+  {
+    /** @param transition the full width of the symmetric transition zone as for Poly, a = transition/2
+     * @param extension enlarges the outer transition zone b = transition/2 + extension, 0 is the symmetric case */
+    Bezier(double transition, double rhomin, double extension = 0.0);
+
+    /** look-up table based, equivalent to Eval(dist, false) */
+    inline double Eval(double dist) const override { return Eval(dist, false); }
+    inline double Grad(double dist) const override { return Grad(dist, false); }
+
+    /** second derivative H''(dist), continuous as the quintic curve is C^2.
+     * look-up table based, equivalent to Hessian(dist, false) */
+    inline double Hessian(double dist) const override { return Hessian(dist, false); }
+
+    /** @param exact true solves t(dist) by bisection instead of interpolating the look-up tables */
+    double Eval(double dist, bool exact) const;
+    double Grad(double dist, bool exact) const;
+    double Hessian(double dist, bool exact) const;
+
+    double a = -1;    // inner transition zone, Eval(dist <= -a) = 1
+    double b = -1;    // outer transition zone, Eval(dist >= b) = rhomin
+    double gamma = 0; // shape parameter for the x-components of the inner control points
+
+  private:
+    /** Bernstein sum of degree n: sum_i C[i] * t^i * (1-t)^(n-i) * W[i] with binomials C */
+    static double Bernstein(int n, const double* C, const double* W, double t);
+
+    /** quintic Bezier component value at curve parameter t */
+    static double EvalByT(const double* W, double t);
+
+    /** first parametric derivative d/dt, a quartic Bezier of the control point differences */
+    static double FirstDerivT(const double* W, double t);
+
+    /** second parametric derivative d^2/dt^2 */
+    static double SecondDerivT(const double* W, double t);
+
+    /** third parametric derivative d^3/dt^3 */
+    static double ThirdDerivT(const double* W, double t);
+
+    /** H'(d) = y'(t)/x'(t) */
+    static double BezierDyDx(const double* Wx, const double* Wy, double t);
+
+    /** H''(d) = (y'' x' - y' x'') / x'^3 */
+    static double BezierD2yDx2(const double* Wx, const double* Wy, double t);
+
+    /** H'''(d) = (x'(y''' x' - y' x''') - 3 x''(y'' x' - y' x'')) / x'^5, only as Hermite slope data for the Hessian table */
+    static double BezierD3yDx3(const double* Wx, const double* Wy, double t);
+
+    /** invert x(t) = dist by bisection, x is strictly monotone in [0,1] by FindGamma()
+     * @param tol absolute precision of the curve parameter t. The default keeps the look-up
+     * table node error (~tol in H) an order below the Hermite interpolation error */
+    double SolveT(double dist, double tol = 1e-12) const;
+
+    /** gamma* = argmin_gamma max_t |H''(t; gamma)| s.t. x'(t) > 0, grid search as in the paper */
+    double FindGamma() const;
+
+    /** cubic Hermite interpolation in a look-up table sampled on the uniform grid over [-a, b]
+     * @param dtab the exactly sampled derivative of tab, used as Hermite slopes */
+    inline double Interpolate(const Vector<double>& tab, const Vector<double>& dtab, double dist) const;
+
+    double Wx[6]; // x-components of the control points, set after FindGamma()
+    static constexpr double Wy[6] = {1.0, 1.0, 1.0, 0.0, 0.0, 0.0}; // fixed y-components
+
+    /** number of look-up table intervals, set in the constructor as 500*(b/a), capped at 20000:
+     * the curve is sharpest in the inner zone of scale a, so the resolution follows the
+     * asymmetry ratio. See the constructor for the accuracy this provides */
+    int n_tab = -1;
+    Vector<double> H_tab;    // n_tab+1 samples of H(d) in [0,1] (without rhomin scaling)
+    Vector<double> dH_tab;   // n_tab+1 samples of H'(d)
+    Vector<double> ddH_tab;  // n_tab+1 samples of H''(d)
+    Vector<double> dddH_tab; // n_tab+1 samples of H'''(d), only Hermite slope data for ddH_tab
+    double delta = -1;     // grid spacing (a+b)/n_tab of the look-up tables
+  };
+
   struct CombineFunction
   {
     virtual ~CombineFunction() {};
     /**@param projected list of projected distances (BoundaryFunction::Eval(dist)) for each feature */
     
     virtual double Eval(const Vector<double>& projected) const = 0;
-    
+
     /** gradient with respect to feature number */
     virtual double Grad(const Vector<double>& projected, unsigned int num) const = 0;
+
+    /** second derivative with respect to feature numbers f and g, symmetric in f and g */
+    virtual double Hessian(const Vector<double>& projected, unsigned int f, unsigned int g) const = 0;
   };
 
   /** non-differentiable combine function, primarily useful for debugging */
@@ -169,6 +291,7 @@ protected:
   {
     inline double Eval(const Vector<double>& projected) const override;
     inline double Grad(const Vector<double>& projected, unsigned int num)  const override;
+    inline double Hessian(const Vector<double>& projected, unsigned int f, unsigned int g) const override { return 0.0; }
   };
 
   /** combine rho_e by p-max aggregation */
@@ -177,6 +300,7 @@ protected:
     P_Norm(int p) { this->p = p; }
     double Eval(const Vector<double>& projected) const override;
     double Grad(const Vector<double>& projected, unsigned int num)  const override;
+    double Hessian(const Vector<double>& projected, unsigned int f, unsigned int g) const override;
     int p; // norm exponent
   };
 
@@ -184,11 +308,12 @@ protected:
   struct KreisselmeierSteinhauser : public CombineFunction
   {
     KreisselmeierSteinhauser(int beta) { this->beta = beta; }
-    double Eval(const Vector<double>& projected) const override { 
+    double Eval(const Vector<double>& projected) const override {
       return SmoothMax(projected, beta, false);  };
     double Grad(const Vector<double>& projected, unsigned int num)  const override {
       return DerivSmoothMax(projected, beta, num); }
-    int beta; 
+    double Hessian(const Vector<double>& projected, unsigned int f, unsigned int g) const override;
+    int beta;
   };
 
   /** combine rho_e by soft max aggregation */
@@ -197,7 +322,8 @@ protected:
     SoftMax(int beta) { this->beta = beta; }
     double Eval(const Vector<double>& projected) const override;
     double Grad(const Vector<double>& projected, unsigned int num)  const override;
-    int beta; 
+    double Hessian(const Vector<double>& projected, unsigned int f, unsigned int g) const override;
+    int beta;
   };
 
   std::unique_ptr<BoundaryFunction> bnd_fnc;
@@ -239,6 +365,36 @@ private:
    * ddist_ds and elem_ip are provided working data to save allocation, resized and filled by the function.
    * This function is thread save */
   inline void CalcGradRhoByFeature(const Item& item, const Feature& feature, Vector<double>& out, Vector<double>& ddist_ds, StdVector<IntegrationPoint*>& elem_ip) const;
+
+  /** helper to compute the hessians. the Jacobian D = d_mrho/d_s for all elements in the full
+   * variable space (features * num_var_by_feature, including fixed variables).
+   * Uses the precomputed ItemIP::rho and ItemIP::drho_ds_full.
+   * @param D resized to (elements x full variables) */
+  void CalcShapeJacobian(Matrix<double>& D) const;
+
+  /** assemble the three Hessian terms (objective D^T diag(curv) D, aggregation, feature) in full
+   * feature variable space. Shared by WriteHessExportFile() and CalcShapeHessian().
+   * @return false if func has no curvature information */
+  bool CalcShapeHessianTerms(const Function* func, Matrix<double>& H_obj, Matrix<double>& H_agg, Matrix<double>& H_feat);
+
+  /** index of each full feature space variable in opt_shape_param_, -1 for fixed variables.
+   * Handles linking (map_to). @param opt_idx resized to pills * num_var_by_feature */
+  void BuildOptIndexMap(StdVector<int>& opt_idx) const;
+
+  /** helper for CalcShapeHessianTerms() which sets H_agg and H_feat, 
+   * the two geometric Hessian terms in full variable space, see eqn. 'hessian_terms' in the tracking paper.
+   * H_agg: sum_e w_e * d^2 mrho/(d_rho_f d_rho_g) * d_rho_f/d_s_i * d_rho_g/d_s_j (cross-feature)
+   * H_feat: sum_e w_e * d_mrho/d_rho_f * d^2 rho_f/(d_s_i d_s_j) (within-feature blocks)
+   * with w_e = d_func/d_mrho_e from the DesignElement gradient of func */
+  void AssembleHessianTerms(const Function* func, Matrix<double>& H_agg, Matrix<double>& H_feat) const;
+
+  /** helper for WriteHessExportFile(): build one term element <name> with its non-empty (f,g) blocks
+   * as children, sliced from the full-space term matrix H. Term-major: the term is the parent, each
+   * <block f g dim1 dim2> its child (data without the <real> wrapper). diagonal_only restricts to the
+   * f==g blocks (the feature/geometry term). Returns a self-closing <name/> when H has no content
+   * (e.g. the curvature term of a function linear in rho). @param nv num_var_by_feature, block size */
+  std::string HessExportTermXML(const std::string& name, unsigned int nv,
+      const Matrix<double>& H, bool diagonal_only) const;
 
   /** traverse all existing features (pills) and searches for first occurrence key.
    * consider to add simple formulas (-key, 1-key, key + 5, ...) when needed
@@ -341,6 +497,17 @@ private:
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;
 
+  /** asymmetric outer transition zone extension for the bezier boundary (b = transition/2 + extension), 0 is symmetric */
+  double extension = 0;
+
+  /** assemble and write the exact shape Hessian every iteration, see WriteHessExportFile().
+   * To actually trigger hessian optimization you need to specify an own Python optimizer */
+  bool hessexport_ = false;
+
+  /** persistent root of <simname>.hessian.xml. WriteHessExportFile() appends one <iteration> child
+   * per call so the file accumulates all iterations; it is re-written each time. */
+  PtrParamNode hessexport_root_;
+
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
   double rhomax = -1;
@@ -354,6 +521,7 @@ private:
 
   PtrParamNode fm_info_; // our own info
 };
+
 
 } // end of name space
 

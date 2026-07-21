@@ -13,5 +13,3 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# test often/sometimes segfaults on Windows and fails on musl
-#set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "broken")

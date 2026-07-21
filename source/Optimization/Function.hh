@@ -316,9 +316,19 @@ class Function
 
     /** FeasPP can use the original functions for its strictly feasible MMA approximation. Makes only sense for
      * some special non-linear local constraints.
+     * TODO: To be unified with CalcCurvature() by the HeSQL-solver-project
      * @param out needs to be the size of rows of GetHessianSparsityPattern()
      * @param factor -1 for normalizing lower bound constraints to c <= 0 */
     virtual void CalcHessian(StdVector<double>& out, double factor);
+
+    /** The per-element diagonal of the function curvature w.r.t. the pseudo density for special feature mapping functions (reward, tracking)
+     * d^2 J/d_rho_e^2. This is the objective part of an exact shape Hessian, e.g. for feature
+     * mapping, which assembles the objective term sum_e diag_e d_rho_e/d_s_i d_rho_e/d_s_j itself.
+     * The objective second derivative is diagonal whenever J is a per-element sum (tracking, reward).
+     * @see CalcCurvaturePython(). Currently the implementation is done by Python (eval_curvature attribute)
+     * @param diag set to the per-element second derivative (size = number of elements)
+     * @return false if no curvature information is available (the default) */
+    virtual bool CalcCurvature(Vector<double>& diag);
 
     /** Requires the function evaluation an selection vector associated to the adjoint RHS?.
      * Is an important for the solution of the state problem, if partial stuff from the adjoint setup is required. */
@@ -789,6 +799,11 @@ class Function
      * @param eval if false the grad is called */
     PyObject* CallPythonFunction(bool eval);
 
+    /** the python implementation of CalcCurvature(), called from there for the python function
+     * types. Warns and returns false if no 'curvature' attribute was given. Implemented in
+     * PythonFunction.cc. */
+    bool CalcCurvaturePython(Vector<double>& diag);
+
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
@@ -914,6 +929,7 @@ class Function
     PyObject* py_eval_ = NULL;
     PyObject* py_grad_ = NULL;
     PyObject* py_sparsity_ = NULL;
+    PyObject* py_curvature_ = NULL; // optional second order support, see CalcCurvature()
     /** here we store the gradient vector for local python grad evaluations */
     CfsTLS<Vector<double> > py_local_grad_;
 

@@ -4,8 +4,6 @@ SET(MATVEC_SRCS
   SBM_Vector.cc
   SBM_Matrix.cc
   StdMatrix.cc
-  matrixSerialization.cc
-  vectorSerialization.cc
   CRS_Matrix.cc
   Diag_Matrix.cc
   SCRS_Matrix.cc

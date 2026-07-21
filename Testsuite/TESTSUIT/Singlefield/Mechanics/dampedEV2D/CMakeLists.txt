@@ -15,6 +15,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# fails for classic intel compiler with openmp and is stable serial
-# set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
 

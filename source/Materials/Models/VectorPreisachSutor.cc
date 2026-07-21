@@ -24,7 +24,7 @@ namespace CoupledField
 //          Double angularDistance, Double angResolution, Double anhystA, Double anhystB, Double anhystC, bool anhystOnly)
 //  : Hysteresis(numElem,xSat,ySat,anhystA,anhystB,anhystC,anhystOnly)
 
-    Matrix<Double> preisachWeight = weightParams.weightTensor_;
+    const Matrix<Double>& preisachWeight = weightParams.weightTensor_;
     Double rotationalResistance = operatorParams.rotResistance_;
 
     testAngDistForClassical = true;

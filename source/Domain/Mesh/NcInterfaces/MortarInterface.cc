@@ -2760,7 +2760,9 @@ namespace CoupledField {
         LineIntersectType cutType = CutLines(*primaryIterator, primaryIterator.Next(),
                                             *secondaryIterator, secondaryIterator.Next(),
                                             intersectionPointCoords);
-        Intersection cut = {secondaryIterator.GetPos(), cutType, false, intersectionPointCoords};
+
+        Intersection cut = {secondaryIterator.GetPos(), (unsigned int) (cutType), false, intersectionPointCoords};
+
         // See what kind of cut we have found.
         // This section is different from the main loop, because we do
         // not know if we cut from outside into p2 or vice versa. This

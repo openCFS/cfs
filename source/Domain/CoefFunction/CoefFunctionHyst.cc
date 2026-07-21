@@ -5761,7 +5761,7 @@ namespace CoupledField {
 
         if(forceTangential){
 
-          Vector<Double> normalDirection = actualLPM.normal;
+          const Vector<Double>& normalDirection = actualLPM.normal;
           //          std::cout << "Stored normal vector: " << normalDirection.ToString() << std::endl;
           Double normalProjection = LPMSolution.Inner(normalDirection);
           //          std::cout << "LPMSolution from system: " << LPMSolution.ToString() << std::endl;
@@ -5895,7 +5895,7 @@ namespace CoupledField {
         // check if solution did change since last time > if not, hope that input / output pair of hyst
         // operator can be reused
         Vector<Double> diff = curLPMSolution;
-        Vector<Double> toDiff = E_B_[storageIdx];
+        const Vector<Double>& toDiff = E_B_[storageIdx];
         diff -= toDiff;
 
         if (diff.NormL2() < POL_operatorParams_.amplitudeResolution_) {
@@ -6114,7 +6114,7 @@ namespace CoupledField {
 			// check if solution did change since last time > if not, hope that input / output pair of hyst
 			// operator can be reused
 			Vector<Double> diff = curLPMSolution;
-			Vector<Double> toDiff = E_B_[storageIdx];
+			const Vector<Double>& toDiff = E_B_[storageIdx];
 			diff -= toDiff;
 
       //std::cout << "StorageIDX: " << storageIdx << std::endl;
@@ -7125,7 +7125,7 @@ namespace CoupledField {
      * the last used input
      */
 		Vector<Double> diff = inputToHystOperator;
-		Vector<Double> toDiff = E_H_[storageIdx];
+		const Vector<Double>& toDiff = E_H_[storageIdx];
 		diff -= toDiff;
 
     if(hystOperatorLocked_){

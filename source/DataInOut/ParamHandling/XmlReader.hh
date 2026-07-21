@@ -8,7 +8,7 @@
 #ifndef DATAINOUT_PARAMHANDLING_XMLREADER_HH_
 #define DATAINOUT_PARAMHANDLING_XMLREADER_HH_
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "General/defs.hh"
 
 namespace CoupledField {
 
@@ -20,7 +20,7 @@ namespace CoupledField {
 
     /** open, parse and close the file to a ParamNode tree. Without schema a fast parser mode
      * is used.
-     * @param name if wnds with .gz is automatically decompressed
+     * @param name if ends with .gz, the file is automatically decompressed
      * @param schema xsd schema if present */
     static PtrParamNode ParseFile(const std::string &file,
                                   const std::string &schema = "",

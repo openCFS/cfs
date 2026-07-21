@@ -203,6 +203,11 @@ namespace CoupledField
     * one of such elements (e.g. simple xml elements). */     
     PtrParamNode Get(const std::string&  name, ActionType = DEFAULT ); 
     
+
+    /** return either of the elements when they exist. Does not work if both exist.
+     @return default ParamNode if neither exists. */
+    PtrParamNode GetOneOf(const std::string& first, const std::string& second);
+
     //@{
     /** Get the direct childs which has an attribute with a given value or in other words:
     *  Get the direct child where the grandchildren are as specified.<br>
@@ -381,7 +386,7 @@ namespace CoupledField
     ************************************************************************/
 
     /** returns name and value, and child summary information
-     * @param depth if the elemen is matrix type the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
+     * @param depth if the element is matrix type, the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
     void ToString(std::string& ret, int depth ) const;
     
     /** variant of other ToString() with more copy operations but also more convenient */

@@ -5,7 +5,7 @@
 #-------------------------------------------------------------------------------
 # Subdirectories for solver test cases
 #-------------------------------------------------------------------------------
-
+add_subdirectory(Solver/COCR/jacobi_cocr)
 if(USE_PARDISO)
   ADD_SUBDIRECTORY(Solver/pardiso/transpose)
   ADD_SUBDIRECTORY(Solver/pardiso/conjugateTranspose)
@@ -998,7 +998,18 @@ if(USE_SNOPT)
   add_subdirectory(Optimization/FeatureMapping/aniso_single)
   add_subdirectory(Optimization/FeatureMapping/aniso_no_groundmaterial)
 endif()
-
+if(USE_DUMAS)
+  add_subdirectory(Optimization/FeatureMapping/bezier)
+endif()
+if(USE_DUMAS AND USE_EMBEDDED_PYTHON)
+  add_subdirectory(Optimization/FeatureMapping/python_reward)
+endif()
+if(USE_IPOPT AND USE_EMBEDDED_PYTHON) # cfs ipopt, not cyipopt
+  add_subdirectory(Optimization/FeatureMapping/python_tracking)
+endif()
+if(USE_EMBEDDED_PYTHON) # uses scipy.optmize trust-region
+  add_subdirectory(Optimization/FeatureMapping/python_hessian)
+endif()
 if(USE_ARPACK AND USE_SUITESPARSE)
   # is evaluate optimization only
   add_subdirectory(Optimization/MultiSequence/bloch_stiffness)
@@ -1050,6 +1061,8 @@ add_subdirectory(Technical/CoefFunctionGridElem)
 add_subdirectory(Technical/CoefFunctionGridElemFromSurf)
 add_subdirectory(Technical/Pyra2ndOrder)
 add_subdirectory(Technical/xmlTimeIntegration)
+add_subdirectory(Technical/RegularMesh2D)
+add_subdirectory(Technical/RegularMesh3D_external)
 #-------------------------------------------------------------------------------
 # CFSdat
 #-------------------------------------------------------------------------------

@@ -900,7 +900,7 @@ namespace CoupledField{
     static const UInt DIM_D_MAT = D_DOF;
     //@}
 
-    SurfaceNormalPreStressOperator(std::string subType, bool useICModes = false)
+    SurfaceNormalPreStressOperator(const std::string& subType, bool useICModes = false)
     {
       if(subType != "axi" )
       {
@@ -918,7 +918,7 @@ namespace CoupledField{
       preStressOp_->SetOperator2SurfOperator();
     }
 
-    SurfaceNormalPreStressOperator(std::string subType, PtrCoefFct baseOpCoef, bool useICModes = false)
+    SurfaceNormalPreStressOperator(const std::string& subType, PtrCoefFct baseOpCoef, bool useICModes = false)
     {
       if(subType != "axi" )
       {

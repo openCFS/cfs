@@ -427,6 +427,19 @@ namespace CoupledField
     return ec == std::errc() && ptr == s.data() + s.size();
   }
 
+  /** Mimics Python's (a)range */
+  template<class T>
+  StdVector<T> Range(T start, T end, T step = 1)
+  {
+    assert(step != 0);
+    StdVector<T> result;
+    result.Reserve((unsigned int) std::abs(((double) end - (double) start) / (double) step) + 1);
+    for(T value = start; (step > 0) ? (value < end) : (value > end); value += step)
+      result.Push_back(value);
+    return result;
+  }
+  
+
   // omp_get_thread_num
   inline unsigned int GetThreadNum()
   {

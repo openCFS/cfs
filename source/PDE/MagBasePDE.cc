@@ -359,7 +359,7 @@ namespace CoupledField
 
       SDLists_[actRegion] = actSDList;
 
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      const StdVector<NonLinType>& nonLinTypes = regionNonLinTypes_[actRegion];
       if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
 //        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
 //        actSDList->SetRegion( actRegion );

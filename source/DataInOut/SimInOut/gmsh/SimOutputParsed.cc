@@ -358,7 +358,7 @@ namespace CoupledField{
               eInterpol.matrixComputed_ = true;
             }
             UInt numVert = Elem::shapes[curE->type].numVertices;
-            StdVector<UInt> elemNodes = curE->connect;
+            const StdVector<UInt>& elemNodes = curE->connect;
             Vector<Double> curCoord;
             std::stringstream coordstream;
 

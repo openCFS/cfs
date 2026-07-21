@@ -83,11 +83,11 @@ namespace CoupledField
     double EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call = true, Excitation* ev_only_excite = NULL);
 
     /** Evaluates the constraint gradients
+     * @param nentries is actually only used for reference that the size of (sparse) gradients is correct (test in debug only) -> TODO remove some time
      * @param cfs_scale @see EvalObjective()
      * @param nonlin_only snopt makes a difference between linear and nonlinear constraints and only
      *  need evaluation for the nonlinear part */
-    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
-        StdVector<double>& values, GradientType grtype = ALL);
+    void EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize, StdVector<double>& values, GradientType grtype = ALL);
 
     /** Helper for EvalGradConstraint()
      * Called directly by FeasPP

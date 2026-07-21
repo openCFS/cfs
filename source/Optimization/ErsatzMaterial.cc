@@ -1967,7 +1967,7 @@ double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Conditio
       StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
       for (unsigned int id = 0; id < design->data.GetSize(); id++) {
         DesignElement* de = &design->data[id];
-        Vector<double> gradRHS = de->interfaceDrivenLoadGrad_; // f'
+        const Vector<double>& gradRHS = de->interfaceDrivenLoadGrad_; // f'
         double val = gradRHS.Inner(*stateSol[id]);
         de->AddGradient(f,val);
       }
@@ -2998,7 +2998,7 @@ double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function
       for (unsigned int e = 0; e < design->data.GetSize(); e++) { // (u_i - u_ref)^2, element based
         Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*(all_u_elem[e]));
         DesignElement* de = &design->data[e];
-        Vector<double> gradLoad = de->interfaceDrivenLoadGrad_; // f'
+        const Vector<double>& gradLoad = de->interfaceDrivenLoadGrad_; // f'
         double val = 0.0;
         // f'_i * (u_i - u_track)^2
         for (unsigned int n = 0; n < gradLoad.GetSize(); n++)

@@ -820,7 +820,7 @@ namespace CoupledField {
 
     ResultInfo & actResultInfo = *(solList[0]->GetResultInfo());
     std::string resultName = actResultInfo.resultName;
-    StdVector<std::string> dofNames = actResultInfo.dofNames;
+    const StdVector<std::string>& dofNames = actResultInfo.dofNames;
     UInt numDofs = actResultInfo.dofNames.GetSize();
     UInt idx;
 

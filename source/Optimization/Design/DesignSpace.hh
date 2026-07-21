@@ -291,6 +291,16 @@ namespace CoupledField
       * @see gradplot_ */
      virtual void WriteGradientFile() {} ;
 
+     /** assembles and writes the exact shape Hessian to <simname>.hessian.xml for supported feature mapping functions with
+      * curvature information (Function::CalcCurvature()). Triggered by the 'hessexport' attribute and
+      * only implemented for FeatureMappingDesign. Called for every iteration after the gradients */
+     virtual void WriteHessExportFile() {} ;
+
+     /** assemble the exact total shape Hessian of func in optimization variable space (n x n), for
+      * cfs.evalhessian. Only FeatureMappingDesign. The objective gradient of func must have been evaluated before. 
+      @return false if not available */
+     virtual bool CalcShapeHessian(const Function* func, Matrix<double>& H_opt) { return false; }
+
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
       * in SIMP to calculate the original stiffness matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */

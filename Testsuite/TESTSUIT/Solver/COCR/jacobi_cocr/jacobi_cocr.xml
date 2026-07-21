@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+ 
+ <documentation>
+   <title>COCR Solver Test Case</title>
+   <authors>
+     <author>Likun LUO</author>
+   </authors>
+   <date>2026-06-11</date>
+   <keywords>
+     <keyword>acoustic</keyword>
+   </keywords>
+   <references> no references </references>
+   <isVerified>yes</isVerified>
+   <description>
+    Spherical Wave propagation with ABC solved using Jacobi Preconditioned COCR Iterative Solver, solution compared with PARDISO solver
+   </description>
+ </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="jacobi_cocr.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V_air" material="air"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep index="1">
+
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="100"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+
+    <pdeList>
+      <acoustic>
+        <regionList>
+          <region name="V_air"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <rhsValues name="P_excite" value="0.125" isComplex="true" phase="0.0"/>
+          <absorbingBCs volumeRegion="V_air" name="S_ABC" />
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="acouPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+
+      </acoustic>      
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix reordering="noReordering" storage="sparseSym"/>
+          </standard>
+        </solutionStrategy>
+        
+        <solverList>
+
+          <cocr>
+            <stoppingRule type="absNorm"/>
+            <!-- NOTE: This tolerance is intentionally very tight (1e-10) so the iterative   -->
+            <!-- COCR solution matches the direct-solver reference (h5ref, Pardiso) closely -->
+            <!-- enough for the ctest to pass. This is NOT a recommended production value  -->
+            <!-- it makes the solver iterate far more than necessary. For real simulations  -->
+            <!-- a looser tolerance (e.g. 1e-6) is usually sufficient and much faster.       -->
+            <tol>1e-10</tol>
+            <maxIter>10000</maxIter>
+            <consoleConvergence>no</consoleConvergence>
+          </cocr>
+
+          <!-- The h5ref file was computed with pardiso solver -->
+          <!-- <pardiso/> -->
+
+          <!-- Parameter of Ginkgo BiCGSTAB as Performance Benchmark for the OLAS COCR Implementation -->
+          <!-- <ginkgo cuda="off" fp32="false" maxIter="10000" tolerance="1e-10" solver="bicgstab" precond="jacobi" toleranceType="absolute" initial_zero="true">
+            <jacobi/>
+          </ginkgo> -->
+        </solverList>
+
+        <precondList>
+          <Jacobi/>
+        </precondList>
+      </system>
+
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

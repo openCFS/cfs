@@ -677,7 +677,6 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
       StdVector<double>& values, GradientType grtype)
 {
   LOG_DBG(optimizer) << "EGCs: n=" << n << " m=" << m << " ne=" << nentries << " cs=" << cfs_scale << " n=" << normalize << " gt=" << grtype;
-
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
   opt_timer->Stop();
 

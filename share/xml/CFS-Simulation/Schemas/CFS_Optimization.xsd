@@ -726,6 +726,7 @@
                             <xsd:enumeration value="iterations_limit" />
                             <xsd:enumeration value="timing_level" />
                             <xsd:enumeration value="verify_level" />
+                             <xsd:enumeration value="scale_option" />
                             <xsd:enumeration value="major_print_level" />
                             <xsd:enumeration value="minor_print_level" />
                             <xsd:enumeration value="print_frequency" />
@@ -2588,9 +2589,14 @@
     </xsd:attribute>
     <xsd:attribute name="sparsity" type="xsd:token" use="optional">
       <xsd:annotation>
-        <xsd:documentation>Mandatory for sparsity pattern for local function. 
-        Return a list if numpy arrays of ints. 
+        <xsd:documentation>Mandatory for sparsity pattern for local function.
+        Return a list if numpy arrays of ints.
         The size of the list determines the number of local functions which determines the index for eval and grad</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="curvature" type="xsd:token" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Optional curvature function for second order (Hessian) support (see python_hessian test)</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
@@ -2841,10 +2847,24 @@
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">
       <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary from void to solid</xsd:documentation></xsd:annotation>
-    </xsd:attribute>  
+    </xsd:attribute>
+    <xsd:attribute name="boundary" use="optional" default="poly">
+      <xsd:annotation><xsd:documentation>Transition function mapping. poly and quintec is symmetric with first and second order, (quintec) bezier also respects extension</xsd:documentation></xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="poly" />
+          <xsd:enumeration value="quintic" />
+          <xsd:enumeration value="bezier" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="extension" use="optional" type="xsd:float" default="0">
+      <xsd:annotation><xsd:documentation>Asymmetric outer transition zone extension for boundary='bezier', the outer half zone becomes
+      transition/2 + extension. 0 (default) is the symmetric case. Enlarges the sensitivity region for the reward stage.</xsd:documentation></xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="order" use="optional" type="xsd:unsignedInt" default="2">
       <xsd:annotation><xsd:documentation>Integration order for one pseudo density to be subject to power by dimension (2).</xsd:documentation></xsd:annotation>
-    </xsd:attribute>  
+    </xsd:attribute>
     <xsd:attribute name="combine" use="required">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -2867,6 +2887,17 @@
     <xsd:attribute name="p" use="optional" type="xsd:float">
       <xsd:annotation>
         <xsd:documentation>combine option: Exponent for p-norm and parameter (beta) for KS and softmax</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <!-- write design and gradient to .grad.dat file -->
+    <xsd:attribute name="gradplot" type="xsd:boolean" default="false" use="optional">
+      <xsd:annotation><xsd:documentation>Create .grad.dat csv file with design and gradient information</xsd:documentation></xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="hessexport" type="xsd:boolean" default="false" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Create informative .hessian.xml file with Hessian, independent of the current optimizer.</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>

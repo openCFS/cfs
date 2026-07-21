@@ -217,7 +217,7 @@ void MeshFilter::NearestNeighbourLight(Vector<Double>& returnVec,
       returnVec[targetIndex + k] = 0.0;
     }
 
-    StdVector<CF::UInt> sM = sourceM[i];
+    const StdVector<CF::UInt>& sM = sourceM[i];
     UInt patchSize = sM.GetSize();
     CF::Matrix<Double> vals;
     vals.Resize(tDim, patchSize);
@@ -734,7 +734,7 @@ void MeshFilter::CalcCurl(Vector<Double>& returnVec,
       returnVec[targetIndex + k] = 0.0;
     }
 
-    StdVector<CF::UInt> sM = sourceM[i];
+    const StdVector<CF::UInt>& sM = sourceM[i];
     UInt patchSize = sM.GetSize();
 
     CF::Matrix<Double> vals;
@@ -789,7 +789,7 @@ void MeshFilter::CalcDivergence(Vector<Double>& returnVec,
     CF::UInt targetIndex = i;
     returnVec[targetIndex] = 0.0;
 
-    StdVector<CF::UInt> sM = sourceM[targetIndex];
+    const StdVector<CF::UInt>& sM = sourceM[targetIndex];
 
     UInt patchSize = sM.GetSize();
     CF::Matrix<Double> vals;
@@ -845,7 +845,7 @@ void MeshFilter::CalcTensorDivergence(Vector<Double>& returnVec,
 //#pragma omp parallel for num_threads(CFS_NUM_THREADS)
   for (UInt targetIndex = 0; targetIndex < maxNumTrgEntities; targetIndex++) {
 
-    StdVector<CF::UInt> sM = sourceM[targetIndex];
+    const StdVector<CF::UInt>& sM = sourceM[targetIndex];
 
     UInt patchSize = sM.GetSize();
     CF::Matrix<Double> vals;
@@ -889,7 +889,7 @@ void MeshFilter::CalcGradient(Vector<Double>& returnVec,
       returnVec[targetIndex + k] = 0.0;
     }
 
-    StdVector<CF::UInt> sM = sourceM[i];
+    const StdVector<CF::UInt>& sM = sourceM[i];
     UInt patchSize = sM.GetSize();
 
     CF::Matrix<Double> vals;

@@ -46,7 +46,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "26")
-set(CFS_VERSION_MONTH "06")
+set(CFS_VERSION_MONTH "07")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -424,7 +424,7 @@ add_subdirectory(source/DataInOut/Logging)
 add_subdirectory(source/DataInOut/ParamHandling)
 add_subdirectory(source/DataInOut/SimInOut/AnsysCDB)
 add_subdirectory(source/DataInOut/SimInOut/AnsysFile)
-add_subdirectory(source/DataInOut/SimInOut/internalMesh)
+add_subdirectory(source/DataInOut/SimInOut/regular)
 add_subdirectory(source/DataInOut/SimInOut/gmsh)
 add_subdirectory(source/DataInOut/SimInOut/RefElems)
 add_subdirectory(source/DataInOut/SimInOut/hdf5)

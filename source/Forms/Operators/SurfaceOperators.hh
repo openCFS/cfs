@@ -979,7 +979,7 @@ void SurfaceCurlNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat
   feHC->GetCurlShFnc( curl, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(),1);
 
   // normal vector
-  Vector<Double> n = lp.normal;
+  const Vector<Double>& n = lp.normal;
   Vector<Double> tmp;
   Vector<Double> curlXn ;
   for(UInt sh = 0; sh < numFncs ; sh ++){
@@ -1120,7 +1120,7 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
   }
 
   // normal vector
-  Vector<Double> n = lp.normal;
+  const Vector<Double>& n = lp.normal;
 
   FeHCurl *feHC = (static_cast<FeHCurl*>(ptFe));
   feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
@@ -1128,11 +1128,9 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
 
 
   Vector<Double> tmp, curl;
-  Vector<Double> transNormal ;
   for(UInt sh = 0; sh < numFncs ; sh ++){
     v.GetCol(tmp, sh);
-    transNormal = lp.normal;
-    tmp.CrossProduct( transNormal ,curl);
+    tmp.CrossProduct( n ,curl);
     for(UInt d = 0; d < 3; d ++){
       bMat[d][sh] = curl[d];
     }
@@ -1273,7 +1271,7 @@ void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOp
   FE *fe = (static_cast<FE*>(ptFe));
   bMat.Resize(D, D_DOF*numFncs);
   fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
-  Vector<Double> nVec = lp.normal;
+  const Vector<Double>& nVec = lp.normal;
 
   // Check if the normal vector is parallel to the coordinate system
   // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis
@@ -1416,7 +1414,7 @@ void SurfaceTangentialCompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMa
   FE *fe = (static_cast<FE*>(ptFe));
   bMat.Resize(D, D_DOF*numFncs);
   fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
-  Vector<Double> nVec = lp.normal;
+  const Vector<Double>& nVec = lp.normal;
 
   // Check if the normal vector is parallel to the coordinate system
   // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis
@@ -1571,7 +1569,7 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
   FE *fe = (static_cast<FE*>(ptFe));
   bMat.Resize(D, D_DOF*numFncs);
   fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
-  Vector<Double> nVec = lp.normal;
+  const Vector<Double>& nVec = lp.normal;
 
   // Check if the normal vector is parallel to the coordinate system
   // In the loop below we check if the sum of all components is equal to 1 in order to check if the normal vector lines up with one coordinate axis

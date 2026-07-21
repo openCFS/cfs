@@ -319,7 +319,7 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Double>& coefVec,
   matFactor = 1.0 / permeability;
 
   //compute: factors * ( (B*n)*B - 1/2*B^2*n )
-  Vector<Double> normalVec = surfLpm.normal;
+  const Vector<Double>& normalVec = surfLpm.normal;
   Double Bn = Bvec * normalVec; // normal component of B
   Double B2 = Bvec.Inner(); // square of B
   Vector<Double> BnB = Bvec; BnB.ScalarMult(Bn); // B * normal component
@@ -358,7 +358,7 @@ void CoefFunctionSurfMaxwell::GetVector(Vector<Complex>& coefVec,
   surfLpm.SetSurfInfo( regions_, volNeighborRegionId);
 
   // normal unit vector
-  Vector<Double> normalVec = surfLpm.normal;
+  const Vector<Double>& normalVec = surfLpm.normal;
   Vector<Complex> normalVecC(normalVec.GetSize());
   for ( UInt i=0; i<normalVec.GetSize(); i++) {
     normalVecC[i] = Complex(normalVec[i], 0.0);

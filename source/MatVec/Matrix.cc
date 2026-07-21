@@ -91,7 +91,7 @@ namespace CoupledField
   Matrix<TYPE>::~Matrix () { }
 
   template<class TYPE>
-  std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset) const
+  std::string Matrix<TYPE>::ToXMLFormat(const std::string& name, int n_offset, bool typeTag, const std::string& extra_attr) const
   {
     std::string offset(std::max(n_offset,0), ' ');
 
@@ -99,12 +99,20 @@ namespace CoupledField
 
     bool is_complex = boost::is_same<TYPE, std::complex<double> >::value;
 
-    os << "<" << name << " dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
-    os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
+    os << "<" << name;
+    if(!extra_attr.empty())
+      os << " " << extra_attr;
+    os << " dim1=\"" << size_row_ << "\" dim2=\"" << size_col_ << "\">";
+
+    // with typeTag the numbers sit in a nested <real>/<complex> (one extra indent level), otherwise
+    // they go directly into the named element
+    std::string data_offset = offset + (typeTag ? "    " : "  ");
+    if(typeTag)
+      os << std::endl << offset << "  " << (is_complex ? "<complex>" : "<real>");
 
     for(unsigned int r = 0; r < size_row_; ++r)
     {
-      os << std::endl << offset << "    ";
+      os << std::endl << data_offset;
       for(unsigned int c = 0; c < size_col_; ++c)
       {
         os << std::scientific;
@@ -114,7 +122,8 @@ namespace CoupledField
         if(c < size_col_ - 1) os << " ";
       }
     }
-    os << std::endl << offset << "  " << (is_complex ? "</complex>" : "</real>");
+    if(typeTag)
+      os << std::endl << offset << "  " << (is_complex ? "</complex>" : "</real>");
     os << std::endl << offset << "</" << name << ">";
 
     return os.str();

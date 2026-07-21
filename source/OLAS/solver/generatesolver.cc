@@ -53,6 +53,7 @@
 #include "CGSolver.hh"
 #include "GMRESSolver.hh"
 #include "MINRESSolver.hh"
+#include "COCRSolver.hh"
 #include "LUSolver.hh"
 #include "LDLSolver.hh"
 #include "DiagSolver.hh"
@@ -175,6 +176,19 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     }
     break;
 
+  case BaseSolver::COCR:
+    if ( eType == BaseMatrix::DOUBLE ) {
+      retSolver = new COCRSolver<Double>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(COCRSolver<Double>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated real COCR solver";
+    }
+    else if ( eType == BaseMatrix::COMPLEX ) {
+      retSolver = new COCRSolver<Complex>( solverNode, olasInfo );
+      ASSERTMEM( retSolver, sizeof(COCRSolver<Complex>) );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated complex COCR solver";
+    }
+    break;
+  
   case BaseSolver::LU_SOLVER:
     if ( eType == BaseMatrix::DOUBLE ) {
       retSolver = new LUSolver<Double>( solverNode, olasInfo );
@@ -508,6 +522,7 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
     case BaseSolver::QMR:
     case BaseSolver::GMRES:
     case BaseSolver::MINRES:
+    case BaseSolver::COCR:
     case BaseSolver::SYMMLQ:
       break;
 
@@ -591,6 +606,7 @@ bool IsSolverSBMCapable(BaseSolver::SolverType st)
     case BaseSolver::CHOLMOD: 
     case BaseSolver::LDL_SOLVER:
     case BaseSolver::DIAGSOLVER:
+    case BaseSolver::COCR:
 
     // check these
     case BaseSolver::UMFPACK:

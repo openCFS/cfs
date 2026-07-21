@@ -86,10 +86,10 @@ namespace CoupledField {
 
   /** Adds a generic solution after the initial initialization and returns the SolutioType
    * This can be used when dealing with generic post-processing results which might get defined at a later stage. */
-  void AddGenericSolution(std::string name, Domain* domain);
+  void AddGenericSolution(const std::string& name, Domain* domain);
 
   /** Function that returns the solution as string */
-  std::string GetSolAsString(std::string name);
+  std::string GetSolAsString(const std::string& name);
 
   /** sets the global CFS_NUM_THREADS variable.
    * CFS_NUM_THREADS controls e.g. parallel FEM assembly and it is important

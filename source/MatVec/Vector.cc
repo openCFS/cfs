@@ -109,7 +109,14 @@ namespace CoupledField
     for(Integer i = 0; i < (Integer) size_; ++i)
       data_[i] += a * idvec[i];
   }
-  
+
+  template <typename T>
+  void Vector<T>::Add(T a)
+  {
+    for(unsigned int i = 0; i < size_; ++i)
+      data_[i] += a;
+  }
+
   template <typename T>
   void Vector<T>::Set(T a, const SingleVector &vec)
   {

@@ -45,7 +45,7 @@ public:
    static const UInt DIM_D_MAT = D_DOF;
    //@}
 
-   SurfaceNormalStressOperator(std::string subType, bool icModes){
+   SurfaceNormalStressOperator(const std::string& subType, bool icModes){
      if( subType == "axi" ) {
        strainOp_ = new StrainOperatorAxi<FeH1,TYPE>(icModes);
      } else if( subType == "planeStrain" ) {
@@ -77,7 +77,7 @@ public:
      return new SurfaceNormalStressOperator(*this);
    }
 
-    SurfaceNormalStressOperator(std::string subType, PtrCoefFct baseOpCoef, bool icModes){
+    SurfaceNormalStressOperator(const std::string& subType, PtrCoefFct baseOpCoef, bool icModes){
      if( subType == "axi" ) {
        //TODO: there's no scaled strain operator for 'axi' subtype
        strainOp_ = new StrainOperatorAxi<FeH1,TYPE>(icModes);
@@ -384,13 +384,13 @@ public:
   static const UInt DIM_D_MAT = D_DOF;
   //@}
 
-  SurfaceNormalPiezoFluxOperator(std::string subType)
+  SurfaceNormalPiezoFluxOperator(const std::string& subType)
     : SurfaceNormalStressOperator<FE, D, D_DOF, TYPE>(subType, false)
   {
     this->name_ = "surfNormPiezoFluxOp";
   }
 
-  SurfaceNormalPiezoFluxOperator(std::string subType, PtrCoefFct baseOpCoef)
+  SurfaceNormalPiezoFluxOperator(const std::string& subType, PtrCoefFct baseOpCoef)
     : SurfaceNormalStressOperator<FE, D, D_DOF, TYPE>(subType, baseOpCoef, false)
   {
     this->name_ = "surfNormPiezoFluxOp";

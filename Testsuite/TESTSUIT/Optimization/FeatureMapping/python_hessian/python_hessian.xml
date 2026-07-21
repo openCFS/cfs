@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/simulation
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Feature mapping second-order test: reward objective, exact shape Hessian, scipy optimizer</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-06-22</date>
+    <references>Wein, Jung, Moradian, Stingl; Gradient-Based Generation of Feature Mapping Initial
+                Designs from SIMP Density Fields; 2026 (to be submitted :))</references>
+    <isVerified>no</isVerified>
+    <description>
+      Second-order variant of python_reward. For the test scipy.optimizate trust-region is used via
+      share/python/hessian_scipy.py. For real use, switch to hessian_ipopt.py based on cyipopt.
+    </description>
+  </documentation>
+
+  <!-- reward objective + gradient + curvature from the reusable share/python kernel -->
+  <python file="tracking.py" path="cfs:share:python" />
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="python_hessian.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <!-- bcs are irrelevant, we have no state dependent optimization problem -> gc maxIter=1 -->
+        <bcsAndLoads>
+           <fix name="left">
+              <comp dof="x"/>
+              <comp dof="y"/>
+           </fix>
+           <force name="right">
+             <comp dof="x" value="1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <!-- dummy FE-Part-->
+    <linearSystems>
+      <system>
+        <solverList>
+          <cg>
+            <maxIter>1</maxIter>
+          </cg>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization>
+    <!-- reward objective; curvature reward_curvature = 0 (linear), so the Hessian is geometric only -->
+    <costFunction type="python" task="minimize">
+      <python name="reward" init="track_init" eval="reward_eval" grad="reward_grad" curvature="reward_curvature" script="kernel">
+      <!-- <python name="tracking" init="track_init" eval="track_eval" grad="track_grad" curvature="track_curvature" script="kernel"> -->
+        <option key="target" value="bar_10.density.xml"/>
+      </python>
+    </costFunction>
+
+    <!-- native per-feature pill length constraints (from cfs, not python) -->
+    <constraint type="distance" design="node" bound="lowerBound" value="0.1"/>
+    <constraint type="distance" design="node" bound="upperBound" value="0.5"/>
+
+    <!-- second-order python optimizer (scipy trust-constr with the exact Lagrangian Hessian via
+         cfs.evalhessian + cfs.evalhessian_constr); set fd_check="true" to verify the analytic gradient
+         and Hessian against finite differences (developer tool, off in the testsuite).
+         scipy trust-constr is only the testsuite vehicle (cyipopt is not on the runners); in practice use ipopt_hession.py -->
+    <optimizer type="python" maxIterations="100">
+      <!-- <python file="hessian_ipopt.py" path="cfs:share:python"> -->
+      <python file="hessian_scipy.py" path="cfs:share:python">
+        <option key="fd_check" value="false"/>
+        <option key="gtol" value="0.02"/>
+        <option key="xtol" value="0.01"/>
+        <!-- ipopt analog 
+        <option key="tol" value="1e-2"/>
+        <option key="ipopt.dual_inf_tol" value="1e-1"/>
+        <option key="ipopt.constr_viol_tol" value="1e-2"/> -->
+      </python>
+    </optimizer>
+
+    <!-- boundary is the C^2 quintic; the exact geometric Hessian needs H'' (poly is only C^1) -->
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping transition="0.05" boundary="quintic" order="5" combine="p-norm" p="3" hessexport="true">
+        <pill>
+          <node dof="x" initial="0.1"  upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.3" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.8" upper="1" lower="0" tip="end"/>
+          <profile initial="0.15" lower="0.1" upper="0.2"/>
+        </pill>
+        <pill>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.3" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.7"  upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.9" upper="1" lower="0" tip="end"/>
+          <profile initial="0.15" lower="0.1" upper="0.2"/>
+        </pill>
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <export save="all" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

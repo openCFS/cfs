@@ -1392,7 +1392,7 @@ namespace CoupledField {
       
       // Obtain field resultFunctor object
       SolutionType solType = fap.resultInfo->resultType;
-      StdVector<std::string> dofNames = fap.resultInfo->dofNames;
+      const StdVector<std::string>& dofNames = fap.resultInfo->dofNames;
       UInt numDofs = dofNames.GetSize();
       std::string solTypeString;
       solTypeString = SolutionTypeEnum.ToString(solType);
@@ -2253,7 +2253,7 @@ namespace CoupledField {
         actFeFunction = GetFeFunction( idbcIt->first );
         std::string elemName = idbcIt->second;
         shared_ptr<ResultInfo> info = actFeFunction->GetResultInfo();
-        StdVector<std::string>  dofNames = info->dofNames;
+        const StdVector<std::string>&  dofNames = info->dofNames;
         // additional check: if we have a vector-valued function approximation,
         // we might have scalar unknowns
   //      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {

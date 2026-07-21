@@ -1798,9 +1798,9 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     }
     //now we have the local edge number, lets get the connectivity and compute the normal
     //get Vertices of current edge
-    StdVector<UInt> eVert = shape.edgeVertices[locENum];
-    Vector<Double> c1 = shape.nodeCoords[eVert[0]-1];
-    Vector<Double> c2 = shape.nodeCoords[eVert[1]-1];
+    const StdVector<UInt>& eVert = shape.edgeVertices[locENum];
+    const Vector<Double>& c1 = shape.nodeCoords[eVert[0]-1];
+    const Vector<Double>& c2 = shape.nodeCoords[eVert[1]-1];
     Vector<Double> diff;
     diff = c2 - c1;
     normal.Resize(2,0.0);
@@ -1823,7 +1823,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     if(!edgeFaceFound){
       WARN("cannot determine corresponding face to volume element for normal computation");
     }
-    StdVector<UInt> fVert = shape.faceVertices[locFaceNum];
+    const StdVector<UInt>& fVert = shape.faceVertices[locFaceNum];
     //take the first three vertices to span our surface (we will always have at least three vertices
     Vector<Double> v1(3),v2(3),v3(3);
     v1 = shape.nodeCoords[fVert[1]-1];

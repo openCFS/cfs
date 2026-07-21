@@ -20,8 +20,7 @@
 
 #include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
-#include "DataInOut/SimInOut/internalMesh/InternalMesh.hh"
-
+#include "DataInOut/SimInOut/regular/SimInputRegular.hh"
 #include "DataInOut/SimInOut/gmsh/SimInputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputGmsh.hh"
 #include "DataInOut/SimInOut/gmsh/SimOutputParsed.hh"
@@ -120,6 +119,8 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
       inFiles[actId] = shared_ptr<SimInput>(new SimInputHDF5(meshFile, PtrParamNode(new ParamNode()), infoNode));
     else if(extension == ".cdb")
       inFiles[actId] = shared_ptr<SimInput>(new SimInputCDB(meshFile, PtrParamNode(new ParamNode()), infoNode));
+    else if(extension == ".xml")
+      inFiles[actId] = shared_ptr<SimInput>(new SimInputRegular(meshFile, PtrParamNode(new ParamNode()), infoNode));
     else // even if this is not .mesh, we need a SimInput, otherwise it fails later - is rather stupid :(
       inFiles[actId] = shared_ptr<SimInput>(new SimInputMESH(meshFile, PtrParamNode(), infoNode));
 
@@ -372,12 +373,10 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(string fName
     EXCEPTION( "No support for ENSIGHT Gold input file format." );
 #endif
   }
-  else if (fFormat == "internal")
+  else if (fFormat == "regular")
   {
-    if(fName.empty()){
-      fName += simName + ".mesh";
-    }
-    aInput = shared_ptr<SimInput>(new InternalMesh(fName, configNode, infoNode));
+    // an empty file name does not get a default as we expect box/elements/spacing in the xml node
+    aInput = shared_ptr<SimInput>(new SimInputRegular(fName, configNode, infoNode));
   }
   else if (fFormat == "python")
   {

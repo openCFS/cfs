@@ -397,13 +397,12 @@ template<class T>
           for(UInt i = 0; i < hbRegion_.GetSize(); ++i){
             HBRegionHelper& regStruc = hbRegion_[i];
             regionSize = regStruc.elemListPerRegion->GetSize();
-            // for material model 'JilesAthertonModel' only single threading is possible
-            if( CFS_NUM_THREADS > 1 && modelName_ == "JilesAthertonModel" ) {
-              EXCEPTION ( "Multi-threading of EvaluateNonlinearity in CoefFunctionHarmBalance is not implemented for the material model 'JilesAthertonModel'!" );
-            }
-#pragma omp parallel num_threads(CFS_NUM_THREADS) // parallel evaluation of the nonlinear material parameter
+            // JilesAtherton holds shared per-timestep state and is a serial model
+            // (its evaluation is serialized internally, see Jiles::ComputeMaterialParameter).
+            const UInt numThreads = (modelName_ == "JilesAthertonModel") ? 1 : CFS_NUM_THREADS;
+            #pragma omp parallel num_threads(numThreads) // parallel evaluation of the nonlinear material parameter
             {
-              UInt numT    = CFS_NUM_THREADS;
+              UInt numT    = numThreads;
               UInt aThread = GetThreadNum();
               UInt chunksize = std::floor(regionSize / numT);
               UInt start = chunksize * aThread;

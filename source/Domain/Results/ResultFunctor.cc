@@ -643,7 +643,7 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     Matrix<Double> dJ_dr, CornerCoords,J;
     Double DetdJ_dr;
 
-    StdVector<UInt>  connectivity = ptElement->connect;
+    const StdVector<UInt>&  connectivity = ptElement->connect;
     UInt numNodes  = connectivity.GetSize();
 
     // Obtain FE element from feSpace and integration scheme
@@ -675,9 +675,9 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
     	//lpm.SetCheckJacobi(false);
     	// get field vector scaled by square of material parameter
     	coef_->GetVector(field, lpm );
-
-    	Matrix<Double> J = lpm.jac;
-    	Matrix<Double> Jinv = lpm.jacInv;
+    	
+    	Matrix<Double> J = lpm.jac; // copy by value by intention
+    	Matrix<Double> Jinv = lpm.jacInv; // dito
 
     	Matrix<Double> JinvT; Jinv.Transpose(JinvT);
     	Double Jdet = lpm.jacDet;
@@ -722,8 +722,8 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 }
 
 
-template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(Matrix<Double> &J,
-		                                                       Matrix<Double> &dJ_dr ) {
+template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(const Matrix<Double> &J,
+		                                                       const Matrix<Double> &dJ_dr ) {
   Double det;
 
   if (J.GetNumRows() == 2) {
