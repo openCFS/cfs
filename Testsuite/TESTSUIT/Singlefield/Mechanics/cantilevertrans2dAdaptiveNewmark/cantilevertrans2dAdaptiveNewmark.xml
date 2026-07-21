@@ -46,11 +46,11 @@
       <transient>
         <numSteps>  100  </numSteps>
         <deltaT>   3e-06 </deltaT>
-        <adaptiveTimeStepping scheme="normalizedError" controller="PI">
-          <deltaTmin>3e-07</deltaTmin>
-          <deltaTmax>3e-05</deltaTmax>
-          <relativeTol>1e-3</relativeTol>
-          <absoluteTol>4.4e-11</absoluteTol>
+        <adaptiveTimeStepping>
+          <deltaT min="3e-07" max="3e-05"/>
+          <method>
+            <normalizedError controller="PI" relTol="1e-3" absTol="4.4e-11"/>
+          </method>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

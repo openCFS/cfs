@@ -91,7 +91,6 @@ namespace CoupledField {
       domain_->SetAdaptiveData(atData_);
 
       // keep TransientDriver members in sync for local use
-      adaptiveTimestepping_ = adaptiveNode->Get("scheme")->As<std::string>();
       deltaTMin_  = atData_->dtMin_;
       deltaTMax_  = atData_->dtMax_;
       sigma_      = atData_->sigma_;
@@ -515,8 +514,9 @@ namespace CoupledField {
     if (!accepted && retryCount == 1 && actTimeStep_ <= restartStep_ + 3) {
       std::cout << " [Adaptive] HINT: The first LTE-capable step is rejecting.\n"
                 << "            Initial deltaT=" << firstdt_ << " is likely too large for the given tolerance.\n"
-                << "            Add StartAtmin=\"ON\" to your <adaptiveTimeStepping> to start from deltaTmin instead.\n"
-                << "            If StartAtmin isn`t viabel, try warmUpLTE to move the adaptive start to less transient part of the Simulation.\n";
+                << "            Add <startup mode=\"startAtMin\"/> to your <adaptiveTimeStepping> to start from deltaT/min instead.\n"
+                << "            If startAtMin isn`t viabel, try <startup mode=\"warmUpLTE\"><activateBelow>...</activateBelow></startup>\n"
+                << "            to move the adaptive start to a less transient part of the Simulation.\n";
     }
 
     std::cout << "*******************************************************\n";

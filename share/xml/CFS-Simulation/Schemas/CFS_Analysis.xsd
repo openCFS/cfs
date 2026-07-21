@@ -80,6 +80,32 @@
   <!-- ******************************************************************* -->
   <xsd:element name="transient" type="DT_AnalysisTransient" substitutionGroup="AnalysisBasic"> </xsd:element>
 
+  <!-- Shared attribute set for the two error-norm choices inside <method>.
+       controller : 'I' simple I-controller. 'PI' PI.3.4 (Soederlind 2002).
+                    'PID' H312 PID (Soederlind 2005, for non-smooth/noisy problems).
+       relTol     : Relative tolerance for dimensionless LTE scaling
+                    (sc_j = absTol + max|y|*relTol). Use with absTol (typical 0.1-0.0001).
+       absTol     : Absolute tolerance floor for relTol scaling, prevents sc_j -> 0 near
+                    zero-crossings. Default: 1e-10. Only meaningful together with relTol.
+       directTol  : LTE acceptance tolerance (step accepted when LTE &lt; directTol).
+                    Typical: 1e-4..1e-8. Default: 1e-6 if neither relTol nor directTol given.
+       relTol(+absTol) and directTol are mutually exclusive; the exclusivity is enforced
+       by AdaptiveTimesteppingData::InitFromXml (XSD 1.0 cannot express it). -->
+  <xsd:complexType name="DT_ErrorNormMethod">
+    <xsd:attribute name="controller" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="I"/>
+          <xsd:enumeration value="PI"/>
+          <xsd:enumeration value="PID"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="relTol"    type="xsd:token" use="optional"/>
+    <xsd:attribute name="absTol"    type="xsd:token" use="optional"/>
+    <xsd:attribute name="directTol" type="xsd:token" use="optional"/>
+  </xsd:complexType>
+
   <!-- Data type for transient section, i.e. parameters required for
        performing a transient analysis -->
   <xsd:complexType name="DT_AnalysisTransient">
@@ -96,62 +122,91 @@
           </xsd:element>
           <!-- optional adaptive time stepping block -->
           <xsd:element name="adaptiveTimeStepping" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:annotation>
-                <xsd:documentation>
-                  Adapts the time scheme the PDE actually uses, selected via integrationScheme:
-                  supported are bdf2 (parabolic PDEs) and newmark with alpha=0, beta!=1/6 (wave PDEs).
-                  If integrationScheme is omitted, the PDE default applies (e.g. mechanic/acoustic: newmark).
-                  Warm-up before the LTE controller activates: 1 step (newmark) / 2 steps (bdf2).
+            <xsd:annotation>
+              <xsd:documentation>
+                Adapts the time scheme the PDE actually uses, selected via integrationScheme:
+                supported are bdf2 (parabolic PDEs) and newmark with alpha=0, beta!=1/6 (wave PDEs).
+                If integrationScheme is omitted, the PDE default applies (e.g. mechanic/acoustic: newmark).
+                Warm-up before the LTE controller activates: 1 step (newmark) / 2 steps (bdf2), unless
+                overridden by &lt;startup mode="warmUpLTE"&gt;.
 
-                  deltaTmin         : Minimum time step size. If hit, the step is force-accepted and a warning is issued.
-                  deltaTmax         : Maximum time step size. The controller never exceeds this value.
-                  directTol         : LTE acceptance tolerance (step accepted when LTE &lt; directTol). Typical: 1e-4..1e-8. Mutually exclusive with relativeTol/absoluteTol. (The use of relativeTol/absoluteTol is recommended)
-                  cutbackfactor     : Safety factor for the step-size controller (0 &lt; cutbackfactor &lt; 1). Recommended: 0.75-0.9.
-                  relativeTol       : Relative tolerance for dimensionless LTE scaling (sc_j = absoluteTol + max|y|*relativeTol). Overrides directTol. Use with absoluteTol (typical 0.1-0.0001).
-                  absoluteTol       : Absolute tolerance floor for relativeTol scaling. Prevents sc_j going to zero near zero-crossings. Default: 1e-10.
-                  minStepFactor     : Floor on h_next/h_prev. Prevents extreme single-step reductions. Default: 0.25 (smoothing OFF) / 0.2 (ON).
-                  scheme            : Error norm. 'maxlocalError': max over all DOFs (strict). 'normalizedError': RMS norm, recommended for large systems.
-                  controller        : 'I': simple I-controller. 'PI': PI.3.4 (Soederlind 2002). 'PID': H312 PID (Soederlind 2005, for non-smooth/noisy problems, kk_I=2/9).
-                  StartAtmin        : 'ON': first step uses deltaTmin (useful when deltaT >> wave period). 'OFF' (default): first step uses deltaT.
-                  warmUpLTE         : If set, run at fixed deltaT until LTE/tol &lt;= value, then activate adaptive control. Mutually exclusive with StartAtmin="ON". Typical value: 1.5-3.0.
-                </xsd:documentation>
-              </xsd:annotation>
-              <xsd:all>
-                <xsd:element name="deltaTmin" type="xsd:token"/>
-                <xsd:element name="deltaTmax" type="xsd:token"/>
-                <xsd:element name="directTol"       type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="cutbackfactor"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="relativeTol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="absoluteTol"      type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="minStepFactor" type="xsd:token" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="warmUpLTE"     type="xsd:token" minOccurs="0" maxOccurs="1"/>
-              </xsd:all>
-              <xsd:attribute name="scheme" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="maxlocalError"/>
-                    <xsd:enumeration value="normalizedError"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-              <xsd:attribute name="controller" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="I"/>
-                    <xsd:enumeration value="PI"/>
-                    <xsd:enumeration value="PID"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-              <xsd:attribute name="StartAtmin" use="optional" default="OFF">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="ON"/>
-                    <xsd:enumeration value="OFF"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
+                Structure:
+                  deltaT   : required. Bounds and safety factors of the step-size controller.
+                  startup  : optional. How the very first (LTE-incapable) step(s) choose their size.
+                  method   : required. Selects the error norm and the tolerance/controller for it.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+
+                <xsd:element name="deltaT">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      min       : Minimum time step size. If hit, the step is force-accepted and a warning is issued.
+                      max       : Maximum time step size. The controller never exceeds this value.
+                      cutback   : Safety factor for the step-size controller (0 &lt; cutback &lt; 1). Recommended: 0.75-0.9.
+                      minFactor : Floor on h_next/h_prev. Prevents extreme single-step reductions.
+                                  Default (if omitted): 0.25 (I-controller) / 0.2 (PI) / 0.10 (PID).
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:attribute name="min"       type="xsd:token" use="required"/>
+                    <xsd:attribute name="max"       type="xsd:token" use="required"/>
+                    <xsd:attribute name="cutback"   type="xsd:token" use="optional"/>
+                    <xsd:attribute name="minFactor" type="xsd:token" use="optional"/>
+                  </xsd:complexType>
+                </xsd:element>
+
+                <xsd:element name="startup" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Governs the first, LTE-incapable step(s). If omitted entirely, the first step uses
+                      &lt;deltaT&gt; itself (equals the old default StartAtmin="OFF").
+
+                      mode="startAtMin" : first step uses deltaT/min instead (useful when deltaT &gt;&gt; wave period).
+                                          Must be an empty element: &lt;startup mode="startAtMin"/&gt;.
+                      mode="warmUpLTE"  : run at fixed deltaT until LTE/tol &lt;= activateBelow, then activate adaptive
+                                          control. Requires the child element &lt;activateBelow&gt;, a dimensionless
+                                          LTE/tolerance ratio (typical 1.5-3.0).
+
+                      Note: the schema cannot enforce that &lt;activateBelow&gt; is present iff mode="warmUpLTE" and
+                      absent iff mode="startAtMin"; this is checked at load time by
+                      AdaptiveTimesteppingData::InitFromXml.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="activateBelow" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+                    </xsd:sequence>
+                    <xsd:attribute name="mode" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="startAtMin"/>
+                          <xsd:enumeration value="warmUpLTE"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+
+                <xsd:element name="method">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Selects the error norm (element name) and its controller/tolerance (attributes).
+                      Exactly one of normalizedError / maxlocalError must be given:
+                        normalizedError : RMS norm over all DOFs, recommended for large systems.
+                        maxlocalError   : max over all DOFs (strict).
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:choice>
+                      <xsd:element name="normalizedError" type="DT_ErrorNormMethod"/>
+                      <xsd:element name="maxlocalError"   type="DT_ErrorNormMethod"/>
+                    </xsd:choice>
+                  </xsd:complexType>
+                </xsd:element>
+
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
           <!-- optional adaptive time stepping block end -->

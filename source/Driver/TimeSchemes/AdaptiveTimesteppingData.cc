@@ -4,50 +4,66 @@ namespace CoupledField {
 
 void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     enabled_ = true;
-    dtMin_   = node->Get("deltaTmin")->MathParse<Double>();
-    dtMax_  = node->Get("deltaTmax")->MathParse<Double>();
-    PtrParamNode sigmaNode = node->Get("cutbackfactor", ParamNode::PASS);
+
+    // <deltaT min=".." max=".." cutback=".." minFactor=".."/>
+    PtrParamNode deltaTNode = node->Get("deltaT");
+    dtMin_ = deltaTNode->Get("min")->MathParse<Double>();
+    dtMax_ = deltaTNode->Get("max")->MathParse<Double>();
+    PtrParamNode sigmaNode = deltaTNode->Get("cutback", ParamNode::PASS);
     if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
 
-    std::string ctrl = node->Get("controller")->As<std::string>();
+    // <method> holds exactly one of <normalizedError>/<maxlocalError> (XSD-enforced choice).
+    PtrParamNode methodNode = node->Get("method");
+    PtrParamNode errNode = methodNode->Get("normalizedError", ParamNode::PASS);
+    if (errNode) {
+        errorScheme_ = 2;  // RMS/L2-norm
+    } else {
+        errNode = methodNode->Get("maxlocalError");  // guaranteed present by the XSD choice
+        errorScheme_ = 1;  // max-norm
+    }
+
+    std::string ctrl = errNode->Get("controller")->As<std::string>();
     if      (ctrl == "PI")  controllerType_ = 1;
     else if (ctrl == "PID") controllerType_ = 2;
     else                    controllerType_ = 0;  // "I"
     minStepFactor_ = (controllerType_ > 0) ? 0.2 : 0.25;
-  
-    if(controllerType_ == 2)
-    {
-      minStepFactor_ = 0.10;
-    }
+    if (controllerType_ == 2) minStepFactor_ = 0.10;
 
-    PtrParamNode startNode = node->Get("StartAtmin", ParamNode::PASS);
-    startFromDtMin_ = startNode && (startNode->As<std::string>() == "ON");
-
-    PtrParamNode warmUpNode = node->Get("warmUpLTE", ParamNode::PASS);
-    if (warmUpNode) {
-        if (startFromDtMin_)
-            EXCEPTION("warmUpLTE and StartAtmin=\"ON\" are mutually exclusive.");
-        warmUpEnabled_  = true;
-        warmUpLTETarget_ = warmUpNode->MathParse<Double>();
-        inWarmUpPhase_  = true;
-    }
-
-    PtrParamNode minSFNode = node->Get("minStepFactor", ParamNode::PASS);
+    PtrParamNode minSFNode = deltaTNode->Get("minFactor", ParamNode::PASS);
     if (minSFNode) minStepFactor_ = minSFNode->MathParse<Double>();
 
-    PtrParamNode tolNode = node->Get("directTol", ParamNode::PASS);
-    tol_ = tolNode ? tolNode->MathParse<Double>() : 1e-6;
+    PtrParamNode tolNode  = errNode->Get("directTol", ParamNode::PASS);
+    PtrParamNode rtolNode = errNode->Get("relTol", ParamNode::PASS);
+    if (tolNode && rtolNode)
+        EXCEPTION("<method>: 'directTol' and 'relTol' are mutually exclusive. "
+                  "Use either directTol, or relTol (with optional absTol).");
 
-    PtrParamNode rtolNode = node->Get("relativeTol", ParamNode::PASS);
+    tol_ = tolNode ? tolNode->MathParse<Double>() : 1e-6;
     if (rtolNode) {
         rtol_ = rtolNode->MathParse<Double>();
-        PtrParamNode atolNode = node->Get("absoluteTol", ParamNode::PASS);
+        PtrParamNode atolNode = errNode->Get("absTol", ParamNode::PASS);
         atol_ = atolNode ? atolNode->MathParse<Double>() : 1e-10;
         tol_  = 1.0;  // dimensionless threshold when rtol/atol are used
     }
 
-    std::string scheme = node->Get("scheme")->As<std::string>();
-    errorScheme_ = (scheme == "normalizedError") ? 2 : 1;
+    // <startup mode="startAtMin|warmUpLTE">; omitted => first step uses deltaT (old default).
+    startFromDtMin_ = false;
+    PtrParamNode startupNode = node->Get("startup", ParamNode::PASS);
+    if (startupNode) {
+        std::string mode = startupNode->Get("mode")->As<std::string>();
+        PtrParamNode lteBelowNode = startupNode->Get("activateBelow", ParamNode::PASS);
+        if (mode == "startAtMin") {
+            if (lteBelowNode)
+                EXCEPTION("<startup mode=\"startAtMin\"> must not contain <activateBelow>.");
+            startFromDtMin_ = true;
+        } else {  // "warmUpLTE" — the only other value the XSD enum allows
+            if (!lteBelowNode)
+                EXCEPTION("<startup mode=\"warmUpLTE\"> requires the child element <activateBelow>.");
+            warmUpEnabled_   = true;
+            inWarmUpPhase_   = true;
+            warmUpLTETarget_ = lteBelowNode->MathParse<Double>();
+        }
+    }
 }
 
 void AdaptiveTimesteppingData::registerFieldLTE(double lte)

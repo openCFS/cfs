@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="aborted" infoWriteCounter="3" infoRejectCounter="0" error="
+xml file /home/dorninger/cfs/sim_acu.xml doesn't exist">
+  <summary>
+    <timer id="0" wall-clock="0.07349s" wall="0.0734888" cpu="0.002999" calls="1"/>
+  </summary>
+  <header>
+    <environment started="19-Jun-26 09:47:19" host="rk1"/>
+  </header>
+</cfsInfo>

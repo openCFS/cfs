@@ -46,12 +46,11 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="normalizedError" controller="PI">
-          <deltaTmin>1e-8</deltaTmin>
-          <deltaTmax>1e-4</deltaTmax>
-          <cutbackfactor>0.8</cutbackfactor>
-          <relativeTol>1e-3</relativeTol>
-          <absoluteTol>1e-8</absoluteTol>
+        <adaptiveTimeStepping>
+          <deltaT min="1e-8" max="1e-4" cutback="0.8"/>
+          <method>
+            <normalizedError controller="PI" relTol="1e-3" absTol="1e-8"/>
+          </method>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

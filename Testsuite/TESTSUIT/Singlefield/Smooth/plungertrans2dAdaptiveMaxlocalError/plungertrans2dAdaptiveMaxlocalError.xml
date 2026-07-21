@@ -45,11 +45,11 @@
       <transient>
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
-        <adaptiveTimeStepping scheme="maxlocalError" controller="I">
-          <deltaTmin>1e-8</deltaTmin>
-          <deltaTmax>3e-3</deltaTmax>
-          <directTol>5e-8</directTol>
-          <cutbackfactor>0.75</cutbackfactor>
+        <adaptiveTimeStepping>
+          <deltaT min="1e-8" max="3e-3" cutback="0.75"/>
+          <method>
+            <maxlocalError controller="I" directTol="5e-8"/>
+          </method>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

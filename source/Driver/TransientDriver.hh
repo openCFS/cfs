@@ -113,9 +113,6 @@ namespace CoupledField {
     //! True when the <adaptiveTimeStepping> XML block is present.
     bool adaptiveEnabeled_;
 
-    //! AdaptiveTimestepping: determins Timestepping Scheme
-    std::string adaptiveTimestepping_;
-
     //! deltaTMin_& deltaTMax_ :  Determin Bounds for adaptivity
     Double deltaTMin_;
     Double deltaTMax_;
