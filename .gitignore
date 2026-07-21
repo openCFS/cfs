@@ -12,6 +12,3 @@ build/
 Testing/
 .vscode
 *.DS_Store
-/simulation.info.xml
-/plungertrans2dAdaptiveNormalizedErrorRelTol.info.xml
-.cache

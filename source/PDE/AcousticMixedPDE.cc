@@ -922,8 +922,7 @@ namespace CoupledField{
      DefineFieldResult( meanFlowCoef_, flowvelocity );
    }
 
-   void AcousticMixedPDE::InitTimeStepping()  {
-
+   void AcousticMixedPDE::InitTimeStepping() {
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
@@ -945,7 +944,6 @@ namespace CoupledField{
       shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(makeScheme(), 0) );
       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
     }
-
    }
 
    void AcousticMixedPDE::ReadDampingInformation() {

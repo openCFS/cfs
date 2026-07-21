@@ -1,0 +1,57 @@
+! Compute impedance of a PZT5A disc
+
+! define model name
+/filname,cantilev,1
+
+fini
+/clear
+/prep7
+
+! initialize macros for mkmesh-interface
+init
+
+! PARAMETER DEFINITION =====================================
+x1 = 0
+x2 = 10e-3
+y1 = 0
+y2 = 1e-3
+eps= 1e-6
+myESize = 0.3e-3
+
+
+
+
+! DEFINE AREA =============================================
+rectng,x1,x2,y1,y2
+
+! ELEMENT GROUP DEFINITION =================================
+setelems,'quadr'
+
+
+! MESH DEFINITION ==========================================
+mshkey,1               ! use mapped meshing
+esize,myEsize
+amesh,all
+
+welems,'cantilever'
+
+
+! BOUNDARY CONDITIONS ====================================
+
+! fix displacements on the left side of the cantilever
+nsel,s,loc,x,x1-eps,x1+eps
+wnodbc,'ux-dof'
+wnodbc,'uy-dof'
+
+! driving force right top node
+nsel,s,loc,x,x2-eps,x2+eps
+wnodbc,'uy-load'
+
+
+! OUTPUT SECTION ========================================
+
+allsel
+wnodes
+
+mkmesh
+

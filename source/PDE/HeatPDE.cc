@@ -1875,7 +1875,6 @@ void HeatPDE::DefineSolveStep() {
     }
   }
 
-
 void HeatPDE::DefinePrimaryResults() {
 
   // === TEMPERATURE ===

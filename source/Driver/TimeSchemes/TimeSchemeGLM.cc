@@ -756,8 +756,8 @@ namespace CoupledField{
         glmVector_[1]->GetEntry(j, yN_raw);      // y_{n-1} (direct from glm[1])
         prevPrevSol_->GetEntry(j, yNm1_raw);     // y_{n-2}
 
-        // y_{n+1}: for solDerivOrder==0 the stage IS the solution;
-        // for solDerivOrder==1 reconstruct from BDF2: y = (dt/a0)*ẏ + (1+w)/a0*y_n - w^2/(1+2w)*y_{n-1}
+        // Recover y_{n+1}: if the stage stores the solution (solDerivOrder==0) use it directly;
+        // if it stores ẏ (==1), invert BDF2 a0*y_{n+1}=h2*ẏ+(1+w)*y_n-w²/(1+2w)*y_{n-1} for y_{n+1}.
         Double yNp2;
         if (curScheme_->solDerivOrder_ == 0) {
           yNp2 = stage_j;
@@ -766,7 +766,8 @@ namespace CoupledField{
                  - w_r*w_r/(1.0+2.0*w_r)*yN_raw;
         }
 
-        //LTE estimate uses Newton's divided differences — specifically the 3rd divided difference over 4 points 
+        // LTE from the 3rd Newton divided difference over the 4 nodes t_{n+1..n-2}, built bottom-up:
+        // D21/D10/D0m are 1st differences (slopes), D210/D10m are 2nd, D3 is the 3rd (≈ y'''/6).
 
         Double yNp1 = yNp1_raw;
         Double yN   = yN_raw;
@@ -781,7 +782,8 @@ namespace CoupledField{
 
         Double D3   = (D210 - D10m) / (h2 + h1 + h0);
 
-        // D3 = y[t_{n+1},t_n,t_{n-1},t_{n-2}] ≈ y'''/6; BDF2 LTE = h²(h+h₋₁)/6·y''' → factor 6 cancels.
+        // BDF2 error ≈ (h²(h+h₋₁)/6)·y''' with h=h2 (current step), h₋₁=h1 (previous step);
+        // since D3 ≈ y'''/6 the 1/6 cancels, leaving lte = |h2²·(h2+h1)·D3|.
         Double lte  = std::abs(h2 * h2 * (h2 + h1) * D3);
 
         norm.add(atd->scaledLTE(lte, std::max({std::abs(yNp2), std::abs(yN), std::abs(yNm1)})));

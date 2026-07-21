@@ -359,7 +359,6 @@ namespace CoupledField
 
   void MagneticScalarPotentialPDE::DefinePrimaryResults()
   {
-
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
 
     // Magnetic Potential

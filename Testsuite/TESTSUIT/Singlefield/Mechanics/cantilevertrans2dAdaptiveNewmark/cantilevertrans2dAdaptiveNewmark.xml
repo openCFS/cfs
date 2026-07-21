@@ -24,6 +24,9 @@
   </documentation>
 
   <fileFormats>
+    <input>
+      <hdf5 fileName="cantilevertrans2dAdaptiveNewmark.h5ref"/>
+    </input>
     <output>
       <hdf5/>
     </output>
