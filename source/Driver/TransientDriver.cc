@@ -368,9 +368,10 @@ namespace CoupledField {
       if( actTimeStep_ > 1 ) {
         Double totalTime = timer_->GetWallTime();
         timePerStep_ = totalTime / (Double) count;
-        Double remainingTime = (endStep_ - actTimeStep_) * timePerStep_;
+        // actTimeStep_ is already incremented, so it may exceed endStep_ (both UInt -> underflow)
+        Double remainingTime = actTimeStep_ > endStep_ ? 0.0 : (endStep_ - actTimeStep_) * timePerStep_;
         auto time = std::chrono::system_clock::now();
-        time += std::chrono::seconds(static_cast<long int>(remainingTime));
+        time += std::chrono::seconds(static_cast<long long>(remainingTime));
         PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(Timer::TimeStamp(time));
         envNode->Get("remainingTime")->SetValue(remainingTime);
