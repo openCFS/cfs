@@ -318,7 +318,8 @@ void CFS::HandleException(const std::exception& ex)
     PtrParamNode errorNode = infoNode->Get(ParamNode::FAIL);
     errorNode->SetValue(ex.what());
     infoNode->Get("status")->SetValue("aborted");
-    infoNode->ToFile();
+    // force the write, such that the abort cause always reaches the file
+    infoNode->ToFile(true);
   }
 }
 

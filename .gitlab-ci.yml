@@ -72,6 +72,7 @@ stages:
   - cfsdeps
   - build
   - test # we may have several test configs for one build
+  - test_performance # runtime comparison against master, one child job per performance test
   - test_extra # here we test everything that is not required to pass (broken and too unstable stuff)
   - docs
   - deploy
@@ -1141,6 +1142,34 @@ unstable_ser:gcc9max:linux:
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:gcc9max
+
+###########################################################
+# Performance tests
+# The tests and the whole performance pipeline live in the openCFS/performance
+# repository. We only trigger it here (multi-project pipeline) and pass which
+# build to test. That pipeline creates one job per test, each comparing this
+# build against a fresh master build on the same runner. With strategy:depend a
+# regression surfaces here as a warning (allow_failure) without blocking the MR.
+# The performance pipeline downloads the cfs build via the artifacts API, so the
+# openCFS/performance project must be on this project's CI/CD job token allowlist.
+###########################################################
+performance_tests:
+  stage: test_performance
+  needs:
+    - job: linux:gcc9max        # the performance jobs download this build; wait for it
+      artifacts: false
+  rules:
+    - !reference [.max_rules, rules]
+  allow_failure: true           # a regression is a warning, it does not block
+  trigger:
+    project: openCFS/performance
+    branch: main
+    strategy: depend            # wait for and reflect the performance pipeline result
+  variables:
+    CFS_PROJECT_ID: $CI_PROJECT_ID
+    CFS_PIPELINE_ID: $CI_PIPELINE_ID   # this pipeline is still running, so the build is fetched by pipeline id
+    CFS_REFERENCE: $CI_COMMIT_REF_NAME
+    PERFORMANCE_TEST_IMAGE: $BUILD_ENVIRONMENT_REGISTRY/centos7-gcc9:$BUILD_ENVIRONMENT_TAG
 
 stable_par_opt:gcc9closed:linux:
   extends: .test_generic

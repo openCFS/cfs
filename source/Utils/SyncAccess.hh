@@ -46,21 +46,31 @@ namespace CoupledField {
         target += src;
     }
     static inline void AddTo(Complex & target  , const Complex & src){
-      // atomic is much faster than critical but does not work for complex
-      #pragma omp critical (MATRIX_COMPLEX_UPDATE)
-      {
-        target += src;
-      }
+      // std::complex<Double> is guaranteed to be layout-compatible with
+      // Double[2], so the real and imaginary parts can be updated with two
+      // independent atomic adds. This avoids the former global critical
+      // section, which serialized all threads on every complex-valued update.
+      Double* t = reinterpret_cast<Double*>(&target);
+      const Double re = src.real();
+      const Double im = src.imag();
+      #pragma omp atomic
+        t[0] += re;
+      #pragma omp atomic
+        t[1] += im;
     }
     static inline void Set(Double & target   , const Double  & src){
-//      #pragma omp atomic write
+      #pragma omp atomic write
         target = src;
     }
     static inline void Set(Complex & target  , const Complex & src){
-      #pragma omp critical (MATRIX_COMPLEX_SET)
-      {
-        target = src;
-      }
+      // see AddTo: component-wise atomic writes instead of a critical section
+      Double* t = reinterpret_cast<Double*>(&target);
+      const Double re = src.real();
+      const Double im = src.imag();
+      #pragma omp atomic write
+        t[0] = re;
+      #pragma omp atomic write
+        t[1] = im;
     }
   };
 

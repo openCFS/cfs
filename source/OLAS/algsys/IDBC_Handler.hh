@@ -149,6 +149,12 @@ namespace CoupledField {
     void AddFixedToFreeRHS( FEMatrixType matID, UInt colBlock,
                                         UInt colInd, SBM_Vector *rhs, const T& val );
 
+    //! @copydoc BaseIDBC_Handler::QueueFixedToFreeRHS()
+    void QueueFixedToFreeRHS( UInt colBlock, UInt colInd, const T& val );
+
+    //! @copydoc BaseIDBC_Handler::FinishFixedToFreeRHS()
+    void FinishFixedToFreeRHS( FEMatrixType matID, SBM_Vector *rhs );
+
     //! @copydoc BaseIDBC_Handler::SetDofsToIDBC()
     void SetDofsToIDBC( SBM_Vector *vec, bool deltaIDBC = false );
 
@@ -241,6 +247,13 @@ namespace CoupledField {
     //! SBM_Matrix case the length corresponds to the number of diagonal
     //! matrix blocks.
     StdVector<UInt> numFreeDofs_;
+
+    //! Flag signalling whether a batched fixed-to-free RHS update is active
+
+    //! Set by the first call of QueueFixedToFreeRHS() after the last
+    //! FinishFixedToFreeRHS(), which then initializes auxVec_ before
+    //! gathering the queued values into it.
+    bool fixedToFreeGatherActive_;
 
     //! Flag signalling whether built-in of Dirichlet BCs is possible
 

@@ -3294,8 +3294,10 @@ namespace CoupledField
             tmpRHS_->GetPointer(blockNums[j])
                 ->AddToEntry(indices[j]-1, nRHS[j] );
           }else if(!usingPenalty_){
-            idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-              indices[j],rhs_,nRHS[j]);
+            // queue the fixed dof values; they are applied to the rhs with a
+            // single matrix-vector product by FinishFixedToFreeRHS() below
+            idbcHandler_->QueueFixedToFreeRHS(blockNums[j],
+              indices[j],nRHS[j]);
           }
           LOG_DBG2(algSys) << "func i= " << i << ", j= " << j << ", nRHS[j]= " << nRHS[j];
         }
@@ -3311,8 +3313,8 @@ namespace CoupledField
               tmpRHS_->GetPointer(blockNums[j])
                             ->AddToEntry(indices[j]-1, nRHS[j] );
             }else if(!usingPenalty_){
-              idbcHandler_->AddFixedToFreeRHS(matrixType,blockNums[j],
-                      indices[j],rhs_,nRHS[j]);
+              idbcHandler_->QueueFixedToFreeRHS(blockNums[j],
+                      indices[j],nRHS[j]);
             }
             LOG_DBG2(algSys) << "func i= " << i << ", j= " << j << ", nRHS[j]= " << nRHS[j];
           }
@@ -3323,6 +3325,10 @@ namespace CoupledField
       }
 
     }
+
+    // apply all queued fixed dof contributions with one multiplication
+    if(!usingPenalty_)
+      idbcHandler_->FinishFixedToFreeRHS(matrixType,rhs_);
 
     //now just perform multiplication using the REORDERED vector tmpRHS
     if(useTransposed == false){
@@ -3388,11 +3394,18 @@ namespace CoupledField
         if( indices[j] <= blockInfo_[blockNums[j]]->numLastFreeIndex) {
           tmpRHS_->GetPointer(i)->AddToEntry(indices[j]-1, nRHS[j] );
         }else if(!usingPenalty_){
-          idbcHandler_->AddFixedToFreeRHS(matrixType, i, indices[j],rhs_,nRHS[j]);
+          // queue the fixed dof values; they are applied to the rhs with a
+          // single matrix-vector product by FinishFixedToFreeRHS() below
+          idbcHandler_->QueueFixedToFreeRHS(i, indices[j],nRHS[j]);
         }
       }
 
     }
+
+    // apply all queued fixed dof contributions with one multiplication
+    if(!usingPenalty_)
+      idbcHandler_->FinishFixedToFreeRHS(matrixType,rhs_);
+
     //now just perform multiplication
     sysMat_[matrixType]->MultAdd(*tmpRHS_,*rhs_);
   }
