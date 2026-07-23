@@ -165,10 +165,12 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
 }
 
 void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+   // --------------------------------------------------------------------------------
   // Adaptive: Newmark is one-step, the tableau depends only on the current deltaT (no step
   // ratio like BDF2); we only track dt changes to trigger the matrix rebuild + refactorization.
   // coefChanged_ is sticky (cleared on accept in FinishStep): TransformBC re-calls this method
   // with unchanged dt and must not clear a pending rebuild flag.
+   // --------------------------------------------------------------------------------
   if(adaptiveEnabled_){
     if(!initialized_){
       dtCurrent_ = dtPrev1_ = dtPrev2_ = deltaT;
@@ -300,8 +302,6 @@ void Newmark::PrepareStage(UInt i,Double aTime, Domain* domain){
  domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
                                     "t", aTime+(alpha_*curTStepSize_) );
 }
-
-
 //================================================================
 //BDF2 SCHEME
 //================================================================
@@ -348,6 +348,7 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     dtCurrent_ = deltaT;
     coefChanged_ = (dtCurrent_ != oldDt);
   }
+
   // Adaptive BDF2: the dt history is advanced once per step in AdvanceAdaptiveStep(); this
   // method only (re)computes the tableau, so TransformBC/coupling re-calls leave it untouched.
   curTStepSize_ = deltaT;
