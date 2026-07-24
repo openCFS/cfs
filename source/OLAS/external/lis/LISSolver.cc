@@ -14,7 +14,11 @@
 
 // Include lis.h AFTER all std/CFS headers so its complex-mode math macros are not
 // substituted into them, then undef the macros so the rest of this translation unit uses normal math.
-#include "lis_config.h"
+#ifdef WIN32
+  #include "lis_config_win.h"
+#else
+  #include "lis_config.h"
+#endif
 #ifdef USE_COMPLEX
 // selects LIS's complex scalar (double[2] in C++); 16 bytes
   #define _COMPLEX        
