@@ -34,7 +34,7 @@ cmake ..
 make
 ```
 
-To get started be sure to visit the [wiki](https://gitlab.com/openCFS/cfs/-/wikis/home).
+To get started be sure to visit the [wiki](https://github.com/openCFS/cfs/wiki/home).
 
 Running
 ------------
@@ -68,7 +68,7 @@ Resources
 * [project homepage](https://www.opencfs.org)
 * [user documentation](https://opencfs.gitlab.io/userdocu)
 * [related projects](https://gitlab.com/openCFS)
-* [developer wiki](https://gitlab.com/openCFS/cfs/-/wikis/home)
+* [developer wiki](https://github.com/openCFS/cfs/wiki/home)
 * [issue tracker](https://gitlab.com/openCFS/cfs/-/issues)
 * [Doxygen](https://opencfs.gitlab.io/cfs/doxygen/) documentation
 * [Developer documentation](share/doc/developer/README.md) in the source tree
