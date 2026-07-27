@@ -9,7 +9,7 @@ set(LIS_VER "2.1.11") # for Dependencies.cc which cannot easily inlcude lis.h (f
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "ed5cf7cf764ed9574b2497f4dd2f68ab")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -77,7 +77,7 @@ else()
   if(WIN32)
     assert_set(PATCHES_SCRIPT)
     # the standard DEPS_INSTALL has issues with Windows, stay in build dir. enabling complex breaks computations	    
-    set(WIN_CONFIGURE --disable-test --prefix my_install ) 
+    set(WIN_CONFIGURE --disable-test --prefix my_install --enable-complex) 
     if(USE_OPENMP)
       list(APPEND WIN_CONFIGURE --enable-omp)
     endif()
