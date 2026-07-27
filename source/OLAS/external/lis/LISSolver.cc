@@ -210,53 +210,76 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
     Integer * rowPtr = (Integer *)crs.GetRowPointer();
     Integer * colPtr = (Integer *)crs.GetColPointer();
-    const Double * dataPtr = crs.GetDataPointer();
-
-    cbuf_.assign(dataPtr, dataPtr + nnz);   // Double -> Complex(re, 0)
+    #ifdef WIN32
+      Double * dataPtr = const_cast<Double*>(crs.GetDataPointer());
+    #else
+      const Double * dataPtr = crs.GetDataPointer();
+      cbuf_.assign(dataPtr, dataPtr + nnz);   // Double -> Complex(re, 0)
+    #endif
 
     err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
-    err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(cbuf_.data()),A_); CHKERR(err);
+    #ifdef WIN32
+      err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
+    #else
+      err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(cbuf_.data()),A_); CHKERR(err);
+    #endif
     err = lis_matrix_assemble(A_); CHKERR(err);
 
     if(firstSetup_){
       err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      lisZero(b_);
+      #ifdef WIN32
+        lis_vector_set_all(0.0, b_);
+      #else
+        lisZero(b_);
+      #endif
     }
     ownMatrixA_ = false;   // cbuf_ owns the data
   }
   else
   {
-    // native complex symmetric case (LIS built with --enable-complex).
-    // Complex and LIS_SCALAR share {re,im} layout -> share CFS' CRS arrays zero-copy.
-    const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
+    #ifdef WIN32
+      EXCEPTION("LIS solve for complex-valued matrices is currently broken on Windows built!");
+    #else
+      // native complex symmetric case (LIS built with --enable-complex).
+      // Complex and LIS_SCALAR share {re,im} layout -> share CFS' CRS arrays zero-copy.
+      const CRS_Matrix<Complex>& crs = dynamic_cast<const CRS_Matrix<Complex>&>(stdmat);
 
-    if(crs.GetNumCols() != crs.GetNumRows())
-      EXCEPTION("LIS solver only tested for quadratic matrices");
+      if(crs.GetNumCols() != crs.GetNumRows())
+        EXCEPTION("LIS solver only tested for quadratic matrices");
 
-    UInt nnz = crs.GetNnz();
-    UInt dim = crs.GetNumRows();
+      UInt nnz = crs.GetNnz();
+      UInt dim = crs.GetNumRows();
 
-    Integer * rowPtr = (Integer *)crs.GetRowPointer();
-    Integer * colPtr = (Integer *)crs.GetColPointer();
-    Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
+      Integer * rowPtr = (Integer *)crs.GetRowPointer();
+      Integer * colPtr = (Integer *)crs.GetColPointer();
+      Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
 
-    err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
-    err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(dataPtr),A_); CHKERR(err);
-    err = lis_matrix_assemble(A_); CHKERR(err);
+      err = lis_matrix_set_size(A_,dim,0); CHKERR(err);
+      err = lis_matrix_set_csr(nnz,rowPtr,colPtr, reinterpret_cast<LIS_SCALAR*>(dataPtr),A_); CHKERR(err);
+      err = lis_matrix_assemble(A_); CHKERR(err);
 
-    if(firstSetup_){
-      err = lis_vector_duplicate(A_,&b_); CHKERR(err);
-      lisZero(b_);
-    }
-    ownMatrixA_ = false;
+      if(firstSetup_){
+        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+        lisZero(b_);
+      }
+      ownMatrixA_ = false;
+    #endif
   }
 
   if(firstSetup_){
     err = lis_vector_duplicate(b_,&x_); CHKERR(err);
-    lisZero(x_);
+    #ifdef WIN32
+      lis_vector_set_all(0.0,b_);
+    #else
+      lisZero(b_);
+    #endif
   }
   if(resetXZero_ || firstSetup_){
-    lisZero(x_);
+    #ifdef WIN32
+      lis_vector_set_all(0.0,x_);
+    #else
+      lisZero(x_);
+    #endif
   }
 
   //copy matrix (needed as a workaround for multiple iterations with different system matrices to solve without memory leak)
@@ -286,34 +309,63 @@ void LISSolver::Setup(BaseMatrix &sysmat){
 
 void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
 {
-  // LIS vectors hold LIS_SCALAR (complex); Complex shares the same {re,im} layout.
-  const bool isReal = (sysmat.GetEntryType() == BaseMatrix::DOUBLE);
-
-  Complex* bval = reinterpret_cast<Complex*>(b_->value);
+  #ifdef WIN32
+    if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
+      for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
+        Double myEnt =0;
+        rhs.GetEntry((UInt)i,myEnt);
+      
+        b_->value[i] = myEnt;
+        //lis_vector_set_value(LIS_INS_VALUE,i,myEnt,b_);
+      }
+    } else {
+      EXCEPTION("LIS solve for complex-valued matrices is currently broken on Windows built!");
+    }
   
-  for(UInt i=0, n=rhs.GetSize(); i<n; i++){
-    if(isReal){ 
-      Double r = 0;
-      rhs.GetEntry(i, r);
-      bval[i] = Complex(r, 0.0);
-    } else {
-      Complex e = 0;
-      rhs.GetEntry(i, e);
-      bval[i] = e;
+    Integer err = 0;
+    err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
+    if(err){
+      EXCEPTION("Solver returned error code: " << err << " ...aborting")
     }
-  }
-
-  Integer err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
-  if(err) EXCEPTION("Solver returned error code: " << err << " ...aborting");
-
-  Complex* xval = reinterpret_cast<Complex*>(x_->value);
-  for(UInt i=0, n=sol.GetSize(); i<n; i++){
-    if(isReal) {
-      sol.SetEntry(i, xval[i].real());
+    //lis_solve(A_, b_, x_, solver_);
+    //copy solution
+    if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
+      for(UInt i=0; i<sol.GetSize();i++){
+        sol.SetEntry(i,x_->value[i]);
+      }
     } else {
-      sol.SetEntry(i, xval[i]);
+      EXCEPTION("LIS solve for complex-valued matrices is currently broken on Windows built!");
     }
-  }
+  #else
+    // LIS vectors hold LIS_SCALAR (complex); Complex shares the same {re,im} layout.
+    const bool isReal = (sysmat.GetEntryType() == BaseMatrix::DOUBLE);
+
+    Complex* bval = reinterpret_cast<Complex*>(b_->value);
+    
+    for(UInt i=0, n=rhs.GetSize(); i<n; i++){
+      if(isReal){ 
+        Double r = 0;
+        rhs.GetEntry(i, r);
+        bval[i] = Complex(r, 0.0);
+      } else {
+        Complex e = 0;
+        rhs.GetEntry(i, e);
+        bval[i] = e;
+      }
+    }
+
+    Integer err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
+    if(err) EXCEPTION("Solver returned error code: " << err << " ...aborting");
+
+    Complex* xval = reinterpret_cast<Complex*>(x_->value);
+    for(UInt i=0, n=sol.GetSize(); i<n; i++){
+      if(isReal) {
+        sol.SetEntry(i, xval[i].real());
+      } else {
+        sol.SetEntry(i, xval[i]);
+      }
+    }
+  #endif
 
   // the general stuff
   int solverCode;

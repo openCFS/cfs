@@ -9,7 +9,7 @@ set(LIS_VER "2.1.11") # for Dependencies.cc which cannot easily inlcude lis.h (f
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "ed5cf7cf764ed9574b2497f4dd2f68ab")
-set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -49,7 +49,7 @@ if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called m
 else()
   list(APPEND DEPS_CONFIGURE --enable-omp=no)
 endif()
-# Up form version 2.1.11, algorithm for complex matrix is enabled
+# Up form version 2.1.11, algorithm for complex matrix is enabled on UNIX
 list(APPEND DEPS_CONFIGURE --enable-test=no --enable-fma=yes --enable-complex=yes --enable-saamg=no --enable-static --enable-shared=no )
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
@@ -77,7 +77,7 @@ else()
   if(WIN32)
     assert_set(PATCHES_SCRIPT)
     # the standard DEPS_INSTALL has issues with Windows, stay in build dir. enabling complex breaks computations	    
-    set(WIN_CONFIGURE --disable-test --prefix my_install --enable-complex) 
+    set(WIN_CONFIGURE --disable-test --prefix my_install) 
     if(USE_OPENMP)
       list(APPEND WIN_CONFIGURE --enable-omp)
     endif()
