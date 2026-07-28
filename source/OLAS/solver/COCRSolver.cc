@@ -170,6 +170,10 @@ namespace CoupledField {
       Vector<T> &qtldVec = dynamic_cast<Vector<T>&>( *qtld_ );
       Vector<T> &azVec   = dynamic_cast<Vector<T>&>( *az_   );
 
+      aborted_ = false;
+      // measure iteration time
+      loopTimer_.ResetStart();
+
       // ------------------------
       //   Main loop
       // ------------------------
@@ -217,6 +221,12 @@ namespace CoupledField {
         if ( resNorm <= threshold ) {
           converged = true;
           break;
+        }       
+        
+        // Abort if the time spent in the iterative loop exceeds the predefined time Budget
+        if (timeBudget_ > 0.0 && loopTimer_.GetWallTime() > timeBudget_) {
+          aborted_ = true;
+          break;
         }
 
         // z_k = z_{k-1} - alpha * qtld
@@ -256,6 +266,13 @@ namespace CoupledField {
               << " True residual norm       = " << trueResNorm );
         converged = false;
       }
+    }
+
+    if (aborted_) {
+      converged = false;
+      WARN( "COCR aborted on time budget after " << niter
+                      << " iterations (" << loopTimer_.GetWallTime() << "s > "
+                      << timeBudget_ << "s)");
     }
 
     // ------------------------

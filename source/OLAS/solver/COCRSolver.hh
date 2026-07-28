@@ -2,6 +2,7 @@
 #define OLAS_COCR_HH
 
 #include "BaseSolver.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -58,6 +59,10 @@ namespace CoupledField {
 
     SolverType GetSolverType() { return COCR; }
 
+    bool WasAborted() const { return aborted_; }
+
+    void SetTimeBudget(Double seconds) { timeBudget_ = seconds; }
+
   private:
 
     // Default values for parameters; will be overwritten if specified in XML
@@ -81,6 +86,13 @@ namespace CoupledField {
 
     //! Disabled default constructor
     COCRSolver() {};
+
+    //! <=0 means unlimited; reset by caller each step
+    Double timeBudget_ = -1.0;
+
+    bool aborted_ = false;
+
+    Timer loopTimer_;
   };
 
 }

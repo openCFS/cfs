@@ -122,7 +122,8 @@ namespace CoupledField {
 
         // Log info for this frequency - suppress in Optimization due to search steps
         //if(progOpts->IsQuiet())
-        cout << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << "\t\r" << std::flush; 
+        // cout << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << "\t\r" << std::flush;
+        cout << endl << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << endl;
         //else
         //  cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" <<" ======================= " << endl;
 
