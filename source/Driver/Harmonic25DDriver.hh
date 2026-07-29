@@ -12,6 +12,8 @@
 
 #include "SingleDriver.hh"
 #include <memory>
+#include "Utils/Timer.hh"
+#include <fstream>
 
 namespace CoupledField {
 
@@ -135,6 +137,12 @@ class Harmonic25DDriver : public virtual SingleDriver {
     bool warmStart_ = true;
     bool reuseFactorization_ = false;
     UInt maxIterBeforeRefactorize_ = 10;
+    bool adaptiveTime_ = false;
+    Double refactorizeFraction_ = 0.8;
+    Double lastSolveTime_ = 0.0;
+    std::ofstream sweepLog_;                //!< per-step CSV
+    Timer solveTimer_;
+
 
     //! Number of evaluation positions for IFT
     // UInt numPos_;

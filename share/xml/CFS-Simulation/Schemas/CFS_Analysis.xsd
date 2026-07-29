@@ -755,6 +755,21 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
+          <xsd:element name="refactorizeCriterion" minOccurs="0" maxOccurs="1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="adaptiveTime"/>
+	              <xsd:enumeration value="fixedNumIter"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+          <xsd:element name="refactorizeFraction" type="xsd:double" default="0.8" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>
+                Fraction of Numerical Factorization time
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
           <!-- poslist currently not used -->
           <!--xsd:element name="posList" minOccurs="1" maxOccurs="1">
             <xsd:annotation>

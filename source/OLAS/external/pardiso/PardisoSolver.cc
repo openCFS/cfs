@@ -760,6 +760,7 @@ extern "C" {
 
       node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
       node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      lastNumFactTime_ = tNumfact_.GetWallTime();
     }
 
     node->Get("symbfact/peakMem")->SetValue(iparm_[14]);

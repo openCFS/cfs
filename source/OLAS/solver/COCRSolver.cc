@@ -251,6 +251,8 @@ namespace CoupledField {
         q_->Add( T(1), *az_, beta, *q_ );
       }
 
+      loopTimer_.Stop();
+
       // ------------------------------------------------
       //   False-convergence check at termination.
       //   The recurrence residual drifts in finite
@@ -283,6 +285,7 @@ namespace CoupledField {
     numIter_ = niter;
     out->Get( "finalNorm"      )->SetValue( trueResNorm );
     out->Get( "solutionIsOkay" )->SetValue( converged );
+    out->Get( "wall-clock" )->SetValue( loopTimer_.GetWallTime() );
 
     // ------------------------
     //   Running statistics

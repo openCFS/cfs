@@ -149,6 +149,7 @@ namespace CoupledField {
 
     void SetReuseFactorization(bool on) override { reuseFactorization_ = on; }
     void RequestRefactorization()       override { refreshRequested_ = true; }
+    Double GetLastNumFactTime() const {return lastNumFactTime_; }
 
   private:
 
@@ -290,6 +291,9 @@ namespace CoupledField {
     //! Per-call timers (existing). Reset on each invocation, hold only the most
     //! recent call's duration. Used for the per-call <process><call> entries.
     Timer tNumfact_, tSymfact_;
+
+    //! Wall time of the most recent phase-22 (numerical factorisation)
+    Double lastNumFactTime_ = 0.0;
 
     //! Sub-timers under <solver><pardiso><summary><setup>, parented to BaseSolver::setupTimer_.
     //! Accumulated runtime for symbolic and numeric factorisation, respectively.

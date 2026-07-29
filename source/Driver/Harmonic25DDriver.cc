@@ -31,6 +31,7 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "PDE/StdPDE.hh"
 #include "Domain/Domain.hh"
+#include "OLAS/external/pardiso/PardisoSolver.hh"
 
 using std::cout;
 using std::endl;
@@ -65,6 +66,12 @@ namespace CoupledField {
         }
         if (param_->Has("maxIterBeforeRefactorize")) {
           maxIterBeforeRefactorize_ = param_->Get("maxIterBeforeRefactorize")->As<Integer>();
+        }
+        if (param_->Has("refactorizeCriterion")) {
+          adaptiveTime_ = param_->Get("refactorizeCriterion")->As<std::string>() == "adaptiveTime";
+        }
+        if (param_->Has("refactorizeFraction")) {
+          refactorizeFraction_ = param_->Get("refactorizeFraction")->As<Double>();
         }
 
         // Check if we should store the calculated wavenumber spectrum to results or not
@@ -114,6 +121,12 @@ namespace CoupledField {
       handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, numFreq_ );
       // storeSpectrum_ ? simState_->BeginMultiSequenceStep(sequenceStep_, analysis_) : void();
 
+      // For Debug Use
+      if (adaptiveTime_) {
+        sweepLog_.open("wavenumber_sweep.csv");
+        sweepLog_ << "step,freq,nIter,tIter_s,tNumfact_s,threshold_s,refactorized\n";
+      }
+
       UInt stpIndexStart = 0;
       // Perform one simulation for each desired wavenumber/frequency
       for ( UInt stpIndex = stpIndexStart; stpIndex < numFreq_; stpIndex++ ) {
@@ -145,6 +158,10 @@ namespace CoupledField {
 
       handler_->FinishMultiSequenceStep();
       // storeSpectrum_ ? simState_->FinishMultiSequenceStep(!abortSimulation_) : void();
+
+      // For Debug Use, close File
+      if (sweepLog_.is_open())
+        sweepLog_.close();
 
       // Perform finalization only if not part of sequence
       if(!isPartOfSequence_) 
@@ -222,21 +239,73 @@ namespace CoupledField {
 
       // Apply Dirichlet, (re)build precond/solver, solve, sync solution back
       algsys->BuildInDirichlet();
+
+      // SetupPrecond consumes any refresh flag set at the END of the previous
+      // step. On step 1, firstCall_ triggers the initial factorisation.
       algsys->SetupPrecond();
       algsys->SetupSolver();
 
-      if (reuseFactorization_) {
-        BaseDirectSolver *pc = dynamic_cast<BaseDirectSolver*>(algsys->GetSolver()->GetPrecond());
-        if (!pc) {
-          EXCEPTION("reuseFactorization requires a direct solver (e.g. PARDISO) as preconditioner.");
+      // --- adaptive-time refactorisation decision (before SetupPrecond, no lag) ---
+      // Retrospective: if the PREVIOUS iterative solve took longer than a
+      // fraction of the current factorisation's cost, refresh now so this
+      // step's SetupPrecond() factorises the current matrix.
+      bool refactorized = false;
+      Double tNumfact = 0.0;
+      Double threshold = 0.0;
+
+      if (reuseFactorization_ && adaptiveTime_) {
+        PardisoSolver<Complex>* pardiso = dynamic_cast<PardisoSolver<Complex>*>(algsys->GetSolver()->GetPrecond());
+        if (!pardiso)
+          EXCEPTION("adaptiveTime criterion requires PARDISO as preconditioner.");
+
+        if (freqStp.step == 1) {
+          pardiso->SetReuseFactorization(true);
+          refactorized = true;
+        } else {
+          tNumfact  = pardiso->GetLastNumFactTime();
+          threshold = refactorizeFraction_ * tNumfact;
+          if (lastSolveTime_ > threshold) {
+            pardiso->RequestRefactorization();
+            refactorized = true;
+          }
         }
+      }
+
+
+      // enable reuse after the first factorisation; legacy fixedIter path unchanged
+      if (reuseFactorization_ && !adaptiveTime_) {
+        BaseDirectSolver *pc = dynamic_cast<BaseDirectSolver*>(algsys->GetSolver()->GetPrecond());
+        if (!pc)
+          EXCEPTION("reuseFactorization requires a direct solver (e.g. PARDISO) as preconditioner.");
         if (freqStp.step == 1) pc->SetReuseFactorization(true);
         if (algsys->GetSolver()->GetNumIters() >= maxIterBeforeRefactorize_) {
           pc->RequestRefactorization();
         }
       }
 
+      // if (reuseFactorization_) {
+      //   BaseDirectSolver *pc = dynamic_cast<BaseDirectSolver*>(algsys->GetSolver()->GetPrecond());
+      //   if (!pc) {
+      //     EXCEPTION("reuseFactorization requires a direct solver (e.g. PARDISO) as preconditioner.");
+      //   }
+      //   if (freqStp.step == 1) pc->SetReuseFactorization(true);
+      //   if (algsys->GetSolver()->GetNumIters() >= maxIterBeforeRefactorize_) {
+      //     pc->RequestRefactorization();
+      //   }
+      // }
+
+      solveTimer_.ResetStart();
       algsys->Solve();
+      solveTimer_.Stop();
+      lastSolveTime_ = solveTimer_.GetWallTime();
+      UInt nIter = algsys->GetSolver()->GetNumIters();
+
+      // For Debug Use
+      if (sweepLog_.is_open())
+        sweepLog_ << freqStp.step << ',' << actFreq_ << ',' << nIter << ','
+                  << lastSolveTime_ << ',' << tNumfact << ',' << threshold << ','
+                  << (refactorized ? 1 : 0) << '\n';
+
       sstep->StoreSolutionToFeFunctions();
 
       return actFreq_;
