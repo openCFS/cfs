@@ -826,7 +826,6 @@ namespace CoupledField {
 
             stiffIntMovingGridPP->SetBCoefFunctionOpB(gridVelCoef_);
             stiffIntMovingGridPP->SetSolDependent(true); // TODO: does this trigger the update of the coefFunction?
-
             stiffIntMovingGridPP->SetName("LinFlowStiffIntMovingGridPP");
 
             BiLinFormContext *stiffIntMovingGridContextPP = NULL;
