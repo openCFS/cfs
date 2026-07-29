@@ -20,6 +20,12 @@ include:
       - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
       - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
       - if: $CACHE_POLICY == "push" # effectively just add the info job
+  # the performance tests (one job per test) are maintained in the openCFS/performance
+  # project and run in this pipeline, see the 'Performance tests' section below.
+  # The project is public, so including it needs no permissions there.
+  - project: openCFS/performance
+    ref: fixPerformancePipeline # keep in sync with PERFORMANCE_REF of .performance
+    file: /.gitlab-ci-performance.yml
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
@@ -1145,31 +1151,49 @@ unstable_ser:gcc9max:linux:
 
 ###########################################################
 # Performance tests
-# The tests and the whole performance pipeline live in the openCFS/performance
-# repository. We only trigger it here (multi-project pipeline) and pass which
-# build to test. That pipeline creates one job per test, each comparing this
-# build against a fresh master build on the same runner. With strategy:depend a
-# regression surfaces here as a warning (allow_failure) without blocking the MR.
-# The performance pipeline downloads the cfs build via the artifacts API, so the
-# openCFS/performance project must be on this project's CI/CD job token allowlist.
+# The tests (simulation + mesh) live in the openCFS/performance repository, which
+# also provides the job definitions - they are included at the top of this file
+# and run as ordinary jobs of THIS pipeline, one per test. Only the pipeline
+# specific parts are set here, by overriding the included .performance template.
+# Adding or removing a test is done in that repository alone.
+#
+#  - build to test: the linux:gcc9max artifact of this (still running) pipeline,
+#                   fetched by pipeline id via the artifacts API
+#  - reference:     the newest linux:gcc9max artifact of a master pipeline. If
+#                   there is none (the max build only runs with DO_MAX_BUILD=ON
+#                   and its artifact expires) there is nothing to compare against
+#                   and the job skips.
+# Both builds are run back to back on the same runner, so its (fluctuating) speed
+# cancels out and no stored, machine specific reference timing is needed. A
+# slowdown of more than PERF_MAX_REGRESSION percent fails the job, but
+# allow_failure keeps it a warning - it is the maintainer's decision whether it
+# is acceptable.
+#
+# Formerly this triggered a pipeline in the performance project. That needs
+# permissions there and thus only worked for its maintainers, while running the
+# jobs here only needs the access to this project that the user starting this
+# pipeline has anyway (in particular no job token allowlist is involved).
 ###########################################################
-performance_tests:
-  stage: test_performance
-  needs:
-    - job: linux:gcc9max        # the performance jobs download this build; wait for it
-      artifacts: false
+.performance:
+  image: $BUILD_ENVIRONMENT_REGISTRY/centos7-gcc9:$BUILD_ENVIRONMENT_TAG # the image the build was made in
   rules:
     - !reference [.max_rules, rules]
   allow_failure: true           # a regression is a warning, it does not block
-  trigger:
-    project: openCFS/performance
-    branch: main
-    strategy: depend            # wait for and reflect the performance pipeline result
+  needs:
+    - job: linux:gcc9max        # the build to test; it is downloaded, not needed as artifact here
+      artifacts: false
   variables:
-    CFS_PROJECT_ID: $CI_PROJECT_ID
+    GIT_STRATEGY: none          # the tests are cloned, the build is downloaded - no cfs sources needed
+    PERFORMANCE_REPO: "https://gitlab.com/openCFS/performance.git" # public, so the clone needs no credentials
+    PERFORMANCE_REF: "fixPerformancePipeline"     # ref of the performance repository to clone, keep in sync with the include
+    CFS_PROJECT_ID: $CI_PROJECT_ID     # the builds are fetched from this project
     CFS_PIPELINE_ID: $CI_PIPELINE_ID   # this pipeline is still running, so the build is fetched by pipeline id
-    CFS_REFERENCE: $CI_COMMIT_REF_NAME
-    PERFORMANCE_TEST_IMAGE: $BUILD_ENVIRONMENT_REGISTRY/centos7-gcc9:$BUILD_ENVIRONMENT_TAG
+    CFS_REFERENCE: $CI_COMMIT_REF_NAME # only informational, the build is taken by pipeline id
+    PERF_MAX_REGRESSION: "10"   # percent slowdown that is reported as a regression
+    # the shared runners are noisy: for reliable timings register a dedicated
+    # runner and set PERF_RUNNER_TAG to its tag (see RUNNER.md of the performance
+    # repository), best as a CI/CD variable of the openCFS group
+    PERF_RUNNER_TAG: "saas-linux-small-amd64"
 
 stable_par_opt:gcc9closed:linux:
   extends: .test_generic
