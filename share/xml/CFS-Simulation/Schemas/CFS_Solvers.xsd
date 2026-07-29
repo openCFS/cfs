@@ -1053,6 +1053,27 @@
               <xsd:attribute name="irestart" type="xsd:int" default="2"/>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="IDR1">
+            <xsd:annotation>
+              <xsd:documentation>
+                LIS Induced Dimension Reduction (IDR) Solver
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="COCG">
+            <xsd:annotation>
+              <xsd:documentation>
+                LIS Conjugate Orthogonal Conjugate Gradient (COCG) Solver
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="COCR">
+            <xsd:annotation>
+              <xsd:documentation>
+                LIS Conjugate Orthogonal Conjugate Residual (COCR) Solver
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
         </xsd:choice>
       </xsd:extension>
     </xsd:complexContent>
@@ -1064,6 +1085,7 @@
         <xsd:choice>
           <xsd:element name="none"/>
           <xsd:element name="jacobi"/>
+          <xsd:element name="block_jacobi"/>
           <xsd:element name="iluk">
             <xsd:complexType>
               <!-- even when given as float, it will be interpretet as int by lis -->
