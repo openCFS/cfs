@@ -73,6 +73,11 @@ namespace CoupledField {
         if (param_->Has("refactorizeFraction")) {
           refactorizeFraction_ = param_->Get("refactorizeFraction")->As<Double>();
         }
+        if (param_->Has("sweepStrategy")) {
+          centerOut_ = param_->Get("sweepStrategy")->As<std::string>() == "centerOut";
+        }
+        if (centerOut_ && !adaptiveTime_)
+          EXCEPTION("sweepStrategy=centerOut requires refactorizeCriterion=adaptiveTime.");
 
         // Check if we should store the calculated wavenumber spectrum to results or not
         // param_->Has("storeSpectrum") ? storeSpectrum_ = param_->Get("storeSpectrum")->As<bool>() : storeSpectrum_ = false;
@@ -127,32 +132,55 @@ namespace CoupledField {
         sweepLog_ << "step,freq,nIter,tIter_s,tNumfact_s,threshold_s,refactorized\n";
       }
 
-      UInt stpIndexStart = 0;
-      // Perform one simulation for each desired wavenumber/frequency
-      for ( UInt stpIndex = stpIndexStart; stpIndex < numFreq_; stpIndex++ ) {
-        actFreqStep_ = waveNum_[stpIndex].step;
-        ComputeFrequencyStep(waveNum_[stpIndex]);
+      reuseEnabled_ = false;
+      firstFactorization_ = true;
 
-        // Log info for this frequency - suppress in Optimization due to search steps
-        //if(progOpts->IsQuiet())
-        // cout << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << "\t\r" << std::flush;
-        cout << endl << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << endl;
-        //else
-        //  cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" <<" ======================= " << endl;
+      if (!centerOut_) {
+        bool nextForce = true;
+        UInt stpIndexStart = 0;
+        // Perform one simulation for each desired wavenumber/frequency
+        for ( UInt stpIndex = stpIndexStart; stpIndex < numFreq_; stpIndex++ ) {
+        //for ( UInt stpIndex = numFreq_ - 1; stpIndex > 0; stpIndex--) {
+          actFreqStep_ = waveNum_[stpIndex].step;
+          //ComputeFrequencyStep(waveNum_[stpIndex]);
+          Double t = ComputeFrequencyStep(stpIndex, nextForce);
+          nextForce = adaptiveTime_ && (t > refactorizeFraction_ * lastNumFact_);
 
-        analysis_id_.step = actFreqStep_;
-        analysis_id_.freq = actFreq_;
+          // Log info for this frequency - suppress in Optimization due to search steps
+          //if(progOpts->IsQuiet())
+          // cout << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << "\t\r" << std::flush;
+          cout << endl << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << endl;
+          //else
+          //  cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " (" << stpIndex+1-stpIndexStart << "/" << numFreq_ << ")" <<" ======================= " << endl;
 
-        handler_->BeginStep( actFreqStep_, actFreq_);
-        ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_);
-        handler_->FinishStep();
+          analysis_id_.step = actFreqStep_;
+          analysis_id_.freq = actFreq_;
 
-        // write to step result in hdf5 if storeSpectrum_ is true
-        // storeSpectrum_ ? simState_->WriteStep(actFreqStep_, actFreq_) : void();
+          handler_->BeginStep( actFreqStep_, actFreq_);
+          ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_);
+          handler_->FinishStep();
 
-        // leave loop, if simulation should be aborted
-        if ( abortSimulation_ ) {
-          break;
+          // write to step result in hdf5 if storeSpectrum_ is true
+          // storeSpectrum_ ? simState_->WriteStep(actFreqStep_, actFreq_) : void();
+
+          // leave loop, if simulation should be aborted
+          if ( abortSimulation_ ) break;
+        }
+      } else {
+        // ---- center-out scheduler ----
+        solved_.assign(numFreq_, false);
+        solveOrder_.clear();
+        pending_.clear();
+        pending_.push_back({0, numFreq_ - 1});
+        while (!pending_.empty() && !abortSimulation_) {
+          Interval iv = pending_.back();
+          pending_.pop_back();
+          SolveInterval(iv.lo, iv.hi);
+        }
+        // coverage guard: every wavenumber step must have been solved exactly once
+        for (UInt i = 0; i < numFreq_; ++i) {
+          if (!solved_[i])
+            EXCEPTION("center-out scheduler left wavenumber index " << i << " unsolved.");
         }
       }
 
@@ -172,8 +200,35 @@ namespace CoupledField {
     //   EXCEPTION("Inverse Fourier Transform for 2.5D analysis not yet implemented!");
     // }
 
+    void Harmonic25DDriver::SolveInterval(UInt lo, UInt hi) {
+      UInt c = SelectCenter(lo, hi);
+
+      // anchor: force a fresh factorisation, capture its cost and save to threshold
+      ComputeFrequencyStep(c, true);
+      Double threshold = refactorizeFraction_ * lastNumFact_;
+
+      // left sweep: c-1, c-2, ..., lo  (guarded countdown; k==lo is the last)
+      for (UInt k = c; k-- > lo; ) {
+        Double t = ComputeFrequencyStep(k, false);
+        if (t > threshold) {                 // k is solved and kept
+          if (k > lo) pending_.push_back({lo, k - 1});
+          break;
+        }
+      }
+      // right sweep: c+1, c+2, ..., hi
+      for (UInt k = c + 1; k <= hi; ++k) {
+        Double t = ComputeFrequencyStep(k, false);
+        if (t > threshold) {                 // k is solved and kept
+          if (k < hi) pending_.push_back({k + 1, hi});
+          break;
+        }
+      }
+    }
+
     // Compute one frequency step per wavenumber
-    Double Harmonic25DDriver::ComputeFrequencyStep(Frequency const& freqStp) {
+    //Double Harmonic25DDriver::ComputeFrequencyStep(Frequency const& freqStp) {
+    Double Harmonic25DDriver::ComputeFrequencyStep(UInt idx, bool forceRefactor) {
+      Frequency const& freqStp = waveNum_[idx];
       assert(freqStp.step >= 1);
       assert(freqStp.step <= stopFreqStep_);
 
@@ -240,6 +295,16 @@ namespace CoupledField {
       // Apply Dirichlet, (re)build precond/solver, solve, sync solution back
       algsys->BuildInDirichlet();
 
+      // Anchor refresh must be requested BEFORE SetupPrecond so THIS step factorises.
+      // The first factorisation is handled by firstCall_, so skip it there (and the
+      // precond object may not exist before the first Setup).
+      if (reuseFactorization_ && adaptiveTime_ && forceRefactor && !firstFactorization_) {
+        PardisoSolver<Complex>* pardiso =
+            dynamic_cast<PardisoSolver<Complex>*>(algsys->GetSolver()->GetPrecond());
+        if (!pardiso) EXCEPTION("adaptiveTime criterion requires PARDISO as preconditioner.");
+        pardiso->RequestRefactorization();          // consumed by SetupPrecond() below
+      }
+
       // SetupPrecond consumes any refresh flag set at the END of the previous
       // step. On step 1, firstCall_ triggers the initial factorisation.
       algsys->SetupPrecond();
@@ -251,26 +316,25 @@ namespace CoupledField {
       // step's SetupPrecond() factorises the current matrix.
       bool refactorized = false;
       Double tNumfact = 0.0;
-      Double threshold = 0.0;
 
       if (reuseFactorization_ && adaptiveTime_) {
         PardisoSolver<Complex>* pardiso = dynamic_cast<PardisoSolver<Complex>*>(algsys->GetSolver()->GetPrecond());
         if (!pardiso)
           EXCEPTION("adaptiveTime criterion requires PARDISO as preconditioner.");
 
-        if (freqStp.step == 1) {
+        if (!reuseEnabled_) {
           pardiso->SetReuseFactorization(true);
-          refactorized = true;
-        } else {
-          tNumfact  = pardiso->GetLastNumFactTime();
-          threshold = refactorizeFraction_ * tNumfact;
-          if (lastSolveTime_ > threshold) {
-            pardiso->RequestRefactorization();
-            refactorized = true;
-          }
+          reuseEnabled_ = true;
         }
-      }
 
+        if (forceRefactor) {
+          firstFactorization_ = false;
+          refactorized = true;
+          tNumfact     = pardiso->GetLastNumFactTime();   // this anchor's fresh cost
+          lastNumFact_ = tNumfact;                        // capture ONLY on anchors
+        }
+        
+      }
 
       // enable reuse after the first factorisation; legacy fixedIter path unchanged
       if (reuseFactorization_ && !adaptiveTime_) {
@@ -300,15 +364,28 @@ namespace CoupledField {
       lastSolveTime_ = solveTimer_.GetWallTime();
       UInt nIter = algsys->GetSolver()->GetNumIters();
 
+      // result writing (absolute step number, order-independent)
+      if (centerOut_) {
+        analysis_id_.step = actFreqStep_;
+        analysis_id_.freq = actFreq_;
+        cout << endl << ptPDE_->GetName() << ": 2.5D Harmonic step " << actFreqStep_ << " (" << idx << "/" << numFreq_ << ")" << " frequency " << std::setprecision(2) << std::fixed << actFreq_ << endl;
+        handler_->BeginStep( actFreqStep_, actFreq_ );
+        ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
+        handler_->FinishStep();
+      }
+      
+      if (!solved_.empty()) solved_[idx] = true;
+      if (centerOut_) solveOrder_.push_back(idx);
+
       // For Debug Use
       if (sweepLog_.is_open())
         sweepLog_ << freqStp.step << ',' << actFreq_ << ',' << nIter << ','
-                  << lastSolveTime_ << ',' << tNumfact << ',' << threshold << ','
+                  << lastSolveTime_ << ',' << lastNumFact_ << ',' << lastNumFact_ * refactorizeFraction_ << ','
                   << (refactorized ? 1 : 0) << '\n';
 
       sstep->StoreSolutionToFeFunctions();
 
-      return actFreq_;
+      return lastSolveTime_;
     }
 
     void Harmonic25DDriver::ReadWaveNumbers() {

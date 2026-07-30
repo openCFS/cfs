@@ -69,6 +69,9 @@ class Harmonic25DDriver : public virtual SingleDriver {
           << freqStp.step;
       }
     };
+    
+    //! Inclusive Index range [lo,hi] into waveNum_ that is still unsolved
+    struct Interval {UInt lo, hi;};
 
     // Structure for IFT evaluation position
     // {
@@ -93,7 +96,17 @@ class Harmonic25DDriver : public virtual SingleDriver {
     // StdVector<Position> iftPos_;
 
     // compute single frequency step for one wavenumber
-    Double ComputeFrequencyStep(Frequency const& freqStp);
+    // Double ComputeFrequencyStep(Frequency const& freqStp);
+
+    // Solve one step by index; forceRefactor=true for an interval anchor.
+    // Writes result under waveNum_[idx].step, sets solved_[idx], returns t_solve.
+    Double ComputeFrequencyStep(UInt idx, bool forceRefactor);
+
+    //! Center-out scheduler: solve one interval (anchor + left/right sweeps).
+    void SolveInterval(UInt lo, UInt hi);
+    //! Pick the anchor index for [lo,hi] (index midpoint for now).
+    UInt SelectCenter(UInt lo, UInt hi) const { return (lo + hi) / 2; }
+
 
     //! Compute the whole wavenumber spectrum
     void CalcWavenumberSpectrum();
@@ -142,7 +155,14 @@ class Harmonic25DDriver : public virtual SingleDriver {
     Double lastSolveTime_ = 0.0;
     std::ofstream sweepLog_;                //!< per-step CSV
     Timer solveTimer_;
-
+    //! Center-out sweep scheduler state.
+    bool  centerOut_ = false;               //!< false = legacy monotone sweep
+    bool reuseEnabled_ = false;
+    bool firstFactorization_ = true;
+    Double lastNumFact_ = 0.0;              //!< T_numfact of the current interval's anchor
+    std::vector<Interval> pending_;         //!< LIFO of unsolved index ranges
+    std::vector<bool>     solved_;          //!< coverage guard, sized numFreq_
+    std::vector<UInt>     solveOrder_;      //!< visiting order, logging only
 
     //! Number of evaluation positions for IFT
     // UInt numPos_;

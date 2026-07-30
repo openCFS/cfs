@@ -763,6 +763,14 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
+          <xsd:element name="sweepStrategy" minOccurs="0" maxOccurs="1">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="monotone"/>
+	              <xsd:enumeration value="centerOut"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
           <xsd:element name="refactorizeFraction" type="xsd:double" default="0.8" minOccurs="0">
             <xsd:annotation>
               <xsd:documentation>
