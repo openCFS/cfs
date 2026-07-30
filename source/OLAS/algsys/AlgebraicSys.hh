@@ -1138,6 +1138,10 @@ namespace CoupledField {
 
     bool IsSymmetric() const {return sbmSymm_;}
 
+    //! Overwrite the solution vector (symmetric counterpart to GetSolutionVal).
+    //! Deep value copy; used to seed a warm-start initial guess.
+    void SetSolutionVal( const SBM_Vector& newSol );
+
   protected:
 
     //! Auxiliary method for logging information on matrix patterns

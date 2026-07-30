@@ -21,6 +21,7 @@
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/Assemble.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "MatVec/SBM_Vector.hh"
 #include "OLAS/solver/BaseSolver.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -90,7 +91,12 @@ namespace CoupledField {
     // ***************
     //   Destructor
     // ***************
-    Harmonic25DDriver::~Harmonic25DDriver() {}
+    Harmonic25DDriver::~Harmonic25DDriver() {
+      if (anchorSol_) {
+        delete anchorSol_;
+        anchorSol_ = nullptr;
+      }
+    }
     
     // ***************
     //   Init
@@ -204,7 +210,8 @@ namespace CoupledField {
       UInt c = SelectCenter(lo, hi);
 
       // anchor: force a fresh factorisation, capture its cost and save to threshold
-      ComputeFrequencyStep(c, true);
+      ComputeFrequencyStep(c, true); // anchor solved; sol_ now holds sol_c
+      SnapshotAnchorSolution();      // save sol_c
       Double threshold = refactorizeFraction_ * lastNumFact_;
 
       // left sweep: c-1, c-2, ..., lo  (guarded countdown; k==lo is the last)
@@ -216,6 +223,7 @@ namespace CoupledField {
         }
       }
       // right sweep: c+1, c+2, ..., hi
+      RestoreAnchorSolution(); //restore sol_c so c+1 warm-starts from the anchor
       for (UInt k = c + 1; k <= hi; ++k) {
         Double t = ComputeFrequencyStep(k, false);
         if (t > threshold) {                 // k is solved and kept
@@ -256,7 +264,9 @@ namespace CoupledField {
 
       // Assemble rhs and system matrices for this wavenumber step
       algsys->InitRHS();
-      if (!warmStart_ || freqStp.step == 1) {
+
+      // Anchors (forceRefactor) cold-start; sweep steps warm-start from sol_.
+      if (!warmStart_  || forceRefactor) {
         algsys->InitSol();
       }
       pde->SetRhsValues();
@@ -424,6 +434,23 @@ namespace CoupledField {
       if (std::abs(stopFreq_ - freqCutoff_) > 1e-6) {
         WARN("cutoffFreq is not an exact multiple of freqRes. The cutoffFreq is changed to " << stopFreq_);
       }
+    }
+
+    // Snapshot the current solution (the interval anchor's) for warm-starting
+    // the right sweep. Raw solution vector: setIDBC=false, deltaIDBC=false.
+    void Harmonic25DDriver::SnapshotAnchorSolution() {
+      AlgebraicSys* algsys = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep())->GetAlgSys();
+      // COMPLEX entry type was the missing piece: a default SBM_Vector is
+      // NOENTRYTYPE, so Resize() makes 0-size sub-vectors and operator()(0) throws.
+      if (!anchorSol_) anchorSol_ = new SBM_Vector(BaseMatrix::COMPLEX);   // allocate once; GetSolutionVal sizes it
+      algsys->GetSolutionVal(*anchorSol_, /*setIDBC=*/false, /*deltaIDBC=*/false);
+    }
+
+    // Restore the anchor's solution into sol_ so the right sweep's first step
+    // warm-starts from it rather than from the last left-sweep solution.
+    void Harmonic25DDriver::RestoreAnchorSolution() {
+      AlgebraicSys* algsys = dynamic_cast<StdSolveStep*>(ptPDE_->GetSolveStep())->GetAlgSys();
+      algsys->SetSolutionVal(*anchorSol_);
     }
 
     // bool Harmonic25DDriver::ReadEvalPosList() {

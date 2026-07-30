@@ -18,6 +18,7 @@
 namespace CoupledField {
 
 class Timer;
+class SBM_Vector;
 
 class Harmonic25DDriver : public virtual SingleDriver {
 
@@ -163,6 +164,10 @@ class Harmonic25DDriver : public virtual SingleDriver {
     std::vector<Interval> pending_;         //!< LIFO of unsolved index ranges
     std::vector<bool>     solved_;          //!< coverage guard, sized numFreq_
     std::vector<UInt>     solveOrder_;      //!< visiting order, logging only
+
+    SBM_Vector* anchorSol_ = nullptr;   //!< snapshot of the interval anchor's solution (warm-start seed)
+    void SnapshotAnchorSolution();      //!< sol_ -> anchorSol_
+    void RestoreAnchorSolution();       //!< anchorSol_ -> sol_
 
     //! Number of evaluation positions for IFT
     // UInt numPos_;

@@ -4001,6 +4001,9 @@ namespace CoupledField
     GetSolutionVal(solVec(0), h, setIDBC, deltaIDBC, true);
   }
 
+  void AlgebraicSys::SetSolutionVal( const SBM_Vector& newSol ) {
+    *sol_ = newSol;   // deep value copy (SBM_Vector::operator=)
+  }
 
   void AlgebraicSys::GetFullMultiHarmSolutionVal(SBM_Vector& solVec, bool setIDBC, bool deltaIDBC ) {
     solVec.Resize( domain->GetDriver()->GetNumFreq() );
