@@ -21,12 +21,18 @@
 
 
 #include "General/Enum.hh"
+#include <vector>
 
-
-#include "lis_config.h"
-#include "lis.h"
-// note that lis_precon.h is by default not in lis/install/include - we make it manually via cfsdeps
-#include "lis_precon.h"
+// We don't include lis.h in the header file
+// Instead, we forward declare the opaque LIS handles
+struct LIS_VECTOR_STRUCT;
+struct LIS_MATRIX_STRUCT;
+struct LIS_PRECON_STRUCT;
+struct LIS_SOLVER_STRUCT;
+typedef LIS_VECTOR_STRUCT* LIS_VECTOR;
+typedef LIS_MATRIX_STRUCT* LIS_MATRIX;
+typedef LIS_PRECON_STRUCT* LIS_PRECON;
+typedef LIS_SOLVER_STRUCT* LIS_SOLVER;
 
 namespace CoupledField
 {
@@ -60,7 +66,10 @@ namespace CoupledField
                   BICRSAFE = 19,
                   FGMRES = 20,
                   IDRS = 21,
-                  MINRES = 22
+                  IDR1 = 22,
+                  MINRES = 23,
+                  COCG = 24,
+                  COCR = 25
             } LISSolverType;
    static Enum<LISSolverType> lisSolverType;
 
@@ -74,7 +83,8 @@ namespace CoupledField
                  SAAMG = 7,
                  ILUC = 8,
                  ILUT = 9,
-                 ADDS = 10
+                 BJACOBI = 10,
+                 ADDS = 11
            } LISPrecondType;
   static Enum<LISPrecondType> lisPrecondType;
 
@@ -132,6 +142,9 @@ namespace CoupledField
    bool resetXZero_;
 
    bool ownMatrixA_;
+
+   /** real CRS embedded as complex (imag=0) for the complex LIS build */
+   std::vector<Complex> cbuf_;
 
    /** with throw exception when exceeded */
    int maxIter_ = -1;
