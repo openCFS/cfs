@@ -281,9 +281,18 @@ namespace CoupledField
                                    const std::string& pdeName,
                                    bool& updatedGeo );
 
+    //! Obtain the material model coefficient function of a contained SinglePDE
+
+    //! In contrast to GetCouplingCoefFct() the returned coefficient function is
+    //! not wrapped into a CoefFunctionAccumulator and does not take part in any
+    //! convergence criterion, as it is used directly as material operator of a
+    //! bilinear form (e.g. by the adjoint PDEs).
+    PtrCoefFct GetMaterialModelCoefFct( RegionIdType region,
+                                        const std::string& pdeName );
+
     //! Manually trigger the finalize procedure if it has not been done yet
     void TriggerFinalize();
-    
+
     //! Function similar to GetCouplingCoefFct but only returns updatedGeo
     void GetUpdateGeoForPDE( SolutionType type,
                              shared_ptr<EntityList>  list,

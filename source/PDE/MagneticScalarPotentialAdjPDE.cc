@@ -128,13 +128,13 @@ namespace CoupledField
         coef = iterCplPde_->GetCouplingCoefFct(MAG_FIELD_INTENSITY, actSDList, "magneticScalarPotential", updatedGeo_);
         hPostprocParam_[actRegion] = coef;
         
-        domain_->SetRegion4Hyst(actRegion);    
-        std::cout << "Set act region: " << actRegion << "  Name: " << regionName << std::endl;   
-        mu = iterCplPde_->GetCouplingCoefFct(MAG_MAGNETIZATION, actSDList, "magneticScalarPotential", updatedGeo_);  
+        // the differential material operator of the hysteresis model is taken
+        // directly from the forward PDE, i.e. it is used as material tensor of
+        // the stiffness integrator below
+        mu = iterCplPde_->GetMaterialModelCoefFct(actRegion, "magneticScalarPotential");
 
-        nlFluxCoefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true)); 
+        nlFluxCoefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
         nlFluxCoefm_[actRegion]->AddRegion(actRegion, mu);
-        domain->SetRegion4Hyst(NO_REGION_ID);
 
         //coeff-Function for derivations of nu w.r.t. parameters
         if (actSDMat->GetAnhystFormula() == "atan") {

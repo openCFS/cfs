@@ -1336,23 +1336,16 @@ namespace CoupledField {
     LOG_DBG(singlepde) <<  pdename_ << ": Requesting coefficient function for solution type " << SolutionTypeEnum.ToString(type);
     
     PtrCoefFct ret;
-    // HACK!!!!!!!!!!!!!!!!!
-    if ( type == MAG_MAGNETIZATION ) {
-      if ( domain_->GetRegion4Hyst() != NO_REGION_ID )
-        ret = matModelCoefm_[domain_->GetRegion4Hyst()];
-    }
-    else {
-      // 1) look in fieldCoefs
-      if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
-        if( matCoefs_.find(type) == matCoefs_.end() ) {
+    // 1) look in fieldCoefs
+    if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
+      if( matCoefs_.find(type) == matCoefs_.end() ) {
 //        EXCEPTION( "No coefficient function for result type '"
 //            << SolutionTypeEnum.ToString( type ) << "' found");
-        } else {
-          ret = matCoefs_[type];
-       }
       } else {
-        ret = fieldCoefs_[type];
+        ret = matCoefs_[type];
       }
+    } else {
+      ret = fieldCoefs_[type];
     }
     if( !ret ) {
       LOG_DBG(singlepde) << pdename_ << ": \t=> NOT FOUND";

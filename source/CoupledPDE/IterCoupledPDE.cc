@@ -62,6 +62,14 @@ namespace CoupledField
     
   }
 
+  PtrCoefFct IterCoupledPDE::GetMaterialModelCoefFct( RegionIdType region,
+                                                      const std::string& pdeName ) {
+
+    // directly pass the query to the IterSolveStep instance
+    return solveStep_->GetMaterialModelCoefFct( region, pdeName );
+
+  }
+
   void IterCoupledPDE::TriggerFinalize() {
     // directly pass the query to the IterSolveStep instance
     solveStep_->TriggerFinalize();
