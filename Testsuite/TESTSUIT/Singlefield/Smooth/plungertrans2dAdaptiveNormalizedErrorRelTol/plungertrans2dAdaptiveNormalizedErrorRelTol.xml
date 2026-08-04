@@ -47,10 +47,17 @@
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
         <adaptiveTimeStepping>
-          <deltaT min="1e-8" max="1e-4" cutback="0.8"/>
-          <method>
-            <normalizedError controller="PI" relTol="1e-3" absTol="1e-8"/>
-          </method>
+          <deltaT min="1e-8" max="1e-4"/>
+          <adaption>
+            <LTEnormalizedError>
+              <controller type="PI"/>
+              <tolerance mode="relative">
+                <relative>1e-3</relative>
+                <absolute>1e-8</absolute>
+              </tolerance>
+              <cutback>0.8</cutback>
+            </LTEnormalizedError>
+          </adaption>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

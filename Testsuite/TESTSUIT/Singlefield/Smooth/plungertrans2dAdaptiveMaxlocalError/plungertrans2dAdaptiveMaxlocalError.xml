@@ -46,10 +46,16 @@
         <numSteps>20</numSteps>
         <deltaT>5e-5</deltaT>
         <adaptiveTimeStepping>
-          <deltaT min="1e-8" max="3e-3" cutback="0.75"/>
-          <method>
-            <maxlocalError controller="I" directTol="5e-8"/>
-          </method>
+          <deltaT min="1e-8" max="3e-3"/>
+          <adaption>
+            <LTEmaxlocalError>
+              <controller type="I"/>
+              <tolerance mode="direct">
+                <value>5e-8</value>
+              </tolerance>
+              <cutback>0.75</cutback>
+            </LTEmaxlocalError>
+          </adaption>
         </adaptiveTimeStepping>
       </transient>
     </analysis>

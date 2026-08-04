@@ -5,46 +5,53 @@ namespace CoupledField {
 void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     enabled_ = true;
 
-    // <deltaT min=".." max=".." cutback=".." minFactor=".."/>
+    // <deltaT min=".." max=".."/>
     PtrParamNode deltaTNode = node->Get("deltaT");
     dtMin_ = deltaTNode->Get("min")->MathParse<Double>();
     dtMax_ = deltaTNode->Get("max")->MathParse<Double>();
-    PtrParamNode sigmaNode = deltaTNode->Get("cutback", ParamNode::PASS);
-    if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
 
-    // <method> holds exactly one of <normalizedError>/<maxlocalError> (XSD-enforced choice).
-    PtrParamNode methodNode = node->Get("method");
-    PtrParamNode errNode = methodNode->Get("normalizedError", ParamNode::PASS);
+    // <adaption> holds exactly one method element (XSD-enforced choice).
+    PtrParamNode adaptionNode = node->Get("adaption");
+    PtrParamNode errNode = adaptionNode->Get("LTEnormalizedError", ParamNode::PASS);
     if (errNode) {
         errorScheme_ = 2;  // RMS/L2-norm
     } else {
-        errNode = methodNode->Get("maxlocalError");  // guaranteed present by the XSD choice
+        errNode = adaptionNode->Get("LTEmaxlocalError");  // guaranteed present by the XSD choice
         errorScheme_ = 1;  // max-norm
     }
 
-    std::string ctrl = errNode->Get("controller")->As<std::string>();
+    // <controller type="I|PI|PID"/>
+    std::string ctrl = errNode->Get("controller")->Get("type")->As<std::string>();
     if      (ctrl == "PI")  controllerType_ = 1;
     else if (ctrl == "PID") controllerType_ = 2;
     else                    controllerType_ = 0;  // "I"
     minStepFactor_ = (controllerType_ > 0) ? 0.2 : 0.25;
     if (controllerType_ == 2) minStepFactor_ = 0.10;
 
-    PtrParamNode minSFNode = deltaTNode->Get("minFactor", ParamNode::PASS);
-    if (minSFNode) minStepFactor_ = minSFNode->MathParse<Double>();
-
-    PtrParamNode tolNode  = errNode->Get("directTol", ParamNode::PASS);
-    PtrParamNode rtolNode = errNode->Get("relTol", ParamNode::PASS);
-    if (tolNode && rtolNode)
-        EXCEPTION("<method>: 'directTol' and 'relTol' are mutually exclusive. "
-                  "Use either directTol, or relTol (with optional absTol).");
-
-    tol_ = tolNode ? tolNode->MathParse<Double>() : 1e-6;
-    if (rtolNode) {
-        rtol_ = rtolNode->MathParse<Double>();
-        PtrParamNode atolNode = errNode->Get("absTol", ParamNode::PASS);
-        atol_ = atolNode ? atolNode->MathParse<Double>() : 1e-10;
+    // <tolerance mode="relative"> => <relative>(+<absolute>); mode="direct" => <value>.
+    PtrParamNode tolElem = errNode->Get("tolerance");
+    std::string tmode = tolElem->Get("mode")->As<std::string>();
+    PtrParamNode relNode = tolElem->Get("relative", ParamNode::PASS);
+    PtrParamNode absNode = tolElem->Get("absolute", ParamNode::PASS);
+    PtrParamNode valNode = tolElem->Get("value", ParamNode::PASS);
+    if (tmode == "relative") {
+        if (!relNode) EXCEPTION("<tolerance mode=\"relative\"> requires <relative>.");
+        if (valNode)  EXCEPTION("<tolerance mode=\"relative\"> must not contain <value>.");
+        rtol_ = relNode->MathParse<Double>();
+        atol_ = absNode ? absNode->MathParse<Double>() : 1e-10;
         tol_  = 1.0;  // dimensionless threshold when rtol/atol are used
+    } else {  // "direct" — the only other value the XSD enum allows
+        if (!valNode) EXCEPTION("<tolerance mode=\"direct\"> requires <value>.");
+        if (relNode || absNode)
+            EXCEPTION("<tolerance mode=\"direct\"> must not contain <relative>/<absolute>.");
+        tol_ = valNode->MathParse<Double>();
     }
+
+    // <cutback>, <minFactor>: optional children of the method element.
+    PtrParamNode sigmaNode = errNode->Get("cutback", ParamNode::PASS);
+    if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
+    PtrParamNode minSFNode = errNode->Get("minFactor", ParamNode::PASS);
+    if (minSFNode) minStepFactor_ = minSFNode->MathParse<Double>();
 
     // <startup mode="startAtMin|warmUpLTE">; omitted => first step uses deltaT (old default).
     startFromDtMin_ = false;

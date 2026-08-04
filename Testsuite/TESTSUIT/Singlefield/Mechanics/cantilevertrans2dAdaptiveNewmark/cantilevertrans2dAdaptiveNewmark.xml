@@ -51,9 +51,15 @@
         <deltaT>   3e-06 </deltaT>
         <adaptiveTimeStepping>
           <deltaT min="3e-07" max="3e-05"/>
-          <method>
-            <normalizedError controller="PI" relTol="1e-3" absTol="4.4e-11"/>
-          </method>
+          <adaption>
+            <LTEnormalizedError>
+              <controller type="PI"/>
+              <tolerance mode="relative">
+                <relative>1e-3</relative>
+                <absolute>4.4e-11</absolute>
+              </tolerance>
+            </LTEnormalizedError>
+          </adaption>
         </adaptiveTimeStepping>
       </transient>
     </analysis>
