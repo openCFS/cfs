@@ -413,6 +413,7 @@ macro(create_external_unpack_precompiled)
 
   # add a minimal project that just extracts the precompiled file into the correct location
   ExternalProject_Add(${PACKAGE_NAME}
+      PREFIX "${DEPS_PREFIX}"
       SOURCE_DIR ${CMAKE_BINARY_DIR} # needed so no download step is done, also sets working directory
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ${CMAKE_COMMAND} -E echo "unpacking precompiled ${PACKAGE_NAME} from ${PRECOMPILED_PCKG_FILE} in ${CMAKE_BINARY_DIR}"
