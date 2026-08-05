@@ -1285,6 +1285,7 @@ namespace CoupledField {
       case MAG_AVERAGED_FIELD_INTENSITY:
       case MAG_MAGNETIZATION:
       case MAG_POTENTIAL_GRAD:
+      case MAG_POTENTIAL_GRAD_ADJ:
       case MAG_FIELD_INTENSITY_CURL:
         return "A/m";
         break;
@@ -1299,11 +1300,6 @@ namespace CoupledField {
         break;
 
       case MAG_RHS_LOAD:
-        return "Am";
-        break;
-
-
-      case MAG_RHS_LOAD_ADJ:
         return "Am";
         break;
 
@@ -1346,7 +1342,6 @@ namespace CoupledField {
       case MAG_FLUX_DENSITY_SURF:
       case MAG_CURL_ADJ:
       case MAG_NORMAL_FLUX_DENSITY:
-      case MAG_POTENTIAL_GRAD_ADJ:
         return "Vs/m^2";
         break;
 
@@ -1411,6 +1406,14 @@ namespace CoupledField {
       case MECH_PSEUDO_DENSITY:
       case PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
+      // rhs and gradients of the adjoint problems depend on the objective function
+      // and therefore have no fixed physical unit
+      case MAG_RHS_LOAD_ADJ:
+      case MAG_GRAD_ADJ_PARAM:
+      case MAG_GRAD_ADJ_PARAM1:
+      case MAG_GRAD_ADJ_PARAM2:
+      case MAG_GRAD_ADJ_PARAM3:
+      case MAG_GRAD_ADJ_PARAM4:
         return "";
         break;
       case VOLUME:

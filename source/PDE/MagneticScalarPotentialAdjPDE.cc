@@ -398,7 +398,7 @@ namespace CoupledField
     shared_ptr<ResultInfo> rhs(new ResultInfo);
     rhs->resultType = MAG_RHS_LOAD_ADJ;
     rhs->dofNames = "";
-    rhs->unit = "";
+    rhs->unit = MapSolTypeToUnit(MAG_RHS_LOAD_ADJ);
     rhs->entryType = ResultInfo::SCALAR;
     rhs->definedOn = ResultInfo::NODE;
     rhsFeFunctions_[MAG_POTENTIAL_ADJ]->SetResultInfo(rhs);
@@ -408,7 +408,7 @@ namespace CoupledField
     shared_ptr<ResultInfo> hf(new ResultInfo);
     hf->resultType = MAG_POTENTIAL_GRAD_ADJ;
     hf->dofNames = vecDofNames;
-    hf->unit = "A/m";
+    hf->unit = MapSolTypeToUnit(MAG_POTENTIAL_GRAD_ADJ);
     hf->definedOn = ResultInfo::ELEMENT;
     hf->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> hFunc;
@@ -420,7 +420,7 @@ namespace CoupledField
     shared_ptr<ResultInfo> vol(new ResultInfo);
     vol->resultType = VOLUME;
     vol->dofNames = "";
-    vol->unit = "m^3";
+    vol->unit = MapSolTypeToUnit(VOLUME);
     vol->entryType = ResultInfo::SCALAR;
     vol->definedOn = ResultInfo::REGION;
     shared_ptr<CoefFunction> coefVol = CoefFunction::Generate( mp_,  Global::REAL, "1.0");
@@ -433,7 +433,7 @@ namespace CoupledField
     shared_ptr<ResultInfo> averagedH(new ResultInfo);
     averagedH->resultType = MAG_FIELD_INTENSITY;
     averagedH->dofNames = vecDofNames;
-    averagedH->unit = "A/m";
+    averagedH->unit = MapSolTypeToUnit(MAG_FIELD_INTENSITY);
     averagedH->entryType = ResultInfo::VECTOR;
     averagedH->definedOn = ResultInfo::ELEMENT;
     // The computation is defined in FinalizePostProcResults()
@@ -444,7 +444,7 @@ namespace CoupledField
     shared_ptr<ResultInfo> resH1(new ResultInfo());
     resH1->resultType = MAG_AVERAGED_FIELD_INTENSITY;
     resH1->dofNames = vecDofNames; //hField->GetDofNames();
-    resH1->unit = "A/m";
+    resH1->unit = MapSolTypeToUnit(MAG_AVERAGED_FIELD_INTENSITY);
     resH1->entryType = ResultInfo::VECTOR;
     resH1->definedOn = ResultInfo::REGION;   
     availResults_.insert(resH1);                             
@@ -490,7 +490,7 @@ namespace CoupledField
       gradAdjParam.reset(new ResultInfo);
       gradAdjParam->resultType = MAG_GRAD_ADJ_PARAM;
       gradAdjParam->dofNames = "";
-      gradAdjParam->unit = "";
+      gradAdjParam->unit = MapSolTypeToUnit(MAG_GRAD_ADJ_PARAM);
       gradAdjParam->entryType = ResultInfo::SCALAR;
       gradAdjParam->definedOn = ResultInfo::REGION;    
       availResults_.insert(gradAdjParam);                            
@@ -516,7 +516,7 @@ namespace CoupledField
       gradAdjParam1.reset(new ResultInfo);
       gradAdjParam1->resultType = MAG_GRAD_ADJ_PARAM1;
       gradAdjParam1->dofNames = "";
-      gradAdjParam1->unit = "";
+      gradAdjParam1->unit = MapSolTypeToUnit(MAG_GRAD_ADJ_PARAM1);
       gradAdjParam1->entryType = ResultInfo::SCALAR;
       gradAdjParam1->definedOn = ResultInfo::REGION;    
       availResults_.insert(gradAdjParam1);                            
@@ -540,7 +540,7 @@ namespace CoupledField
       gradAdjParam2.reset(new ResultInfo);
       gradAdjParam2->resultType = MAG_GRAD_ADJ_PARAM2;
       gradAdjParam2->dofNames = "";
-      gradAdjParam2->unit = "";
+      gradAdjParam2->unit = MapSolTypeToUnit(MAG_GRAD_ADJ_PARAM2);
       gradAdjParam2->entryType = ResultInfo::SCALAR;
       gradAdjParam2->definedOn = ResultInfo::REGION;    
       availResults_.insert(gradAdjParam2);                            
@@ -564,7 +564,7 @@ namespace CoupledField
       gradAdjParam3.reset(new ResultInfo);
       gradAdjParam3->resultType = MAG_GRAD_ADJ_PARAM3;
       gradAdjParam3->dofNames = "";
-      gradAdjParam3->unit = "";
+      gradAdjParam3->unit = MapSolTypeToUnit(MAG_GRAD_ADJ_PARAM3);
       gradAdjParam3->entryType = ResultInfo::SCALAR;
       gradAdjParam3->definedOn = ResultInfo::REGION;    
       availResults_.insert(gradAdjParam3);                            
@@ -588,7 +588,7 @@ namespace CoupledField
       gradAdjParam4.reset(new ResultInfo);
       gradAdjParam4->resultType = MAG_GRAD_ADJ_PARAM4;
       gradAdjParam4->dofNames = "";
-      gradAdjParam4->unit = "";
+      gradAdjParam4->unit = MapSolTypeToUnit(MAG_GRAD_ADJ_PARAM4);
       gradAdjParam4->entryType = ResultInfo::SCALAR;
       gradAdjParam4->definedOn = ResultInfo::REGION;    
       availResults_.insert(gradAdjParam4);                            
