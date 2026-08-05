@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "General/PhysicalConstants.hh"
 #include "SMSM.hh"
 
@@ -27,8 +28,13 @@ DEFINE_LOG(smsm, "SMSM")
     dim_ = dim;
 
     if(dim_ == 3){
-      // Define the file path to the TABgamma data file
-      std::string filePath = "/home/lukas/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+      // Define the file path to the TABgamma data file. It is resolved relative to the
+      // openCFS root obtained from the location of the executable, in the same way as
+      // the XML schema and the material database. This is independent of the working
+      // directory from which cfs is started and also works for installed binaries
+      fs::path root = ProgramOptions::ObtainCFSRootFromSystem();
+      root.normalize();
+      std::string filePath = root.string() + "/share/SMSM_directions/TABSPHEREI4S4_2562.txt"; // shall work also on Windows
       std::ifstream file(filePath);
 
       // Check if the file was successfully opened
