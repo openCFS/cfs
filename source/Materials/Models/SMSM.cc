@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "General/PhysicalConstants.hh"
 #include "SMSM.hh"
 
 
@@ -22,7 +23,7 @@ DEFINE_LOG(smsm, "SMSM")
     K1_ = K1;
     K2_ = K2;
     Ms_ = Ms;
-    mu0_ = 4*M_PI*1e-7;
+    mu0_ = PhysicalConstants::MU_ZERO;
     dim_ = dim;
 
     if(dim_ == 3){

@@ -7,6 +7,7 @@
 #include <variant>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "General/PhysicalConstants.hh"
 
 #include "invEBHysteresis.hh"
 #include "Model.hh"
@@ -38,7 +39,7 @@ namespace CoupledField
   {
 
     dim_ = dim;
-    mu0_ = 4 * M_PI * 1e-7;
+    mu0_ = PhysicalConstants::MU_ZERO;
 
     EntityIterator it = entityList->GetIterator();
     numElems_ = entityList->GetSize();
