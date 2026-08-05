@@ -2230,6 +2230,17 @@ namespace CoupledField {
     }
   }
 
+  // conveniance method returning a string
+  // just use the existing function
+  template<class TYPE>
+  std::string Enum2String(const TYPE &in) { 
+      std::string out;
+      Enum2String(in, out);
+      return out;
+  }
+  // explicitly initate the function, add more uses if you need them ... (otherwise linker error)
+  template std::string Enum2String<FEMatrixType>(const FEMatrixType &in);
+
   // -----------------------------------------------
   //  Implementation of string conversion routines
   // -----------------------------------------------
