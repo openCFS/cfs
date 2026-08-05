@@ -349,9 +349,11 @@ namespace CoupledField {
 
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
-    // 0 ... real time stepping (time derivatives are involved) 
-    // Get dt
-    Double dt = 1e-3;
+    // 0 ... real time stepping (time derivatives are involved)
+    // Time step size of the real time stepping variant. There is no meaningful default: dt is only
+    // evaluated for real time stepping, and in that case <deltaT> is mandatory inside
+    // <hysteresisTimeStepping> (see CFS_PDEmagedge.xsd), i.e. it is always taken from the xml file.
+    Double dt = 0.0;
     UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
     PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
 
@@ -375,11 +377,6 @@ namespace CoupledField {
         // Default behavior if tag is missing
         is_pseudo_time_stepping = 1; 
     }
-
-
-    //dt = myParam_->Get("analysis")->Get("transient")->Get("deltaT")->MathParse<double>();
-    //dt = myParam_->Get("delta_t")->MathParse<Double>();
-    //myParam_->GetValue("delta_t", dt, ParamNode::PASS);
 
     // get FEFunction and space
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
@@ -614,12 +611,9 @@ namespace CoupledField {
         //               (1/delta_t)*(db/dh) for the coefficient c.
         //               AND the matrix is in openCFS a STIFFNESS MATRIX then.
         // ====================================================================
-        double dt = 1e-3;       
-        PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
-        if (steppingNode) {
-          // Read deltaT
-          steppingNode->GetValue("deltaT", dt);
-        } 
+        // dt was already read from <hysteresisTimeStepping>/<deltaT> above
+        if (dt <= 0.0)
+          EXCEPTION("Real time stepping requires a positive deltaT in <hysteresisTimeStepping>")
         PtrCoefFct muNL = NULL;
         PtrCoefFct mu = NULL;
         BaseBDBInt *massInt = NULL;
@@ -837,9 +831,10 @@ namespace CoupledField {
     Double beta = 1;
     myParam_->GetValue("penaltyFunctionParameter", beta, ParamNode::PASS);
 
-    // Get dt
-    Double dt = 1e-3;
-    //myParam_->GetValue("delta_t", dt, ParamNode::PASS);
+    // Time step size of the real time stepping variant. There is no meaningful default: dt is only
+    // evaluated for real time stepping, and in that case <deltaT> is mandatory inside
+    // <hysteresisTimeStepping> (see CFS_PDEmagedge.xsd), i.e. it is always taken from the xml file.
+    Double dt = 0.0;
 
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
@@ -983,6 +978,9 @@ namespace CoupledField {
       // REAL TIME-STEPPING [START]
       // ===================================================================     
       if (is_pseudo_time_stepping == 0){
+        // dt was already read from <hysteresisTimeStepping>/<deltaT> above
+        if (dt <= 0.0)
+          EXCEPTION("Real time stepping requires a positive deltaT in <hysteresisTimeStepping>")
         if(nonLin_ && (modelName_ == "EBHysteresisModel")) {
           PtrCoefFct fluxDensityNL = NULL;
           fluxDensityNL = matModelCoefm_[actRegion];
