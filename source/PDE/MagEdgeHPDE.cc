@@ -817,12 +817,6 @@ namespace CoupledField {
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
     StdVector<std::string> vecDofNames = feFunc->GetResultInfo()->dofNames;
-    LinearForm * lin1_pts = NULL; // (p curlh,curlN), only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
-    LinearForm * lin2_pts = NULL; // (b(h),N), only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
-    LinearForm * lin1_rts = NULL; // (rho curlh,curlN), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin2_rts = NULL; // ((1/delta_t)*b(h)_n,N), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin3_rts = NULL; // ((1/delta_t)*b(h)_{n-1},N), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin_br = NULL; // (b_r,N), describes linear permanent magnets in the linear/nonlinear case
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
 
@@ -888,11 +882,13 @@ namespace CoupledField {
           fluxDensityNL = matModelCoefm_[actRegion];
           // ===============================================================================================
           // lin1_pts: (p curlh,curlN) [START]
+          // only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
           // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
           // p: regularization parameter that depends on the current scalar permeability mu
           //    -    nonlinear subregion: uses nlScalCoefm_ to get the norm of dbdh
           //    -    linear subregion:    uses linear case to get p
           // ===============================================================================================
+          LinearForm * lin1_pts = NULL;
           // generate the coefFct that is the multiplication of the curlh and p (p*curlh)
           Double mu_regularize;
           materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
@@ -931,9 +927,11 @@ namespace CoupledField {
 
           // ===============================================================================================
           // lin2_pts: (b(h),N) [START]
+          // only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
           // the b(h) is obtained by the used material model where the input is the mag. field intensity h
           // from the last Newton iteration.
           // ===============================================================================================
+          LinearForm * lin2_pts = NULL;
           if (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve"){
             if (modelName_ == "JilesAthertonModel")
             {
@@ -986,10 +984,12 @@ namespace CoupledField {
           fluxDensityNL = matModelCoefm_[actRegion];
           // ===============================================================================================
           // lin1_rts: (rho curlh,curlN) [START]
+          // only in the nonlinear case necessary (REAL TIME STEPPING (rts))
           // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
           // rho: resistivity of the region
           // E = rho curlh ... ELEC_FIELD_INTENSITY
           // ===============================================================================================
+          LinearForm * lin1_rts = NULL;
           // generate the coefFct that is the multiplication of the curlh and rho (rho*curlh)
           PtrCoefFct sigma = NULL; // conductivity of the material
           PtrCoefFct rho = NULL; // resistivity of the material
@@ -1014,14 +1014,16 @@ namespace CoupledField {
           ctx->SetTypeLinearForm(2); // declared as nonlinear
           assemble_->AddLinearForm(ctx);
           // ===============================================================================================
-          // lin1_pts: (p curlh,curlN) [END]
+          // lin1_rts: (rho curlh,curlN) [END]
           // ===============================================================================================
 
           // ===============================================================================================
           // lin2_rts: ((1/delta_t)*b(h)_n,N),N) [START]
+          // only in the nonlinear case necessary (REAL TIME STEPPING (rts))
           // the b(h) is obtained by the used material model where the input is the mag. field intensity h
           // from the last Newton iteration.
           // ===============================================================================================
+          LinearForm * lin2_rts = NULL;
           if (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve"){
             if (modelName_ == "JilesAthertonModel")
             {
@@ -1056,14 +1058,16 @@ namespace CoupledField {
             assemble_->AddLinearForm(ctx);
           }
           // ===============================================================================================
-          // lin2_rts: (b(h),N) [END]
+          // lin2_rts: ((1/delta_t)*b(h)_n,N),N) [END]
           // ===============================================================================================
 
           // ===============================================================================================
           // lin3_rts: ((1/delta_t)*b(h)_{n-1},N),N) [START]
+          // only in the nonlinear case necessary (REAL TIME STEPPING (rts))
           // the b(h) is obtained by the used material model where the input is the mag. field intensity h
           // from the last TIME step.
           // ===============================================================================================
+          LinearForm * lin3_rts = NULL;
           if (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve"){
             if (modelName_ == "JilesAthertonModel")
             {
@@ -1098,7 +1102,7 @@ namespace CoupledField {
             assemble_->AddLinearForm(ctx);
           }
           // ===============================================================================================
-          // lin3_rts: (b(h),N) [END]
+          // lin3_rts: ((1/delta_t)*b(h)_{n-1},N),N) [END]
           // ===============================================================================================
         }
       } 
@@ -1109,6 +1113,7 @@ namespace CoupledField {
 
     // ===============================================================================================
     // lin_br: (b_r,N) [START]
+    // describes linear permanent magnets in the linear/nonlinear case.
     // The b_r has to be defined in the input .xml file for the simulation of permanent magnets
     // ===============================================================================================
     ReadRhsExcitation( "fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
@@ -1133,6 +1138,7 @@ namespace CoupledField {
       }
       Brmap_[ent[i]->GetRegion()] = br; // Here we store the flux density remanence field for every region to have it ready for postprocessing
 
+      LinearForm * lin_br = NULL;
       if (dim_ == 2) {
         lin_br = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2,1,Double>(), -1.0, br, coefUpdateGeo);
       } else {
