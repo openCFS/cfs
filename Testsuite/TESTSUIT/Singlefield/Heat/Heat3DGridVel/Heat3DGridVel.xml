@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Transient 3D Heat PDE with ALE grid velocity</title>
+    <authors>
+      <author>Nikolaus Stoecher</author>
+    </authors>
+    <date>2026-08-06</date>
+    <keywords>
+      <keyword>heatConduction</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description>
+      Transient three-dimensional heat-conduction problem with a prescribed
+      grid velocity. The test verifies the three-dimensional ALE transport
+      term -rho*c_p*v_g*grad(T) by comparison with an independently generated
+      reference result using the opposite physical transport velocity.
+</description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="mesh/mesh.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="vol" material="one"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>0.05</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="vol" movingMeshId="gridVelocity"/>
+        </regionList>
+
+        <movingMeshList>
+          <movingMesh name="gridVelocity">
+            <comp dof="x" value="0.1"/>
+            <comp dof="y" value="0.05"/>
+            <comp dof="z" value="-0.025"/>
+          </movingMesh>
+        </movingMeshList>
+
+        <bcsAndLoads>
+          <heatSourceDensity name="vol" value="1"/>
+          <heatTransport name="surf"
+                         heatTransferCoefficient="1"
+                         bulkTemperature="0"
+                         volumeRegion="vol"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="heatFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>
