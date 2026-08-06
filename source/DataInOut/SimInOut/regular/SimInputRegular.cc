@@ -62,18 +62,22 @@ SimInputRegular::SimInputRegular(std::string fileName, PtrParamNode pn, PtrParam
 
 void SimInputRegular::ParseXML(const PtrParamNode& pn)
 {
-  const PtrParamNode& box = pn->Get("box"); // all values have defaults
-  Vector<double> max(3); // max needs not to be stored (min_ + n_*h_ is enough), but we do sanity checks.
-  min_[0] = box->Get("xMin")->MathParse<double>();
-  max[0]  = box->Get("xMax")->MathParse<double>();
-  min_[1] = box->Get("yMin")->MathParse<double>();
-  max[1]  = box->Get("yMax")->MathParse<double>();
-  min_[2] = box->Get("zMin")->MathParse<double>(); // we have defaults - ignored in 2D
-  max[2]  = box->Get("zMax")->MathParse<double>();
+  Vector<double> max(3, 1.0); // max needs not to be stored (min_ + n_*h_ is enough), but we do sanity checks.
+
+  if(pn->Has("box"))
+  {
+    const PtrParamNode& box = pn->Get("box"); // all values have defaults
+    min_[0] = box->Get("xMin")->MathParse<double>();
+    max[0]  = box->Get("xMax")->MathParse<double>();
+    min_[1] = box->Get("yMin")->MathParse<double>();
+    max[1]  = box->Get("yMax")->MathParse<double>();
+    min_[2] = box->Get("zMin")->MathParse<double>(); // we have defaults - ignored in 2D
+    max[2]  = box->Get("zMax")->MathParse<double>();
+  }
   if(min_[0] >= max[0] || min_[1] >= max[1] || (dim_ == 3 && min_[2] >= max[2]))
     throw Exception("regular mesh box maximal coordinates must be larger than the minimals!");
   
-  LOG_DBG(regular) << "PX: min=" << min_.ToString() << " max=" << max.ToString();
+  LOG_DBG(regular) << "PX: min=" << min_.ToString() << " max=" << max.ToString() << " box given=" << pn->Has("box");
 
   // --- exactly one of <elements> / <spacing>, guaranteed by the schema choice ---
   // the given quantity is taken as-is, the other is derived; the first axis (x) drives

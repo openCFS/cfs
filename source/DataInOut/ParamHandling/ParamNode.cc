@@ -232,6 +232,9 @@ PtrParamNode ParamNode::GetChild()
   return children_[0];
 }
 
+
+template<> std::string ParamNode::As<std::string>() const; // forward declaration
+
 PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
 {
   PtrParamNode result;
@@ -306,9 +309,12 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       EXCEPTION("Some action has to be performed");
       break;
     case EX: {
-      std::string matName;
-      GetValue("name", matName, ParamNode::EX);
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '" << this->name_ << "' with name '" << matName << "' has a child '" << myName << "' ");
+      std::stringstream ss;
+      ss << "None of the " << children_.GetSize() << " childs of element '" << this->name_ << "'"; 
+      if(Has("name"))
+        ss << " ('name'='" << Get("name")->As<std::string>() << "')";
+      ss << " has a child '" << myName << "' ";
+      throw Exception(ss.str());
       break;
     }
     case PASS:

@@ -79,11 +79,13 @@ public:
   /** Method to return:
    *   1) The structure of the hessian of the lagrangian (if "values" is NULL)
    *   2) The values of the hessian of the lagrangian (if "values" is not NULL)
-   */
-  /*virtual bool eval_h(Index n, const Number* x, bool new_x,
-                      Number obj_factor, Index m, const Number* lambda,
-                      bool new_lambda, Index nele_hess, Index* iRow,
-                      Index* jCol, Number* values);*/
+   * Only called with hessian="exact" in the ipopt element, otherwise IPOPT does its own L-BFGS.
+   * The exact Lagrangian Hessian comes from BaseOptimizer::Calc[Objective|Constraint]Hessian(),
+   * hence identical to what cfs.evalhessian()/evalhessian_constr() give the python drivers */
+  bool eval_h(Index n, const Number* x, bool new_x,
+              Number obj_factor, Index m, const Number* lambda,
+              bool new_lambda, Index nele_hess, Index* iRow,
+              Index* jCol, Number* values);
 
    /** This is called for each major iteration and we use it to write the
     * current state to the result files */
@@ -110,8 +112,16 @@ public:
                               bool& use_x_scaling, Index n, Number* x_scaling,
                               bool& use_g_scaling, Index m, Number* g_scaling);
 
+  /** writes the basal information to <optimizer><ipopt/>, everything detailed is in <sim>.ipopt.
+   * Called by IPOPTHolder::ToInfo() before and after the solve */
+  void ToInfo(PtrParamNode pn);
+
   /** count objective evaluations, different from major iterations */
   int nObj = 0;
+
+  /** from <ipopt hessian="exact"/>: provide the exact Lagrangian Hessian via eval_h() instead of
+   * IPOPT's L-BFGS. Determines nnz_h_lag in get_nlp_info() */
+  bool exact_hessian_ = false;
 
 private:
   /** Reference to the problem. We could get it globally but this way it is more explicit */

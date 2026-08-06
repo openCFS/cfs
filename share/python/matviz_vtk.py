@@ -182,6 +182,80 @@ def generate_outline_box(size = [1,1,1], offset = [0,0,0]):
 
   return poly
 
+# creates a closed capsule (pill/spherocylinder) surface from end point P to end point Q with radius r.
+# P and Q may be 2D or 3D. The optional color (r,g,b in 0..1) is attached per point as unsigned char
+# 'Colors', so capsules appended via vtk.vtkAppendPolyData() keep their individual color. An optional
+# scalar (e.g. the geometry variable alpha) is attached as float point array for coloring in ParaView.
+# @return vtkPolyData in world coordinates
+def create_capsule_polydata(P, Q, r, resolution=32, color=None, scalar=None, scalar_name='alpha'):
+  P = numpy.append(numpy.asarray(P, dtype=float), 0.0)[:3]
+  Q = numpy.append(numpy.asarray(Q, dtype=float), 0.0)[:3]
+  axis = Q - P
+  L = numpy.linalg.norm(axis)
+
+  # build the capsule in a local frame from (0,0,0) to (0,L,0) along the y-axis (the vtkCylinderSource axis)
+  append = vtk.vtkAppendPolyData()
+  if L > 1e-14:
+    cylinder = vtk.vtkCylinderSource()
+    cylinder.SetResolution(resolution)
+    cylinder.SetRadius(r)
+    cylinder.SetHeight(L)
+    cylinder.SetCapping(False)
+    cylinder.SetCenter(0.0, 0.5*L, 0.0)
+    append.AddInputConnection(cylinder.GetOutputPort())
+  # hemispherical caps: vtkSphereSource halves are split along z (phi is the angle from the +z pole),
+  # RotateX(-90) turns them into y-halves matching the cylinder ends
+  for end in range(2):
+    sphere = vtk.vtkSphereSource()
+    sphere.SetRadius(r)
+    sphere.SetThetaResolution(resolution)
+    sphere.SetPhiResolution(max(resolution // 2, 8))
+    if end == 0:
+      sphere.SetStartPhi(90) # z <= 0 half -> cap below y=0
+    else:
+      sphere.SetEndPhi(90)   # z >= 0 half -> cap above y=L
+    t = vtk.vtkTransform()
+    if end == 1:
+      t.Translate(0.0, L, 0.0)
+    t.RotateX(-90)
+    tf = vtk.vtkTransformPolyDataFilter()
+    tf.SetTransform(t)
+    tf.SetInputConnection(sphere.GetOutputPort())
+    append.AddInputConnection(tf.GetOutputPort())
+
+  # transform the local frame to P-Q: rotate the y-axis onto the capsule axis, then translate to P
+  t = vtk.vtkTransform()
+  t.Translate(P)
+  if L > 1e-14:
+    u = axis / L
+    cos_angle = max(min(u[1], 1.0), -1.0)
+    if cos_angle < 1.0 - 1e-12:
+      rot = numpy.cross((0.0, 1.0, 0.0), u)
+      if numpy.linalg.norm(rot) < 1e-14: # antiparallel, any axis normal to y works
+        rot = numpy.array((1.0, 0.0, 0.0))
+      t.RotateWXYZ(numpy.degrees(numpy.arccos(cos_angle)), rot)
+  tf = vtk.vtkTransformPolyDataFilter()
+  tf.SetTransform(t)
+  tf.SetInputConnection(append.GetOutputPort())
+  tf.Update()
+  poly = tf.GetOutput()
+
+  if color is not None:
+    colors = vtk.vtkUnsignedCharArray()
+    colors.SetNumberOfComponents(3)
+    colors.SetName("Colors")
+    for _ in range(poly.GetNumberOfPoints()):
+      colors.InsertNextTuple3(int(255*color[0]), int(255*color[1]), int(255*color[2]))
+    poly.GetPointData().SetScalars(colors)
+  if scalar is not None:
+    arr = vtk.vtkFloatArray()
+    arr.SetName(scalar_name)
+    for _ in range(poly.GetNumberOfPoints()):
+      arr.InsertNextValue(scalar)
+    poly.GetPointData().AddArray(arr)
+
+  return poly
+
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes
 def show_vtk(polydata, res, save = None, planes=[], show_edges=False, show_axes=False, camera_settings=None):

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/simulation
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Feature mapping via Python with exact Hessian</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-07-31</date>
+    <references>Wein; tracking paper 2026</references>
+    <isVerified>no</isVerified>
+    <description>
+      We have exact Hessian for compliance and feature mapping in C++ (hessian_compliance).
+      This test does it via the Python interface and verifies the Hessian against finite differences (fd_check="true").
+      It is meant to be a template for other functions (e.g. output, ...) to be implemented in Python 
+      with exact Hessian first.
+
+      Cantilever compliance minimization with a volume constraint on a feature mapping design,
+      driven by the true Newton Hessian: the exact geometric terms from cfs.evalhessian plus the
+      exact state-curvature block 2 B^T Z, computed via the shape Jacobian D (cfs.get_shape_jacobian),
+      the pseudo loads b_i = dK/ds_i u (cfs.apply_dk_drho) and N_s back-substitutions against the
+      already factorized state matrix (cfs.solve_state) - no extra FE systems.
+
+      The objective is the generic share/python kernel observed_objective.py wrapping the C++
+      compliance (observation with observeGradient="true"); the shared drivers hessian_scipy.py /
+      hessian_ipopt.py assemble H = H_geo + 2 B^T Z automatically in their 'observation' mode.
+
+      The native volume constraint has an exact Hessian via the zero rho-curvature of linear
+      functions (Function::IsLinearInDensity).
+    </description>
+  </documentation>
+
+  <!-- generic kernel: wrap the named cfs function as a python objective -->
+  <python file="observed_objective.py" path="cfs:share:python" />
+
+  <fileFormats>
+    <input>
+      <!-- internal regular mesh generator: unit square, named nodes left/right/... -->
+      <regular geometryType="plane" region="mech">
+        <box xMax="1.0" yMax="1.0"/> 
+        <elements nx="12"/>
+      </regular>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left">
+              <comp dof="x"/>
+              <comp dof="y"/>
+           </fix>
+           <force name="bottom_right">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="python" task="minimize">
+      <python name="compliance_py" init="obj_init" eval="obj_eval" grad="obj_grad" curvature="obj_curvature" script="kernel">
+        <option key="observation" value="compliance"/>
+      </python>
+    </costFunction>
+
+    <!-- the wrapped C++ compliance: evaluated and differentiated on demand from the python objective -->
+    <constraint type="compliance" mode="observation" observeGradient="true"/>
+
+    <!-- native volume constraint; linear="false" is the optimizer semantics (non-linear in the
+         shape variables, enforced by FeaturedDesign), while the exact Hessian comes from the zero
+         rho-curvature (Function::IsLinearInDensity) -->
+    <constraint type="volume" bound="upperBound" value="0.35" linear="false"/>
+
+    <!-- shared second-order driver: the 'observation' option enables the exact state-curvature
+         block (see the documentation above). The ONLY test content is fd_check="true": with the
+         exact state block the FULL objective Hessian is asserted against finite differences
+         (verified rel. error ~1e-9). The three scipy iterations are just a short deterministic run.
+
+         NOTE scipy trust-constr handles the INDEFINITE exact Hessian poorly on this problem (early
+         infeasible excursion, then trust region collapse without reaching a KKT point), so further
+         iterations buy nothing - that collapse is why this is capped at three. For real convergence
+         use hessian_ipopt.py below: Ipopt's inertia correction is built for exact indefinite
+         Hessians; see hessian.tex in this directory for those runs. -->
+    <optimizer type="python" maxIterations="3">
+      <python file="hessian_scipy.py" path="cfs:share:python">
+        <option key="observation" value="compliance"/>
+        <option key="fd_check" value="true"/>
+        <option key="gtol" value="1e-4"/>
+        <option key="xtol" value="1e-9"/>
+        <option key="initial_tr_radius" value="0.1"/>
+      </python>
+      <!-- real use native IPOPT with hessian=exact or python with hessian_ipopt.py based on cyipopt (not on the CI runners):
+      <python file="hessian_ipopt.py" path="cfs:share:python">
+        <option key="observation" value="compliance"/>
+        <option key="tol" value="1e-6"/>
+      </python> -->
+    </optimizer>
+
+    <!-- boundary is the C^2 quintic; the exact geometric Hessian needs H'' -->
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping transition="0.1" boundary="quintic" order="3" combine="p-norm" p="3">
+        <pill>
+          <node dof="x" initial="0.05" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.1"  upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.95" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.1"  upper="1" lower="0" tip="end"/>
+          <profile initial="0.08" lower="0.05" upper="0.25"/>
+        </pill>
+        <pill>
+          <node dof="x" initial="0.05" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.9"  upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.95" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.15" upper="1" lower="0" tip="end"/>
+          <profile initial="0.08" lower="0.05" upper="0.25"/>
+        </pill>
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <export save="all" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

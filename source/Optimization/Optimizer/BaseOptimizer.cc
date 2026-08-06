@@ -17,6 +17,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
@@ -762,6 +763,92 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
      opt_timer->Start();
    }
   return nnz;
+}
+
+bool BaseOptimizer::CalcObjectiveHessian(int n, const double* x, bool cfs_scale, Matrix<double>& H)
+{
+  // set the design to x and evaluate the objective gradient first: the aggregation and feature
+  // Hessian terms need dJ/drho_e, which is stored on the design elements by this call
+  StdVector<double> grad(n);
+  EvalGradObjective(n, x, cfs_scale, grad);
+
+  Function* obj = optimization->objectives.data[0]; // as cfs.evalhessian, a single objective
+  if(!optimization->GetDesign()->CalcShapeHessian(obj, H))
+    return false;
+
+  // a state dependent objective (native compliance, incl. the multiload weighted sum): the geometric
+  // terms above miss the dense state-curvature block sum_l 2 w_l B_l^T Z_l - add it here
+  if(obj->IsStateDependent())
+  {
+    ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(optimization);
+    if(em == nullptr)
+      throw Exception("the exact state-curvature Hessian block requires an ersatz material optimization");
+    Matrix<double> Hs;
+    em->CalcStateHessianBlock(obj, Hs);
+    assert(Hs.GetNumRows() == H.GetNumRows() && Hs.GetNumCols() == H.GetNumCols());
+    for(unsigned int i = 0; i < H.GetNumRows(); i++)
+      for(unsigned int j = 0; j < H.GetNumCols(); j++)
+        H[i][j] += Hs[i][j];
+  }
+  return true;
+}
+
+void BaseOptimizer::CalcConstraintHessian(int n, const double* x, int m, const double* lambda, bool cfs_scale, Matrix<double>& H)
+{
+  // set the design; the element values suffice for the geometric per-constraint Hessian
+  optimization->GetDesign()->ReadDesignFromExtern(x);
+
+  H.Resize(n, n);
+  H.Init();
+
+  ConditionContainer::VirtualView* view = optimization->constraints.view;
+  StdVector<double> out;
+  Matrix<double> Hg;
+  bool grads_done = false; // the dense shape Hessian needs the constraint gradients (w_e), evaluate lazily once
+  for(int c = 0; c < m; c++)
+  {
+    Condition* g = view->Get(c);
+    Matrix<unsigned int>& hp = g->GetHessianSparsityPattern();
+    if(hp.GetNumRows() == 0)
+    {
+      // a global constraint with an exact shape Hessian (e.g. the volume or a python tracking
+      // constraint with 'curvature' on a feature mapping design) contributes dense
+      if(lambda[c] == 0.0 || g->IsLocal())
+        continue;
+      if(!grads_done)
+      {
+        const unsigned int nnz = view->CalcNumberOfJacobianNonZeros();
+        StdVector<double> jac(nnz);
+        EvalGradConstraints(n, x, m, nnz, cfs_scale, false, jac);
+        grads_done = true;
+      }
+      if(optimization->GetDesign()->CalcShapeHessian(g, Hg))
+      {
+        // a state dependent constraint (e.g. compliance in a multiload slack/minimax formulation):
+        // add the dense state-curvature block, see CalcObjectiveHessian()
+        if(g->IsStateDependent())
+        {
+          ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(optimization);
+          if(em == nullptr)
+            throw Exception("the exact state-curvature Hessian block requires an ersatz material optimization");
+          Matrix<double> Hs;
+          em->CalcStateHessianBlock(g, Hs);
+          for(int i = 0; i < n; i++)
+            for(int j = 0; j < n; j++)
+              Hg[i][j] += Hs[i][j];
+        }
+        for(int i = 0; i < n; i++)
+          for(int j = 0; j < n; j++)
+            H[i][j] += lambda[c] * Hg[i][j];
+      }
+      continue;
+    }
+    out.Resize(hp.GetNumRows());
+    g->CalcHessian(out, 1.0);
+    for(unsigned int k = 0; k < hp.GetNumRows(); k++)
+      H[hp(k, 0)][hp(k, 1)] += lambda[c] * out[k];
+  }
+  view->Done(); // reset a potential slope constraint to global mode, like EvalGradConstraints()
 }
 
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)

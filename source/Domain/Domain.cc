@@ -271,15 +271,17 @@ void Domain::ReadGrid(const std::string & gridId,
   // iterate over all inputs for the current grid and read mesh
   for (UInt iFile=0, numFiles=inputs.GetSize(); iFile < numFiles; ++iFile)
   {
-    shared_ptr<SimInput> actInFile = inputs[iFile];
+    shared_ptr<SimInput> simin = inputs[iFile];
 
     if( isParentDomain_) { 
-      std::filesystem::path p(actInFile->GetFileName());
-      std::cout << p.filename() << " " << std::flush;
+      std::filesystem::path p(simin->GetFileName());
+      // usually we print the file names, e.g. regular works w/o, then we output it's own id (here "<regular>")
+      std::cout << (!p.empty() ?  p.filename().string() : simin->GetFileLessLabel());
+      std::cout << " " << std::flush;
     }
 
     actGrid->readMeshTimer->Start();
-    actInFile->ReadMesh(actGrid);
+    simin->ReadMesh(actGrid);
     actGrid->readMeshTimer->Stop();
   }
 

@@ -340,6 +340,11 @@ class Function
     /** Is this a linear function? E.g. SnOpt can handle them more efficiently */
     bool IsLinear() const { return linear_; }
 
+    /** Linear in the pseudo density rho (exactly zero curvature d^2J/d_rho_e^2)? Differs from
+     * IsLinear() for feature mapping, where e.g. the volume is non-linear in the shape variables
+     * but stays linear in rho. @see CalcCurvature() */
+    bool IsLinearInDensity() const;
+
     /** Snopt allows to set lower and upper bounds for functions. We make use of it for linear sparse abs() functions like SLOPE or CURVATURE.
      * Then we also need a NEXT or PREV_NEXT locality. When we do not make use of the double bounds (as for scpip or evaluate) we need a
      * NEXT_REVERSE or PREV_NEXT_REVERSE locality. Here we indicate if the function is meant for double bound. This is not the case for
@@ -783,6 +788,17 @@ class Function
     /** The design type is by default DEFAULT :) */
     BaseDesignElement::Type GetDesignType() const {return design_; }
 
+    /** from the optional 'field' attribute: a derived per-element field the function acts on instead
+     * of the design value, e.g. 'plainAlphaDensity' for the unpenalized feature mapping alpha volume.
+     * Empty when not given. @see DesignSpace::GetImplicitResultIndex() */
+    const std::string& GetField() const { return field_; }
+
+    /** validates 'field' and requires it to be explicit where cfs would otherwise have to guess:
+     * with the feature mapping geometry variable alpha a volume function has to state either
+     * field="plainAlphaDensity" (v_e = combine(alpha_f * rho_f)) or design="density" (the alpha^q volume).
+     * Call before SetElements() */
+    void CheckField(const DesignSpace* space);
+
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space or to dummy elements if the region is not within the design (stress)
      * @param region as long as only the Condition has this stuff it is an parameter*/
@@ -803,6 +819,14 @@ class Function
      * types. Warns and returns false if no 'curvature' attribute was given. Implemented in
      * PythonFunction.cc. */
     bool CalcCurvaturePython(Vector<double>& diag);
+
+    /** the exact Hessian of a python function defined directly on the feature variables (no
+     * density representation, e.g. an analytic volume). The python function returns the full
+     * feature variable space matrix - the second order analogon of the feature space gradient in
+     * ErsatzMaterial::CalcPython(). Called from FeatureMappingDesign::CalcShapeHessian() which
+     * reduces to optimization variable space. Returns false if no 'hessian' attribute was given.
+     * Implemented in PythonFunction.cc. */
+    bool CalcShapeHessianPython(Matrix<double>& full);
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
@@ -854,6 +878,9 @@ class Function
 
     /** This is DEFAULT (= applies always) if not defined */
     BaseDesignElement::Type design_ = BaseDesignElement::NO_TYPE;
+
+    /** from the 'field' attribute, empty when not given. @see GetField() */
+    std::string field_;
 
     /** The actual kind of cost function. */
     Type type_ = NO_TYPE;
@@ -930,6 +957,7 @@ class Function
     PyObject* py_grad_ = NULL;
     PyObject* py_sparsity_ = NULL;
     PyObject* py_curvature_ = NULL; // optional second order support, see CalcCurvature()
+    PyObject* py_hessian_ = NULL; // optional exact shape space Hessian, see CalcShapeHessianPython()
     /** here we store the gradient vector for local python grad evaluations */
     CfsTLS<Vector<double> > py_local_grad_;
 

@@ -3,18 +3,20 @@
 #include "Optimization/Design/FeatureMappingDesign.hh"
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/Design/MaterialTensor.hh"
+#include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/XmlReader.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include <algorithm> 
 #include <map>
 
 using std::string;
 using std::pair;
-using std::make_pair;
 using std::to_string;
 using DE = DesignElement; // shortcut
 
@@ -32,6 +34,8 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
   assert(method == ErsatzMaterial::FEATURE_MAPPING || method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT);
 
   anisotropic = method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
+  if(anisotropic && dim_ == 3)
+    throw Exception("anisotropic feature mapping is only implemented in 2D");
   PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(ErsatzMaterial::FEATURE_MAPPING)); // featureMappingAniso has also a featureMapping element
 
   combine_ = combine.Parse(pn->Get("combine")->As<string>());
@@ -49,6 +53,20 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
 
   OpenGradPlot(pn); // check "gradplot" and create file
   hessexport_ = pn->Get("hessexport")->As<bool>();
+
+  // the optional geometry variable alpha (Norato's size variable) scales each feature density as alpha^q * rho
+  if(pn->Has("alpha"))
+  {
+    has_alpha_ = true;
+    alpha_q_ = pn->Get("alpha")->Get("q")->As<double>();
+    if(anisotropic)
+      throw Exception("the geometry variable 'alpha' is not yet implemented for anisotropic feature mapping");
+    // the implicit field for the alpha volume, registered by the DesignSpace constructor
+    plain_alpha_density_res_idx_ = GetImplicitResultIndex(PLAIN_ALPHA_DENSITY_FIELD);
+    assert(plain_alpha_density_res_idx_ >= 0);
+  }
+  // alpha comes last, see Pill::GetAllVariables() - needs to be set before SetupDesign()
+  num_var_by_feature = num_geom_var_by_feature + (has_alpha_ ? 1 : 0);
 
   // map
   SetupMapping();
@@ -152,7 +170,7 @@ void FeatureMappingDesign::ToInfo(ErsatzMaterial* em)
 void FeatureMappingDesign::SetupMapping()
 {
   FeaturedDesign::SetupMapping();
-  assert(map.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() <= nx_ * ny_ * nz_); // nz_ is 1 for 2D. Not all cells of the virtual box need to be design
 
   for(Item& item : map)
   {
@@ -160,7 +178,17 @@ void FeatureMappingDesign::SetupMapping()
     if(order > 1)
       item_ip->corner.Reserve(dim_ == 2 ? 4 : 8); // max 4 corners for 2D, 8 for 3D
     item.extension = item_ip; // ~Item() will delete this
-  } 
+  }
+
+  // inverse of Item::lexicographic_pos: design element by virtual cell, -1 where the domain is not
+  // design (e.g. a fixed region). The element/node numbering is assumed lexicographic (regular mesh)
+  lex_to_item_.Resize(n_.Product());
+  lex_to_item_.Init(-1);
+  for(unsigned int i = 0; i < map.GetSize(); i++)
+  {
+    assert(map[i].lexicographic_pos >= 0 && map[i].lexicographic_pos < (int) n_.Product());
+    lex_to_item_[map[i].lexicographic_pos] = i;
+  }
 }
 
 const FeatureMappingDesign::Pill& FeatureMappingDesign::GetFeatureForResult(const ResultDescription& rd) const
@@ -186,11 +214,22 @@ const FeatureMappingDesign::Pill& FeatureMappingDesign::GetFeatureForResult(cons
 
 int FeatureMappingDesign::GetVariableForResult(const ResultDescription& rd) const
 {
-   int s = rd.design - DE::FEATURE_MAPPING_PX;
-   if(s < 0 || s >= (int) num_var_by_feature)
-     throw Exception("expect result 'detail' from 'feature_var_Px', ..., 'feature_var_P'");
-   assert(s >= 0 && s < (int) num_var_by_feature);
-   return s;
+  // the per-feature variable slot in GetAllVariables()/GradDistance() order:
+  // 2D [Px Py Qx Qy p], 3D [Px Py Pz Qx Qy Qz p]. The enum order differs as PZ/QZ were appended
+  if((rd.design == DE::FEATURE_MAPPING_PZ || rd.design == DE::FEATURE_MAPPING_QZ) && dim_ == 2)
+    throw Exception("result 'design' 'feature_var_Pz'/'feature_var_Qz' is 3D only");
+  switch(rd.design)
+  {
+  case DE::FEATURE_MAPPING_PX: return 0;
+  case DE::FEATURE_MAPPING_PY: return 1;
+  case DE::FEATURE_MAPPING_PZ: return 2;
+  case DE::FEATURE_MAPPING_QX: return dim_;
+  case DE::FEATURE_MAPPING_QY: return dim_ + 1;
+  case DE::FEATURE_MAPPING_QZ: return 5;
+  case DE::FEATURE_MAPPING_P:  return 2 * dim_;
+  default:
+    throw Exception("expect result 'design' from 'feature_var_Px', ..., 'feature_var_P'");
+  }
 }
 
 
@@ -276,7 +315,7 @@ double FeatureMappingDesign::GetNodalSpecialResult(unsigned int nodeNumber, cons
  
   bool prj = rd.value == DE::FEATURE_PROJECTED;
   bool all = rd.design == DE::ALL_FEATURES;
-  assert(all || rd.design == DE::FEATURE || (rd.design >= DE::FEATURE_MAPPING_PX && rd.design <= DE::FEATURE_MAPPING_P));
+  assert(all || rd.design == DE::FEATURE || FeatureVariable::IsFeatureVariable(rd.design));
 
   assert(rd.value == DE::FEATURE_DISTANCE || prj);
   assert(nodeNumber <= node_ip_result_map.GetSize()); // we assume 1-base nodeNumber
@@ -530,52 +569,12 @@ inline const FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsig
 }
 
 
-FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy)
-{
-  IntegrationPoint* ip = nullptr;
-  unsigned int nf = features_.GetSize();  
-  if(storage == ItemIP::CORNER)
-  {
-    corners.Push_back(IntegrationPoint());
-    ip = &corners.Last();
-    assert(item_ip->corner.GetCapacity() > item_ip->corner.GetSize()); 
-    item_ip->corner.Push_back(ip); // the item shares the corner point
-  }
-  else
-  {
-    ip = &(inners.emplace_front()); // inners has unpredicted size for order > 2, hence no resize allowed and we use a list
-    assert(item_ip->inner.GetCapacity() > item_ip->inner.GetSize()); 
-    item_ip->inner.Push_back(ip);
-  }
-  ip->dist.Resize(nf);
-  ip->part.Resize(nf, FeatureVariable::NO_TIP);
-  ip->loc.Set(ref[0]+dx, ref[1]+dy); 
-
-  item_ip->rho.Resize(nf);
-  item_ip->drho_ds_full.Resize(nf * num_var_by_feature); // 5 variables per feature
-  
-  // LOG_DBG3(fm) << "SDCAI c=" << center.ToString() << " dx=" << dx << " dy=" << dy << " ext=" << item_ip->ToString();
-  return ip;
-}
-
-void FeatureMappingDesign::SetupDesignAddIP(FeatureMappingDesign::ItemIP::Storage storage, FeatureMappingDesign::Item& item, FeatureMappingDesign::IntegrationPoint* ip)
-{
-  ItemIP* item_ip = dynamic_cast<ItemIP*>(item.extension);
-  assert(item_ip != nullptr); 
-  StdVector<IntegrationPoint*>& vec = (storage == ItemIP::CORNER) ? item_ip->corner : item_ip->inner;
-  assert(vec.GetCapacity() > vec.GetSize()); 
-  assert(ip != nullptr);
-  vec.Push_back(ip); 
-  LOG_DBG3(fm) << "SDCAI item=" << item.lexicographic_pos << " s=" << (storage == ItemIP::CORNER ? "corner" : "inner") << " ip=" << ip->loc.ToString() 
-               << " item_ip=" << item_ip->ToString() << " vec.size=" << vec.GetSize();
-}
-
 void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
 {
   FeaturedDesign::SetupDesign(pn);
  
-  // the order is nodes, profile, [alpha|
-  for(Feature& pill : pills)
+  // the order is nodes, profile, [alpha]
+  for(Pill& pill : pills)
   {
     for(auto& p : pill.points) // P, [inner], Q
       for(auto& v : p)
@@ -583,8 +582,8 @@ void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
 
     AddVariable(&(pill.p));
 
-    // if(pill.HasAlpha())
-    //   AddVariable(&(pill.alpha));
+    if(pill.HasAlpha())
+      AddVariable(&(pill.alpha));
   }
 
   // post process mapping
@@ -612,107 +611,101 @@ void FeatureMappingDesign::SetupDesign(PtrParamNode pn)
   assert(opt_shape_param_.GetCapacity() == opt_shape_param_.GetSize());
 }
 
-void FeatureMappingDesign::SetupFixedIntegrationPoints()  
+void FeatureMappingDesign::SetupFixedIntegrationPoints()
 {
-  assert(dim_ == 2); 
-
   assert(features_.GetSize() >= 1);
   Grid* grid = domain->GetGrid();
   Matrix<double> coords;
   Point center;
 
-  assert(map.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() == nx_ * ny_ * nz_); // nz_ is 1 for 2D
+
+  // all integration points are anchored at the element barycenters.
+  // we are not sure about node ordering for pathological cases and therefore recompute everything
+  // from the element barycenter. The same time we assume that the map ordering is lexicographic!!
+  for(Item& item : map)
+  {
+    assert(item.elemval != nullptr);
+    grid->GetElemNodesCoord(coords, item.elemval->elem->connect, false); // obtain element nodal coords, no update
+    LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
+    dynamic_cast<ItemIP*>(item.extension)->center = center;
+    LOG_DBG3(fm) << "SD e=" << item.elemval->elem->elemNum << " c=" << center.ToString();
+  }
+
+  // per-item data sizes, independent of the integration order
+  unsigned int nf = features_.GetSize();
+  for(Item& item : map)
+  {
+    ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+    ext->rho.Resize(nf);
+    if(has_alpha_)
+      ext->rho_org.Resize(nf);
+    ext->drho_ds_full.Resize(nf * num_var_by_feature);
+  }
+
+  // origin (lower node) of the virtual lexicographic box from the first element's barycenter
+  int fp = map.First().lexicographic_pos;
+  unsigned int fx = fp % nx_, fy = (fp / nx_) % ny_, fz = fp / (nx_ * ny_);
+  const Point& fc = GetItemIP(0)->center;
+  origin_.Set(fc[0] - (fx + 0.5)*dx_, fc[1] - (fy + 0.5)*dx_, dim_ == 3 ? fc[2] - (fz + 0.5)*dx_ : 0.0);
 
   if(order == 1)
   {
-    for(unsigned int y = 0; y < ny_; y++)
+    // one static barycenter ip per element
+    inners_.Resize(map.GetSize());
+    num_inner_ = map.GetSize();
+    for(unsigned int i = 0; i < map.GetSize(); i++)
     {
-      for(unsigned int x = 0; x < nx_; x++)
+      ItemIP* ext = GetItemIP(i);
+      IntegrationPoint& ip = inners_[i];
+      ip.loc = ext->center;
+      ip.dist.Resize(nf);
+      ip.part.Resize(nf, FeatureVariable::NO_TIP);
+      ext->inner.Push_back(&ip);
+    }
+  }
+  else // for order > 2 the corners are fixed and the inner ip are dynamically handled in MapFeatureToDensity()
+  {
+    // we traverse the virtual node grid: each node is a corner ip, shared by its up to 4/8
+    // adjacent design elements. Nodes without any design element around are skipped (the domain
+    // does not need to be fully design)
+    unsigned int mz = dim_ == 3 ? nz_ + 1 : 1; // node counts per direction
+    corners.Reserve((nx_+1) * (ny_+1) * mz); // upper bound - the ip pointers in the items must stay valid
+    for(unsigned int z = 0; z < mz; z++)
+    {
+      for(unsigned int y = 0; y <= ny_; y++)
       {
-        Item& item = map[y * nx_ + x];
-        DesignElement* de = item.elemval;
-        assert(de != nullptr);
-        grid->GetElemNodesCoord(coords, de->elem->connect, false); // obtain element nodal coords, no update. )
-        LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
-        LOG_DBG3(fm) << "SD y=" << y << " x=" << x << " e=" << de->elem->elemNum << " c=" << center.ToString();// << " coords=" << coords.ToString();
-        
-        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);      
-        assert(ext->inner.GetCapacity() == 0); 
-        assert(ext->corner.GetCapacity() == 0); 
-        ext->inner.Reserve(1);
-        ext->center = center;
-        SetupDesignCreateAddIP(ItemIP::INNER, center, ext, 0.0, 0.0); // barycenter
+        for(unsigned int x = 0; x <= nx_; x++)
+        {
+          // the adjacent design cells (clamped ranges, in 2D only z=0)
+          ItemIP* adj[8];
+          int n_adj = 0;
+          for(unsigned int az = (z > 0 ? z-1 : 0); az <= std::min(z, nz_-1); az++)
+            for(unsigned int ay = (y > 0 ? y-1 : 0); ay <= std::min(y, ny_-1); ay++)
+              for(unsigned int ax = (x > 0 ? x-1 : 0); ax <= std::min(x, nx_-1); ax++)
+              {
+                int it = lex_to_item_[LexicographicPos(ax, ay, az)];
+                if(it >= 0)
+                  adj[n_adj++] = GetItemIP(it);
+              }
+          if(n_adj == 0)
+            continue; // node of a non-design part of the box
+
+          corners.Push_back(IntegrationPoint());
+          IntegrationPoint& ip = corners.Last();
+          ip.loc.Set(origin_[0] + x*dx_, origin_[1] + y*dx_, dim_ == 3 ? origin_[2] + z*dx_ : 0.0);
+          ip.dist.Resize(nf);
+          ip.part.Resize(nf, FeatureVariable::NO_TIP);
+          for(int a = 0; a < n_adj; a++)
+            adj[a]->corner.Push_back(&ip);
+        }
       }
     }
   }
-  if(order >= 2) // for order > 2 we have corners fixed and inner dynamically handled in MapFeatureToDensity()
-  {
-    corners.Reserve((nx_+1) * (ny_+1)); // corners are the element nodes, hence larger. We don't care about the ordering
-
-    // we traverse the map elements and set the corners - usually the right lower one 
-    // Attention!!! We assume lexicographic ordering here!! 
-    for(unsigned int y = 0; y < ny_; y++)
-    {
-      for(unsigned int x = 0; x < nx_; x++)
-      {
-        Item& item = map[y * nx_ + x];
-        DesignElement* de = item.elemval;
-        assert(de != nullptr);
-        // we are not sure about node ordering for pathological cases and therefore recompute everything from the element barycenter
-        // the same time we assume that y/x ordering is lexicographic!!                                    
-        grid->GetElemNodesCoord(coords, de->elem->connect, false); // obtain element nodal coords, no update. )
-        LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
-        LOG_DBG3(fm) << "SD y=" << y << " x=" << x << " e=" << de->elem->elemNum << " c=" << center.ToString();// << " coords=" << coords.ToString();
-        
-        ItemIP* iip = dynamic_cast<ItemIP*>(item.extension);
-        iip->center = center;
-
-        // o ----- A
-        // |       |
-        // |   c   | c == center
-        // |       |
-        // B ----- X
-  
-        // the "home" ip for this element is X - max three other elements share this ip
-        IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, -dx_/2); // right lower corner X
-        if(y > 0)
-          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); // the item below shares the corner point X
-        if(y > 0 && x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + (x+1)], ip); // diagonal below/right
-        if(x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right
-        
-        // special handling for upper most row  
-        if(y == ny_-1) // right side but above
-        {  
-          // add IP A (right but above)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, dx_/2); // right upper corner A
-          if(x < nx_-1)
-            SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right neighbor
-        }
-        // special handling vor first column
-        if(x == 0) // left side 
-        {
-          // add IP V (below but left)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, -dx_/2); // left lower corner B
-          if(y > 0)
-            SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); 
-        }
-        if(x == 0 && y == ny_-1) // left upper corner o
-        {
-          // this node o is not shared by anyone
-          SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, +dx_/2); // left upper corner o
-        }
-      } 
-    } // end of y,x loop
-  } // order >= 2 - corner
 
   // optional debug logging
   for(unsigned int i = 0; i < corners.GetSize(); i++)
     LOG_DBG3(fm) << "SFIP: corners[" << i << "].loc=" << corners[i].loc.ToString();
-
- for(IntegrationPoint& ip : inners)
-    LOG_DBG3(fm) << "SFIP: inners IP loc=" << ip.loc.ToString();
 
   for(Item& item : map)
     LOG_DBG3(fm) << "SFIP: map " << item.lexicographic_pos << " ext: " << item.extension->ToString();
@@ -756,6 +749,18 @@ StdVector<FeatureMappingDesign::IntegrationPoint*> FeatureMappingDesign::ItemIP:
   return out;
 }
 
+void FeatureMappingDesign::CalcIpDistances(StdVector<IntegrationPoint>& ips, unsigned int n) const
+{
+  assert(n <= ips.GetSize());
+  #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+  for(int i = 0; i < (int) n; i++)
+  {
+    IntegrationPoint& ip = ips[i];
+    for(unsigned int f = 0; f < pills.GetSize(); f++)
+      ip.dist[f] = pills[f].Distance(ip.loc, &(ip.part[f]));
+  }
+}
+
 void FeatureMappingDesign::MapFeatureToDensity()
 {
   mapping_timer_->Start();
@@ -767,200 +772,180 @@ void FeatureMappingDesign::MapFeatureToDensity()
   for(Feature* f : features_)
     f->Update();
   
-  // for order=1 we have a fixed ip in the barycenter for each Item in the constant inners list
-  // for order=2 we have fixed nodal ip in inners and refer to Item - constant
-  // for order>2 we clear here inners and keep corners constant
-
-
-  // We first make inners/corners to determine the distances for each Item
-  // when we next traverse map, we know where we need higher integration
-  // finally, when we have all IP with distances, we can compute the density
+  // order 1: static barycenter ip, order >= 2: static corner ip at the element nodes,
+  // order > 2: additionally the dynamic inner lattice points for elements in a transition zone
   if(order == 1)
-  {
-    for(IntegrationPoint& ip : inners)
-    {
-      for(unsigned int i = 0; i < pills.GetSize(); i++)
-        ip.dist[i] = pills[i].Distance(ip.loc, &(ip.part[i]));
-      LOG_DBG3(fm) << "MFTD barycenter IP: " << ip.loc.ToString() << " d=" << ip.dist.ToString();
-    } 
-  }
+    CalcIpDistances(inners_, num_inner_);
   else
   {
-    for(IntegrationPoint& ip : corners) // for order >= 2
-    {
-      for(unsigned int i = 0; i < pills.GetSize(); i++)
-        ip.dist[i] = pills[i].Distance(ip.loc, &(ip.part[i]));
-      LOG_DBG3(fm) << "MFTD corner IP: " << ip.loc.ToString() << " d=" << ip.dist.ToString();
-    } 
+    CalcIpDistances(corners, corners.GetSize());
 
     if(order > 2)
     {
-      // we do not know yet the shape to rho mapping. 
-      // we store an InterpolationPoint ip in the inners forward_list and point to them from the ItemIP::inner vector
-      // this is necessary as we don't the final number of elements and must not resize a vector.
-      // 1) we check for an item (mesh element) if it will become gray. We do this by using the above calculated corner distances
-      // 2) we add inner integration points for this element. The difficulty is, that each ip is shared by up to 4 other items.
-      //    The difficulty is to handle that when we create the ip, we add it to the other involved items.
-      // 3) we calculate the distance via the inners list such that the order * order ip of the element (of which are 4 corners) are present
-      // 4) we can now apply the boundary function (polynomial) to the distances (by feature) and integrate the rho for each feature
-      // 6) finally, we compute the density by combining the rho values for each feature
-      
-      // we clear the inner points, as we will add them dynamically
-      // we reserve the space for all inner points and use the capcity as flag to fill them dynamically
-      // we do this in advance to not have to call IsConstant() when we check the two edges below
-      for(Item& item : map)
-      {
-        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-        ext->inner.Clear(false); // clear and do not keep capacity
-        assert(ext->inner.GetCapacity() == 0); 
-        if(!bnd_fnc->IsConstant(ext))
-          ext->inner.Reserve(order * order - 4); // we reserve the space for all inner points, but not the corners
+      // Dynamic inner integration points for the elements crossed by a transition zone. The points
+      // live on the global refined lattice with q = order-1 subdivisions per element, so shared
+      // points (on element faces and edges) have a unique global lattice index and no ownership or
+      // sequential creation is needed. Four passes, all but the cheap compaction parallel:
+      // 1) mark the lattice points of all active elements (element corners excluded, they are the
+      //    static corner ip), 2) compact: assign consecutive inners_ slots, 3) fill the slots -
+      //    reused slots keep their dist/part allocations, so this is allocation free after the
+      //    first mapping - and compute the distances, 4) wire ItemIP::inner of the active elements
+      unsigned int q = order - 1;
+      unsigned int mx = q*nx_ + 1; // lattice points per direction
+      unsigned int my = q*ny_ + 1;
+      unsigned int mz = dim_ == 3 ? q*nz_ + 1 : 1;
+      double spacing = dx_ / q;
+      lattice_slot_.Resize(mx * my * mz);
+      lattice_slot_.Init(0);
+      item_active_.Resize(map.GetSize());
 
-        LOG_DBG3(fm) << "MFTD reserve inner order=" << order << " item=" << item.lexicographic_pos 
-                  << " bnd_fct=" << (bnd_fnc->IsConstant(ext) ? "constant" : "non-constant") 
-                  << " inner capacity=" << ext->inner.GetCapacity();
-      }
-      inners.clear(); // we cleared all inner and nothing points to the outdated list any more
-
-      // we traverse the corners and create inner points for each Item where it is necessary
-      Point base((int) dim_); // the left lower corner of the element
-      assert(map.GetSize() == nx_ * ny_);
-      for(unsigned int y = 0; y < ny_; y++)
+      // 1) transition zone check by the corner distances, then mark the element's lattice points
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(int e = 0; e < (int) map.GetSize(); e++)
       {
-        for(unsigned int x = 0; x < nx_; x++)
-        {
-          Item& item = map[y * nx_ + x];
-          ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-        
-          if(ext->inner.GetCapacity() > 0) // this is our marker
-          {
-            // G --H-- I
-            // |       |
-            // D   E   F 
-            // |       |
-            // A --B-- C
-  
-            base.Set(ext->center[0]-dx_/2, ext->center[1]-dx_/2); // A left lower corner of the element
-            // we think from the left lower corner and for inner elements set all IP which are not left and lower edge
-            // hence, when we are inner, not constant, and our neighbors are also not constant, we set E,F,H (I is corner) only
-            // because the lower horizontal edge B is shared from the element below  (A,C are corner) and D from the element left (A,G are corner)
-            // but we share only, if the lower or left element is not constant, i.e. gets inner points
-            for(unsigned int iy = 0; iy < order; iy++) 
+        ItemIP* ext = GetItemIP(e);
+        ext->inner.Clear(); // keeps the capacity for the re-wiring in 4)
+        item_active_[e] = !bnd_fnc->IsConstant(ext);
+        if(!item_active_[e])
+          continue;
+        unsigned int pos = map[e].lexicographic_pos;
+        unsigned int bx = (pos % nx_) * q; // lattice base of the cell
+        unsigned int by = ((pos / nx_) % ny_) * q;
+        unsigned int bz = (pos / (nx_ * ny_)) * q;
+        for(unsigned int k = 0; k < (dim_ == 3 ? order : 1); k++)
+          for(unsigned int j = 0; j < order; j++)
+            for(unsigned int i = 0; i < order; i++)
             {
-              for(unsigned int ix = 0; ix < order; ix++) 
-              {
-                // skip corner integration points (A,C,G,I) which are aready set and constant
-                if((ix == 0 && iy == 0) || (ix == order-1 && iy == order-1) || (ix == 0 && iy == order-1) || (ix == order-1 && iy == 0))
-                  continue; // skip corners
-              
-                // when the element below is not constant, we get B from it and continue - no corners left (no sharing across corners)
-                if(iy == 0 && y > 0 && GetItemIP((y-1) * nx_ + x)->inner.GetCapacity() > 0) {
-                  LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element below item=" << map[(y-1) * nx_ + x].lexicographic_pos << " capacity=" << GetItemIP((y-1) * nx_ + x)->inner.GetCapacity()
-                               << " will be integrated and we get B from it our inner=" << ext->inner.GetSize();
-                  continue; // skip B, as it is shared with the element below
-                }
-                  
-                if(ix == 0 && x > 0 && GetItemIP(y * nx_ + (x-1))->inner.GetCapacity() > 0) {
-                  LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element left item=" << map[y * nx_ + (x-1)].lexicographic_pos << " capacity=" << GetItemIP(y * nx_ + (x-1))->inner.GetCapacity()
-                               << " will be integrated and we get D from it our inner=" << ext->inner.GetSize();
-                  continue; // skip D, as it is shared with the element left
-                }
+              if(i % q == 0 && j % q == 0 && (dim_ == 2 || k % q == 0))
+                continue; // element corner
+              lattice_slot_[((bz + k)*my + (by + j))*mx + (bx + i)] = 1; // write races store the same value
+            }
+      }
 
-                // actually integrate integration point
-                IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*(dx_/(order-1)), iy*(dx_/(order-1)));
-                LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " ip=" << ip->loc.ToString() << " created and added to inner=" << ext->inner.GetSize()
-                             << " capacity=" << ext->inner.GetCapacity();
+      // 2) compact: consecutive slots (1-based, 0 stays unused)
+      unsigned int cnt = 0;
+      for(unsigned int g = 0; g < lattice_slot_.GetSize(); g++)
+        if(lattice_slot_[g] != 0)
+          lattice_slot_[g] = ++cnt;
+      num_inner_ = cnt;
+      if(inners_.GetSize() < cnt)
+        inners_.Resize(cnt); // grow only: the ItemIP::inner pointers are re-wired below in 4)
 
-                // shall we share the upper edge (G),H,I with the upper element? Because of this not parallelizable
-                if(iy == order-1 && y < ny_-1)
-                {
-                  Item& above = map[(y+1) * nx_ + x]; 
-                  if(dynamic_cast<ItemIP*>(above.extension)->inner.GetCapacity() > 0) { // upper edge. The capacity is our marker for non-constant elements
-                    LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
-                                  << " to above " << above.lexicographic_pos << " old inner=" << GetItemIP((y+1) * nx_ + x)->inner.GetSize();
-                    SetupDesignAddIP(ItemIP::INNER, above, ip); // share with upper element
-                  }
-                }
+      // 3) fill the slots
+      unsigned int nf = pills.GetSize();
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(long g = 0; g < (long) lattice_slot_.GetSize(); g++)
+      {
+        if(lattice_slot_[g] == 0)
+          continue;
+        IntegrationPoint& ip = inners_[lattice_slot_[g] - 1];
+        unsigned int gx = g % mx, gy = (g / mx) % my, gz = g / (mx * my);
+        ip.loc.Set(origin_[0] + gx*spacing, origin_[1] + gy*spacing, dim_ == 3 ? origin_[2] + gz*spacing : 0.0);
+        ip.dist.Resize(nf); // no-op for a reused slot
+        ip.part.Resize(nf); // set by CalcIpDistances
+      }
+      CalcIpDistances(inners_, num_inner_);
 
-                // shall we share the right edge C,F,I with the right element?
-                if(ix == order-1 && x < nx_-1)
-                {
-                  Item& right = map[y * nx_ + (x+1)];
-                  if(dynamic_cast<ItemIP*>(right.extension)->inner.GetCapacity() > 0) { // right edge
-                    LOG_DBG3(fm) << "MFTD tem=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
-                                 << " with right " << right.lexicographic_pos << " old inner=" << GetItemIP(y * nx_ + (x+1))->inner.GetSize();;
-                    SetupDesignAddIP(ItemIP::INNER, right, ip); // share with right element
-                  }
-                }
-              }
-            } // end iy,ix order loop   
-          } // end filling current element
-        } // end loop of item
-      } // end of y,x loop
+      // 4) wire the active elements to their slots, same lattice enumeration as the marking
+      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
+      for(int e = 0; e < (int) map.GetSize(); e++)
+      {
+        if(!item_active_[e])
+          continue;
+        ItemIP* ext = GetItemIP(e);
+        unsigned int pos = map[e].lexicographic_pos;
+        unsigned int bx = (pos % nx_) * q;
+        unsigned int by = ((pos / nx_) % ny_) * q;
+        unsigned int bz = (pos / (nx_ * ny_)) * q;
+        for(unsigned int k = 0; k < (dim_ == 3 ? order : 1); k++)
+          for(unsigned int j = 0; j < order; j++)
+            for(unsigned int i = 0; i < order; i++)
+            {
+              if(i % q == 0 && j % q == 0 && (dim_ == 2 || k % q == 0))
+                continue; // element corner
+              unsigned int slot = lattice_slot_[((bz + k)*my + (by + j))*mx + (bx + i)];
+              assert(slot > 0);
+              ext->inner.Push_back(&inners_[slot - 1]);
+            }
+      }
 
-      // the dynamic inner points are set, we can now finally compute the distances - parallelizable  
-      for(IntegrationPoint& ip : inners)
-        for(unsigned int i = 0; i < pills.GetSize(); i++)
-          ip.dist[i] = pills[i].Distance(ip.loc, &(ip.part[i]));
-
-      LOG_DBG(fm) << "MFTD order=" << order << " inners=" << std::distance(inners.begin(), inners.end());
-      for(IntegrationPoint& ip : inners) 
-        LOG_DBG3(fm) << "MFTD inners loc=" << ip.loc.ToString();
+      LOG_DBG(fm) << "MFTD order=" << order << " inner ip=" << num_inner_;
     } // end of order > 2
   } // end of order >= 2
 
-  Vector<double> all_dist; // all dist from ItemIP::corner and inner for a given feature
-  Vector<double> bnd;      // all_dist mapped by boundary function
-
   LOG_DBG(fm) << "MFTD test boundary func: " << bnd_fnc->DebugLog();
 
-  for(Item& item : map)
-  {
-    ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-    LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
-
-  }
-
-  LOG_DBG3(fm) << "MFTD: start calculating distances for all features";
-  // all integration points sets and their distances calculated, we can now integrate the density
-
-  // working arrays for CalcGradRhoByFeature
-  Vector<double> ddist_ds;
-  StdVector<IntegrationPoint*> elem_ip;
-  Vector<double> drho_ds_vec;
+  // all integration points set and their distances calculated, we can now integrate the density.
+  // the elements are independent, the working arrays are thread private
   assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize());
-
-  for(Item& item : map)
+  assert(!has_alpha_ || plain_alpha_density_res_idx_ >= 0);
+  #pragma omp parallel num_threads(CFS_NUM_THREADS)
   {
-    ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-    LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
-    assert(order <= 2 || (ext->GetAllIP().GetSize() == 4 || ext->GetAllIP().GetSize() ==std::pow(order,dim_))); // we have at least corners, but for order > 2 we have also inner points
-    for(unsigned int fi = 0; fi < pills.GetSize(); fi++)
-    {
-      // collect all computed distances from all element integration points by feature number
-      ext->FillDist(all_dist, fi);
-      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " f=" << fi << " d=" << all_dist.ToString();
-      // project these distances by the boundary function (rhomin ... 1)
-      bnd_fnc->Eval(all_dist, bnd);
-      // integrate these projections to a single rho by feature -> before combine
-      ext->rho[fi] = bnd_fnc->Integrate(bnd);
-      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << fi << " prj:#" << bnd.GetSize() 
-                   << " prj=" << bnd.ToString() << "->" << bnd.ToString() << " -> " << ext->rho[fi];
-      assert(ext->rho[fi] >= 0);                   
+    Vector<double> all_dist; // all dist from ItemIP::corner and inner for a given feature
+    Vector<double> bnd;      // all_dist mapped by boundary function
+    // working arrays for CalcGradRhoByFeature
+    Vector<double> ddist_ds;
+    StdVector<IntegrationPoint*> elem_ip;
+    Vector<double> drho_ds_vec;
+    Vector<double> v_proj(has_alpha_ ? pills.GetSize() : 0); // alpha_f * rho_f for the derived alpha volume block
 
-      // calculate d_rho/d_s to be re-used in the gradient calculation.
-      CalcGradRhoByFeature(item, pills[fi], drho_ds_vec, ddist_ds, elem_ip); // drho_ds_vec is output, ddist_ds and elem_ip are working arrays
-      // sort drho_drho_ds_vec in the full d_rho_ds vector
-      for(unsigned int si = 0; si < num_var_by_feature; si++)
-        ext->drho_ds_full[fi * num_var_by_feature + si] = drho_ds_vec[si];
+    #pragma omp for
+    for(int e = 0; e < (int) map.GetSize(); e++)
+    {
+      Item& item = map[e];
+      ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
+      assert(order <= 2 || (ext->GetAllIP().GetSize() == std::pow(2,dim_) || ext->GetAllIP().GetSize() == std::pow(order,dim_))); // we have at least corners, but for order > 2 we have also inner points
+      for(unsigned int fi = 0; fi < pills.GetSize(); fi++)
+      {
+        // collect all computed distances from all element integration points by feature number
+        ext->FillDist(all_dist, fi);
+        LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " f=" << fi << " d=" << all_dist.ToString();
+        // project these distances by the boundary function (rhomin ... 1)
+        bnd_fnc->Eval(all_dist, bnd);
+        // integrate these projections to a single rho by feature -> before combine
+        ext->rho[fi] = bnd_fnc->Integrate(bnd);
+        LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << fi << " prj:#" << bnd.GetSize()
+                     << " prj=" << bnd.ToString() << "->" << bnd.ToString() << " -> " << ext->rho[fi];
+        assert(ext->rho[fi] >= 0);
+
+        // calculate d_rho/d_s to be re-used in the gradient calculation.
+        CalcGradRhoByFeature(item, pills[fi], drho_ds_vec, ddist_ds, elem_ip); // drho_ds_vec is output, ddist_ds and elem_ip are working arrays
+        // sort drho_drho_ds_vec in the full d_rho_ds vector
+        for(unsigned int si = 0; si < num_var_by_feature; si++)
+          ext->drho_ds_full[fi * num_var_by_feature + si] = drho_ds_vec[si];
+
+        // the geometry variable alpha scales the feature density as rho_hat = alpha^q * rho (Norato's size
+        // variable). We store rho_hat and its chain (alpha^q * drho/ds and drho_hat/dalpha = q*alpha^(q-1)*rho)
+        // so all consumers (combine, gradient, Jacobian) work on rho_hat. Note the alpha column lives on the
+        // whole feature footprint, not only on the transition zone.
+        if(has_alpha_)
+        {
+          double a = pills[fi].alpha.GetPlainDesignValue();
+          double aq = std::pow(a, alpha_q_);
+          ext->rho_org[fi] = ext->rho[fi]; // keep the unscaled rho for the alpha Hessian entries
+          const unsigned int ai = num_var_by_feature - 1; // alpha is the last variable of a feature
+          ext->drho_ds_full[fi * num_var_by_feature + ai] = alpha_q_ * std::pow(a, alpha_q_ - 1.0) * ext->rho[fi];
+          for(unsigned int si = 0; si < num_geom_var_by_feature; si++)
+            ext->drho_ds_full[fi * num_var_by_feature + si] *= aq;
+          ext->rho[fi] *= aq;
+        }
+      }
+      // combine for the element the rho of all features to the remaining element rho
+      double rho = cmb_fnc->Eval(ext->rho);
+      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " proj=" << ext->rho.ToString() << " -> rho=" << rho;
+      item.elemval->SetDesign(rho);
+
+      // the implicit plainAlphaDensity field holds v_e = combine(alpha_f * rho_f) with the plain alpha (no
+      // exponent q) - a volume function reads it via field="plainAlphaDensity"
+      if(has_alpha_)
+      {
+        for(unsigned int fi = 0; fi < pills.GetSize(); fi++)
+          v_proj[fi] = pills[fi].alpha.GetPlainDesignValue() * ext->rho_org[fi];
+        item.elemval->specialResult[plain_alpha_density_res_idx_] = cmb_fnc->Eval(v_proj);
+      }
     }
-    // combine for the element the rho of all features to the remaining element rho
-    double rho = cmb_fnc->Eval(ext->rho);
-    LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " proj=" << ext->rho.ToString() << " -> rho=" << rho;
-    item.elemval->SetDesign(rho);
-  }
+  } // end omp parallel
 
   LOG_DBG(fm)  << "MFTD: data=" << data.GetSize() << " first=" << data[0].ToString() << " simp=" << data[0].simp;
   LOG_DBG(fm)  << "MFTD: old mid=" << mapped_design_ << " current did=" << design_id;
@@ -1049,55 +1034,86 @@ void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<
   assert(dJ_ds_res_idx.GetSize() == pills.GetSize() * num_var_by_feature && dJ_ds_res_idx.GetSize() == dmrho_ds_res_idx.GetSize() &&  dJ_ds_res_idx.GetSize() == drho_ds_res_idx.GetSize());
   
   StdVector<int> dmrho_drho_res_idx = GetSpecialResultIndices(nullptr, DE::COMBINE, false); // d_mrho_d_feature
-  assert(dmrho_drho_res_idx.GetSize() == pills.GetSize()); 
+  assert(dmrho_drho_res_idx.GetSize() == pills.GetSize());
+
+  // a function on the implicit plainAlphaDensity field acts on v_e = combine(alpha_f * rho_f): the combine
+  // takes alpha_f*rho_f and the chain uses the plain alpha (a instead of a^q, rho for the alpha column)
+  bool derived = func->GetField() == PLAIN_ALPHA_DENSITY_FIELD;
+  assert(!derived || has_alpha_);
+  Vector<double> v_rho(derived ? pills.GetSize() : 0);    // alpha_f * rho_f, the combine arguments
+  Vector<double> chain(derived ? num_var_by_feature : 0); // d(alpha_f rho_f)/d z_s
+  Vector<double> afac(derived ? pills.GetSize() : 0);     // rescale a^q -> a of the stored chain
+  if(derived)
+    for(unsigned int f = 0; f < pills.GetSize(); f++)
+    {
+      double a = pills[f].alpha.GetPlainDesignValue();
+      afac[f] = a == 0.0 ? 0.0 : std::pow(a, 1.0 - alpha_q_); // the a=0 chain is zero anyway
+    }
 
   // for each element
   for(const Item& item : map)
   {
     const ItemIP* ext = dynamic_cast<const ItemIP*>(item.extension);
-    // SIMP gradient: function by rho_e
+    // SIMP gradient: function by rho_e; for the plainAlphaDensity field by v_e
     double dJ_drho_e = item.elemval->GetPlainGradient(func);
+
+    if(derived)
+      for(unsigned int f = 0; f < pills.GetSize(); f++)
+        v_rho[f] = pills[f].alpha.GetPlainDesignValue() * ext->rho_org[f];
 
     // for each feature
     for(unsigned int f = 0; f < pills.GetSize(); f++)
     {
-      // the rho_e of this feature 
-      double rho_e_f = ext->rho[f];
+      // the chain row d rho_hat_f/d z_s of this feature/block
+      const double* ch = &ext->drho_ds_full[f * num_var_by_feature];
+      if(derived)
+      {
+        for(unsigned int s = 0; s < num_geom_var_by_feature; s++)
+          chain[s] = afac[f] * ch[s];
+        chain[num_var_by_feature - 1] = ext->rho_org[f]; // d(alpha rho)/d alpha, the last variable
+        ch = chain.GetPointer();
+      }
 
-      // skip when we have constant feature rho_e (gradient is zero) but stay if we have the special result
-      if((rho_e_f == 1 || rho_e_f == rhomin) && dmrho_drho_res_idx[f] == -1)
+      // skip when the whole d_rho/d_z row of this feature vanishes (fully solid/void element, gradient is
+      // zero) but stay if we have the special result. Without alpha this is equivalent to the former
+      // rho == 1 || rho == rhomin check; with alpha the interior elements stay alive via the alpha column.
+      bool zero_row = true;
+      for(unsigned int s = 0; s < num_var_by_feature && zero_row; s++)
+        zero_row = ch[s] == 0.0;
+
+      if(zero_row && dmrho_drho_res_idx[f] == -1)
         continue;
 
       // derivative of rho_f aggregation of all features (1.0 single feature)
-      double dmax_drho_f = cmb_fnc->Grad(ext->rho, f);
+      double dmax_drho_f = cmb_fnc->Grad(derived ? v_rho : ext->rho, f);
 
       if(dmrho_drho_res_idx[f] != -1)
       {
         item.elemval->specialResult[dmrho_drho_res_idx[f]] = dmax_drho_f;
         LOG_DBG3(fm) << "IGH f=" << f << " dmax_drho_f=" << dmax_drho_f << " -> s_r[" << dmrho_drho_res_idx[f] << "]";
-        if(rho_e_f == 1 || rho_e_f == rhomin) // in that case drho_ds is zero and all results contain this
+        if(zero_row) // in that case drho_ds is zero and all results contain this
           continue;
       }
 
       assert(dJ_ds.GetSize() == ext->drho_ds_full.GetSize());
-      for(unsigned int s = 0; s < num_var_by_feature; s++) 
+      for(unsigned int s = 0; s < num_var_by_feature; s++)
       {
         unsigned int idx = f * num_var_by_feature + s;
-        double value = dJ_drho_e * dmax_drho_f * ext->drho_ds_full[idx]; 
+        double value = dJ_drho_e * dmax_drho_f * ch[s];
         dJ_ds[idx] += value;
 
         if(drho_ds_res_idx[idx] != -1)
-          item.elemval->specialResult[drho_ds_res_idx[idx]] = ext->drho_ds_full[idx]; // we automatically have the proper feature
+          item.elemval->specialResult[drho_ds_res_idx[idx]] = ch[s]; // we automatically have the proper feature
 
         if(dmrho_ds_res_idx[idx] != -1)
-          item.elemval->specialResult[dmrho_ds_res_idx[idx]] = dmax_drho_f * ext->drho_ds_full[idx];
+          item.elemval->specialResult[dmrho_ds_res_idx[idx]] = dmax_drho_f * ch[s];
 
         if(dJ_ds_res_idx[idx] != -1)
           item.elemval->specialResult[dJ_ds_res_idx[idx]] = value;
 
-        LOG_DBG3(fm) << "IGH: item=" << item.lexicographic_pos << " f=" << f << " s=" << s 
-                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f << " drho_f_ds=" << ext->drho_ds_full[idx] << " dJ_ds[" << idx << "] += " << value <<  " -> " <<  dJ_ds[idx];
-      } 
+        LOG_DBG3(fm) << "IGH: item=" << item.lexicographic_pos << " f=" << f << " s=" << s
+                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f << " drho_f_ds=" << ch[s] << " dJ_ds[" << idx << "] += " << value <<  " -> " <<  dJ_ds[idx];
+      }
     }
   }
 }
@@ -1109,8 +1125,8 @@ void FeatureMappingDesign::CalcShapeJacobian(Matrix<double>& D) const
   // columns). Chain rule per element e and feature f:
   //   D[e][f,s] = (d_mrho_e/d_rho_f) * (d_rho_f/d_s)
   //   - d_mrho_e/d_rho_f : aggregation sensitivity (cmb_fnc->Grad, couples overlapping features)
-  //   - d_rho_f/d_s      : geometric, precomputed in ItemIP::drho_ds_full
-  // Fully solid (rho==1) / void (rho==rhomin) elements are skipped -> d_rho_f/d_s = 0 there (D sparse).
+  //   - d_rho_f/d_s      : geometric, precomputed in ItemIP::drho_ds_full (with alpha incl. its column)
+  // Rows with a vanishing chain (fully solid/void without alpha) are skipped (D sparse).
   // D carries the element coupling, so the objective Hessian term is D^T diag(curv) D.
 
   unsigned int N_full = pills.GetSize() * num_var_by_feature;
@@ -1122,9 +1138,13 @@ void FeatureMappingDesign::CalcShapeJacobian(Matrix<double>& D) const
     const ItemIP* ext = dynamic_cast<const ItemIP*>(map[e].extension);
     for(unsigned int f = 0; f < pills.GetSize(); f++)
     {
-      double rho_e_f = ext->rho[f];
-      if(rho_e_f == 1 || rho_e_f == rhomin)
-        continue; // outside the transition zone d_rho_f/d_s is zero
+      // skip when the whole chain row vanishes (fully solid/void feature without alpha; with alpha the
+      // alpha column keeps the footprint alive), as in IsotropicGradientHelper()
+      bool zero_row = true;
+      for(unsigned int s = 0; s < num_var_by_feature && zero_row; s++)
+        zero_row = ext->drho_ds_full[f * num_var_by_feature + s] == 0.0;
+      if(zero_row)
+        continue;
 
       double dmrho_drho_f = cmb_fnc->Grad(ext->rho, f);
       for(unsigned int s = 0; s < num_var_by_feature; s++)
@@ -1146,25 +1166,72 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
 
   // working data
   Vector<double> ddist_ds(nv);
-  Matrix<double> hd; // 5x5 distance Hessian per integration point
+  Matrix<double> hd; // nv x nv distance Hessian per integration point
   Matrix<double> rh(nv, nv); // d^2 rho_e^f/(d_s_i d_s_j), eqn 'rho_hess' in the tracking paper
+  Vector<double> rho_s(num_geom_var_by_feature); // unscaled d_rho_f/d_s for the mixed alpha-s Hessian entries
   StdVector<IntegrationPoint*> elem_ip;
   StdVector<unsigned int> active;
   active.Reserve(pills.GetSize());
 
+  // a function on the implicit plainAlphaDensity field acts on v_e = combine(alpha_f * rho_f): the combine
+  // takes alpha_f*rho_f and the alpha factors are those of the plain alpha (a, 1, 0 instead of a^q
+  // and its derivatives)
+  bool derived = func->GetField() == PLAIN_ALPHA_DENSITY_FIELD;
+  assert(!derived || has_alpha_);
+  Vector<double> v_rho(derived ? pills.GetSize() : 0);            // alpha_f * rho_f, the combine arguments
+  Vector<double> chain_all(derived ? pills.GetSize() * nv : 0);   // derived chain in drho_ds_full layout
+  Vector<double> afac(derived ? pills.GetSize() : 0);             // rescale a^q -> a of the stored chain
+
+  // per-feature alpha factors: rho_hat = a^q rho, first and second derivative of a^q
+  Vector<double> aq(pills.GetSize(), 1.0), daq(pills.GetSize(), 0.0), ddaq(pills.GetSize(), 0.0);
+  if(has_alpha_)
+    for(unsigned int f = 0; f < pills.GetSize(); f++)
+    {
+      double a = pills[f].alpha.GetPlainDesignValue();
+      if(derived)
+      {
+        aq[f]   = a;
+        daq[f]  = 1.0;
+        ddaq[f] = 0.0;
+        afac[f] = a == 0.0 ? 0.0 : std::pow(a, 1.0 - alpha_q_); // the a=0 chain is zero anyway
+        continue;
+      }
+      aq[f]   = std::pow(a, alpha_q_);
+      daq[f]  = alpha_q_ * std::pow(a, alpha_q_ - 1.0);
+      // q(q-1) a^(q-2); exactly zero for q=1, and we take the (one-sided) limit 0 at a=0 for q < 2
+      ddaq[f] = alpha_q_ == 1.0 || (a == 0.0 && alpha_q_ < 2.0) ? 0.0 : alpha_q_ * (alpha_q_ - 1.0) * std::pow(a, alpha_q_ - 2.0);
+    }
+
   for(const Item& item : map)
   {
-    double w_e = item.elemval->GetPlainGradient(func); // d_func/d_mrho_e
+    double w_e = item.elemval->GetPlainGradient(func); // d_func/d_mrho_e resp. d_func/d_v_e
     if(w_e == 0.0)
       continue;
 
     ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
 
-    // the features with non-constant rho_e_f in this element
+    if(derived)
+      for(unsigned int f = 0; f < pills.GetSize(); f++)
+      {
+        v_rho[f] = pills[f].alpha.GetPlainDesignValue() * ext->rho_org[f];
+        for(unsigned int s = 0; s < num_geom_var_by_feature; s++)
+          chain_all[f*nv + s] = afac[f] * ext->drho_ds_full[f*nv + s];
+        chain_all[f*nv + nv - 1] = ext->rho_org[f]; // d(alpha rho)/d alpha, the last variable
+      }
+    const Vector<double>& CH = derived ? chain_all : ext->drho_ds_full; // the block's chain
+    const Vector<double>& CR = derived ? v_rho : ext->rho;              // the block's combine arguments
+
+    // the features contributing in this element: any non-zero chain entry (transition zone; with alpha
+    // also the footprint via the alpha column) or a non-zero pure alpha curvature on the footprint
     active.Resize(0); // keeps capacity
     for(unsigned int f = 0; f < pills.GetSize(); f++)
-      if(!(ext->rho[f] == 1 || ext->rho[f] == rhomin))
+    {
+      bool zero_row = true;
+      for(unsigned int s = 0; s < nv && zero_row; s++)
+        zero_row = CH[f*nv + s] == 0.0;
+      if(!zero_row || (has_alpha_ && ddaq[f] != 0.0 && ext->rho_org[f] != 0.0))
         active.Push_back(f);
+    }
     if(active.IsEmpty())
       continue;
 
@@ -1173,18 +1240,22 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
     for(unsigned int f : active)
       for(unsigned int g : active)
       {
-        double agg = cmb_fnc->Hessian(ext->rho, f, g);
+        double agg = cmb_fnc->Hessian(CR, f, g);
         for(unsigned int i = 0; i < nv; i++)
           for(unsigned int j = 0; j < nv; j++)
-            H_agg[f*nv + i][g*nv + j] += w_e * agg * ext->drho_ds_full[f*nv + i] * ext->drho_ds_full[g*nv + j];
+            H_agg[f*nv + i][g*nv + j] += w_e * agg * CH[f*nv + i] * CH[g*nv + j];
       }
 
-    // feature term: w_e * d_mrho/d_rho_f * d^2 rho_f/(d_s_i d_s_j) with
+    // feature term: w_e * d_mrho/d_rho_hat_f * d^2 rho_hat_f/(d_z_i d_z_j) with the geometric part
     // d^2 rho_f/(d_s_i d_s_j) = 1/N_ip * sum_ip (H''*dd_i*dd_j + H'*d^2d_ij)
+    // and with alpha: rho_hat = a^q rho, so the s-s block scales by a^q, the mixed alpha-s entries are
+    // (a^q)' * d_rho/d_s (first-order data) and the alpha-alpha entry is (a^q)'' * rho (eqn
+    // 'geom_var_hess' in the tracking paper)
     ext->GetAllIP(elem_ip);
     for(unsigned int f : active)
     {
       rh.Init();
+      rho_s.Init();
       for(const IntegrationPoint* ip : elem_ip)
       {
         double dist = ip->dist[f];
@@ -1194,13 +1265,28 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
         double Hp  = bnd_fnc->Grad(dist);
         double Hpp = bnd_fnc->Hessian(dist); // throws for poly which is only C^1
         pills[f].GradDistance(ip->loc, ip->part[f], ddist_ds);
-        pills[f].HessDistance(ip->loc, ip->part[f], hd);
-        for(unsigned int i = 0; i < nv; i++)
-          for(unsigned int j = 0; j < nv; j++)
+        pills[f].HessDistance(ip->loc, ip->part[f], hd); // the geometry variables only
+        for(unsigned int i = 0; i < num_geom_var_by_feature; i++)
+          for(unsigned int j = 0; j < num_geom_var_by_feature; j++)
             rh[i][j] += (Hpp * ddist_ds[i] * ddist_ds[j] + Hp * hd[i][j]) / N_ip;
+        if(has_alpha_)
+          for(unsigned int j = 0; j < num_geom_var_by_feature; j++)
+            rho_s[j] += Hp * ddist_ds[j] / N_ip; // unscaled d_rho_f/d_s_j
       }
 
-      double dmrho_drho_f = cmb_fnc->Grad(ext->rho, f);
+      if(has_alpha_)
+      {
+        const unsigned int ai = nv - 1; // alpha is the last variable of a feature
+        for(unsigned int i = 0; i < num_geom_var_by_feature; i++)
+        {
+          for(unsigned int j = 0; j < num_geom_var_by_feature; j++)
+            rh[i][j] *= aq[f];
+          rh[ai][i] = rh[i][ai] = daq[f] * rho_s[i];
+        }
+        rh[ai][ai] = ddaq[f] * ext->rho_org[f];
+      }
+
+      double dmrho_drho_f = cmb_fnc->Grad(CR, f);
       for(unsigned int i = 0; i < nv; i++)
         for(unsigned int j = 0; j < nv; j++)
           H_feat[f*nv + i][f*nv + j] += w_e * dmrho_drho_f * rh[i][j];
@@ -1208,38 +1294,49 @@ void FeatureMappingDesign::AssembleHessianTerms(const Function* func, Matrix<dou
   }
 }
 
-std::string FeatureMappingDesign::HessExportTermXML(const std::string& name, unsigned int nv,
-    const Matrix<double>& H, bool diagonal_only) const
+std::string FeatureMappingDesign::HessExportTermXML(const std::string& name, const Matrix<double>& H,
+    const StdVector<StdVector<int> >& feature_cols, bool blocks) const
 {
-  unsigned int Nf = pills.GetSize();
-  // slice the (f,g) 5x5 sub-block of the full-space term matrix, return true if it has content
-  Matrix<double> sub(nv, nv);
-  auto slice = [&](unsigned int f, unsigned int g) -> bool {
-    bool nonzero = false;
-    for(unsigned int i = 0; i < nv; i++)
-      for(unsigned int j = 0; j < nv; j++)
-      {
-        sub[i][j] = H[f*nv + i][g*nv + j];
-        nonzero |= sub[i][j] != 0.0;
-      }
-    return nonzero;
-  };
-
-  // term-major: <name> wraps the non-empty (f,g) blocks as children. The bulk content is verbatim and
-  // only the first line (<name>) is auto-indented by the printer (to 6, under <function>); place the
-  // blocks at 8 (data at 10, typeTag=false omits the <real> wrapper) and </name> at 6 by hand. Only
-  // g >= f (lower triangle by symmetry); the feature/geometry term has diagonal (f==f) blocks only.
+  // term-major: <name> wraps its matrices as children. The bulk content is verbatim and only the
+  // first line (<name>) is auto-indented by the printer (to 6, under <function>); place the matrices
+  // at 8 (data at 10, typeTag=false omits the <real> wrapper) and </name> at 6 by hand.
   std::stringstream ss;
-  for(unsigned int f = 0; f < Nf; f++)
-    for(unsigned int g = f; g < Nf; g++)
-    {
-      if(diagonal_only && g != f)
-        continue;
-      if(!slice(f, g))
-        continue;
-      std::string attr = "f=\"" + std::to_string(f) + "\" g=\"" + std::to_string(g) + "\"";
-      ss << "        " << sub.ToXMLFormat("block", 8, false, attr) << "\n";
-    }
+  if(blocks)
+  {
+    // the (f,g) blocks are a partition of H: every optimization variable belongs to exactly one
+    // feature. Skip empty blocks (e.g. features sharing no element in the feature term) and g < f
+    // (block (g,f) is the transpose of (f,g), all terms are symmetric)
+    unsigned int Nf = feature_cols.GetSize();
+    for(unsigned int f = 0; f < Nf; f++)
+      for(unsigned int g = f; g < Nf; g++)
+      {
+        unsigned int nf = feature_cols[f].GetSize(), ng = feature_cols[g].GetSize();
+        if(nf == 0 || ng == 0)
+          continue; // a feature with all variables fixed has no block
+        Matrix<double> sub(nf, ng);
+        bool nonzero = false;
+        for(unsigned int i = 0; i < nf; i++)
+          for(unsigned int j = 0; j < ng; j++)
+          {
+            sub[i][j] = H[feature_cols[f][i]][feature_cols[g][j]];
+            nonzero |= sub[i][j] != 0.0;
+          }
+        if(!nonzero)
+          continue;
+        std::string attr = "f=\"" + to_string(f) + "\" g=\"" + to_string(g) + "\"";
+        ss << "        " << sub.ToXMLFormat("block", 8, false, attr) << "\n";
+      }
+  }
+  else
+  {
+    // features share optimization variables (chain/symmetry mapping), no (f,g) partition -> one matrix
+    bool nonzero = false;
+    for(unsigned int i = 0; i < H.GetNumRows() && !nonzero; i++)
+      for(unsigned int j = 0; j < H.GetNumCols() && !nonzero; j++)
+        nonzero = H[i][j] != 0.0;
+    if(nonzero)
+      ss << "        " << H.ToXMLFormat("total", 8, false) << "\n";
+  }
 
   if(ss.str().empty())
     return "<" + name + "/>"; // term structurally zero (e.g. curvature of a function linear in rho)
@@ -1295,31 +1392,85 @@ void FeatureMappingDesign::BuildOptIndexMap(StdVector<int>& opt_idx) const
   }
 }
 
-bool FeatureMappingDesign::CalcShapeHessian(const Function* func, Matrix<double>& H_opt)
+void FeatureMappingDesign::ReduceToOptSpace(const Matrix<double>& H_full, Matrix<double>& H_opt) const
 {
-  if(anisotropic)
-    throw Exception("the exact shape Hessian is only implemented for the isotropic case");
-  assert(mapped_design_ == design_id);
-
-  Matrix<double> H_obj, H_agg, H_feat;
-  if(!CalcShapeHessianTerms(func, H_obj, H_agg, H_feat))
-    return false;
-
-  // map the full feature space total (sum of the three terms) to optimization variable space:
-  // linked variables accumulate on their target, fixed variables (-1) are dropped
   StdVector<int> opt_idx;
   BuildOptIndexMap(opt_idx);
-  unsigned int N = opt_shape_param_.GetSize();
-  unsigned int N_full = H_obj.GetNumRows();
-  H_opt.Resize(N, N);
-  H_opt.Init();
+  unsigned int N_full = opt_idx.GetSize();
+  assert(H_full.GetNumRows() == N_full && H_full.GetNumCols() == N_full);
+  assert(H_opt.GetNumRows() == opt_shape_param_.GetSize());
+
   for(unsigned int i = 0; i < N_full; i++)
   {
     if(opt_idx[i] < 0)
       continue;
     for(unsigned int j = 0; j < N_full; j++)
       if(opt_idx[j] >= 0)
-        H_opt[opt_idx[i]][opt_idx[j]] += H_obj[i][j] + H_agg[i][j] + H_feat[i][j];
+        H_opt[opt_idx[i]][opt_idx[j]] += H_full[i][j];
+  }
+}
+
+bool FeatureMappingDesign::HasStoredGradient(const Function* func) const
+{
+  for(const DesignElement& de : data)
+    if(de.GetPlainGradient(func) != 0.0)
+      return true;
+  return false;
+}
+
+void FeatureMappingDesign::CalcShapeJacobianOptSpace(Matrix<double>& D_opt)
+{
+  assert(mapped_design_ == design_id);
+
+  Matrix<double> D; // elements x full feature variable space
+  CalcShapeJacobian(D);
+
+  StdVector<int> opt_idx;
+  BuildOptIndexMap(opt_idx);
+
+  unsigned int N = opt_shape_param_.GetSize();
+  D_opt.Resize(D.GetNumRows(), N);
+  D_opt.Init();
+  for(unsigned int e = 0; e < D.GetNumRows(); e++)
+    for(unsigned int c = 0; c < D.GetNumCols(); c++)
+      if(opt_idx[c] >= 0)
+        D_opt[e][opt_idx[c]] += D[e][c];
+}
+
+bool FeatureMappingDesign::CalcShapeHessian(const Function* func, Matrix<double>& H_opt)
+{
+  if(anisotropic)
+    throw Exception("the exact shape Hessian is only implemented for the isotropic case");
+  assert(mapped_design_ == design_id);
+
+  unsigned int N_full = pills.GetSize() * num_var_by_feature;
+
+  // a python function defined directly on the feature variables (e.g. an analytic volume) has no
+  // density representation - it provides its exact Hessian in the full feature variable space via
+  // the 'hessian' attribute (second order analogon of the feature space gradient in
+  // ErsatzMaterial::CalcPython()), there are no terms to assemble and no density chain
+  Matrix<double> H_py;
+  bool python = const_cast<Function*>(func)->CalcShapeHessianPython(H_py);
+  if(python && (H_py.GetNumRows() != N_full || H_py.GetNumCols() != N_full))
+    EXCEPTION("the python hessian function of '" << func->ToString() << "' shall return a " << N_full
+              << " x " << N_full << " matrix (full feature variable space) but got "
+              << H_py.GetNumRows() << " x " << H_py.GetNumCols());
+
+  Matrix<double> H_obj, H_agg, H_feat;
+  if(!python && !CalcShapeHessianTerms(func, H_obj, H_agg, H_feat))
+    return false;
+
+  // map the full feature space total (python or sum of the three terms) to optimization variable space
+  unsigned int N = opt_shape_param_.GetSize();
+  H_opt.Resize(N, N);
+  H_opt.Init();
+  if(python)
+    ReduceToOptSpace(H_py, H_opt);
+  else
+  {
+    ReduceToOptSpace(H_obj, H_opt);
+    ReduceToOptSpace(H_agg, H_opt);
+    ReduceToOptSpace(H_feat, H_opt);
   }
   return true;
 }
@@ -1336,6 +1487,31 @@ void FeatureMappingDesign::WriteHessExportFile()
 
   unsigned int nv = num_var_by_feature;
   unsigned int Nf = pills.GetSize();
+  unsigned int N = opt_shape_param_.GetSize();
+
+  // All matrices are written in optimization variable space, the space the optimizer sees (fixed
+  // variables dropped, mapped ones merged) - only there the terms are addable to what
+  // cfs.evalhessian delivers. Collect for each feature its optimization columns in local variable
+  // order. If no column has two owning features the (f,g) blocks are a partition of a term matrix
+  // and we keep the sparse block layout; feature spanning chain/symmetry mapping makes the
+  // partition ill defined and a term is written as one dense <total> matrix.
+  StdVector<int> opt_idx;
+  BuildOptIndexMap(opt_idx);
+  StdVector<StdVector<int> > feature_cols(Nf);
+  StdVector<int> owner(N);
+  owner.Init(-1);
+  bool blocks = true;
+  for(unsigned int f = 0; f < Nf; f++)
+    for(unsigned int i = 0; i < nv; i++)
+    {
+      int c = opt_idx[f*nv + i];
+      if(c < 0)
+        continue; // fixed variable, no column of its own
+      feature_cols[f].Push_back(c);
+      if(owner[c] >= 0 && owner[c] != (int) f)
+        blocks = false;
+      owner[c] = f;
+    }
 
   // persistent root, created once: each call appends an <iteration> child so the file keeps the whole
   // history. Written (re-written with the grown tree) every iteration via ParamNode::ToFile(), with
@@ -1347,7 +1523,18 @@ void FeatureMappingDesign::WriteHessExportFile()
     hessexport_root_->Get("features")->SetValue(Nf);
     hessexport_root_->Get("varsPerFeature")->SetValue(nv);
     // the local variable order within a feature block, matches GradDistance()/HessDistance()
-    hessexport_root_->Get("variables")->SetValue(std::string("Px Py Qx Qy P"));
+    std::string vars = dim_ == 2 ? "Px Py Qx Qy P" : "Px Py Pz Qx Qy Qz P";
+    if(has_alpha_)
+      vars += " alpha";
+    hessexport_root_->Get("variables")->SetValue(vars);
+    hessexport_root_->Get("optVariables")->SetValue(N);
+    hessexport_root_->Get("layout")->SetValue(blocks ? "blocks" : "total");
+    // BuildOptIndexMap() as flat list (varsPerFeature entries per feature): the optimization column
+    // of each feature variable, -1 for a fixed one. Plain 0 1 2 ... when nothing is fixed or mapped
+    std::stringstream oi;
+    for(unsigned int i = 0; i < opt_idx.GetSize(); i++)
+      oi << (i > 0 ? " " : "") << opt_idx[i];
+    hessexport_root_->Get("optIndex")->SetValue(oi.str());
   }
 
   PtrParamNode iteration = hessexport_root_->Get("iteration", ParamNode::APPEND);
@@ -1370,7 +1557,17 @@ void FeatureMappingDesign::WriteHessExportFile()
     iteration->Get("noHessian", ParamNode::APPEND)->Get("name")->SetValue(f->ToString());
   };
 
-  Matrix<double> H_obj, H_agg, H_feat; // the three Hessian terms from the paper. The sum is the real Heassian
+  unsigned int N_full = Nf * nv;
+  Matrix<double> H(N, N);        // the current term reduced to optimization variable space
+  Matrix<double> H_full(N_full, N_full);
+  Matrix<double> H_obj, H_agg, H_feat, H_py, H_state;
+  // reduce a full feature space term and hand it over as xml
+  auto term = [&](const std::string& name, const Matrix<double>& H_f) -> std::string {
+    H.Init();
+    ReduceToOptSpace(H_f, H);
+    return HessExportTermXML(name, H, feature_cols, blocks);
+  };
+
   for(Function* func : opt->GetFunctions(false))
   {
     if(func->IsLocal())
@@ -1381,40 +1578,78 @@ void FeatureMappingDesign::WriteHessExportFile()
         continue;
       }
 
-      // local constraints up to now live only for the feature part and have a compact form
-      // <function name="distance_(node)_lowerBound" local="0">
-      //      <feature>
-      //        <block f="0" g="0" dim1="5" dim2="5">
-      //           2.490270e-01 -5.600441e-01 -2.490270e-01  5.600441e-01  0.000000e+00
+      // a local constraint is one constraint instance per feature (attribute 'local') and has only
+      // the feature geometry term. Scattered into the full space to share the reduction
       Matrix<double> hl;
       for(unsigned int f = 0; f < Nf; f++)
       {
-        pills[f].HessLength(hl); 
-        std::string attr = "f=\"" + std::to_string(f) + "\" g=\"" + std::to_string(f) + "\"";
-        std::stringstream feature; // term-major: a local constraint has only the <feature> geometry term
-        feature << "<feature>\n        " << hl.ToXMLFormat("block", 8, false, attr) << "\n      </feature>";
+        pills[f].HessLength(hl);
+        H_full.Init();
+        // hl covers Px .. P, an alpha variable is not part of the length -> stays zero
+        for(unsigned int i = 0; i < hl.GetNumRows(); i++)
+          for(unsigned int j = 0; j < hl.GetNumCols(); j++)
+            H_full[f*nv + i][f*nv + j] = hl[i][j];
         PtrParamNode fn = iteration->Get("function", ParamNode::APPEND);
         fn->Get("name")->SetValue(func->ToString());
         fn->Get("local")->SetValue(f);
-        fn->GetFastBulkBlock().Push_back(feature.str());
+        fn->GetFastBulkBlock().Push_back(term("feature", H_full));
       }
       continue;
     }
-    if(!CalcShapeHessianTerms(func, H_obj, H_agg, H_feat))
+
+    // term-major: one element per Hessian term. An empty term becomes a self-closing marker, e.g.
+    // <curvature/> for a function linear in rho (reward). The sum of all terms of a function is
+    // what cfs.evalhessian()/evalhessian_constr() returns for it
+    StdVector<std::string> terms;
+    std::string note;
+    if(func->CalcShapeHessianPython(H_py))
     {
-      noHessian(func); // no curvature information for this function (e.g. C++ volume)
+      // a function defined directly on the feature variables (e.g. the analytic pill volume) has no
+      // density representation and delivers its exact Hessian via the 'hessian' attribute
+      if(H_py.GetNumRows() != N_full || H_py.GetNumCols() != N_full)
+        EXCEPTION("the python hessian function of '" << func->ToString() << "' shall return a "
+                  << N_full << " x " << N_full << " matrix (full feature variable space) but got "
+                  << H_py.GetNumRows() << " x " << H_py.GetNumCols());
+      terms.Push_back(term("python", H_py));
+    }
+    else if(CalcShapeHessianTerms(func, H_obj, H_agg, H_feat))
+    {
+      terms.Push_back(term("curvature", H_obj)); // independent of the stored gradient
+      if(HasStoredGradient(func))
+      {
+        terms.Push_back(term("aggregation", H_agg));
+        terms.Push_back(term("feature", H_feat));
+      }
+      else
+        note = "d_func/d_rho not stored at export time (mode=observation or not in the gradient loop)";
+    }
+
+    // the dense state curvature block of a self-adjoint state dependent function (native compliance).
+    // Costs n back-substitutions per iteration, that is why the export is opt-in via hessexport.
+    // A python function wrapping a native one (observed_objective.py) is not state dependent - there
+    // the state block shows up at the wrapped native function instead
+    if(func->IsStateDependent())
+    {
+      ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
+      if(em == nullptr)
+        note = "state dependent but no ersatz material optimization, state term omitted";
+      else
+      {
+        em->CalcStateHessianBlock(func, H_state);
+        terms.Push_back(HessExportTermXML("state", H_state, feature_cols, blocks));
+      }
+    }
+
+    if(terms.IsEmpty())
+    {
+      noHessian(func); // no second derivative information at all for this function
       continue;
     }
 
-    // term-major: one element per Hessian term, each wrapping its (f,g) blocks as children. An empty
-    // term becomes a self-closing marker, e.g. <curvature/> for a function linear in rho (reward).
-    StdVector<std::string> terms;
-    terms.Push_back(HessExportTermXML("curvature",   nv, H_obj,  false));
-    terms.Push_back(HessExportTermXML("aggregation", nv, H_agg,  false));
-    terms.Push_back(HessExportTermXML("feature",     nv, H_feat, true));
-
     PtrParamNode fn = iteration->Get("function", ParamNode::APPEND);
     fn->Get("name")->SetValue(func->ToString());
+    if(!note.empty())
+      fn->Get("note")->SetValue(note);
     fn->GetFastBulkBlock() = terms;
   }
 
@@ -1511,7 +1746,7 @@ inline void FeatureMappingDesign::CalcGradRhoByFeature(const Item& item, const F
   // for all integration points of the element
   ext->GetAllIP(elem_ip);
   LOG_DBG3(fm) << "CGRBF: item=" << item.lexicographic_pos << " f=" << f << " inner=" << ext->inner.GetSize() << " elem_ip=" << elem_ip.GetSize() << " num_var_by_feature=" << num_var_by_feature;
-  assert(elem_ip.GetSize() ==4 || (int) elem_ip.GetSize() == N_ip); 
+  assert(elem_ip.GetSize() == std::pow(2,dim_) || (int) elem_ip.GetSize() == N_ip); // corners only or full order lattice
   for(IntegrationPoint* ip : elem_ip)
   {
     // now we have the actual point X and distance for each IP know which part is closest
@@ -1563,18 +1798,34 @@ void FeatureMappingDesign::ReadDensityXml(PtrParamNode set, double& lower_violat
   assert(features_.GetSize() > 0);
 
   ParamNodeList list = set->GetList("shapeParamElement");
-  if(list.GetSize() != shape_param_.GetSize())
-    EXCEPTION("expect " << shape_param_.GetSize() << " 'shapeParamElement' in density.xml but got " << list.GetSize());
 
+  // the geometry variable alpha is handled transparently: a density.xml from a run without alpha
+  // keeps our alpha variables at their initial value, and alpha entries from a run with alpha are
+  // skipped when we have none (e.g. continue with alpha from a plain result or vice versa).
+  // This flexibility is for alpha only - any other mismatch is still an error.
+  unsigned int li = 0; // index into list, deviates from i when only one side has alpha
   for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
   {
-    FeatureVariable*    var = dynamic_cast<FeatureVariable*>(shape_param_[i]);
-    PtrParamNode pn  = list[i];
+    FeatureVariable* var = dynamic_cast<FeatureVariable*>(shape_param_[i]);
 
-    // do a lot of validation
+    if(!has_alpha_) // skip alpha entries in the file we have no variable for
+      while(li < list.GetSize() && DesignElement::type.Parse(list[li]->Get("type")->As<string>()) == DesignElement::ALPHA)
+        li++;
+
+    // our alpha variable has no entry in the file - keep the initial value
+    if(var->GetType() == DesignElement::ALPHA
+       && (li >= list.GetSize() || DesignElement::type.Parse(list[li]->Get("type")->As<string>()) != DesignElement::ALPHA))
+      continue;
+
+    if(li >= list.GetSize())
+      EXCEPTION("not enough 'shapeParamElement' in density.xml: got " << list.GetSize() << " for " << shape_param_.GetSize() << " design variables");
+
+    PtrParamNode pn = list[li];
+
+    // do a lot of validation. The expected 'nr' is the position within the file
     const std::string pnnr = pn->Get("nr")->As<string>();
-    if(pn->Get("nr")->As<unsigned int>() != i)
-      EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'nr' value " << i);
+    if(pn->Get("nr")->As<unsigned int>() != li)
+      EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'nr' value " << li);
 
     if(pn->Get("shape")->As<int>() != var->feature)
       EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'shape' value " << var->feature);
@@ -1591,7 +1842,15 @@ void FeatureMappingDesign::ReadDensityXml(PtrParamNode set, double& lower_violat
     }
 
     var->SetDesign(pn->Get("design")->As<double>());
+    li++;
   }
+
+  if(!has_alpha_) // possible trailing alpha entry of the last feature
+    while(li < list.GetSize() && DesignElement::type.Parse(list[li]->Get("type")->As<string>()) == DesignElement::ALPHA)
+      li++;
+
+  if(li != list.GetSize())
+    EXCEPTION("expect " << shape_param_.GetSize() << " 'shapeParamElement' in density.xml but got " << list.GetSize());
 
   // it shall be save to update the design_id, because we changed stuff
   design_id++;
@@ -1605,6 +1864,8 @@ void FeatureMappingDesign::AddToDensityHeader(PtrParamNode header)
   PtrParamNode pn = header->Get("featureMapping");
   pn->Get("transition")->SetValue(transition);
   pn->Get("extension")->SetValue(extension); // only relevant for bezier
+  if(has_alpha_)
+    pn->Get("alpha_q")->SetValue(alpha_q_); // featureviz.py scales the drawn pills by alpha^q
 }
 
 
@@ -1629,12 +1890,36 @@ int FeatureMappingDesign::CountKey(const std::string& key) const
 
 void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
 {
-  StdVector<PtrParamNode> pnl = base->GetList("pill");
+  // external feature files (root element 'features', validated against the same schema so the
+  // defaults apply) and local pills - the schema fixes the order external*, pill*, so the external
+  // features come first. E.g. an external base skeleton with a varying number of features plus
+  // special local pills
+  StdVector<PtrParamNode> pnl;
+  for(PtrParamNode child : base->GetChildren())
+  {
+    if(child->GetName() == "pill")
+      pnl.Push_back(child);
+    if(child->GetName() == "external")
+    {
+      std::string file = child->Get("file")->As<std::string>();
+      std::string schema = progOpts->GetSchemaPathStr() + "/CFS-Simulation/CFS.xsd";
+      PtrParamNode root = XmlReader::ParseFile(file, schema, "http://www.cfs++.org/simulation");
+      if(root->GetName() != "features")
+        throw Exception("root element of external feature file '" + file + "' needs to be 'features'");
+      for(PtrParamNode pill : root->GetList("pill"))
+        pnl.Push_back(pill);
+    }
+  }
+  if(pnl.IsEmpty()) // the schema cannot express at least one pill from either source
+    throw Exception("no features given, neither as local pills nor via external files");
   pills.Resize(pnl.GetSize());
   features_.Resize(pnl.GetSize());
   for(unsigned int i = 0; i < pnl.GetSize(); i++)
   {
     pills[i].Parse(pnl[i], i);
+    // the global <alpha> gives the defaults, an optional <alpha> in the pill overrides (e.g. fixed or map)
+    if(has_alpha_)
+      pills[i].ParseAlpha(pnl[i]->Has("alpha") ? pnl[i]->Get("alpha") : base->Get("alpha"), i);
     features_[i] = &pills[i];
   }
 }
@@ -1647,23 +1932,46 @@ void FeatureMappingDesign::SetupParsedFeatures(PtrParamNode base)
   return ss.str();
 }
 
+void FeatureMappingDesign::Pill::ParseAlpha(PtrParamNode pn, int idx)
+{
+  alpha.Parse(pn, idx, DesignElement::FEATURE_MAPPING_ALPHA); // this also makes HasAlpha() true
+  opt_variables_ += alpha.IsVariable() ? 1 : 0;
+}
+
+void FeatureMappingDesign::Pill::GetAllVariables(StdVector<FeatureVariable*>& out) const
+{
+  // as the base but with the optional alpha appended after the profile, reserve to avoid expansion
+  out.Clear();
+  out.Reserve(GetTotalVariables());
+  for(const StdVector<FeatureVariable>& vec : points)
+    for(const FeatureVariable& var : vec)
+      out.Push_back(const_cast<FeatureVariable*>(&var));
+  out.Push_back(const_cast<FeatureVariable*>(&p));
+  if(HasAlpha())
+    out.Push_back(const_cast<FeatureVariable*>(&alpha));
+}
+
 void FeatureMappingDesign::Pill::Update()
 {
-  assert(domain->GetDim() == 2);
   assert(points.GetSize() >= 2);
-  assert(P.data.GetSize() >= 2); // make it 2D
-  P.Set(points.First()[0].GetPlainDesignValue(), points.First()[1].GetPlainDesignValue());
-  Q.Set(points.Last()[0].GetPlainDesignValue(), points.Last()[1].GetPlainDesignValue());
+  P.Set(points.First()[0].GetPlainDesignValue(), points.First()[1].GetPlainDesignValue(),
+        dim_ == 3 ? points.First()[2].GetPlainDesignValue() : 0.0);
+  Q.Set(points.Last()[0].GetPlainDesignValue(), points.Last()[1].GetPlainDesignValue(),
+        dim_ == 3 ? points.Last()[2].GetPlainDesignValue() : 0.0);
 
   length = P.Dist(Q); // || Q - P ||
   length2 = length*length;
 
   U = (Q-P) / length;
-  V.Set(U[1], -U[0]);
 
-  dx = Q[0] - P[0]; // x-component of the vector from start to end
-  dy = Q[1] - P[1]; // y-component
-  dp_norm = Q[0] * P[1] - Q[1] * P[0]; // end_x*start_y - end_y*start_x
+  if(dim_ == 2) // in 3D the perpendicular direction depends on the point, no helpers to precompute
+  {
+    V.Set(U[1], -U[0]);
+
+    dx = Q[0] - P[0]; // x-component of the vector from start to end
+    dy = Q[1] - P[1]; // y-component
+    dp_norm = Q[0] * P[1] - Q[1] * P[0]; // end_x*start_y - end_y*start_x
+  }
 
   // only required in the anisotropic case
   bool aniso = domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
@@ -1687,27 +1995,33 @@ void FeatureMappingDesign::Pill::Update()
 double FeatureMappingDesign::Pill::Distance(const Point& X, FeatureVariable::Tip* part) const
 {
   assert(points.GetSize() >= 2);
-  assert(X.data.GetSize() >= 2);
-  assert(P.data.GetSize() >= 2);
-  assert(Q.data.GetSize() >= 2);
-  assert(dim_ == 2);
 
   double pval = this->p.GetPlainDesignValue();
   double dist = -1;
 
   // test if we are in the region of the straight bar
-  // if np.dot((X - self.Q), self.U0) <= 0 and np.dot((X - self.P), self.U0) >= 0: 
-  //    projected_distance = abs(np.dot((X - self.Q), self.V0)) 
+  // if np.dot((X - self.Q), self.U0) <= 0 and np.dot((X - self.P), self.U0) >= 0:
+  //    projected_distance = abs(np.dot((X - self.Q), self.V0))
   // Point XQ = X-Q;
   // LOG_DBG(fm) << "P:CD U.Dot(X-Q)=" << U.Dot(X-Q) << " U.Dot(X-P)=" << U.Dot(X-P) << " X-Q=" << XQ.ToString();
   if(length > 0 && U.Dot(X-Q) <= 0 && U.Dot(X-P) >= 0)
   {
-    // distance to line segment https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
-    dist = std::abs(V.Dot(X-Q)) - pval;
-    if(part) 
+    if(dim_ == 2)
+    {
+      // distance to line segment https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
+      dist = std::abs(V.Dot(X-Q)) - pval;
+      // double dl = (std::abs(dy*X[0] - dx*X[0] + dp_norm) / length) - pval;
+    }
+    else
+    {
+      // 3D capsule: perpendicular distance to the axis ||w - (U.w) U|| via Pythagoras
+      Point w = X - P;
+      double t = U.Dot(w);
+      dist = std::sqrt(std::max(w.Dot(w) - t*t, 0.0)) - pval; // max guards rounding for points on the axis
+    }
+    if(part)
       *part = FeatureVariable::INNER;
-    // double dl = (std::abs(dy*X[0] - dx*X[0] + dp_norm) / length) - pval;
-    LOG_DBG(fm) << "P:CD X=" << X.ToString() << " p=" << pval << " P=" << P.ToString() << " Q=" << P.ToString() << " -> line=" << dist;
+    LOG_DBG(fm) << "P:CD X=" << X.ToString() << " p=" << pval << " P=" << P.ToString() << " Q=" << Q.ToString() << " -> line=" << dist;
   }
   else
   {
@@ -1728,27 +2042,49 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
-  assert(out.GetSize() == 5);
+  assert(out.GetSize() == 2*dim_ + 1 + (HasAlpha() ? 1 : 0));
+  if(HasAlpha())
+    out[2*dim_ + 1] = 0.0; // the distance does not depend on the geometry variable alpha
 
   switch(part)
   {
-    // same order as in DE::FEATURE_MAPPING_PX, ...
+    // variable order [Px Py (Pz) Qx Qy (Qz) p] as in GetAllVariables()
   case FeatureVariable::START:
-    out[0] = (P[0]-X[0])/X.Dist(P); 
-    out[1] = (P[1]-X[1])/X.Dist(P);
-    out[2] = 0.0;
-    out[3] = 0.0;
-    out[4] = -1.0; // p
-    break;
   case FeatureVariable::END:
-    out[0] = 0.0; 
-    out[1] = 0.0;
-    out[2] = (Q[0]-X[0])/X.Dist(Q);
-    out[3] = (Q[1]-X[1])/X.Dist(Q);
-    out[4] = -1.0; // p
+  {
+    // d = ||X-C|| - p with the cap center C = P or Q, the other node does not enter
+    const Point& C = part == FeatureVariable::START ? P : Q;
+    int o = part == FeatureVariable::START ? 0 : dim_; // index offset of the block
+    out.Init(0.0);
+    for(unsigned int d = 0; d < dim_; d++)
+      out[o+d] = (C[d]-X[d])/X.Dist(C);
+    out[2*dim_] = -1.0; // p
     break;
+  }
   case FeatureVariable::INNER:
   {
+    if(dim_ == 3)
+    {
+      // envelope theorem for the foot point c = P + beta*(Q-P) of the infinite axis: with the
+      // unit normal n = (X-c)/||X-c|| we get d_d/d_P = -(1-beta)*n and d_d/d_Q = -beta*n
+      Point w = X - P;
+      double beta = U.Dot(w) / length;
+      Point r = w - (Q-P)*beta; // = X - c, perpendicular to the axis
+      double dn = std::sqrt(r.Dot(r)); // = dist + p
+      // on the axis the direction n is undefined (cone tip of the distance function). Such a point
+      // is strictly inside the pill and the H'(dist) factor is zero, we pick the subgradient 0
+      out.Init(0.0);
+      if(dn > 0.0)
+      {
+        for(unsigned int d = 0; d < 3; d++)
+        {
+          out[d]   = -(1.0-beta) * r[d]/dn;
+          out[3+d] = -beta * r[d]/dn;
+        }
+      }
+      out[6] = -1.0; // p
+      break;
+    }
     // wolframalpha
     // diff (V0*(X0-Q0)+V1*(X1-Q1)) by Q1
     // V0 = ((Q1-P1) / sqrt((Q0-P0)**2 + (Q1-P1)**2))
@@ -1791,7 +2127,7 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
-  out.Resize(5, 5);
+  out.Resize(2*dim_ + 1, 2*dim_ + 1);
   out.Init(); // the p row/column stays zero in all cases as the distance is linear in p
 
   switch(part)
@@ -1802,18 +2138,45 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
     // d = ||X-C|| - p with C = P or Q. The Hessian w.r.t. C is the projector
     // (I - m*m^T)/R with R = ||X-C|| and m = (C-X)/R, all other entries are zero
     const Point& C = part == FeatureVariable::START ? P : Q;
-    int o = part == FeatureVariable::START ? 0 : 2; // index offset of the 2x2 block
+    int o = part == FeatureVariable::START ? 0 : dim_; // index offset of the block
     double R = X.Dist(C);
-    double mx = (C[0]-X[0])/R;
-    double my = (C[1]-X[1])/R;
-    out[o][o]     = (1.0 - mx*mx)/R;
-    out[o][o+1]   = -mx*my/R;
-    out[o+1][o]   = out[o][o+1];
-    out[o+1][o+1] = (1.0 - my*my)/R;
+    for(unsigned int i = 0; i < dim_; i++)
+      for(unsigned int j = 0; j < dim_; j++)
+        out[o+i][o+j] = ((i == j ? 1.0 : 0.0) - (C[i]-X[i])/R * (C[j]-X[j])/R)/R;
     break;
   }
   case FeatureVariable::INNER:
   {
+    if(dim_ == 3)
+    {
+      // differentiate the envelope gradient from GradDistance: with the foot parameter
+      // beta = U.(X-P)/length, r = X-P-beta*(Q-P), dn = ||r||, n = r/dn and the projector
+      // Pi = I - n*n^T the blocks are (verified against finite differences)
+      //   H_PP = -dn/length^2 * m1*m1^T + (1-beta)^2/dn * Pi   with m1 =  n + (1-beta)*(Q-P)/dn
+      //   H_PQ = -dn/length^2 * m1*m2^T + beta*(1-beta)/dn * Pi with m2 = -n + beta*(Q-P)/dn
+      //   H_QQ = -dn/length^2 * m2*m2^T + beta^2/dn * Pi
+      Point v = Q - P;
+      Point w = X - P;
+      double beta = U.Dot(w) / length;
+      Point r = w - v*beta;
+      double dn = std::sqrt(r.Dot(r));
+      if(dn == 0.0)
+        break; // on the axis the distance is not differentiable, keep zeros as in GradDistance
+      Point n = r / dn;
+      Point m1 = n + v*((1.0-beta)/dn);
+      Point m2 = v*(beta/dn) - n;
+      double f = dn/length2;
+      for(int i = 0; i < 3; i++)
+        for(int j = 0; j < 3; j++)
+        {
+          double Pi = (i == j ? 1.0 : 0.0) - n[i]*n[j];
+          out[i][j]     = -f*m1[i]*m1[j] + (1.0-beta)*(1.0-beta)/dn * Pi;
+          out[i][3+j]   = -f*m1[i]*m2[j] + beta*(1.0-beta)/dn * Pi;
+          out[3+i][j]   = -f*m2[i]*m1[j] + beta*(1.0-beta)/dn * Pi;
+          out[3+i][3+j] = -f*m2[i]*m2[j] + beta*beta/dn * Pi;
+        }
+      break;
+    }
     // d = sg*n/D - p with the numerator n = V.(X-Q)*D and D = ||Q-P|| = length, see GradDistance.
     // Product/chain rule in structured form (verified with sympy):
     //   Hess(n/D) = Hess(n)/D - (gn*gD^T + gD*gn^T)/D^2 + n*(2*gD*gD^T/D^3 - Hess(D)/D^2)
@@ -1848,17 +2211,16 @@ void FeatureMappingDesign::Pill::HessDistance(const Point& X, FeatureVariable::T
 void FeatureMappingDesign::Pill::HessLength(Matrix<double>& out) const
 {
   // the native 'distance' constraint is c = ||Q-P|| = length. Its exact Hessian w.r.t.
-  // (Px,Py,Qx,Qy) is the [[Hv,-Hv],[-Hv,Hv]] block with Hv = (I - U U^T)/length and U = (Q-P)/length -
-  // exactly the Hess(D) term documented in HessDistance()'s INNER case. The profile p is linear
-  // (absent), so its row/column stays zero.
-  out.Resize(5, 5);
+  // (Px,Py,(Pz),Qx,Qy,(Qz)) is the [[Hv,-Hv],[-Hv,Hv]] block with Hv = (I - U U^T)/length and
+  // U = (Q-P)/length - exactly the Hess(D) term documented in HessDistance()'s INNER case.
+  // The profile p is linear (absent), so its row/column stays zero.
+  int d = (int) dim_;
+  out.Resize(2*d + 1, 2*d + 1);
   out.Init();
   assert(length > 0.0);
-  const double Hv[2][2] = {{(1.0 - U[0]*U[0])/length, -U[0]*U[1]/length},
-                           {-U[0]*U[1]/length, (1.0 - U[1]*U[1])/length}};
-  for(int i = 0; i < 4; i++)
-    for(int j = 0; j < 4; j++)
-      out[i][j] = (i/2 == j/2 ? 1.0 : -1.0) * Hv[i%2][j%2];
+  for(int i = 0; i < 2*d; i++)
+    for(int j = 0; j < 2*d; j++)
+      out[i][j] = (i/d == j/d ? 1.0 : -1.0) * ((i%d == j%d ? 1.0 : 0.0) - U[i%d]*U[j%d])/length;
 }
 
 inline double FeatureMappingDesign::Pill::GradAngle(int s) const
@@ -1897,11 +2259,20 @@ inline void FeatureMappingDesign::BoundaryFunction::Eval(const Vector<double>& d
 
 inline bool FeatureMappingDesign::BoundaryFunction::IsConstant(const ItemIP* item_ip) const
 {
-  for(const IntegrationPoint* ip : item_ip->corner)
+  // The feature loop is the outer one as the constant side has to be common within a feature: corners
+  // at dist <= -h and at dist >= h are both IsConstant() but the transition zone of this feature then
+  // crosses the element and it needs refinement. Note that different features may well be on
+  // different sides, this is a perfectly constant element.
+  for(unsigned int f = 0; f < item_ip->corner[0]->dist.GetSize(); f++)
   {
-    for(double d : ip->dist)
-      if(!IsConstant(d))
-        return false;
+    bool all_in = true, all_out = true;
+    for(const IntegrationPoint* ip : item_ip->corner)
+    {
+      all_in  &= IsInside(ip->dist[f]);
+      all_out &= IsOutside(ip->dist[f]);
+    }
+    if(!all_in && !all_out)
+      return false;
   }
   return true;
 }
@@ -1981,7 +2352,8 @@ inline double FeatureMappingDesign::Quintic::Eval(double d) const
 
   double s = d/h;
   double s2 = s*s;
-  return bias - fac * s * (15.0 - s2*(10.0 - 3.0*s2));
+  // clamp: near s=1 bias and the polynomial term cancel and rounding can undershoot rhomin (~1e-17)
+  return std::clamp(bias - fac * s * (15.0 - s2*(10.0 - 3.0*s2)), rhomin, 1.0);
 }
 
 inline double FeatureMappingDesign::Quintic::Grad(double d) const
@@ -2178,7 +2550,9 @@ double FeatureMappingDesign::Bezier::Eval(double dist, bool exact) const
     return rhomin;
 
   double H = exact ? EvalByT(Wy, SolveT(dist)) : Interpolate(H_tab, dH_tab, dist);
-  return rhomin + (1.0 - rhomin) * H;
+  // clamp: the Hermite interpolation can under/overshoot [0,1] by its interpolation error at the
+  // flat ends; H' = 0 there, so the clip stays below the table consistency of Grad()/Hessian()
+  return rhomin + (1.0 - rhomin) * std::clamp(H, 0.0, 1.0);
 }
 
 double FeatureMappingDesign::Bezier::Grad(double dist, bool exact) const
@@ -2231,6 +2605,8 @@ double FeatureMappingDesign::P_Norm::Grad(const Vector<double>& projected, unsig
   double sum = 0.0;
   for(double v : projected)
     sum += std::pow(v, p);
+  if(sum == 0.0)
+    return 0.0; // the p-norm is not differentiable at the origin (all rho zero, e.g. alpha=0 with rhomin=0), avoid inf*0=NaN
   double res = std::pow(sum, 1.0/p - 1.0) * std::pow(projected[num],p-1); // to be multiplied with d_rho_s/d_s
   LOG_DBG3(fm) << "PN:G by " << num << " v=" << projected.ToString() << " p=" << p << " -> " << res;
   return res;

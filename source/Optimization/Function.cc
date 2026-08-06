@@ -81,6 +81,10 @@ Function::Function(PtrParamNode pn)
     this->design_ = BaseDesignElement::type.Parse(
         pn->Get("design")->As<string>());
 
+  // a derived per-element field instead of the design value, checked in CheckField()
+  if (pn->Has("field"))
+    this->field_ = pn->Get("field")->As<string>();
+
   // use mathparser for the parameter
   parameter_ = 0.0;
   if(pn->Has("parameter"))
@@ -375,6 +379,9 @@ void Function::ToInfo(PtrParamNode info) {
 
   if(type_ == GREYNESS)
     info->Get("gray_scale")->SetValue(CalcGraynessScaling());
+
+  if(!field_.empty())
+    info->Get("field")->SetValue(field_);
 
   // We might have non-standard stresses
   if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
@@ -801,8 +808,51 @@ bool Function::CalcCurvature(Vector<double>& diag)
   case PYTHON_FUNCTION:
   case LOCAL_PYTHON_FUNCTION:
     return CalcCurvaturePython(diag); // implemented in PythonFunction.cc
+
+  case COMPLIANCE:
+  {
+    // state dependent: the explicit rho-curvature diagonal is -u_e^T (d^2 tf/drho_e^2 K0_e) u_e
+    // and vanishes for a transfer function with zero second derivative. The dense state-curvature
+    // block 2 B^T Z is not expressible in this per-element interface - a second order optimizer
+    // adds it on top of the geometric terms (ErsatzMaterial::CalcStateHessianBlock(), see
+    // PythonOptimizer::EvalHessian()). No zeros for a penalized tf - that would silently drop the
+    // diagonal (-u^T tf'' K0 u for e.g. simp is not implemented yet).
+    TransferFunction* tf = domain->GetDesign()->GetTransferFunction(GetDesignType(), App::MECH, true);
+    if(tf->GetType() == TransferFunction::IDENTITY || (tf->GetType() == TransferFunction::SIMP_TYPE && tf->GetParam() == 1.0))
+    {
+      diag.Resize(elements.GetSize());
+      diag.Init(0.0);
+      return true;
+    }
+    return false;
+  }
+
   default:
-    return false; // C++ functions provide no curvature information (yet)
+    // a function linear in the pseudo density (e.g. volume) has exactly zero curvature - this is
+    // information, in contrast to the nonlinear C++ functions which provide none (yet). The same
+    // reasoning backs the sparse path in Function::CalcHessian().
+    if(IsLinearInDensity())
+    {
+      diag.Resize(elements.GetSize());
+      diag.Init(0.0);
+      return true;
+    }
+    return false; // nonlinear C++ functions provide no curvature information (yet)
+  }
+}
+
+bool Function::IsLinearInDensity() const
+{
+  // linearity in the pseudo density rho, needed for the curvature d^2J/d_rho_e^2. This differs
+  // from IsLinear(): that flag has optimizer semantics (linear in the design variables, e.g. for
+  // snopt) and for feature mapping FeaturedDesign::CheckPlausibility() even enforces the volume
+  // to be declared non-linear - while it stays linear in rho.
+  switch(type_)
+  {
+  case VOLUME:
+    return true;
+  default:
+    return IsLinear(); // for density designs both notions coincide
   }
 }
 
@@ -976,6 +1026,19 @@ bool Function::IsLocal(Type t) {
   }
 }
 
+
+void Function::CheckField(const DesignSpace* space)
+{
+  if(!field_.empty() && space->GetImplicitResultIndex(field_) < 0)
+    EXCEPTION("the field '" << field_ << "' of function '" << ToString() << "' does not exist here");
+
+  // no guessing: with alpha both volumes are meaningful, so the input has to say which one
+  if(type_ == VOLUME && field_.empty() && design_ == DesignElement::DEFAULT
+     && space->GetImplicitResultIndex(DesignSpace::PLAIN_ALPHA_DENSITY_FIELD) >= 0)
+    EXCEPTION("with the feature mapping geometry variable 'alpha' a volume function has to be explicit: "
+              << "field='" << DesignSpace::PLAIN_ALPHA_DENSITY_FIELD << "' for the unpenalized volume of "
+              << "combine(alpha_f * rho_f) or design='density' for the alpha^q volume");
+}
 
 void Function::SetElements(DesignSpace* space, RegionIdType region)
 {

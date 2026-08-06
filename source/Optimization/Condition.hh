@@ -87,6 +87,10 @@ namespace CoupledField
        /** Is this observation or active */
        bool IsObservation() const { return observation_; }
 
+       /** shall the gradient be computed for this observation ('observeGradient' attribute)?
+        * Computed and read on demand via the python api cfs.eval_function_gradient() */
+       bool HasObserveGradient() const { return observe_gradient_; }
+
        /** active not in a active set optimization sense but !observation */
        bool IsActive() const { return !IsObservation(); }
        
@@ -195,6 +199,9 @@ namespace CoupledField
 
       /** Is this an observation constraint only. */
       bool observation_ = false;
+
+      /** compute the gradient for this observation such that python can read it on demand */
+      bool observe_gradient_ = false;
 
       /** Some special constraints are automatically blown up - like isotropy. But
        * even then the first of the entries is NOT blown up!

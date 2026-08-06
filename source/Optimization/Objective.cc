@@ -280,6 +280,7 @@ void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure
     if(o->tune.IsSet())
       o->tune.Register(&(o->scale), domain->GetOptimization());
     o->SetDenseSparsityPattern(space);
+    o->CheckField(space); // 'field' valid and explicit where cfs must not guess (feature mapping alpha volume)
     o->SetElements(space, o->region); // before Function::PostProc() !
     o->PostProc(space, structure);
     o->SetExcitation(me);

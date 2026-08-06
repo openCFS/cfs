@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/simulation
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>3D feature mapping with the geometry variable alpha</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2026-08-01</date>
+    <references>Wein, Dunning, Norato; A review on feature-mapping methods for structural optimization; 2020</references>
+    <isVerified>no</isVerified>
+    <description>
+      Here we test 3d pills and alpha by a finite difference test, therefore the problem is rather slow.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <!-- 1 x 1 x 0.2 with h=0.1: 10 x 10 x 2 = 200 elements. nz is derived from the box -->
+      <regular geometryType="3d" region="mech">
+        <box xMax="1" yMax="1" zMax="0.2"/>
+        <elements nx="10" />
+      </regular>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left">
+              <comp dof="x"/>
+              <comp dof="y"/>
+              <comp dof="z"/>
+           </fix>
+           <force name="bottom_right">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <!-- Any realistic 3D problem shall consider an iterative solver.
+         For this minimalistic example with finite difference tests of the Hessian, ginkgo is too slow -->
+    <!-- <linearSystems>
+      <system>
+        <solverList>
+          <ginkgo/>
+        </solverList>
+      </system>
+    </linearSystems> -->
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize"/>
+    <!-- the alpha volume on the implicit field v_e = combine(alpha_f * rho_f) -->
+    <constraint type="volume" field="plainAlphaDensity" bound="upperBound" value="0.3" mode="constraint" linear="false"/>
+
+    <optimizer type="python" maxIterations="2">
+      <!-- scipy is no realistic solver (but available in the pipeline), make sure to disable the finite difference test -->
+      <python file="hessian_scipy.py" path="cfs:share:python">
+        <option key="fd_check" value="true"/>
+      </python>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping transition="0.1" boundary="quintic" order="4" combine="p-norm" p="4">
+        <!-- q=3 as the SIMP-like default: it is the smallest exponent for which all three alpha
+             factors are non-trivial functions of alpha - q(q-1)*alpha^(q-2) is exactly 0 for q=1
+             and the constant 2 for q=2, so only q>2 really asserts the second one. lower=0 lets a
+             feature vanish completely -->
+        <alpha initial="0.8" lower="0" upper="1" q="3"/>
+        <!-- bottom chord. z is free within the depth, the profile at most fills it -->
+        <pill>
+          <node dof="x" initial="0.05" lower="0" upper="1"   tip="start"/>
+          <node dof="y" initial="0.1"  lower="0" upper="1"   tip="start"/>
+          <node dof="z" initial="0.1"  lower="0" upper="0.2" tip="start"/>
+          <node dof="x" initial="0.95" lower="0" upper="1"   tip="end"/>
+          <node dof="y" initial="0.1"  lower="0" upper="1"   tip="end"/>
+          <node dof="z" initial="0.1"  lower="0" upper="0.2" tip="end"/>
+          <profile initial="0.08" lower="0.05" upper="0.1"/>
+        </pill>
+        <!-- diagonal from the upper left towards the load -->
+        <pill>
+          <node dof="x" initial="0.05" lower="0" upper="1"   tip="start"/>
+          <node dof="y" initial="0.9"  lower="0" upper="1"   tip="start"/>
+          <node dof="z" initial="0.1"  lower="0" upper="0.2" tip="start"/>
+          <node dof="x" initial="0.95" lower="0" upper="1"   tip="end"/>
+          <node dof="y" initial="0.15" lower="0" upper="1"   tip="end"/>
+          <node dof="z" initial="0.1"  lower="0" upper="0.2" tip="end"/>
+          <profile initial="0.08" lower="0.05" upper="0.1"/>
+        </pill>
+        <!-- vertical bar to be faded away via alpha, geometrically fixed: alpha is its only free variable -->
+        <pill>
+          <node dof="x" fixed="0.5" tip="start"/>
+          <node dof="y" fixed="0.2" tip="start"/>
+          <node dof="z" fixed="0.1" tip="start"/>
+          <node dof="x" fixed="0.5" tip="end"/>
+          <node dof="y" fixed="0.8" tip="end"/>
+          <node dof="z" fixed="0.1" tip="end"/>
+          <profile fixed="0.08"/>
+        </pill>
+      </featureMapping>
+      <!-- lower=0 is what alpha needs, the ground material keeps the system regular -->
+      <design name="density" initial="0.5" lower="0" upper="1.0" groundmaterial="void"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <export save="last" write="iteration"/>
+
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

@@ -16,6 +16,26 @@
       </xsd:documentation>
     </xsd:annotation>
     <xsd:sequence>
+      <xsd:element name="import" minOccurs="0" maxOccurs="unbounded">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Merge a further python file into the kernel namespace via python's 'from file import *'.
+            On name collision the import wins over the kernel script, the last import wins among several.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="file" type="xsd:token" use="required">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">filename of the python file to import</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="path" type="xsd:string" use="optional" default="">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">optional root for file with cfs:share:python a special key to be resolved via schema path, searching share/python/embedded first and share/python second</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
       <xsd:element name="callback" minOccurs="0" maxOccurs="unbounded">
        <xsd:annotation>
          <xsd:documentation xml:lang="en">
@@ -81,10 +101,10 @@
         <xsd:documentation xml:lang="en">filename of the input file</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path, searching share/python/embedded first and share/python second -->
     <xsd:attribute name="path" type="xsd:string" use="optional" default="" >
       <xsd:annotation>
-        <xsd:documentation xml:lang="en">optional root for file with cfs:share:python a special key to be resolved via schema path</xsd:documentation>
+        <xsd:documentation xml:lang="en">optional root for file with cfs:share:python a special key to be resolved via schema path, searching share/python/embedded first and share/python second</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>

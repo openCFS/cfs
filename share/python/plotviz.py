@@ -18,6 +18,8 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
+  import tempfile
+  from PIL import Image
   try:
     import snopt # our snopt.py helper process
   except ImportError:
@@ -621,6 +623,7 @@ if __name__ == '__main__':
   parser.add_argument("--save", help='write to given filename using the extension')
   parser.add_argument("--noautocomplete", help='supress searching only for beginning of key',action='store_true')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
+  parser.add_argument("--detach", help='open the image in an external viewer and return immediately; the window persists after the app ends', action='store_true')
     
   args = parser.parse_args()
   
@@ -955,6 +958,13 @@ if __name__ == '__main__':
     
   if not args.noshow:
     #print('show ' + str(len(x[0])) + ' of ' + str(len(data[0])) + ' datapoints')
-    plt.show()
+    if args.detach:
+      # save to a temp file and hand it to the OS viewer (like show_density.py); the window persists after we exit
+      fd, tmp = tempfile.mkstemp(suffix='.png')
+      os.close(fd)
+      plt.savefig(tmp, bbox_inches='tight')
+      Image.open(tmp).show()
+    else:
+      plt.show()
 
 # here could be an else case for the import plotviz part   

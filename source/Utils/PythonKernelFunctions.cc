@@ -86,6 +86,36 @@ PyObject* get_pseudo_density(PyObject *self, PyObject *args)
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetPseudoDensity(args) : nullptr;
 }
 
+PyObject* eval_function(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::EvalFunctionByName(args) : nullptr;
+}
+
+PyObject* eval_function_gradient(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::EvalFunctionGradientByName(args) : nullptr;
+}
+
+PyObject* is_function_state_dependent(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::IsFunctionStateDependent(args) : nullptr;
+}
+
+PyObject* get_shape_jacobian(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetShapeJacobian(args) : nullptr;
+}
+
+PyObject* apply_dk_drho(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::ApplyDkDrho(args) : nullptr;
+}
+
+PyObject* solve_state(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::SolveState(args) : nullptr;
+}
+
 PyObject* get_opt_design_value(PyObject *self, PyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValue(args) : nullptr;
@@ -356,6 +386,36 @@ PyObject* optimizer_set_property(PyObject *self, PyObject *args)
 PyObject* feature_mapping_num_parameters(PyObject *self, PyObject *args)
 {
   return PyLong_FromLong(PythonKernel::GetFeaturedDesign()->GetNumberOfFeatureMappingVariables());
+}
+
+/** the layout of the feature mapping parameters as string/string dict: 'features', 'vars_per_feature',
+ * 'dim' and 'alpha' (0/1). Derived from the variable types, so python kernels (e.g. pill_volume.py)
+ * can be written dimension and alpha transparent. The variable order per feature is
+ * [Px Py (Pz) Qx Qy (Qz) p (alpha)], see FeatureMappingDesign::num_var_by_feature */
+PyObject* feature_mapping_layout(PyObject *self, PyObject *args)
+{
+  FeaturedDesign* fd = PythonKernel::GetFeaturedDesign(); // throws
+  int n = fd->GetNumberOfFeatureMappingVariables();
+  int features = 0;
+  bool alpha = false;
+  for(int i = 0; i < n; i++)
+  {
+    BaseDesignElement::Type t = fd->GetFeaturedDesignElement(i)->GetType();
+    features += t == BaseDesignElement::PROFILE ? 1 : 0; // every pill has exactly one profile
+    alpha |= t == BaseDesignElement::FEATURE_MAPPING_ALPHA;
+  }
+  if(features == 0 || n % features != 0)
+    throw Exception("feature_mapping_layout() assumes features with one profile variable each");
+
+  int nv = n / features;
+  int dim = (nv - 1 - (alpha ? 1 : 0)) / 2; // nodes P and Q with dim coordinates each
+
+  StdVector<std::pair<std::string, std::string> > map;
+  map.Push_back(std::make_pair("features", std::to_string(features)));
+  map.Push_back(std::make_pair("vars_per_feature", std::to_string(nv)));
+  map.Push_back(std::make_pair("dim", std::to_string(dim)));
+  map.Push_back(std::make_pair("alpha", std::string(alpha ? "1" : "0")));
+  return PythonKernel::CreatePythonDict(map);
 }
 
 /** fills the given array with feature mapping parameters. Including fixed ones and no aux or design */
@@ -656,9 +716,15 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"get_pseudo_density", get_pseudo_density, METH_VARARGS, "Fills numpy array (size get_num_pseudo_density) with element pseudo density DesignSpace::data; for feature mapping the aggregated mrho_e. Optional access."},
   {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional Function::Access (int or string). Default plain. For slack, ... silently plain"},
   {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "attribute is numpy array and optional Function::Access. See get_opt_design_value()"},
-  {"get_opt_stopping_rules", get_opt_stopping_rules, METH_VARARGS, "return the stoppping rules"},
+  {"get_opt_stopping_rules", get_opt_stopping_rules, METH_VARARGS, "return the stopping rules"},
   {"get_opt_iteraton", get_opt_iteraton, METH_VARARGS, "Return Optimization->GetCurrentIteration()"},
   {"get_opt_function_values", get_opt_function_values, METH_VARARGS, "return two string/string maps with name an value for objective functions and constraints as in .info.xml"},
+  {"eval_function", eval_function, METH_VARARGS, "on-demand evaluation of a named constraint/observation at the current design and state; returns float. In contrast to get_opt_function_values, which mirrors the logging cache of the last committed iteration"},
+  {"eval_function_gradient", eval_function_gradient, METH_VARARGS, "on-demand gradient of a named constraint w.r.t. the pseudo density, filled per element into the given 1D numpy array (plain). An observation needs observeGradient='true'"},
+  {"is_function_state_dependent", is_function_state_dependent, METH_VARARGS, "whether the named function depends on the state (adjoint based, e.g. compliance); returns bool. A second-order driver uses it to decide whether cfs.evalhessian is the complete objective Hessian or misses the state-curvature block"},
+  {"get_shape_jacobian", get_shape_jacobian, METH_VARARGS, "fill 2D numpy array (elements x n) with the feature mapping Jacobian d_mrho/d_s in optimization variable space at the current design"},
+  {"apply_dk_drho", apply_dk_drho, METH_VARARGS, "fill 1D numpy array b (algebraic size) with sum_e w_e (dK_e/drho_e) u_e for given per-element weights w and the named function's state problem. Building block of the exact state-curvature Hessian block, see hessian_scipy.py"},
+  {"solve_state", solve_state, METH_VARARGS, "solve K z = rhs with the current factorized state system and homogeneous Dirichlet bounds (state derivative/adjoint semantics); rhs and z are 1D arrays of the algebraic size (= b from apply_dk_drho)"},
   {"get_opt_function_properties", get_opt_function_properties, METH_VARARGS, "return string/string maps with with property of objective/constraint/observation"},
   {"get_opt_filter_values", get_opt_filter_values, METH_VARARGS, "return string/string map for given filter index with filter properties. Check total_filter property!"},
   {"set_opt_filter_values", set_opt_filter_values, METH_VARARGS, "set optimization filter idx, beta, eta, scale, offset where idx and beta is required. No keywords allowed!"},
@@ -668,6 +734,7 @@ PyMethodDef PythonKernel::cfs_methods[] =
   /* feature mapping optimization design */
   {"feature_mapping_num_parameters", feature_mapping_num_parameters, METH_VARARGS, "Return the number of feature mapping parameters including fixed variables"},
   {"feature_mapping_get_parameters", feature_mapping_get_parameters, METH_VARARGS, "Fills given numpy array with feature mapping parameters"},
+  {"feature_mapping_layout", feature_mapping_layout, METH_VARARGS, "Return string/string dict with the feature mapping parameter layout: features, vars_per_feature, dim, alpha"},
 
   /** python optimizer */
   {"bounds", opt_bounds, METH_VARARGS, "Give design and constraints bounds. Expects 1D arrays for xl, xu, gl, gu"},

@@ -211,7 +211,8 @@ public:
   std::string ToString() const override;
 
   std::string GetLabel() const override;
-
+  
+  /** test for geometric feature variables and alpha */
   static bool IsFeatureVariable(BaseDesignElement::Type type) { 
     return type >= BaseDesignElement::FEATURE_MAPPING_PX && type < BaseDesignElement::ALL_FEATURES; 
   }
@@ -233,7 +234,7 @@ public:
   /** pill/noodle index */
   int feature = -1;
 
-  BaseDesignElement::Type var; // FEATURE_MAPPING_PX, NODE, RADIUS, ... 
+  BaseDesignElement::Type var = BaseDesignElement::NO_TYPE; // FEATURE_MAPPING_PX, NODE, RADIUS, ... set by Parse()
 };
 
 
@@ -561,6 +562,12 @@ public:
    * @param pn our data */
   ResultDescription(PtrParamNode pn);
 
+  /** for a result cfs registers itself instead of reading it from <result/>, e.g. the feature mapping
+   * alpha volume field. Sets value = GENERIC_ELEM with name as 'generic' and marks it implicit
+   * @param st the reserved slot, @see DesignSpace::IMPLICIT_RESULT_SLOT
+   * @param name the field name, also the result name in the output */
+  ResultDescription(SolutionType st, const std::string& name);
+
   /** debug output */
   std::string ToString();
 
@@ -583,6 +590,11 @@ public:
 
   /** An optional excitation index. Negative for not set*/
   int excitation = -1;
+
+  /** not from <result/> in the xml but registered by cfs itself. Such a result is not expected to be
+   * referenced in 'storeResults' and must not warn when it is not
+   * @see DesignSpace::GetImplicitResultIndex() */
+  bool implicit = false;
 };
 
 inline

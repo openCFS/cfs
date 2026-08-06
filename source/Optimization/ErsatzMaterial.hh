@@ -71,6 +71,37 @@ public:
   /** This solves all Adjoint problems */
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
 
+  /** out += sum_e w_e (dK_e/drho_e) u_e with the current forward solution - the density-directional
+   * derivative of the stiffness operator applied to the state. Backend of the python api
+   * cfs.apply_dk_drho for the exact state-curvature Hessian block of self-adjoint functions,
+   * see hessian_scipy.py. The transfer function chain is included via SetElementK (derivative).
+   * @param f gives design type, transfer function and context (e.g. the observed compliance)
+   * @param w per-element weights (size of the design data), zeros are skipped
+   * @param out algebraic vector (size of the raw forward solution), initialized here
+   * @param ex the excitation whose state is used; NULL requires a single excitation */
+  void CalcDkDrhoTimesState(Function* f, const Vector<double>& w, Vector<double>& out, Excitation* ex = nullptr);
+
+  /** solve K z = rhs with the current (factorized) state system and homogeneous Dirichlet bounds
+   * (the semantics of a state derivative or adjoint). The forward solution is restored afterwards.
+   * Backend of the python api cfs.solve_state, see CalcDkDrhoTimesState().
+   * @param f for context and system state handling (as in SolveAdjointProblem)
+   * @param rhs algebraic right hand side
+   * @param out the solution z, sized here
+   * @param ex the excitation whose system is used; NULL requires a single excitation */
+  void SolveStateWithRHS(Function* f, const Vector<double>& rhs, Vector<double>& out, Excitation* ex = nullptr);
+
+  /** The dense state-curvature Hessian block of a self-adjoint state dependent function (currently
+   * 'compliance') in optimization variable space: sum_l 2 w_l B_l^T Z_l with the per-excitation
+   * pseudo loads (B_l)_i from CalcDkDrhoTimesState() on the columns of the shape Jacobian D, the
+   * state derivative solves Z_l = K^-1 B_l from SolveStateWithRHS() and the excitation weight
+   * w_l = GetWeightedFactor() - the excitation loop mirrors filter and weights of
+   * Optimization::CalcObjectiveGradient()/CalcConstraintGradient(). Triggered by a second order
+   * optimizer (PythonOptimizer::EvalHessian()/EvalConstraintHessian()) on top of the geometric
+   * terms from FeatureMappingDesign::CalcShapeHessian() - the complete Hessian of e.g. a native
+   * multiload compliance, no python observation wrapper needed.
+   * @param H n x n in optimization variable space, sized and initialized here */
+  void CalcStateHessianBlock(Function* f, Matrix<double>& H);
+
   /** Here we also write the density files */
   PtrParamNode CommitIteration();
 
@@ -535,8 +566,10 @@ private:
 
   /** Preparing the adjoint system constructs the rhs and the system (IDBC- > HDBC).
    * It needs afterwards to be solved by assemble->GetAlgSys()->Solve()
-   * Then the adjoint state can be read and after this the system can be resored to the state system */
-  SystemState PrepareAdjointSystem(Excitation& excite, Function* f);
+   * Then the adjoint state can be read and after this the system can be resored to the state system
+   * @param custom_rhs skip ConstructAdjointRHS(), the caller sets the rhs itself (like the
+   *        LOCAL_STRESS case in SolveAdjointProblem() and SolveStateWithRHS()) */
+  SystemState PrepareAdjointSystem(Excitation& excite, Function* f, bool custom_rhs = false);
 
   /** restores state system after PrepareAdjointSystem(), solve and StateSolution::Read(). To have IDBC->HDBC in the adjoint
    * requires first StateSolution::Read() before we reset proper IDBC. */

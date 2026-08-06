@@ -291,9 +291,10 @@ namespace CoupledField
       * @see gradplot_ */
      virtual void WriteGradientFile() {} ;
 
-     /** assembles and writes the exact shape Hessian to <simname>.hessian.xml for supported feature mapping functions with
-      * curvature information (Function::CalcCurvature()). Triggered by the 'hessexport' attribute and
-      * only implemented for FeatureMappingDesign. Called for every iteration after the gradients */
+     /** assembles and writes the exact shape Hessian of all functions, split into its terms, to
+      * <simname>.hessian.xml. Triggered by the 'hessexport' attribute and only implemented for
+      * FeatureMappingDesign. Called for every iteration after the gradients. Diagnostic format
+      * documented in Optimization/FeatureMapping/pill_volume_hessian/README.md */
      virtual void WriteHessExportFile() {} ;
 
      /** assemble the exact total shape Hessian of func in optimization variable space (n x n), for
@@ -376,6 +377,9 @@ namespace CoupledField
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
+
+     /** the number of pseudo densities towards the python API */
+     unsigned int GetNumberOfPseudoDensities() const { return data.GetSize(); }
 
      /** number of designs*/
      unsigned int GetNumberOfDesigns() const {return design.GetSize(); }
@@ -492,6 +496,22 @@ namespace CoupledField
       * E.g. for Python spaghetti
       * @param value shall be GENERIC_ELEM */
      int GetSpecialResultIndex(DesignElement::ValueSpecifier value, const std::string& generic);
+
+     /** The index in DesignElement::specialResult for a per-element field which cfs registers itself
+      * (not from <result/>). Strict name match, no DEFAULT wildcards as in GetSpecialResultIndex().
+      * @param name e.g. PLAIN_ALPHA_DENSITY_FIELD
+      * @return -1 if there is no such implicit field */
+     int GetImplicitResultIndex(const std::string& name) const;
+
+     /** the reserved slot for an implicit result. The last one as optResult_1 is the one commonly
+      * used in the xml. A <result/> on this id is an error */
+     static const SolutionType IMPLICIT_RESULT_SLOT = (SolutionType) (OPT_RESULT_BOUND - 1);
+
+     /** the implicit per-element field of the feature mapping geometry variable alpha:
+      * v_e = combine(alpha_f * rho_f) with the plain alpha (no exponent q), the quantity of the
+      * unpenalized alpha volume. Written by FeatureMappingDesign::MapFeatureToDensity(), read by a
+      * volume function with field="plainAlphaDensity" */
+     static constexpr const char* PLAIN_ALPHA_DENSITY_FIELD = "plainAlphaDensity";
 
      /** collect all generic results. GENERIC_ELEM and possibly late the nodes also */
      StdVector<const ResultDescription*> GetGenericResults() const;

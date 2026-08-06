@@ -202,8 +202,8 @@ protected:
 
     int GetOptVariables() const { return opt_variables_; }
    
-    /** does a const_cast */
-    void GetAllVariables(StdVector<FeatureVariable*>& out) const;
+    /** does a const_cast. Virtual as Pill appends its optional alpha variable */
+    virtual void GetAllVariables(StdVector<FeatureVariable*>& out) const;
     StdVector<FeatureVariable*> GetAllVariables() const;
 
     /** for Pill and 2D Noodle this is start and of a vector of two variables */

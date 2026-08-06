@@ -451,6 +451,11 @@ namespace CoupledField
         /** This holds our optimizer instance. */
         BaseOptimizer* baseOptimizer_ = NULL;
 
+        /** BaseOptimizer::ValidateTimers() where baseOptimizer_ may not be set yet: an optimizer which
+         * autoscales in its constructor (ipopt, snopt, feasPP) evaluates the objective before
+         * baseOptimizer_ is assigned, see BaseOptimizer::Scale::CalcAutoscale(). Only for assert() */
+        bool ValidateOptimizerTimers() const;
+
       private:
         /** CommitIteration() does not necessary store the results when we have a stride
          * set in the <commit> element. In case this method makes a StoreResults (not commit)
