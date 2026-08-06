@@ -48,6 +48,7 @@
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="movingMeshId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="rotateMaterialTensorsId" type="xsd:token" use="optional" default="">
                       <xsd:annotation>
                         <xsd:documentation>References a rotation entry in rotationList by name. When set, all material tensors of this region are rotated using the referenced refVec/targetVec pair.</xsd:documentation>
@@ -110,6 +111,20 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="velocity" type="DT_BcInhomVector_stabilisation"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining moving grids -->
+          <xsd:element name="movingMeshList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Defines the grid velocity for the ALE formulation of the heat equation
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="movingMesh" type="DT_BcInhomVector"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

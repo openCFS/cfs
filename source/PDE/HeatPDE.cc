@@ -78,6 +78,17 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   isLinFlowPDECoupled_ = false;
   isCouplingFormulationSymmetric_ = false;
 
+  // Grid velocity coefficient function for the ALE formulation
+  gridVelCoef_.reset(
+      new CoefFunctionMulti(
+          CoefFunction::VECTOR,
+          ptGrid_->GetDim(),
+          1,
+          isComplex_,
+          true
+      )
+  );
+
   interfaceDrivenHeatSource_ = false;
 
   // convert to tensor type
@@ -556,41 +567,133 @@ void HeatPDE::DefineIntegrators() {
       }
     }
 
-
     // ====================================================================
-    // check for convective velocity (no infinite mapping allowed)
+    // Check for physical and moving-mesh transport velocities
     // ====================================================================
-    std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
-    if(velocityId != "") {
-      if(isMapping)
-        EXCEPTION("Infinite mapping, applied to a region with defined velocity is permitted!!");
+    std::string movingMeshId =
+        curRegNode->Get("movingMeshId")->As<std::string>();
+    std::string velocityId =
+        curRegNode->Get("velocityId")->As<std::string>();
 
-      // Factor for convective matrix: density * heatCapacity
+    if(movingMeshId != "" && analysistype_ != TRANSIENT) {
+      EXCEPTION("Moving mesh terms in HeatPDE are currently only supported for transient analysis!");
+    }
+
+    if((velocityId != "" || movingMeshId != "") && isMapping) {
+      EXCEPTION("Infinite mapping applied to a region with a defined transport velocity is not permitted!");
+    }
+
+    if(movingMeshId != "" && stabilisation != NO_STABILISATION) {
+      EXCEPTION("Stabilisation is currently not implemented for the ALE formulation of HeatPDE!");
+    }
+
+    // Common factor for physical and grid-induced heat transport: density * heatCapacity
+    PtrCoefFct transportFactor = NULL;
+    if(velocityId != "" || movingMeshId != "") {
       PtrCoefFct density = NULL;
-      if(nonLinTypes.Find(NLHEAT_DENSITY) != -1){
+      if(nonLinTypes.Find(NLHEAT_DENSITY) != -1) {
         WARN("Nonlinear density is not validated for convective problems.");
         PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-        density = actSDMat->GetScalCoefFncNonLin( DENSITY, Global::REAL, heatCoef );
-      }else{
-        // linear mass density
-        density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+        density = actSDMat->GetScalCoefFncNonLin(DENSITY, Global::REAL, heatCoef);
+      } else {
+        density = actSDMat->GetScalCoefFnc(DENSITY, Global::REAL);
       }
 
       PtrCoefFct heatCapacity = NULL;
-      if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+      if(nonLinTypes.Find(NLHEAT_CAPACITY) != -1) {
         PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-        heatCapacity = actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
-      }else{
-        heatCapacity = actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+        heatCapacity = actSDMat->GetScalCoefFncNonLin(HEAT_CAPACITY, Global::REAL, heatCoef);
+      } else {
+        heatCapacity = actSDMat->GetScalCoefFnc(HEAT_CAPACITY, Global::REAL);
       }
-      PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, density, heatCapacity, CoefXpr::OP_MULT ) );
+
+      transportFactor = CoefFunction::Generate(mp_, Global::REAL,
+          CoefXprBinOp(mp_, density, heatCapacity, CoefXpr::OP_MULT));
+
+      if(isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+        transportFactor = CoefFunction::Generate(mp_, Global::REAL,
+            CoefXprBinOp(mp_, transportFactor, refTemp, CoefXpr::OP_DIV));
+      }
+    }
+
+    // ====================================================================
+    // Moving-mesh transport term: -rho * c_p * v_g . grad(T)
+    // ====================================================================
+    if(movingMeshId != "") {
+      shared_ptr<ResultInfo> movingMeshInfo = GetResultInfo(FLUIDMECH_MESH_VELOCITY);
+
+      PtrCoefFct regionMovingMesh;
+      std::set<UInt> definedDofs;
+
+      PtrParamNode movingMeshNode =
+          myParam_->Get("movingMeshList")->GetByVal("movingMesh",
+                                                    "name",
+                                                    movingMeshId.c_str());
+
+      ReadUserFieldValues(actSDList, movingMeshNode, movingMeshInfo->dofNames,
+                          movingMeshInfo->entryType, isComplex_, regionMovingMesh,
+                          definedDofs, updatedGeo_);
+
+      gridVelCoef_->AddRegion(actRegion, regionMovingMesh);
+
+      PtrCoefFct movingMeshFactor = transportFactor;
+      if(domain->HasDesign()) {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(),
+                                                      movingMeshFactor,
+                                                      NO_MATERIAL,
+                                                      this);
+        movingMeshFactor.reset(tmpFnc);
+      }
+
+      BaseBDBInt* movingMeshStiff = NULL;
+      if(isComplex_) {
+        if(dim_ == 2)
+          movingMeshStiff = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                        movingMeshFactor, -1.0, updatedGeo_);
+        else
+          movingMeshStiff = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                        movingMeshFactor, -1.0, updatedGeo_);
+      } else {
+        if(dim_ == 2)
+          movingMeshStiff = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                        new ConvectiveOperator<FeH1,2,1>(),
+                                        movingMeshFactor, -1.0, updatedGeo_);
+        else
+          movingMeshStiff = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                        new ConvectiveOperator<FeH1,3,1>(),
+                                        movingMeshFactor, -1.0, updatedGeo_);
+      }
+
+      movingMeshStiff->SetBCoefFunctionOpB(gridVelCoef_);
+      movingMeshStiff->SetSolDependent(true);
+
+      if(nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ||
+         nonLinTypes.Find(NLHEAT_DENSITY) != -1)
+        movingMeshStiff->SetName("MovingMeshStiffInt-NL");
+      else
+        movingMeshStiff->SetName("MovingMeshStiffInt");
+
+      if(domain->HasDesign())
+        dynamic_pointer_cast<CoefFunctionOpt>(movingMeshFactor)->SetForm(movingMeshStiff);
+
+      BiLinFormContext* movingMeshContext =
+          new BiLinFormContext(movingMeshStiff, STIFFNESS);
+      movingMeshContext->SetEntities(actSDList, actSDList);
+      movingMeshContext->SetFeFunctions(feFunctions_[HEAT_TEMPERATURE], feFunc);
+      assemble_->AddBiLinearForm(movingMeshContext);
+    }
+
+    // ====================================================================
+    // Physical convective transport term: +rho * c_p * v . grad(T)
+    // ====================================================================
+    if(velocityId != "") {
+      PtrCoefFct velFactor = transportFactor;
 
       if(domain->HasDesign()) {
         CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), velFactor, NO_MATERIAL, this); // takes double and complex
         velFactor.reset(tmpFnc);
-      }
-      if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
-        velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, velFactor, refTemp, CoefXpr::OP_DIV));
       }
 
       // Create the integrators
@@ -1935,6 +2038,27 @@ void HeatPDE::DefinePrimaryResults() {
 
   results_.Push_back( velocity );
   availResults_.insert( velocity );
+
+  // Check whether a moving mesh velocity is defined
+  PtrParamNode movingMeshListNode =
+      myParam_->Get("movingMeshList", ParamNode::PASS);
+
+  if (movingMeshListNode && movingMeshListNode->Has("movingMesh")) {
+
+    // === MESH VELOCITY ===
+    shared_ptr<ResultInfo> meshVelocity(new ResultInfo);
+
+    meshVelocity->resultType = FLUIDMECH_MESH_VELOCITY;
+    meshVelocity->dofNames = vecDofNames;
+    meshVelocity->unit =
+        MapSolTypeToUnit(FLUIDMECH_MESH_VELOCITY);
+
+    meshVelocity->definedOn = ResultInfo::NODE;
+    meshVelocity->entryType = ResultInfo::VECTOR;
+
+    availResults_.insert(meshVelocity);
+    DefineFieldResult(gridVelCoef_, meshVelocity);
+  }
 
 }
 

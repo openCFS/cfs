@@ -157,6 +157,14 @@ namespace CoupledField {
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> convecVelCoef_;
 
+    //! Coefficient function for the moving mesh
+
+    //! This coefficient function describes the moving mesh for the ALE formulation.
+    //! As this is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> gridVelCoef_;
+
+
     //! store convective bilinear forms
     std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
 
