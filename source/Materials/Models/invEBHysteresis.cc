@@ -1231,6 +1231,9 @@ namespace CoupledField
     double epsilon = 1e-8;
     double A = A_;
 
+    // pre-computations for hessian
+    norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0], 2) + std::pow(J[1], 2))), 2) + epsilon);
+
     // Pre-compute factors for the Hessian of the internal energy
     if (anhyst_formula_ == "tan")
     {
