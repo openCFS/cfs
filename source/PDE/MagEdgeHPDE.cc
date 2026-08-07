@@ -14,6 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -550,7 +551,7 @@ namespace CoupledField {
           }
           else if (modelName_ == "EBHysteresisModel"){ // (this is the model we want to use!)
             if (dim_ == 2) {
-              p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
+              p = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
               curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), nlScalCoefm_[actRegion],1.0, updatedGeo_);
             } else {
               curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nlScalCoefm_[actRegion],1.0, updatedGeo_);
@@ -558,8 +559,8 @@ namespace CoupledField {
             curlcurl->SetName("(p_nl curlN,CurlN): CurlCurlIntegrator");
           }
         } else{ // LINEAR CASE
-          //p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(beta,0.01)))*1*mu_regularize*std::pow(10,beta/2)));
-          p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
+          //p = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>((1/(std::pow(beta,0.01)))*1*mu_regularize*std::pow(10,beta/2)));
+          p = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
           if (dim_ == 2) {
             curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), p,1.0, updatedGeo_);
           } else {
@@ -915,7 +916,7 @@ namespace CoupledField {
             lin1_pts->SetName("(p_nl curlh,curlN): residual");
           } else{ // NONLINEAR CASE, LINEAR SUBREGION
             // CoefFunction represents p_linear * curl(h)
-            p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
+            p = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)*(1/(std::pow(beta,0.01)))));
             CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), p, CoefXpr::OP_MULT);
             PtrCoefFct p_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
             if (dim_ == 2) {
@@ -1123,7 +1124,7 @@ namespace CoupledField {
 
       double remanence_scale = 0;
       myParam_->GetValue("remanenceScale", remanence_scale, ParamNode::PASS);
-      PtrCoefFct remanence_scale_coef_fct = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(remanence_scale));
+      PtrCoefFct remanence_scale_coef_fct = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(remanence_scale));
       if (remanence_scale != 0) {
         PtrCoefFct Br_norm = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, coef[i], CoefXpr::OP_NORM));
         PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,Br_norm,remanence_scale_coef_fct,CoefXpr::OP_DIV));

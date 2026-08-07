@@ -14,6 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -385,7 +386,7 @@ namespace CoupledField {
         // get material coefficient (in this case: artificial conductivity that regularizes the PDE and is defined 
         // as epsilon = regularization parameter*mu;
         materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
-        epsilon = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*beta));
+        epsilon = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(mu_regularize*beta));
         if (dim_ == 3) {
           //massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl, 3, Double>(),epsilon, 1.0);
           massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl, 3, 1, Double>(),epsilon, 1.0);
@@ -530,7 +531,7 @@ namespace CoupledField {
           // get material coefficient (in this case: artificial conductivity that regularizes the PDE and is defined 
           // as epsilon = regularization parameter*mu;
           materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
-          epsilon = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*beta));
+          epsilon = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(mu_regularize*beta));
           CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_POTENTIAL ), epsilon, CoefXpr::OP_MULT);
           PtrCoefFct epsilon_times_A = CoefFunction::Generate(mp_, Global::REAL, temp);
           if (dim_ == 3) {

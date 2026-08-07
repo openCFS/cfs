@@ -2,6 +2,7 @@
 #define COEFFUNCTIONFILEDATAMEAS_HH_
 
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "CoefFunction.hh"
 #include "Domain/Domain.hh"

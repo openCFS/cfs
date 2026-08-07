@@ -12,6 +12,7 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"

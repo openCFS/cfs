@@ -230,7 +230,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         conductivity = ( conduc[0][0]+conduc[1][1]+conduc[2][2] )/3;
       }else{
         materials_[actRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
-        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
+        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(conductivity));
       }
       // regularize
       bool scaleByEdgeSize = false;
@@ -238,7 +238,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         Matrix<Double> reluc;
         // get tensor of permeability and determine max. value
         materials_[actRegion]->GetTensor( reluc, MAG_RELUCTIVITY_TENSOR, Global::REAL );
-        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
+        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,boost::lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
         scaleByEdgeSize = true;
         regularizedRegions_.insert(actRegion);
       }

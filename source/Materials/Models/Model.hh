@@ -14,6 +14,7 @@
 #include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 
 namespace CoupledField {
 

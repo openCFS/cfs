@@ -14,6 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -475,7 +476,7 @@ namespace CoupledField
         BaseBDBInt *massInt;
         BiLinFormContext *massContext;
 
-        regularization_parameter = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(1e-2 * 1000*4*M_PI*1e-7));
+        regularization_parameter = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(1e-2 * 1000*4*M_PI*1e-7));
         massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl, 3, Double>(), regularization_parameter, 1.0);
         massInt->SetName("MassIntegrator (regularization_parameter)");
         massContext = new BiLinFormContext(massInt, STIFFNESS);
@@ -501,7 +502,7 @@ namespace CoupledField
         else
         {
           materials_[actRegion]->GetScalar(conductivity, MAG_CONDUCTIVITY_SCALAR, Global::REAL);
-          conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(conductivity));
+          conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(conductivity));
         }
         // regularize
         bool scaleByEdgeSize = false;
@@ -510,7 +511,7 @@ namespace CoupledField
           Matrix<Double> reluc;
           // get tensor of permeability and determine max. value
           materials_[actRegion]->GetTensor(reluc, MAG_RELUCTIVITY_TENSOR, Global::REAL);
-          conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
+          conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL, boost::lexical_cast<std::string>(regularizationFactor * reluc[0][0]));
           scaleByEdgeSize = true;
           regularizedRegions_.insert(actRegion);
           WARN("Regularization activated for region '" << regionName << "' (conductivity=" << conductivity << ") - using artificial conductivity " << regularizationFactor * reluc[0][0]);

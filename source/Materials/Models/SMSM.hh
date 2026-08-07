@@ -19,6 +19,7 @@
 #pragma once
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/StdVector.hh"
 #include <list>
 
 #include <boost/utility.hpp>

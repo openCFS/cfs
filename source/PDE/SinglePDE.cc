@@ -6,6 +6,7 @@
 #include <direct.h>
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionFileData.hh"
 #include "Domain/CoefFunction/CoefFunctionFileDataMeas.hh"
 #include "Domain/CoefFunction/CoefFunctionPython.hh"

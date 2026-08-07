@@ -6,6 +6,7 @@
 
 #include "Driver/Assemble.hh"
 #include "PDE/StdPDE.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Results/BaseResults.hh"
 #include "Utils/mathParser/mathParser.hh"

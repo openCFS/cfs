@@ -31,6 +31,7 @@
 #include "Materials/Models/Preisach.hh"
 #include "Materials/Models/invEBHysteresis.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
