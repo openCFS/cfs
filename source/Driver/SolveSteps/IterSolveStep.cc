@@ -9,6 +9,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "Driver/AnalysisID.hh"

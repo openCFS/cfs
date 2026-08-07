@@ -33,7 +33,7 @@ DEFINE_LOG(smsm, "SMSM")
       // the XML schema and the material database. This is independent of the working
       // directory from which cfs is started and also works for installed binaries
       fs::path root = ProgramOptions::ObtainCFSRootFromSystem();
-      root.normalize();
+      root = root.lexically_normal();
       std::string filePath = root.string() + "/share/SMSM_directions/TABSPHEREI4S4_2562.txt"; // shall work also on Windows
       std::ifstream file(filePath);
 
