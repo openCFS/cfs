@@ -56,6 +56,10 @@ namespace CoupledField {
     //! \param fname name of output file
     void ExportILUFactorisation( const char *fname );
 
+    /** Entries of the factorisation L+U, the ones on the diagonal of L are not stored. Meant for
+     * BaseDirectSolver::CheckDirectPlausibility(), here the value is exact as we hold the arrays. */
+    unsigned int GetFactorNnz() const { return entryL_.size() + entryU_.size(); }
+
   protected:
 
     //! Dimension of the square system matrix

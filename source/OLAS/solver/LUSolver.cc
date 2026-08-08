@@ -1,4 +1,7 @@
+#include <type_traits>
+
 #include "MatVec/CRS_Matrix.hh"
+#include "DataInOut/ProgramOptions.hh"
 
 // Include source code of CroutLU class for template instantiation
 // Note: Might lead to double instantiation, since CroutLU is also
@@ -71,6 +74,14 @@ namespace CoupledField {
     // Perform the factorisation
     this->Factorise( crsMat );
     amFactorised_ = true;
+
+    // the cost of the factorization in the notation common to all direct solvers. Here the entries of
+    // the factor are exact, we hold the arrays of L and U ourselves.
+    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+    double factor_nnz = this->GetFactorNnz();
+    out->Get("fillFactor")->SetValue(factor_nnz / crsMat.GetNnz());
+    out->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, std::is_same<T,Complex>::value));
 
     // If the user wishes, we can export the LU factorisation to a file
     bool saveFacToFile = false;

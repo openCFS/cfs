@@ -485,6 +485,15 @@ namespace CoupledField {
 
     }
 
+    // the cost of the factorization in the notation common to all direct solvers
+    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+    double factor_nnz = Info[UMFPACK_LNZ] + Info[UMFPACK_UNZ];
+    out->Get("fillFactor")->SetValue(factor_nnz / nnz_);
+    double mb = Info[UMFPACK_PEAK_MEMORY] * Info[UMFPACK_SIZE_OF_UNIT] / (1024.0 * 1024.0);
+    out->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, isComplex_, Info[UMFPACK_FLOPS], mb));
+    out->Get("flops")->SetValue(Info[UMFPACK_FLOPS]);
+
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
   }

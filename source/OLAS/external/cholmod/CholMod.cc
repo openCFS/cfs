@@ -125,11 +125,14 @@ void CholMod<T>::Setup(BaseMatrix &sysMat)
   CholModAnalyze();
   CholModFactorize();
 
+  // the cost of the factorization in the notation common to all direct solvers
+  out->Get("fillFactor")->SetValue(common_.lnz / common_.anz);
+  double mb = common_.memory_usage / (1024.0 * 1024.0);
+  out->Get("memoryMB")->SetValue(CheckDirectPlausibility(common_.lnz, isComplex_, common_.fl, mb));
+  out->Get("flops")->SetValue(common_.fl);
+
   // output statistics to info.xml, see CholMod manual for details
   out->Get("selected_factorization_method")->SetValue(common_.selected);
-  out->Get("ll_flop_count")->SetValue(common_.fl);
-  out->Get("nz_in_L")->SetValue(common_.lnz);
-  out->Get("nz_in_tri(A)")->SetValue(common_.anz);
   out->Get("memory_usage")->SetValue(common_.memory_usage);
   out->Get("memory_inuse")->SetValue(common_.memory_inuse);
   out->Get("malloc_count")->SetValue(common_.malloc_count);
