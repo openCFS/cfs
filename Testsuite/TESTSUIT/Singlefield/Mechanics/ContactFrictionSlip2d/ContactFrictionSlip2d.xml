@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Coulomb friction: a fully sliding interface transmits exactly mu times the normal force</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-06</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Gate for the SLIP branch of the Coulomb return map, and the counterpart of
+      ContactFrictionStick2d.
+
+      A traction-driven model cannot gate slip: once the applied tangential load exceeds what
+      friction can hold there is no static answer at all. So this test is DISPLACEMENT driven.
+      The upper body is pushed sideways by a prescribed 1e-3 m on its top face while 1e6 Pa
+      presses it down; its y support is still the contact interface alone.
+
+      1e-3 m of imposed sliding against an elastic stick range of mu*p/eps_T = 1.1e-7 m puts
+      every integration point four orders of magnitude outside the Coulomb cone, so all of them
+      slip. The assertion is then fixed by the Coulomb law rather than by the elasticity
+      solution:
+
+      totalTangentialForce = mu * totalContactForce = 0.4 * 2e6 = 8e5 N/m
+
+      with totalContactForce = p_N * L = 2e6 N/m fixed by equilibrium. Neither number depends on
+      the imposed displacement, on tangentialPenalty, or on how the pressure is distributed --
+      which is what makes it a test of the return map's projection onto the cone rather than of
+      anything upstream. numStickPoints must be 0 and numSlipPoints 2.
+
+      This is genuine sliding but not a violation of the small-sliding assumption: 1e-3 m is far
+      less than the 2 m interface, so the pairing stays inside its primary element.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactFrictionSlip2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <contactPair name="block_contact"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="small"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2">
+            <friction type="coulomb" mu="0.4" tangentialPenalty="100"/>
+          </contactPair>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- Drive the upper body sideways AT THE INTERFACE, not on its top face.
+               Prescribing it on top would put the drag a full block height above the
+               interface, and the resulting couple lifts one side of the block off - the
+               interface then carries a moment, the pressure stops being uniform, and half
+               the points open. Applying it at the interface itself removes the lever arm,
+               so the pressure stays uniform and every point slips.
+               Only x is prescribed: the y support is still the contact interface, which is
+               what keeps totalContactForce an equilibrium statement. -->
+          <displacement name="slave_iface">
+            <comp dof="x" value="1e-3"/>
+          </displacement>
+          <pressure name="top" value="1e6"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <!-- Judge convergence on the INCREMENT here, not on the residual.
+                   StdSolveStep normalises the residual error by the norm of the LINEAR
+                   right-hand side - the applied pressure alone - while both the friction
+                   force (8e5 N/m) and the penalty reaction to the prescribed 1e-3 m of
+                   sliding sit in the solution-dependent one. The relative residual therefore
+                   parks at 0.43 and cannot go lower even though the iterate is exact: it
+                   stops moving at 6e-15 from iteration 3 on, and every reported contact
+                   quantity is stable from iteration 1.
+                   This is a pre-existing openCFS normalisation limitation, not something
+                   friction introduces. -->
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1</resStopCrit>
+              <maxNumIters>20</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

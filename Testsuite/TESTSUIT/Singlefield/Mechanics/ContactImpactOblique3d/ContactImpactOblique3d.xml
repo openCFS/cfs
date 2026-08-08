@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Oblique frictional impact between two free deformable bodies, 3D</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      The 3D counterpart of ContactImpactOblique2d. A deformable SPHERE strikes a deformable
+      SLAB obliquely, with Coulomb friction, under large sliding. Nothing is fixed anywhere:
+      both bodies are free, the only force is the contact traction, and the sphere slides while
+      the patch forms, grows and travels.
+
+      TWO INDEPENDENT INVARIANTS, which is what makes the 3D run worth its cost:
+
+      1. COULOMB. sqrt(contactForceX^2 + contactForceY^2) / contactForceZ = mu while every point
+      slips. The primary surface is the slab's FLAT top, so the normal is exactly (0,0,1) in
+      every configuration and the resultant splits without ambiguity into normal (Z) and
+      tangential (X,Y). 2. SYMMETRY. contactForceY must VANISH: the launch velocity has no y
+      component and the geometry is mirror-symmetric about the xz-plane -- now WITH FRICTION
+      ACTING, which the frictionless ContactImpactSphere3d cannot test. A mispaired point, a
+      normal from the wrong facet, or a friction direction built in the wrong frame breaks it
+      immediately. It is also the invariant a 2D model cannot provide at all: in 2D the tangent
+      plane is one-dimensional and the friction direction has no freedom to go wrong; in 3D it
+      has two, and this pins them.
+
+      WHY SPHERE-ON-SLAB. On an oblique sphere-on-sphere impact the contact normal rotates
+      during contact and no reported quantity gives the Coulomb ratio. Meeting a plane buys the
+      exact force split at no cost to the striker: the sphere is still doubly curved and
+      genuinely faceted, and it is the SECONDARY surface, so its curvature is exercised on the
+      side where it is hard.
+
+      RESOLUTION is coarse deliberately and weakens neither invariant, because both hold
+      POINTWISE at every slipping point. What the coarse mesh costs is the pressure
+      DISTRIBUTION, which is not asserted. tangent="consistent" because every point slips and
+      nothing sticks.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactImpactOblique3d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="slab" material="Aluminium"/>
+      <region name="ball" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="slab_top"/>
+      <surfRegion name="ball_surf"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>12</numSteps>
+        <deltaT>5e-6</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <!-- Only the sphere is launched; the slab is free and at rest, so every bit of its
+               motion arrives through the contact. -->
+          <region name="slab"/>
+          <region name="ball" initialFieldD1Id="launch"/>
+        </regionList>
+
+        <contactList>
+          <!-- primary = the FLAT slab top: that is what makes the contact normal exactly
+               (0,0,1) and the reported force split exact. -->
+          <contactPair name="oblique_impact"
+                       primarySurface="slab_top"
+                       secondarySurface="ball_surf"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalSmoothing="nodal"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2" searchDistanceFactor="8">
+            <friction type="coulomb" mu="0.2" tangentialPenalty="100" tangent="consistent"/>
+          </contactPair>
+        </contactList>
+
+        <initialValues>
+          <initialFieldD1 id="launch" quantity="mechVelocity">
+            <vector>
+              <comp dof="x" value="50.0"/>
+              <comp dof="z" value="-5.0"/>
+            </vector>
+          </initialFieldD1>
+        </initialValues>
+
+        <!-- Deliberately empty: no load, no support, nothing fixed. -->
+        <bcsAndLoads/>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+          <nodeResult type="mechVelocity"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <!-- A free impact carries no applied load, so RhsLinL2Norm is zero and
+                   residualErr falls back to the ABSOLUTE residual, which no resStopCrit can
+                   reach. Judge on incStopCrit; this limitation is shared with every
+                   nonlinear PDE. -->
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-2</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

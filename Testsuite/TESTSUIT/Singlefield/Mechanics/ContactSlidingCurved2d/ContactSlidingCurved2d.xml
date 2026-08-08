@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Loaded sliding on a curved monotone surface</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      The first model in the suite that BOTH carries load across the contact interface AND
+      slides along a surface whose normal turns while it does so. Everything else with
+      slidingType="large" is one or the other, and a flat interface is exactly where
+      small-sliding kinematics are already exact, so no loaded testcase before this one could
+      tell a right geometric tangent from a missing one.
+
+      The primary body's top edge is the parabola h(x) = 1 + 0.05*x^2 cut into three LINE3
+      faces. A LINE3 interpolates a quadratic exactly, so each face reproduces the parabola and
+      the normal turns CONTINUOUSLY across face boundaries -- deliberately, since a faceted
+      surface would mix curvature under load with a discontinuous normal and a failure would not
+      say which caused it. The secondary block is non-matching by construction, its bottom edge
+      lies ON the parabola so the initial gap is zero, and its top is FLAT so the load resultant
+      is exactly p*L. Only u_x is prescribed there, leaving the block free to rise, settle and
+      tilt: sliding a conforming block along a parabola opens a wedge linear in x that a rigid
+      rotation closes exactly.
+
+      WHAT IT ASSERTS
+
+      1. contactForceY = 6e6 = 1e7 * 0.6, the vertical equilibrium of the secondary body. It
+      holds for ANY pressure distribution, segmentation and curvature. It is reported per
+      component because the scalar totalContactForce = INT p dG cannot serve: on a curved patch
+      it overcounts by 1/cos(theta) per point. contactForceX is NOT independent -- it is
+      whatever the u_x reaction balances. 2. numCells 6 -> 5, numPoints 12 -> 10,
+      numContactElements 6 -> 5, as the block slides strictly inside one primary face and the
+      cut in its second element disappears. Frozen under slidingType="small". Integers, so they
+      cannot drift. 3. integratedArea, which must NOT move: a partition is a partition of the
+      same surface however it is cut.
+
+      WHY THE LOAD IS LARGE. A parabola has non-constant curvature, so a block meshed onto it
+      and then slid is slightly too curved for the surface it now rests on. The rigid rotation
+      closes the LINEAR part of that mismatch; nothing removes the quadratic part, because a
+      geometrically LINEAR body cannot perform a finite rotation without spurious strain. What
+      is left is a Hertzian contact whose patch grows as sqrt(load), and the load is chosen so
+      the patch covers the interface and the active set is settled from the first iteration.
+      That is why this testcase asserts an equilibrium resultant rather than a pressure
+      distribution.
+
+      The geometric tangent is deliberately not built, so convergence is linear at a rate of
+      about p/E rather than quadratic -- worth at most one iteration of four, and only for a
+      model whose contact pressure is a sizeable fraction of its modulus, which a small-strain
+      model cannot have. idbcHandling="elimination" because under "penalty" the inhomogeneous
+      Dirichlet rows hold nodal reactions Newton cannot reduce, so residualErr stalls while the
+      answer is bit-identical.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactSlidingCurved2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <contactPair name="curved_slide"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- The drive. ONLY the x component: the block's vertical position and its rotation
+               are left to the contact interface, which is what makes the vertical equilibrium
+               below a statement about contact rather than about a boundary condition. -->
+          <displacement name="top">
+            <comp dof="x" value="0.25"/>
+          </displacement>
+          <pressure name="top" value="1e7"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-7</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

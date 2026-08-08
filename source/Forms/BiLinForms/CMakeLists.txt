@@ -1,7 +1,8 @@
 SET(BILINFORMS_SRCS
   #nothing right now, each cc file
   #is included directly in the header
-  ABInt.cc 
+  ABInt.cc
+  ContactABInt.cc 
   ADBInt.cc
   BBInt.cc
   BDBInt.cc

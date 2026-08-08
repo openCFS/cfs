@@ -16,6 +16,7 @@ namespace CoupledField
 
   class LinearFormContext;
   class set;
+  class ContactInterface;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -68,6 +69,43 @@ protected:
     
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
+
+    //! Reads <contactList> and creates one ContactInterface per <contactPair>.
+    //!
+    //! Contact interfaces are owned by the PDE, not by the Grid. Unlike MortarInterface
+    //! they never mutate the grid, and Grid::MoveNcInterfaces() would reset them once per
+    //! time step, discarding the frozen initial-gap offsets.
+    void ReadContactInterfaces();
+
+    //! Sets up the contact geometry: makes the displacement field sampleable on both
+    //! contact surfaces, generates the contact integration points, performs the initial
+    //! projection, and hands the displacement field to every contact pair.
+    void DefineContactIntegrators();
+
+    //! Representative elasticity modulus of a body, used to give the dimensionless
+    //! `normalPenalty` its physical dimension. See ContactInterface::SetReferenceModulus().
+    Double GetContactReferenceModulus(RegionIdType volRegion);
+
+    void RegisterContactSurface(RegionIdType surfRegion, RegionIdType volRegion,
+                                shared_ptr<BaseFeFunction> dispFct,
+                                shared_ptr<FeSpace> dispSpace);
+
+    void PostSolveStep();
+
+    //! Refreshes every contact pair's gaps and under slidingType="large", its pairing,
+    //! normals and mortar partition against the iterate just computed.
+    void UpdateNonLinGeometry() override;
+
+    //! Records the contact active set of every pair on the <iteration> node, and remembers it
+    //! so that PostSolveStep() can report the history and flag chattering. Reporting only --
+    //! the geometry it reports was refreshed by UpdateNonLinGeometry().
+    void ToNonLinIterInfo(PtrParamNode iter);
+
+    //! Drives the Uzawa outer loop of augmented-Lagrangian contact pairs: advances every
+    //! multiplier field by one Uzawa step and asks for another complete solve until they
+    //! settle. Returns false immediately for a model with no augmented pair, so nothing
+    //! changes for penalty contact or for a mechanic PDE without contact at all.
+    bool RequestsAnotherSolve(UInt outerIter) override;
 
     //! define surface integrators needed for this pde (currently only ABC)
     void DefineSurfaceIntegrators( );
@@ -149,6 +187,21 @@ protected:
 
     //! Returns a MechStress CoefFunction from a preceding sequence step
     PtrCoefFct GetStressCoefFromSeqStep(UInt seqStep);
+
+    //! Contact pairs defined by <contactList>. Owned by this PDE, see ReadContactInterfaces().
+    StdVector<shared_ptr<ContactInterface> > contactInterfaces_;
+
+    //! Active-set size per nonlinear iteration, one sequence per contact pair, filled by
+    //! ToNonLinIterInfo(). Chattering is a non-monotone sequence: the active set grows, then
+    //! shrinks again (or vice versa) instead of settling. The residual can look healthy while
+    //! this oscillates, which is why it is recorded separately.
+    StdVector<StdVector<UInt> > contactActiveHistory_;
+
+    //! Uzawa outer-loop bookkeeping, one entry per contact pair, filled by
+    //! RequestsAnotherSolve() and reported by PostSolveStep().
+    StdVector<StdVector<Double> > contactAugGapHistory_;
+    StdVector<UInt> contactAugIters_;
+    StdVector<bool> contactAugConverged_;
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;

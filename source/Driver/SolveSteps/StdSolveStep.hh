@@ -98,7 +98,11 @@ namespace CoupledField
     void StepTransNonLinMaterial() {REFACTOR;};
     
     //! routine for actions after the SolveStep-method
-    virtual void PostStepTrans() {};
+    //! Called once per time step by TransientDriver. Mirrors PostStepStatic(): the PDE gets a
+    //! chance to act on the converged solution of the step. MechPDE uses it to refresh the
+    //! contact geometry and to close off the per-step active-set history -- without it that
+    //! history accumulates across every time step of the run.
+    virtual void PostStepTrans();
 
     //----------------------- HARMONIC AND MULTIHARMONIC -------------------------
     //! routine for initilizations befor execution the SolveStep-method

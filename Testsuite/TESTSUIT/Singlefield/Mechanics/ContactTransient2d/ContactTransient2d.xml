@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Contact in a transient analysis: quasi-static load ramp</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-06</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      The ContactPatchTest2d model solved as a TRANSIENT analysis instead of a static one. This
+      is the first testcase to run contact through StepTransNonLin at all; every other contact
+      test goes through StepStaticNonLin.
+
+      The pressure is ramped linearly to 1e6 Pa over a time about 32 times the column's
+      fundamental period, so inertia stays negligible and the final state must reproduce the
+      static answer: contact pressure 1e6 Pa, resultant 2e6 N, penetration -p/eps_N. It does, to
+      0.04 %. Ramping faster leaves the structure ringing and the error grows smoothly with the
+      load rate, which is what makes this a quasi-static convergence check rather than a single
+      lucky number.
+
+      What is actually being checked is that the contact machinery is reached and behaves in the
+      transient solve step: the residual there is built as f - K*u from the same non-Newton
+      STIFFNESS matrices as in the static path, so the split should carry over unchanged, and
+      the per-time-step contact reporting should follow the deformation.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactTransient2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>70</numSteps>
+        <deltaT>2e-3</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <contactPair name="transient_contact"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="small"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- upper body: suppress the lateral rigid-body mode only. Its y support comes
+               exclusively from the contact interface, which is the point of the test. -->
+          <fix name="top">
+            <comp dof="x"/>
+          </fix>
+          <!-- ramp to full load over the first half of the run, then hold -->
+          <pressure name="top" value="1e6*min(t/1e-1,1)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-9</resStopCrit>
+              <maxNumIters>20</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

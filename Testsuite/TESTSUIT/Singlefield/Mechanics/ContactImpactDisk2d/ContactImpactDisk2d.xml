@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Free impact of two deformable disks</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      A transient impact between two deformable bodies of CURVED geometry, with no applied load
+      and nothing holding either body up. A contact patch forms, grows and releases.
+
+      Two disks of radius 0.05 m, 2e-4 m apart, butterfly-meshed so every element is a decent
+      quadrilateral. The upper disk starts with a downward velocity, the lower one at rest and
+      completely free.
+
+      NOTHING IS FIXED. That is the point, and it is what every other contact testcase gives up:
+      a body held by a Dirichlet condition has its equilibrium supplied by the boundary, so the
+      contact force is whatever balances a known load. Here the only force in the model is the
+      contact traction. Expressing it needed an initial VELOCITY for a mechanic PDE, which was a
+      schema gap rather than missing code -- note that quantity names the DERIVATIVE field
+      (quantity="mechVelocity"), and that initialValues must come after contactList.
+
+      WHAT IT ASSERTS
+
+      1. contactForceX = 0. The model is symmetric about x = 0 in geometry, mesh and initial
+      condition alike, so the contact traction can have no net horizontal component. Exact,
+      independent of material, time step and mesh, and a real check: a mispaired point or a
+      normal from the wrong facet breaks it immediately. 2. The contact state at the final step.
+      Recorded, not predicted -- an impact has no closed-form contact force. What makes it worth
+      asserting is that a free transient impact reaches a definite contact state at all. 3. That
+      the run completes, which with no load and no support is not a formality.
+
+      The run stops mid-impact because that is where there is something to assert; after
+      separation the contact state is all zeros. The patch is two points wide: the rim resolves
+      the circle to 0.098 rad and the Hertzian patch is narrower than one facet, so this
+      demonstrates a free impact between curved deformable bodies but does NOT resolve a
+      Hertzian pressure distribution, and nothing here asserts one.
+
+      resStopCrit is deliberately loose and convergence is judged on incStopCrit: a free impact
+      has no external load, so the residual has nothing to normalise against and falls back to
+      an absolute value that is unreachable. normalSmoothing="nodal" because a butterfly-meshed
+      rim is faceted and the patch sits right on top of the normal jumps.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactImpactDisk2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="lower_disk" material="Aluminium"/>
+      <region name="upper_disk" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="lower_surf"/>
+      <surfRegion name="upper_surf"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>34</numSteps>
+        <deltaT>5e-6</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <!-- Only the upper disk is launched; the lower one is at rest and free, so the
+               total momentum of the pair is m*v and is carried entirely by contact. -->
+          <region name="lower_disk"/>
+          <region name="upper_disk" initialFieldD1Id="launch"/>
+        </regionList>
+
+
+        <contactList>
+          <contactPair name="disk_impact"
+                       primarySurface="lower_surf"
+                       secondarySurface="upper_surf"
+                       slidingType="small"
+                       segmentation="mortar"
+                       normalSmoothing="nodal"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <initialValues>
+          <initialFieldD1 id="launch" quantity="mechVelocity">
+            <vector>
+              <comp dof="y" value="-0.5"/>
+            </vector>
+          </initialFieldD1>
+        </initialValues>
+
+        <!-- Deliberately empty: no load, no support. -->
+        <bcsAndLoads/>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+          <nodeResult type="mechVelocity"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e30</resStopCrit>
+              <maxNumIters>30</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

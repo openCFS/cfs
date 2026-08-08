@@ -13,6 +13,10 @@
 #include "General/defs.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/Assemble.hh"
+#include "Domain/Mesh/NcInterfaces/ContactInterface.hh"
+#include "Forms/BiLinForms/ContactABInt.hh"
+#include "Forms/LinForms/ContactLinInt.hh"
+#include "OLAS/algsys/SolStrategy.hh"
 
 #include "DataInOut/SimState.hh"
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
@@ -291,6 +295,12 @@ namespace CoupledField {
   void MechPDE::InitNonLin()
   {
     SinglePDE::InitNonLin();
+
+
+    // Contact pairs are read here because InitNonLin() runs after ReadNcInterfaces() and
+    // before DefineIntegrators(), and because contact is what will eventually make the
+    // problem nonlinear
+    ReadContactInterfaces();
   }
   
   
@@ -369,7 +379,10 @@ namespace CoupledField {
       // ====================================================================
       //  Standard Linear Stiffness
       // ====================================================================
-      if( !nonLin_ ) {
+      // The decision is PER REGION, not on the global nonLin_ flag. A region that has no
+      // nonlinearity of its own needs the linear stiffness integrator even when some other
+      // part of the problem makes the PDE nonlinear.
+      if( nonLinTypes.GetSize() == 0 ) {
         if (dampingList_[actRegion] == PML) {
           if (analysistype_ == HARMONIC) {
             harmonicPML = true;
@@ -755,6 +768,11 @@ namespace CoupledField {
     //  Concentrated Mechanical Network Elements
     // ====================================================================
     DefineConcentratedElems();
+
+    // ====================================================================
+    //  Mechanical contact
+    // ====================================================================
+    DefineContactIntegrators();
   }
 
   
@@ -1270,8 +1288,713 @@ namespace CoupledField {
     }
   }
   
+  // ==========================================================================
+  //  Mechanical contact  (see CONTACT_PLAN.md / CONTACT_PROGRESS.md)
+  // ==========================================================================
+
+  void MechPDE::ReadContactInterfaces() {
+
+    contactInterfaces_.Clear();
+
+    PtrParamNode contactListNode = myParam_->Get("contactList", ParamNode::PASS);
+    if (!contactListNode) {
+      return;
+    }
+    if (subType_ == "axi") {
+      EXCEPTION("Mechanical contact is not implemented for subType=\"axi\". The contact "
+                << "integration weights would omit the axisymmetric 2*pi*r factor and every "
+                << "contact pressure and force would be silently wrong. Use subType "
+                << "\"planeStrain\", \"planeStress\" or \"3d\".");
+    }
+
+    ParamNodeList pairs = contactListNode->GetList("contactPair");
+
+    for (UInt i = 0; i < pairs.GetSize(); ++i) {
+      shared_ptr<ContactInterface> ci(new ContactInterface(ptGrid_, pairs[i]));
+
+      // Augmented Lagrange is NOT AVAILABLE in a transient analysis
+      //
+      // Its Uzawa loop re-runs the complete solve once per multiplier update, which
+      // StdSolveStep::SolveStepStatic() supports. A TIME STEP is not re-runnable:
+      // StepTransNonLin() and StepTransLin() call TimeScheme::BeginStep() and FinishStep(),
+      // so running one twice for the same physical step advances the time-integration history
+      // twice.
+      if (ci->GetFormulation() == ContactInterface::FORM_AUGMENTED_LAGRANGE
+          && analysistype_ != STATIC) {
+        EXCEPTION("Contact pair '" << ci->GetName() << "': formulation=\"augmentedLagrange\" "
+                  << "is only implemented for a static analysis. Its Uzawa outer loop re-runs "
+                  << "the whole solve per multiplier update, and re-running a TIME STEP would "
+                  << "advance the time integration twice and silently corrupt the solution. "
+                  << "Use formulation=\"penalty\" for transient analysis.");
+      }
+
+      contactInterfaces_.Push_back(ci);
+    }
+
+    bool anyApplyForce = false;
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+      anyApplyForce = anyApplyForce || contactInterfaces_[i]->GetApplyForce();
+    }
+
+    if (anyApplyForce) {
+
+      // Two linear elastic bodies in contact is STILL a nonlinear problem: the active set
+      // depends on the solution. SinglePDE::InitNonLin() only sets nonLin_ from <nonLinList>
+      // regions, so contact has to force it here, otherwise StdSolveStep would take the
+      // linear branch and the contact stiffness would be assembled exactly once against the
+      // undeformed state.
+      nonLin_ = true;
+      nonLinMethod_ = NEWTON;
+
+      // StdSolveStep reads its own method from the solution strategy, not from the PDE, and
+      // has no usable default when the node is absent
+      if (!solStrat_ || !solStrat_->GetNonLinNode()) {
+        EXCEPTION("Mechanical contact requires a nonlinear solution strategy. Add a "
+                  << "<nonLinear> element (method=\"newton\") to the <solutionStrategy> "
+                  << "of this sequence step.");
+      }
+
+      LOG_DBG(mechpde) << "read " << contactInterfaces_.GetSize()
+                       << " contact pair(s); PDE switched to nonlinear/Newton";
+    }
+  }
+
+
+  Double MechPDE::GetContactReferenceModulus(RegionIdType volRegion) {
+
+    std::map<RegionIdType, BaseMaterial*>::iterator it = materials_.find(volRegion);
+    if (it == materials_.end() || it->second == nullptr) {
+      EXCEPTION("No material found for region '"
+                << ptGrid_->GetRegion().ToString(volRegion)
+                << "' while scaling the contact penalty.");
+    }
+
+    Double e = 0.0;
+    try {
+      it->second->GetScalar(e, MECH_EMODULUS);
+    }
+    catch (Exception&) {
+      e = 0.0;
+    }
+
+    if (e <= 0.0) {
+      EXCEPTION("Could not determine an elasticity modulus for region '"
+                << ptGrid_->GetRegion().ToString(volRegion)
+                << "', which is needed to scale the contact penalty. Anisotropic materials "
+                << "are not supported for contact yet.");
+    }
+    return e;
+  }
+
+
+  void MechPDE::RegisterContactSurface(RegionIdType surfRegion,
+                                       RegionIdType volRegion,
+                                       shared_ptr<BaseFeFunction> dispFct,
+                                       shared_ptr<FeSpace> dispSpace) {
+
+    (void) volRegion;
+    (void) dispSpace;
+
+    shared_ptr<SurfElemList> surfList(new SurfElemList(ptGrid_));
+    surfList->SetRegion(surfRegion);
+    dispFct->AddEntityList(surfList);
+  }
+
+
+  void MechPDE::DefineContactIntegrators() {
+
+    if (contactInterfaces_.GetSize() == 0) {
+      return;
+    }
+
+    shared_ptr<BaseFeFunction> dispFct = feFunctions_[MECH_DISPLACEMENT];
+    shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
+
+    PtrParamNode contactInfo = infoNode_->Get("contactList");
+
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+
+      shared_ptr<ContactInterface> ci = contactInterfaces_[i];
+
+      // ----------------------------------------------------------------------
+      //  Make the displacement field sampleable on both contact surfaces
+      // ----------------------------------------------------------------------
+      // Without this, evaluating MECH_DISPLACEMENT at a point on a contact surface throws
+      //   FeSpace::GetNodesOfElement: Could not find requested element ... of region <s>
+      // because the FeSpace has no approximation registered for the surface region.
+      // Same recipe as SinglePDE::DefineMortarCoupling(): give each contact surface the
+      // approximation of its adjacent volume region, then register the element list.
+      RegisterContactSurface(ci->GetPrimarySurfRegion(), ci->GetPrimaryVolRegion(),
+                             dispFct, dispSpace);
+      RegisterContactSurface(ci->GetSecondarySurfRegion(), ci->GetSecondaryVolRegion(),
+                             dispFct, dispSpace);
+
+      ci->SetReferenceModulus(GetContactReferenceModulus(ci->GetSecondaryVolRegion()));
+
+      // The initial pairing is built here, while the displacement is still zero, so the
+      // reference and current configurations coincide and the pairing is geometric.
+      ci->BuildSegments();
+      ci->UpdateProjection();
+
+      // From here on the interface follows the deformation: the integrators evaluate the gap
+      // per point against the current displacement, and PostSolveStep() reports the
+      // converged contact state.
+      ci->SetDisplacementFunction(dispFct);
+
+      // ----------------------------------------------------------------------
+      //  The penalty contact contribution
+      // ----------------------------------------------------------------------
+      // The residual splits exactly into a constant force and a stiffness times u:
+      //
+      //   r_c = -eps_N g_0 INT N_D^T n dG  -  eps_N INT N_D^T n n^T N_D dG . u
+      //         \_____ ContactLinInt _____/    \________ ContactABInt _______/
+      //
+      // Both halves have to be registered; they are two halves of one term, not alternatives.
+      // Geometry-only pairs (applyContactForce="no") register neither, so the equation system
+      // is untouched
+      if (ci->GetApplyForce()) {
+
+        // The stiffness: four blocks, because N_D = [N_s, -N_m] couples both bodies. They go
+        // into the NON-Newton STIFFNESS set on purpose: StdSolveStep forms the residual as
+        // f - K(u).u from exactly these matrices and reuses them in the tangent, which is
+        // correct here because the penalty contribution is exactly quadratic in u for a fixed
+        // active set
+        const BiLinearForm::CouplingDirection dirs[4] = {
+          BiLinearForm::SEC_SEC,  BiLinearForm::SEC_PRIM,
+          BiLinearForm::PRIM_SEC, BiLinearForm::PRIM_PRIM
+        };
+
+        for (UInt d = 0; d < 4; ++d) {
+          ContactABInt* cInt = new ContactABInt(ci.get(), dirs[d]);
+          cInt->SetName("ContactPenaltyInt");
+          cInt->SetFeSpace(dispSpace, dispSpace);
+
+          SurfaceBiLinFormContext* ctx =
+              new SurfaceBiLinFormContext(cInt, STIFFNESS, dirs[d]);
+          ctx->SetEntities(ci->GetElemList(), ci->GetElemList());
+          ctx->SetFeFunctions(dispFct, dispFct);
+          assemble_->AddBiLinearForm(ctx);
+        }
+
+        // Separated-start stabilisation: the same four blocks on the projected-but-OPEN
+        // points, with a small artificial stiffness, registered as NEWTON forms.
+        if (ci->GetStabilization() > 0.0) {
+          for (UInt d = 0; d < 4; ++d) {
+            ContactABInt* sInt = new ContactABInt(ci.get(), dirs[d],
+                                                  ContactABInt::MODE_STABILIZATION);
+            sInt->SetName("ContactStabilizationInt");
+            sInt->SetFeSpace(dispSpace, dispSpace);
+            sInt->SetNewtonBiLinearForm();
+
+            SurfaceBiLinFormContext* sctx =
+                new SurfaceBiLinFormContext(sInt, STIFFNESS, dirs[d]);
+            sctx->SetEntities(ci->GetElemList(), ci->GetElemList());
+            sctx->SetFeFunctions(dispFct, dispFct);
+            assemble_->AddBiLinearForm(sctx);
+          }
+        }
+
+        // Coulomb friction: the tangential residual on both sides plus its consistent
+        // tangent on all four blocks.
+        //
+        // The split is the OTHER one from the normal part, and deliberately so. The normal
+        // penalty term is exactly quadratic in u, so a non-Newton stiffness generates both
+        // its residual (-K.u) and its tangent. The friction traction is not quadratic, on a
+        // slipping point it is mu*p*e, nonlinear through both the pressure and the direction
+        // so there is nothing for a stiffness to manufacture. Friction therefore uses the
+        // general "solution-dependent force + Newton tangent" split:
+        //
+        //   r_T = -INT N_D^T t_T dG        ContactLinInt  MODE_FRICTION, sol dependent RHS
+        //   K_T = +INT N_D^T D N_D dG      ContactABInt   MODE_FRICTION, NEWTON form
+        if (ci->HasFriction()) {
+
+          for (UInt d = 0; d < 4; ++d) {
+            ContactABInt* fInt = new ContactABInt(ci.get(), dirs[d],
+                                                  ContactABInt::MODE_FRICTION);
+            fInt->SetName("ContactFrictionInt");
+            fInt->SetFeSpace(dispSpace, dispSpace);
+            fInt->SetNewtonBiLinearForm();
+
+            SurfaceBiLinFormContext* fctx =
+                new SurfaceBiLinFormContext(fInt, STIFFNESS, dirs[d]);
+            fctx->SetEntities(ci->GetElemList(), ci->GetElemList());
+            fctx->SetFeFunctions(dispFct, dispFct);
+            assemble_->AddBiLinearForm(fctx);
+          }
+
+          const SurfaceLinFormContext::Side fsides[2] = {
+            SurfaceLinFormContext::SECONDARY, SurfaceLinFormContext::PRIMARY
+          };
+
+          for (UInt s = 0; s < 2; ++s) {
+            ContactLinInt* fLin =
+                new ContactLinInt(ci.get(), fsides[s] == SurfaceLinFormContext::PRIMARY,
+                                  ContactLinInt::MODE_FRICTION);
+            fLin->SetName("ContactFrictionForceInt");
+            fLin->SetSolDependent();
+
+            SurfaceLinFormContext* fctx = new SurfaceLinFormContext(fLin, fsides[s]);
+            fctx->SetEntities(ci->GetElemList());
+            fctx->SetFeFunction(dispFct);
+            assemble_->AddLinearForm(fctx);
+          }
+        }
+
+        // The reference-gap force: two sides, because the same N_D splits the constant term
+        // over both bodies. Solution dependent through the active set, so it is re-assembled
+        // every Newton iteration by Assemble::AssembleNonLinRHS(). Zero for a pair whose
+        // surfaces are coincident at u = 0 and the whole load for one that is not.
+        // SurfaceLinFormContext maps the element vector onto the volume DOFs of the chosen
+        // side, matching the equation numbering of the stiffness blocks above.
+        const SurfaceLinFormContext::Side sides[2] = {
+          SurfaceLinFormContext::SECONDARY, SurfaceLinFormContext::PRIMARY
+        };
+
+        for (UInt s = 0; s < 2; ++s) {
+          ContactLinInt* lInt =
+              new ContactLinInt(ci.get(), sides[s] == SurfaceLinFormContext::PRIMARY);
+          lInt->SetName("ContactGapForceInt");
+          lInt->SetSolDependent();
+
+          SurfaceLinFormContext* lctx = new SurfaceLinFormContext(lInt, sides[s]);
+          lctx->SetEntities(ci->GetElemList());
+          lctx->SetFeFunction(dispFct);
+          assemble_->AddLinearForm(lctx);
+        }
+      }
+
+      PtrParamNode in = contactInfo->Get("contactPair", ParamNode::APPEND);
+      in->Get("name")->SetValue(ci->GetName());
+      in->Get("primarySurface")->SetValue(
+          ptGrid_->GetRegion().ToString(ci->GetPrimarySurfRegion()));
+      in->Get("secondarySurface")->SetValue(
+          ptGrid_->GetRegion().ToString(ci->GetSecondarySurfRegion()));
+      in->Get("numSegments")->SetValue((UInt) ci->GetSegments().GetSize());
+      in->Get("numProjectedPoints")->SetValue(ci->GetNumProjectedPoints());
+      in->Get("numActivePoints")->SetValue(ci->GetNumActivePoints());
+      in->Get("minGap")->SetValue(ci->GetMinGap());
+      in->Get("integratedArea")->SetValue(ci->GetIntegratedArea());
+      in->Get("referenceModulus")->SetValue(ci->GetReferenceModulus());
+      // Segmentation diagnostics. "numCells" above "numSegments" is the fingerprint of a
+      // non-matching interface mesh: it counts the mortar sub-cells the secondary elements
+      // were cut into. "secondaryArea" is the geometric area of the secondary surface and is
+      // independent of the segmentation, so comparing it against "integratedArea" shows how
+      // much of that surface actually found a primary partner.
+      in->Get("formulation")->SetValue(
+          ci->GetFormulation() == ContactInterface::FORM_AUGMENTED_LAGRANGE
+          ? "augmentedLagrange" : "penalty");
+      in->Get("segmentation")->SetValue(ci->GetMortarSegmentation() ? "mortar" : "gpts");
+      // WHEN the partition is re-cut, reported only when it is not the ordinary per-iteration
+      // answer -- so no existing reference file gains an attribute. "step" means the pair
+      // carries per-point history (a Uzawa multiplier, a plastic slip, a frozen as-meshed gap)
+      // and the partition is therefore held fixed inside each Newton solve
+      if (ci->GetSlidingType() == ContactInterface::SLIDING_LARGE
+          && ci->GetMortarSegmentation() && ci->NeedsStablePointSet()) {
+        in->Get("resegmentation")->SetValue("step");
+      }
+      // Friction, reported only when it is actually on, so that every frictionless reference
+      // file stays untouched.
+      if (ci->HasFriction()) {
+        in->Get("friction")->SetValue("coulomb");
+        in->Get("frictionCoefficient")->SetValue(ci->GetFrictionCoefficient());
+        in->Get("tangentialPenalty")->SetValue(ci->GetTangentialPenaltyFactor());
+        in->Get("frictionTangent")->SetValue(
+            ci->GetFrictionTangent() == ContactInterface::FRICTION_TANGENT_CONSISTENT
+            ? "consistent" : "reduced");
+      }
+      if (ci->GetStabilization() > 0.0) {
+        in->Get("stabilization")->SetValue(ci->GetStabilization());
+      }
+      in->Get("numCells")->SetValue(ci->GetNumCells());
+      in->Get("secondaryArea")->SetValue(ci->GetSecondaryArea());
+      // The contact force already present at u = 0. Compare it against the applied load: when
+      // it is much larger, the relative residual criterion cannot be met (it is normalised by
+      // the LINEAR RHS only) even though the solution is exact
+      in->Get("referenceGapForce")->SetValue(ci->GetReferenceGapForce());
+      in->Get("numContactElements")->SetValue(ci->GetNumContactElements());
+      // Blocks held in the element list purely to reserve entries in the matrix sparsity
+      // pattern, so the pairing may move without leaving it (ReserveGraphPrimaries()). They
+      // carry no points and assemble an exact zero
+      {
+        const UInt reserved = (UInt) ci->GetElemList()->GetSize()
+                            - ci->GetNumContactElements();
+        if (reserved > 0) {
+          in->Get("numReservedElements")->SetValue(reserved);
+        }
+      }
+      in->Get("applyContactForce")->SetValue(ci->GetApplyForce() ? "yes" : "no");
+
+      UInt numPoints = 0;
+      for (UInt s = 0; s < ci->GetSegments().GetSize(); ++s) {
+        numPoints += ci->GetSegments()[s].points.GetSize();
+      }
+      in->Get("numPoints")->SetValue(numPoints);
+
+      if (ci->GetNumProjectedPoints() < numPoints) {
+        in->SetWarning("Only " + std::to_string(ci->GetNumProjectedPoints()) + " of "
+                       + std::to_string(numPoints) + " contact points found a projection "
+                       "onto the primary surface. Points without a projection transmit no "
+                       "force. Check that the surfaces face each other and consider raising "
+                       "searchDistanceFactor.");
+      }
+
+      if (!ci->GetApplyForce()) {
+        in->SetWarning("applyContactForce=\"no\": this contact pair reports its geometry, gap "
+                       "and pressure but exerts NO force, so the result is the same as without "
+                       "it.");
+      }
+
+      if (ci->GetSlidingType() == ContactInterface::SLIDING_LARGE && ci->GetApplyForce()) {
+        in->SetWarning(
+            "slidingType=\"large\" with applyContactForce=\"yes\" uses an INCONSISTENT "
+            "TANGENT, by choice. The kinematics are complete and verified: the pairing, the "
+            "normal, the gap and the mortar partition are all re-evaluated on the DEFORMED "
+            "primary surface once per Newton iteration, and a point that slides onto a "
+            "different primary element re-pairs onto it (ContactSlidingRamp2d and "
+            "ContactSlidingMortar2d gate this). What the tangent omits is the SECOND variation "
+            "of the gap -- the terms from dn/du and the primary curvature. The first variation "
+            "is exact, so the converged answer is exact too; only the path to it is affected, "
+            "and the scheme is a fixed-point iteration on the geometry wrapped around Newton "
+            "on the elasticity. Measured on ContactSlidingCurved2d, that iteration contracts "
+            "at a rate of about p/E, the ratio of contact pressure to Young's modulus: "
+            "four iterations to a residual of 6e-9 at p/E = 1.7e-4. Convergence is therefore "
+            "linear rather than quadratic, and slow only for a model whose contact pressure is "
+            "a sizeable fraction of its modulus. If yours is, expect many iterations. For a "
+            "pair whose tangential motion stays inside one primary element, "
+            "slidingType=\"small\" is exact and is the setting to use.");
+      }
+
+      if (ci->GetSlidingType() == ContactInterface::SLIDING_LARGE && ci->HasFriction()
+          && ci->GetApplyForce()) {
+        in->SetWarning(
+            "friction with slidingType=\"large\" is limited by the product mu*normalPenalty, "
+            "which is "
+            + std::to_string(ci->GetFrictionCoefficient() * ci->GetNormalPenalty())
+            + " here. Measured on ContactFrictionSliding2d at mu = 0.4: the solve converges up "
+            "to mu*normalPenalty ~ 12 and diverges from ~40, and where it converges the answer "
+            "is exact -- Coulomb's law to all reported digits, with points re-pairing onto "
+            "primary elements they did not start on. The failure above that is a runaway "
+            "PENETRATION (the normal direction blowing up over four or five iterations and "
+            "taking the friction force with it), not a kinematic limit, and it is the same "
+            "mu*normalPenalty mechanism that makes the consistent friction tangent unusable "
+            "-- see friction tangent=\"consistent\". Failure is loud, never a silently wrong "
+            "friction force. If this pair does not converge, LOWER normalPenalty first; the "
+            "penetration that costs is what formulation=\"augmentedLagrange\" removes without "
+            "raising the penalty again (measured: 290x less penetration at normalPenalty=10, "
+            "same forces).");
+      }
+    }
+  }
+
+
+  void MechPDE::UpdateNonLinGeometry() {
+
+    if (contactInterfaces_.GetSize() == 0) {
+      return;
+    }
+
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+
+      shared_ptr<ContactInterface> ci = contactInterfaces_[i];
+
+      // The integrators decide the active set per point at assembly time and never write it
+      // back, so the cached gaps are one iteration stale here. Refresh them against the
+      // iterate that was just computed.
+      if (ci->GetSlidingType() == ContactInterface::SLIDING_LARGE) {
+        ci->UpdateProjection();
+      } else {
+        ci->UpdateGaps();
+      }
+    }
+  }
+
+
+  void MechPDE::ToNonLinIterInfo(PtrParamNode iter) {
+
+    if (contactInterfaces_.GetSize() == 0) {
+      return;
+    }
+
+    contactActiveHistory_.Resize(contactInterfaces_.GetSize());
+
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+
+      shared_ptr<ContactInterface> ci = contactInterfaces_[i];
+
+      const UInt active = ci->GetNumActivePoints();
+      contactActiveHistory_[i].Push_back(active);
+
+      PtrParamNode cn = iter->Get("contact", ParamNode::APPEND);
+      cn->Get("name")->SetValue(ci->GetName());
+      cn->Get("numActivePoints")->SetValue(active);
+      cn->Get("minGap")->SetValue(ci->GetMinGap());
+      cn->Get("maxPressure")->SetValue(ci->GetMaxPressure());
+
+      if (ci->HasFriction()) {
+        cn->Get("numStickPoints")->SetValue(ci->GetNumStickPoints());
+        cn->Get("numSlipPoints")->SetValue(ci->GetNumSlipPoints());
+        cn->Get("totalTangentialForce")->SetValue(ci->GetTotalTangentialForce());
+      }
+    }
+  }
+
+
+  bool MechPDE::RequestsAnotherSolve(UInt outerIter) {
+
+    if (contactInterfaces_.GetSize() == 0) {
+      return false;
+    }
+
+    // Uzawa augmented Lagrangian
+    //
+    // Why this converges where a larger penalty would not: at the solution the augmented
+    // traction must equal the true contact traction, lambda + eps_N*g = t_true, so the update
+    // lambda <- lambda + eps_N*g drives g towards zero WITHOUT eps_N having to be large. The
+    // penetration is removed by the multiplier, not by the stiffness, so the conditioning of
+    // the tangent never degrades.
+    bool wantAnother = false;
+
+    contactAugIters_.Resize(contactInterfaces_.GetSize());
+    contactAugGapHistory_.Resize(contactInterfaces_.GetSize());
+    contactAugConverged_.Resize(contactInterfaces_.GetSize());
+
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+
+      shared_ptr<ContactInterface> ci = contactInterfaces_[i];
+
+      if (ci->GetFormulation() != ContactInterface::FORM_AUGMENTED_LAGRANGE
+          || !ci->GetApplyForce()) {
+        continue;
+      }
+
+      if (outerIter == 0) {
+        contactAugGapHistory_[i].Clear();
+        contactAugConverged_[i] = false;
+      }
+
+      ci->UpdateGaps();
+      contactAugGapHistory_[i].Push_back(ci->GetMinGap());
+
+      Double maxDelta = 0.0, maxLambda = 0.0;
+      ci->UpdateMultipliers(maxDelta, maxLambda);
+
+      const bool converged = (maxLambda <= 0.0)
+                          || (maxDelta <= ci->GetAugmentedTol() * maxLambda);
+      contactAugConverged_[i] = converged;
+      contactAugIters_[i] = outerIter + 1;
+
+      if (!converged && (outerIter + 1) < ci->GetAugmentedMaxIter()) {
+        wantAnother = true;
+      }
+
+      LOG_DBG(mechpde) << "contact pair '" << ci->GetName() << "' Uzawa iteration "
+          << (outerIter + 1) << ": maxDelta = " << maxDelta << ", maxLambda = " << maxLambda
+          << ", minGap = " << ci->GetMinGap() << (converged ? " (converged)" : "");
+    }
+
+    if (wantAnother) {
+      // The per-iteration active-set history belongs to ONE Newton solve. StdSolveStep clears
+      // the <iteration> nodes when the next solve reaches iteration 1, so the reported history
+      // must be cleared here to match, or it would concatenate all outer iterations.
+      for (UInt i = 0; i < contactActiveHistory_.GetSize(); ++i) {
+        contactActiveHistory_[i].Clear();
+      }
+    }
+
+    return wantAnother;
+  }
+
+
+  void MechPDE::PostSolveStep() {
+
+    if (contactInterfaces_.GetSize() == 0) {
+      return;
+    }
+
+    // The solution is available now, so the gap can finally be evaluated in the deformed
+    // configuration x = X + u. Under SLIDING_SMALL this keeps the pairing and the normals
+    // and only refreshes the gaps; under SLIDING_LARGE it re-projects.
+    PtrParamNode contactInfo = infoNode_->Get("contactList");
+
+    for (UInt i = 0; i < contactInterfaces_.GetSize(); ++i) {
+
+      shared_ptr<ContactInterface> ci = contactInterfaces_[i];
+      ci->UpdateProjection();
+
+      PtrParamNode in = contactInfo->GetByVal("contactPair", "name", ci->GetName());
+      PtrParamNode out = in->Get("deformed");
+      out->Get("numActivePoints")->SetValue(ci->GetNumActivePoints());
+      out->Get("minGap")->SetValue(ci->GetMinGap());
+      out->Get("maxPressure")->SetValue(ci->GetMaxPressure());
+      out->Get("totalContactForce")->SetValue(ci->GetTotalContactForce());
+
+      {
+        Vector<Double> fRes;
+        ci->GetContactForceResultant(fRes);
+        static const char* comp[3] = { "contactForceX", "contactForceY", "contactForceZ" };
+        for (UInt d = 0; d < fRes.GetSize() && d < 3; ++d) {
+          out->Get(comp[d])->SetValue(fRes[d]);
+        }
+      }
+
+      // Re-pairing fingerprint. One assembler element per (secondary element, primary
+      // element) pair, so this count changing between the initial and the deformed state is
+      // exactly the statement that points have moved onto different primary elements. It is
+      // always equal to the initial count under SLIDING_SMALL, where the pairing is frozen.
+      out->Get("numContactElements")->SetValue(ci->GetNumContactElements());
+
+      out->Get("numCells")->SetValue(ci->GetNumCells());
+      out->Get("integratedArea")->SetValue(ci->GetIntegratedArea());
+      {
+        UInt nP = 0;
+        for (UInt s = 0; s < ci->GetSegments().GetSize(); ++s) {
+          nP += ci->GetSegments()[s].points.GetSize();
+        }
+        out->Get("numPoints")->SetValue(nP);
+        out->Get("numProjectedPoints")->SetValue(ci->GetNumProjectedPoints());
+      }
+
+      // ------------------------------------------------------------------
+      //  Friction: the stick/slip state and the tangential resultant
+      // ------------------------------------------------------------------
+      // The slip history is advanced HERE, on the converged solution, and nowhere else.
+      // Doing it inside the Newton loop would make the return map path dependent on the
+      // iterates instead of on the load history, and the tangent would stop being
+      // consistent. This hook fires for both static and transient steps, so a transient run
+      // accumulates one slip increment per time step, which is what makes Coulomb friction
+      // path dependent as it physically is.
+      if (ci->HasFriction()) {
+
+        // Report the state BEFORE advancing the history: these are the tractions the
+        // converged solution actually carries.
+        PtrParamNode fr = out->Get("friction");
+        fr->Get("numStickPoints")->SetValue(ci->GetNumStickPoints());
+        fr->Get("numSlipPoints")->SetValue(ci->GetNumSlipPoints());
+        fr->Get("maxTangentialTraction")->SetValue(ci->GetMaxTangentialTraction());
+        fr->Get("totalTangentialForce")->SetValue(ci->GetTotalTangentialForce());
+
+        ci->UpdateSlipHistory();
+      }
+
+      // ------------------------------------------------------------------
+      //  Active-set history: the chattering diagnostic
+      // ------------------------------------------------------------------
+      // A healthy contact solve settles: the active set grows to its final size, or shrinks
+      // to it, and then stops changing. Chattering is the sequence turning around, points
+      // closing, being pushed back open by the penalty force, closing again. The residual
+      // norm can look perfectly reasonable while this happens, so it is worth reporting on
+      // its own rather than leaving it to be inferred.
+      if (i < contactActiveHistory_.GetSize() && contactActiveHistory_[i].GetSize() > 0) {
+
+        const StdVector<UInt>& hist = contactActiveHistory_[i];
+
+        std::string seq;
+        bool up = false, down = false;
+        for (UInt k = 0; k < hist.GetSize(); ++k) {
+          if (k > 0) {
+            seq += " ";
+            if (hist[k] > hist[k-1]) up = true;
+            if (hist[k] < hist[k-1]) down = true;
+          }
+          seq += std::to_string(hist[k]);
+        }
+
+        PtrParamNode as = out->Get("activeSetHistory");
+        as->Get("numIterations")->SetValue((UInt) hist.GetSize());
+        as->Get("sequence")->SetValue(seq);
+        as->Get("settled")->SetValue(
+            (hist.GetSize() < 2 || hist[hist.GetSize()-1] == hist[hist.GetSize()-2])
+            ? "yes" : "no");
+
+        if (up && down) {
+          // The remedy depends on WHY it chattered, and the sequence says which. Starting from
+          // an empty active set means the body had no contact stiffness at all to begin with
+          std::string remedy = (hist[0] == 0)
+              ? "The active set was EMPTY at the first iteration, so the body had no contact "
+                "stiffness in the direction it has to move: this is a separated start. Set "
+                "stabilization on the contactPair (try 1e-3) -- it adds a small artificial "
+                "stiffness on the open points, which changes no result because it is a Newton "
+                "form, and switches itself off as contact establishes."
+              : "Try a smaller normalPenalty, or a finer interface mesh so the partly closed "
+                "region is resolved by more integration points.";
+          as->SetWarning("The contact active set of pair '" + ci->GetName()
+                         + "' oscillated over the Newton iterations (" + seq + ") instead of "
+                         "settling. This is active-set chattering: the result may be a "
+                         "solution of neither the open nor the closed problem. " + remedy);
+        }
+      }
+
+      // ------------------------------------------------------------------
+      //  Uzawa augmented-Lagrangian summary
+      // ------------------------------------------------------------------
+      if (ci->GetFormulation() == ContactInterface::FORM_AUGMENTED_LAGRANGE
+          && i < contactAugGapHistory_.GetSize()
+          && contactAugGapHistory_[i].GetSize() > 0) {
+
+        const StdVector<Double>& hist = contactAugGapHistory_[i];
+
+        std::string seq;
+        for (UInt k = 0; k < hist.GetSize(); ++k) {
+          if (k > 0) {
+            seq += " ";
+          }
+          std::ostringstream os;
+          os << std::setprecision(4) << hist[k];
+          seq += os.str();
+        }
+
+        PtrParamNode ag = out->Get("augmentation");
+        ag->Get("numIterations")->SetValue((UInt) hist.GetSize());
+        ag->Get("converged")->SetValue(contactAugConverged_[i] ? "yes" : "no");
+        ag->Get("gapSequence")->SetValue(seq);
+
+        const Double pen0 = (hist[0] < 0.0) ? -hist[0] : 0.0;
+        const Double penN = (ci->GetMinGap() < 0.0) ? -ci->GetMinGap() : 0.0;
+        ag->Get("initialPenetration")->SetValue(pen0);
+        ag->Get("finalPenetration")->SetValue(penN);
+
+        if (!contactAugConverged_[i]) {
+          ag->SetWarning("The augmented Lagrange (Uzawa) loop of contact pair '"
+                         + ci->GetName() + "' did not converge within maxIter="
+                         + std::to_string(ci->GetAugmentedMaxIter()) + " outer iterations. "
+                         "The result is the last penalty solution, so the constraint is only "
+                         "satisfied to the penetration reported above. Raise maxIter, raise "
+                         "normalPenalty (which speeds the outer loop up), or loosen tol.");
+        }
+      }
+
+      // ------------------------------------------------------------------
+      //  Step boundary: re-cut the mortar partition
+      // ------------------------------------------------------------------
+      // Only does anything for a pair that carries per-point history, where the partition was
+      // held fixed for the duration of the solve so that the multiplier / the plastic slip /
+      // the frozen as-meshed gap had a stable point set to live on. Here, on the converged
+      // solution and with the history already advanced by UpdateSlipHistory() just above, the
+      // partition is re-cut for the deformed configuration and the history is interpolated
+      // onto the new points.
+      //
+      // Deliberately LAST: everything reported above describes the solve that just finished,
+      // on the partition it was actually integrated on. What this leaves behind is the
+      // starting state of the NEXT step.
+      ci->ReSegment();
+
+      LOG_DBG(mechpde) << "contact pair '" << ci->GetName() << "' after solve: "
+          << ci->GetNumActivePoints() << " active, min gap = " << ci->GetMinGap();
+    }
+
+    // The history belongs to ONE solve step; a transient run must not accumulate across time
+    // steps. Clearing the outer vector is not enough: StdVector::Clear() keeps the capacity
+    // and StdVector::Resize() within that capacity only moves size_ without re-initialising,
+    // so ToNonLinIterInfo()'s Resize() would hand back the very same inner vectors with all
+    // their old entries. Clear each inner sequence explicitly.
+    for (UInt i = 0; i < contactActiveHistory_.GetSize(); ++i) {
+      contactActiveHistory_[i].Clear();
+    }
+  }
+
+
   void MechPDE::DefineConcentratedElems() {
-    
+
     // Get FESpace and FeFunction of mechanical displacement
     shared_ptr<BaseFeFunction> myFct = feFunctions_[MECH_DISPLACEMENT];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();

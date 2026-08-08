@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Coulomb friction under slidingType="large"</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Coulomb friction together with slidingType="large".
+
+      A block on a wider flat substrate, pressed by 1e6 Pa on its flat top and dragged sideways
+      AT THE INTERFACE (prescribing the drag on the top face would put it a block height above
+      the interface, and the resulting couple would lift one side off). Only u_x is prescribed,
+      so the vertical support is still the contact interface.
+
+      WHAT IT ASSERTS
+
+      1. contactForceY = 1e6, the vertical equilibrium of the block. 2. totalTangentialForce =
+      4e5 = mu * F_N, all 24 points slipping, none sticking. The invariant is really the RATIO:
+      it holds pointwise at every slipping point, so it holds for the resultant whatever the
+      pressure distribution does. That matters, because a flat punch on an elastic half space
+      has an edge singularity -- asserting a distribution would assert the mesh. 3.
+      numContactElements 12 -> 14. An assembler element is one (secondary, primary) PAIR, so
+      this integer changing is exactly the statement that points slid onto primary elements they
+      were not paired with at the start. Under slidingType="small" it cannot change.
+
+      WHY normalPenalty IS 10 AND NOT THE SUITE'S USUAL 100. Friction under large sliding is
+      limited by the product mu * normalPenalty -- the same product that limits
+      tangent="consistent". Beyond it the failure is a runaway penetration, the normal direction
+      blowing up and taking the friction force with it, and it is governed by that product
+      rather than by how far the block slid. Keeping it small is what lets this model slide far
+      enough for points to re-pair at all. A low penalty costs penetration;
+      formulation="augmentedLagrange" removes that without raising it.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactFrictionSliding2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <!-- The combination this testcase exists for: friction with slidingType="large",
+               which used to be refused outright. -->
+          <contactPair name="friction_slide"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalPenalty="10"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2">
+            <friction type="coulomb" mu="0.4" tangentialPenalty="100"/>
+          </contactPair>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- Drag AT THE INTERFACE, x only: no lever arm, and the vertical support is still
+               the contact interface. See the description. -->
+          <displacement name="slave_iface">
+            <comp dof="x" value="3e-2"/>
+          </displacement>
+          <pressure name="top" value="1e6"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-7</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

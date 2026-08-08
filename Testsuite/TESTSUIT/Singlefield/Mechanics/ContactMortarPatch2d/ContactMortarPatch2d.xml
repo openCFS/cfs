@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Contact patch test across NON-MATCHING interface meshes (2D, mortar segmentation)</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-06</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      The contact patch test in its full form: uniform pressure transmitted exactly across an
+      interface whose two sides are meshed DIFFERENTLY. The lower body has five elements along
+      the interface, the upper three, so secondary elements straddle primary element boundaries.
+
+      The Poisson ratio is zero, which is what turns this into a patch test: the exact solution
+      of the loaded column is then uniform uniaxial stress and the exact contact pressure is
+      exactly the applied 1e6 Pa at every point. The expected answer is known analytically and
+      independent of the mesh, so any deviation is pure discretization error.
+
+      This is the gate on mortar segmentation. With segmentation="gpts" the integration points
+      are the secondary element's own, so a point near a primary boundary carries a weight
+      computed for the whole secondary element: the RESULTANT stays exact -- it depends only on
+      the weights summing to the area -- but the pressure distribution comes out several percent
+      too high on this mesh pairing. With the default segmentation="mortar" the secondary
+      elements are cut along the projected primary outlines and the pressure is transmitted
+      exactly.
+
+      The two assertions are complementary: maxPressure = 1e6 exact only WITH mortar
+      segmentation totalContactForce = 2e6 exact either way, by equilibrium; cannot be fooled by
+      discretization
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactMortarPatch2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <contactPair name="mortar_patch"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="small"
+                       segmentation="mortar"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- upper body: suppress the lateral rigid-body mode only. Its y support comes
+               exclusively from the contact interface. -->
+          <fix name="top">
+            <comp dof="x"/>
+          </fix>
+          <pressure name="top" value="1e6"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-9</resStopCrit>
+              <maxNumIters>20</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

@@ -370,6 +370,166 @@ def compare_iter_coupled_pde(ref,tst,verbose = False):
   print('numIters for all iterCoupledPDE steps match')
   return 1
 
+## compare mechanical contact pairs: the geometry of the pairing and the converged contact state
+# Everything a <contactPair> reports is a number that a correct implementation reproduces
+# exactly: the integrated area of the secondary surface, how many integration points found a
+# projection, the gap, and - under <deformed> - the converged pressure and resultant force.
+# Without this comparator the contact testcases only assert that cfs exits with 0.
+def compare_contact(ref, tst, eps, skip_noise, verbose = False):
+  pairs_ref = ref.xpath('//PDE/mechanic/contactList/contactPair')
+  pairs_tst = tst.xpath('//PDE/mechanic/contactList/contactPair')
+
+  print('test for mechanical contact ...' + ('found' if pairs_ref else 'none'))
+
+  if not pairs_ref:
+    return 0
+
+  if len(pairs_ref) != len(pairs_tst):
+    print('ref has', len(pairs_ref), 'contactPair, but test has', len(pairs_tst))
+    return -99
+
+  # integer counts must match exactly, floats within eps
+  int_attribs = ['numSegments', 'numPoints', 'numProjectedPoints', 'numActivePoints',
+                 'numContactElements', 'numCells', 'numReservedElements']
+  float_attribs = ['minGap', 'integratedArea', 'referenceModulus', 'referenceGapForce',
+                   'maxPressure', 'totalContactForce',
+                   'contactForceX', 'contactForceY', 'contactForceZ',
+                   'frictionCoefficient', 'tangentialPenalty']
+
+  for i in range(len(pairs_ref)):
+    name = pairs_ref[i].attrib.get('name', str(i))
+    if pairs_tst[i].attrib.get('name', str(i)) != name:
+      print('contactPair', i, 'is named', pairs_tst[i].attrib.get('name'), 'but expected', name)
+      return -99
+
+    # the pair element itself carries the initial state, its <deformed> child the converged one
+    nodes_ref = [pairs_ref[i]] + pairs_ref[i].xpath('deformed')
+    nodes_tst = [pairs_tst[i]] + pairs_tst[i].xpath('deformed')
+    if len(nodes_ref) != len(nodes_tst):
+      print("contactPair '" + name + "' has no <deformed> node in the test")
+      return -99
+
+    for nr, nt in zip(nodes_ref, nodes_tst):
+      where = "contactPair '" + name + "'" + ('' if nr is pairs_ref[i] else '/deformed')
+
+      for a in int_attribs:
+        if a not in nr.attrib:
+          continue
+        if a not in nt.attrib:
+          print(where, 'has no attribute', a)
+          return -99
+        if int(nr.attrib[a]) != int(nt.attrib[a]):
+          print(' * error:', where, a, '=', nt.attrib[a], 'but expected', nr.attrib[a])
+          return -99
+        if verbose:
+          print(' -', where, a, '=', nt.attrib[a], '... True')
+
+      fscale = 0.0
+      for a in ('totalContactForce', 'contactForceX', 'contactForceY', 'contactForceZ'):
+        for nd in (nr, nt):
+          if a in nd.attrib:
+            fscale = max(fscale, abs(float(nd.attrib[a])))
+
+      for a in float_attribs:
+        if a not in nr.attrib:
+          continue
+        if a not in nt.attrib:
+          print(where, 'has no attribute', a)
+          return -99
+        noise = skip_noise
+        if a in ('contactForceX', 'contactForceY', 'contactForceZ') and fscale > 0.0:
+          noise = max(noise or 0.0, 1e-9 * fscale)
+        if has_rel_error(float(nr.attrib[a]), float(nt.attrib[a]), eps,
+                         testinfo = where + ' ' + a, skip_noise = noise,
+                         verbose = verbose):
+          return -99
+        if verbose:
+          print(' -', where, a, '=', nt.attrib[a], '... True')
+
+    # The active-set history is the chattering diagnostic; compare it verbatim. It is the
+    # only record of HOW the solve reached its answer, and a change in it is a change in the
+    # nonlinear behaviour even when the converged state is identical.
+    hist_ref = pairs_ref[i].xpath('deformed/activeSetHistory')
+    hist_tst = pairs_tst[i].xpath('deformed/activeSetHistory')
+    if hist_ref:
+      if not hist_tst:
+        print("contactPair '" + name + "' has no activeSetHistory in the test")
+        return -99
+      for a in ['sequence', 'settled']:
+        if hist_ref[0].attrib.get(a) != hist_tst[0].attrib.get(a):
+          print(" * error: contactPair '" + name + "' activeSetHistory " + a + " = '"
+                + str(hist_tst[0].attrib.get(a)) + "' but expected '"
+                + str(hist_ref[0].attrib.get(a)) + "'")
+          return -99
+      if verbose:
+        print(" - contactPair '" + name + "' activeSetHistory",
+              hist_tst[0].attrib.get('sequence'), '... True')
+
+    # The Uzawa (augmented Lagrange) outer loop. numIterations and converged are compared
+    # exactly and the penetrations within eps: the whole point of the formulation is that the
+    # final penetration collapses, so a change there is a change in what the method achieves,
+    # not a rounding difference. gapSequence is NOT compared verbatim - it is printed at four
+    # significant digits and its trailing entries are at machine-precision level, where
+    # platform noise is expected and meaningless.
+    aug_ref = pairs_ref[i].xpath('deformed/augmentation')
+    aug_tst = pairs_tst[i].xpath('deformed/augmentation')
+    if aug_ref:
+      if not aug_tst:
+        print("contactPair '" + name + "' has no augmentation node in the test")
+        return -99
+      for a in ['numIterations', 'converged']:
+        if aug_ref[0].attrib.get(a) != aug_tst[0].attrib.get(a):
+          print(" * error: contactPair '" + name + "' augmentation " + a + " = '"
+                + str(aug_tst[0].attrib.get(a)) + "' but expected '"
+                + str(aug_ref[0].attrib.get(a)) + "'")
+          return -99
+      for a in ['initialPenetration', 'finalPenetration']:
+        if a not in aug_ref[0].attrib:
+          continue
+        if has_rel_error(float(aug_ref[0].attrib[a]), float(aug_tst[0].attrib[a]), eps,
+                         testinfo = "contactPair '" + name + "' augmentation " + a,
+                         skip_noise = skip_noise, verbose = verbose):
+          return -99
+      if verbose:
+        print(" - contactPair '" + name + "' augmentation",
+              aug_tst[0].attrib.get('numIterations'), 'iterations ... True')
+
+    # Coulomb friction. The stick/slip counts are compared exactly - which points are stuck
+    # IS the tangential result, in the same way the active set is the normal one, and a shift
+    # between the two branches changes the physics even when the resultant happens to survive
+    # it. totalTangentialForce is the equilibrium-fixed number the friction tests assert.
+    fr_ref = pairs_ref[i].xpath('deformed/friction')
+    fr_tst = pairs_tst[i].xpath('deformed/friction')
+    if fr_ref:
+      if not fr_tst:
+        print("contactPair '" + name + "' has no friction node in the test")
+        return -99
+      for a in ['numStickPoints', 'numSlipPoints']:
+        if a not in fr_ref[0].attrib:
+          continue
+        if int(fr_ref[0].attrib[a]) != int(fr_tst[0].attrib.get(a, -1)):
+          print(" * error: contactPair '" + name + "' friction " + a + " = '"
+                + str(fr_tst[0].attrib.get(a)) + "' but expected '"
+                + str(fr_ref[0].attrib.get(a)) + "'")
+          return -99
+      for a in ['maxTangentialTraction', 'totalTangentialForce']:
+        if a not in fr_ref[0].attrib:
+          continue
+        if a not in fr_tst[0].attrib:
+          print("contactPair '" + name + "' friction has no attribute", a)
+          return -99
+        if has_rel_error(float(fr_ref[0].attrib[a]), float(fr_tst[0].attrib[a]), eps,
+                         testinfo = "contactPair '" + name + "' friction " + a,
+                         skip_noise = skip_noise, verbose = verbose):
+          return -99
+      if verbose:
+        print(" - contactPair '" + name + "' friction",
+              fr_tst[0].attrib.get('numStickPoints'), 'stick /',
+              fr_tst[0].attrib.get('numSlipPoints'), 'slip ... True')
+
+  print(' > all', len(pairs_ref), 'contact pair(s) match')
+  return 1
+
 ## compare the regions for matching names, ids, types, ...
 def compare_regions(ref,tst,verbose = False):
   regions_ref = ref.xpath('//header/domain/regions/region') 
@@ -886,6 +1046,7 @@ count += compare_homogenized_tensor(ref, tst, args.eps, skip_noise, args.last, v
 count += compare_basecell_voxelized_mesh(ref, tst, args.eps)
 count += compare_output_hystOperator(ref, tst, skip_noise=skip_noise, eps=args.eps)
 count += compare_iter_coupled_pde(ref,tst,verbose=args.verbose)
+count += compare_contact(ref, tst, args.eps, skip_noise, verbose=args.verbose)
 count += compare_stochastic_estimate(ref,tst,args.eps)
 count += compare_eigenvalues_to_infoxml(ref, tst, args.eps)
 count += compare_get_rid_of_zeros_hardcoded(args.reference)

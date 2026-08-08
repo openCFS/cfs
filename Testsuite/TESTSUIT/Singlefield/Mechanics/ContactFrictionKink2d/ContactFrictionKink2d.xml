@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Coulomb friction: a loaded patch dragged ACROSS A KINK</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      A short block, loaded by a real pressure, dragged along a shallow tent and ACROSS ITS
+      APEX, where the contact normal jumps by 2*atan(0.05) = 0.0999 rad. Every point that
+      crosses re-pairs onto a primary element with a different normal while carrying friction.
+
+      WHAT IT GUARDS is a setting rather than a feature: tangent="consistent" is REQUIRED here.
+      With the default tangent="reduced" the identical model diverges once the block's leading
+      edge passes the apex. The kink is not the mechanism -- sweeping the tent slope to zero
+      reproduces the same divergence on a flat interface. What fails is the reduced tangent, a
+      fixed-point iteration whose contraction degrades as the total slide grows, where the
+      consistent tangent is Newton and stays flat. This is the COMPLEMENT of
+      ContactFrictionPartialSlip2d, which guards the default because "consistent" fails as soon
+      as any point STICKS; neither dominates.
+
+      THE INVARIANT: contactForceY = p*L = 2e5, exactly, by vertical equilibrium. The drive is
+      prescribed in x only, so its reaction carries no vertical load, and the pressure acts on a
+      flat top of length 0.2. Being an equilibrium statement it is insensitive to the pressure
+      distribution, which is the point: on a kinked interface no distribution is predictable. It
+      is exact only quasi-statically, hence T = 9.6 s; the residual is the block's own inertia.
+
+      contactForceX is NEGATIVE while the block is driven in +x: the resultant is the traction
+      on the SECONDARY body and friction opposes its motion.
+
+      THE KINEMATIC FINGERPRINT: numCells 4 -> 6 and numPoints 8 -> 12, because the block comes
+      to straddle the apex and is cut by one more primary boundary. Both are frozen under
+      slidingType="small", so these integers gate large sliding rather than merely exercising
+      it.
+
+      All 8 active points slip, so totalTangentialForce/totalContactForce is mu: the tangent
+      direction flips across the apex, but by at most cos(Dtheta/2) = 0.99875, so the ratio
+      cannot leave [0.39950, 0.40000].
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactFrictionKink2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <!-- Transient, because the patch has to TRAVEL: the pairing must move onto primary
+         elements it did not start on, and the slip history must survive the step boundaries
+         while it does. A static solve lands past the apex without ever crossing it. -->
+    <analysis>
+      <transient>
+        <numSteps>12</numSteps>
+        <deltaT>0.8</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <contactPair name="kink_slide"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalPenalty="10"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2" searchDistanceFactor="8">
+            <!-- The attribute this testcase exists for. tangent="reduced" (the default)
+                 diverges on this model; see the description. -->
+            <friction type="coulomb" mu="0.4" tangentialPenalty="100" tangent="consistent"/>
+          </contactPair>
+        </contactList>
+
+        <bcsAndLoads>
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- Drag AT THE INTERFACE, x only: no lever arm, and the reaction of a displacement
+               boundary condition is purely in the constrained component, which is what leaves
+               contactForceY fixed by equilibrium alone. -->
+          <displacement name="slave_iface">
+            <comp dof="x" value="0.1*t/9.6"/>
+          </displacement>
+          <pressure name="top" value="1e6*min(t/1.6,1)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- elimination, not penalty: under idbcHandling="penalty" the retained
+                 inhomogeneous Dirichlet rows stay in residualL2Norm while Solve(setIDBC=false)
+                 forces their increment to zero, so residualErr stalls at the nodal reactions
+                 and cannot reach resStopCrit. Same answer either way. -->
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-7</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Per-point history carried across a re-cut mortar partition</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      initialGapHandling="zero" together with slidingType="large" and segmentation="mortar" used
+      to be REJECTED with an error, because re-cutting the mortar partition replaces the contact
+      integration points and the frozen as-meshed gap lives on a point. This testcase is that
+      combination working.
+
+      HOW IT WAS MADE TO WORK. Not by a transfer operator bolted onto a per-iteration re-cut,
+      but by observing that the point set never had to be stable across the whole analysis --
+      only within one Newton solve. Both history quantities already advance ONLY between solves,
+      which is what makes the Uzawa update and the friction return map well-defined functions of
+      u. So the partition is held FIXED for the duration of each solve and re-cut at the step
+      boundary, where the stored field is interpolated onto the new points. The PAIRING is
+      untouched and still follows the body every iteration.
+
+      WHAT MAKES THE HISTORY VISIBLE. The block's bottom edge is meshed as a WEDGE above a flat
+      primary surface, and initialGapHandling="zero" freezes it and subtracts it from every
+      later gap. The wedge is 140 times the elastic deflection, so a point that lost its offset
+      on a re-cut would find an open gap, drop out of the active set and dump its load on its
+      neighbours. That is why numActivePoints is the assertion and not a tolerance: the failure
+      mode is discrete.
+
+      The block is driven u_x = t^2 over five steps, misaligned with the primary grid at every
+      intermediate step, so there are five re-cuts and five history transfers. u_x = t^2 rather
+      than t so the drive starts from zero VELOCITY; a linear ramp is a velocity step at t = 0,
+      which rings the block. Transient rather than a chain of static sequence steps, because the
+      step boundary has to be the boundary of a SOLVE with the contact interface living across
+      it -- each sequenceStep would build its own interfaces, so the history would be
+      re-initialised and the testcase would pass while testing nothing.
+
+      WHAT IT ASSERTS
+
+      1. contactForceY = 1e6, the vertical equilibrium of the block, exact at every step. 2.
+      numActivePoints = 12, every contact point still in contact after five re-cuts. Control:
+      the same model with initialGapHandling="fromMesh" -- what a total loss of the offsets
+      looks like -- ends with numActivePoints = 0 and contactForceY = 0. The block falls off the
+      wedge, so the offsets are not a refinement here, they are what holds the model up. 3. The
+      partition fingerprints numCells / numPoints, and integratedArea, which must NOT move. 4.
+      Agreement with the segmentation="gpts" run, which has no partition and never transfers
+      anything: the resultant agrees exactly while minGap differs, being a pointwise extremum on
+      two different point sets.
+
+      The counts describe the partition the last solve was integrated on, i.e. cut at the END of
+      the previous step. The transfer is a weighted least-squares fit of a linear polynomial, so
+      it reproduces this particular (linear) field exactly -- deliberately, so the testcase is a
+      statement about the plumbing rather than about interpolation quality.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactSlidingHistory2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>5</numSteps>
+        <deltaT>0.2</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <!-- The combination this testcase exists for. initialGapHandling="zero" carries one
+               frozen offset per contact point; slidingType="large" + segmentation="mortar"
+               re-cuts the partition as the body slides. Before this work it was refused. -->
+          <contactPair name="history_slide"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       segmentation="mortar"
+                       initialGapHandling="zero"
+                       normalPenalty="100"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <!-- lower body fully supported -->
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- The drive. ONLY the x component: the block's vertical position is carried by the
+               contact interface and by nothing else, which is what makes the vertical
+               equilibrium below a statement about contact. -->
+          <displacement name="top">
+            <comp dof="x" value="t*t"/>
+          </displacement>
+          <pressure name="top" value="1e6*min(t/0.4,1)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-7</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

@@ -1,5 +1,6 @@
 SET(LINFORMS_SRCS
- SingleEntryInt.cc 
+ SingleEntryInt.cc
+ ContactLinInt.cc
 )
 
 ADD_LIBRARY(linforms STATIC ${LINFORMS_SRCS})

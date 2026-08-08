@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Free impact of two deformable spheres</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      A transient 3D impact between two free deformable SPHERES, with no applied load and
+      nothing holding either body up. A contact patch forms, grows and releases.
+
+      NOTHING IS FIXED. That is the point, and it is what every other contact testcase gives up:
+      a body held by a Dirichlet condition has its equilibrium supplied by the boundary, so the
+      contact force is whatever balances a known load. Here the only force in the model is the
+      contact traction, and the motion is supplied entirely by an initial velocity on one
+      sphere. Expressing that needed an initial VELOCITY for a mechanic PDE, which was a schema
+      gap rather than missing code -- note that quantity names the DERIVATIVE field
+      (quantity="mechVelocity"), and that initialValues must come after contactList.
+
+      WHAT IT ASSERTS
+
+      1. contactForceX = contactForceY = 0. The impact is head-on and the model is symmetric
+      about the z axis in geometry, mesh and initial condition alike, so the contact traction
+      can have no net transverse component; contactForceZ carries the whole of it. Exact,
+      independent of material, time step and mesh, and a real check on the implementation: a
+      mispaired point or a normal taken from the wrong facet breaks the symmetry immediately.
+      This is the 3D form of the invariant, with two components to satisfy rather than one. 2.
+      The contact state at the final step. Recorded, not predicted -- an impact has no
+      closed-form contact force. What makes it worth asserting is that a free transient impact
+      reaches a definite contact state at all. 3. That the run completes, which with no load and
+      no support is not a formality.
+
+      The patch is a few points wide: the sphere is faceted and the Hertzian patch is comparable
+      to a facet, so this demonstrates a free impact between curved deformable bodies but does
+      NOT resolve a Hertzian pressure distribution, and nothing here asserts one.
+
+      resStopCrit is deliberately loose and convergence is judged on incStopCrit: a free impact
+      has no external load, so the residual has nothing to normalise against and falls back to
+      an absolute value that is unreachable. normalSmoothing="nodal" because the sphere's
+      surface is faceted and the patch sits right on top of the normal jumps.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactImpactSphere3d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="lower_ball" material="Aluminium"/>
+      <region name="upper_ball" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="lower_surf"/>
+      <surfRegion name="upper_surf"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>60</numSteps>
+        <deltaT>5e-6</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <!-- Only the upper disk is launched; the lower one is at rest and free, so the
+               total momentum of the pair is m*v and is carried entirely by contact. -->
+          <region name="lower_ball"/>
+          <region name="upper_ball" initialFieldD1Id="launch"/>
+        </regionList>
+
+
+        <contactList>
+          <contactPair name="sphere_impact"
+                       primarySurface="lower_surf"
+                       secondarySurface="upper_surf"
+                       slidingType="small"
+                       segmentation="mortar"
+                       normalSmoothing="nodal"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <initialValues>
+          <initialFieldD1 id="launch" quantity="mechVelocity">
+            <vector>
+              <comp dof="z" value="-0.5"/>
+            </vector>
+          </initialFieldD1>
+        </initialValues>
+
+        <!-- Deliberately empty: no load, no support. -->
+        <bcsAndLoads/>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+          <nodeResult type="mechVelocity"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e30</resStopCrit>
+              <maxNumIters>30</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

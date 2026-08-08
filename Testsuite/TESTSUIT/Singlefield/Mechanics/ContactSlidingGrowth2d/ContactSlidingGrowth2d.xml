@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Large sliding: a pairing that GROWS still has somewhere to assemble</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      Regression gate for the matrix-graph reservation, on the one configuration that used to
+      abort: a FORCE-CARRYING pair whose set of (secondary element, primary element) blocks
+      GROWS while the body slides.
+
+      The mesh and the slide are ContactSlidingMortar2d's -- the four-face tent, one secondary
+      LINE3 dragged 0.7 in x -- with applyContactForce="yes". Sliding takes the secondary
+      element from straddling two primary faces to straddling three, so the assembler element
+      list goes 2 -> 3.
+
+      WHAT USED TO HAPPEN. The sparsity pattern is built once, from the element list as it
+      stands before the first solve, so the third block had no reserved entries and the run died
+      inside CRS_Matrix with an index-pair-not-found error that names nothing about contact.
+      Note that this happened even though NO point is in contact here: an element with no active
+      point still assembles a correctly shaped zero block, and a zero still has to be added
+      somewhere.
+
+      WHAT HAPPENS NOW. ReserveGraphPrimaries() records, once and on the reference
+      configuration, every primary element each secondary element could plausibly reach, and
+      BuildElementList() emits an assembler element for all of them -- empty where nothing
+      projects there. The list is then independent of the current pairing, so the graph still
+      covers the pairing after the body has slid.
+
+      numContactElements 2 -> 3 the pairing grows; this is the whole point numCells 2 -> 3 and
+      the partition is re-cut with it numPoints 4 -> 6 numReservedElements 2 the reservation is
+      live numActivePoints 0 nothing touches, and nothing has to
+
+      NOTHING TOUCHES, deliberately: the abort this locks out happened with an empty active set,
+      because zero blocks are assembled like any other, and keeping it empty means the assertion
+      cannot be disturbed by an elasticity solution. This is therefore not a force-carrying
+      large-sliding BENCHMARK; no load flows across the interface.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactSlidingGrowth2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <!-- segmentation="mortar" is the whole point here; it is also the default, and
+               spelling it out is what makes this testcase's intent readable next to
+               ContactSlidingRamp2d, which deliberately uses "gpts". -->
+          <contactPair name="growing_pair"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       applyContactForce="yes"
+                       segmentation="mortar"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- Rigid tangential slide of the secondary interface. Prescribing both components
+               on slave_iface makes the interface translate exactly, so the cut positions move
+               by exactly 0.7 in x and the expected partition is arithmetic rather than the
+               outcome of an elasticity solve. -->
+          <displacement name="slave_iface">
+            <comp dof="x" value="0.7"/>
+            <comp dof="y" value="0.0"/>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <!-- The interface is fully prescribed, so there is no applied load and
+                 RhsLinL2Norm has nothing in it but the Dirichlet penalty. residualErr is
+                 normalised by that norm, so it is not a meaningful criterion here;
+                 incStopCrit is. -->
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-1</resStopCrit>
+              <maxNumIters>20</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

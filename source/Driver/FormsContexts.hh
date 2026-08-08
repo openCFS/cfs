@@ -280,9 +280,9 @@ namespace CoupledField
 
     /** Map equations of linearform for a given entitylist (e.g. NODE_LIST)
       * @param eqnVec returned equations. Might be empty, e.g. if nodes  are not part of simulation */
-    void MapEqns( EntityIterator& it,
-                  StdVector<Integer>& eqnVec,
-                  FeFctIdType& id );
+    virtual void MapEqns( EntityIterator& it,
+                          StdVector<Integer>& eqnVec,
+                          FeFctIdType& id );
 
     // ======================================================
     // ENTITIES / RESULTS
@@ -432,6 +432,42 @@ namespace CoupledField
      }
    protected:
      BiLinearForm::CouplingDirection currentDirection_;
+   };
+
+  //! Linear-form context for a non-conforming surface element list
+
+  //! The plain LinearFormContext maps an element vector onto the equations of the entity it
+  //! was computed on. That is not enough for a two-body interface: the element vector of one
+  //! interface segment has to reach the volume DOFs of *one chosen side*, exactly as
+  //! SurfaceBiLinFormContext does for the four coupling blocks of the matrix.
+  //!
+  //! This context reads ptPrimary / ptSecondary off the MortarNcSurfElem and hands out the
+  //! equations of the selected side's volume element. A linear form registered through it
+  //! therefore sees exactly the same DOF numbering as the matching bilinear block, which is
+  //! what keeps a residual split into a constant force plus K*u consistent. Its first user is
+  //! the reference-gap force of penalty contact (ContactLinInt).
+  class SurfaceLinFormContext : public LinearFormContext {
+   public:
+
+     //! Which body of the interface the element vector is assembled onto.
+     enum Side {
+       PRIMARY,
+       SECONDARY
+     };
+
+     SurfaceLinFormContext( LinearForm* linForm, Side side )
+       : LinearFormContext( linForm ), side_( side ) {}
+
+     virtual ~SurfaceLinFormContext() {}
+
+     virtual void MapEqns( EntityIterator& it,
+                           StdVector<Integer>& eqnVec,
+                           FeFctIdType& id );
+
+     Side GetSide() const { return side_; }
+
+   protected:
+     Side side_;
    };
 } // end of namespace
 

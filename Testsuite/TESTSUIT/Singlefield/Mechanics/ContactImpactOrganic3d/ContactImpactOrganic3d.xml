@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Oblique frictional impact of an organic, unstructured tet-meshed body on a slab</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-08</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      An ORGANICALLY SHAPED body -- lumpy, non-primitive curvature, no symmetry, no analytic
+      radius -- meshed UNSTRUCTURED with TET4, strikes a free deformable slab obliquely with
+      Coulomb friction under large sliding. Nothing is fixed anywhere: both bodies are free, the
+      only force in the model is the contact traction, and the striker slides while the contact
+      patch forms, grows and travels.
+
+      This is ContactImpactOblique3d with the cube-sphere striker replaced by an organic one.
+      Its contact facets are TRIA3 against the slab's QUAD9, which also makes it the first MIXED
+      contact pair in the suite (a tet body meeting a hex body).
+
+      INVARIANTS. 1. LINEAR MOMENTUM. Both bodies are free and the contact tractions are equal
+      and opposite, so total linear momentum is conserved. This holds for the DISCRETE system by
+      construction, independently of mesh, shape, facet quality and contact resolution -- which
+      makes it the right primary invariant for a body nobody can write an exact answer for. 2.
+      COULOMB. sqrt(Fx^2 + Fy^2) / Fz = mu while every point slips, to the extent the primary
+      stays flat. 3. SYMMETRY is deliberately NOT available: an organic body has none to assert.
+      That is not a regression, it is the definition of the goal -- and it retires the tie-break
+      hazard that cost ContactImpactOblique3d orders of magnitude of its symmetry invariant when
+      a facet boundary landed on its mirror plane.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactImpactOrganic3d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="slab" material="Aluminium"/>
+      <region name="ball" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="slab_top"/>
+      <surfRegion name="ball_surf"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>50</numSteps>
+        <deltaT>5e-6</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <!-- Only the sphere is launched; the slab is free and at rest, so every bit of its
+               motion arrives through the contact. -->
+          <region name="slab"/>
+          <region name="ball" initialFieldD1Id="launch"/>
+        </regionList>
+
+        <contactList>
+          <!-- primary = the FLAT slab top: that is what makes the contact normal exactly
+               (0,0,1) and the reported force split exact. -->
+          <contactPair name="organic_impact"
+                       primarySurface="slab_top"
+                       secondarySurface="ball_surf"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalSmoothing="nodal"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2" searchDistanceFactor="2">
+            <friction type="coulomb" mu="0.2" tangentialPenalty="100" tangent="consistent"/>
+          </contactPair>
+        </contactList>
+
+        <initialValues>
+          <initialFieldD1 id="launch" quantity="mechVelocity">
+            <vector>
+              <comp dof="x" value="20.0"/>
+              <comp dof="z" value="-15.0"/>
+            </vector>
+          </initialFieldD1>
+        </initialValues>
+
+        <!-- Deliberately empty: no load, no support, nothing fixed. -->
+        <bcsAndLoads/>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+          <nodeResult type="mechVelocity"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <!-- A free impact carries no applied load, so RhsLinL2Norm is zero and
+                   residualErr falls back to the ABSOLUTE residual, which no resStopCrit can
+                   reach. Judge on incStopCrit; this limitation is shared with every
+                   nonlinear PDE. -->
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-2</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

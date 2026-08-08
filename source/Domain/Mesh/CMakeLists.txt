@@ -6,6 +6,7 @@ set(MESH_SRCS
   Grid.cc
   NcInterfaces/BaseNcInterface.cc
   NcInterfaces/MortarInterface.cc
+  NcInterfaces/ContactInterface.cc
   GridCFS/GridCFS.cc
   MeshUtils/EntityAssociation.cc
   MeshUtils/Intersection/VolumeGridIntersection.cc

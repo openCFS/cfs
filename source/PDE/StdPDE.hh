@@ -228,6 +228,47 @@ namespace CoupledField {
       ;
     }
 
+    //! Called once after a solve step has finished, with the solution available.
+    //! Used by MechPDE to refresh the contact geometry against the converged
+    //! displacement and report it.
+    virtual void PostSolveStep() {
+      ;
+    }
+
+    //! Asks the PDE whether the whole (non)linear solve should be run AGAIN, warm-started
+    //! from the solution just obtained. Called by StdSolveStep::SolveStepStatic() and
+    //! SolveStepTrans() after the solve converges returning false ends the step.
+    //!
+    //! This is an OUTER iteration around Newton, which is a different thing from a nonlinear
+    //! iteration: it exists for methods whose parameters are updated between complete solves
+    //! rather than within one. Contact uses it for the Uzawa augmented-Lagrangian update 
+    //! the multiplier estimate is frozen during a Newton solve (which is what keeps the
+    //! tangent positive definite and the convergence quadratic) and advanced only here.
+    virtual bool RequestsAnotherSolve(UInt outerIter) {
+      return false;
+    }
+
+    //! Called once per nonlinear iteration, with the new iterate already stored in the
+    //! FeFunctions and BEFORE the residual of that iterate is assembled, to let a PDE refresh
+    //! geometry it re-derives from the solution.
+    //!
+    //! MechPDE uses it for slidingType="large" contact, where the pairing, the contact normal
+    //! and the mortar partition are all functions of the current configuration.
+    virtual void UpdateNonLinGeometry() {
+      ;
+    }
+
+    //! Called once per nonlinear iteration, with the new iterate already in the FeFunctions,
+    //! to let a PDE add its own diagnostics to the <iteration> node of the nonlinear
+    //! convergence report.
+    //!
+    //! Used by MechPDE to record the contact active set per iteration, which is the
+    //! diagnostic for chattering: a solve whose active-set size oscillates rather than
+    //! settling is not converging on the constraint, however nice its residual looks.
+    virtual void ToNonLinIterInfo(PtrParamNode iter) {
+      ;
+    }
+
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)
     typedef enum {
       NC_NONE,

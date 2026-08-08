@@ -566,5 +566,34 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
      id2 = this->feFct2_.lock()->GetFctId();
    }
 
+  /***************************************************************************
+   * SurfaceLinFormContext
+   **************************************************************************/
+
+   void SurfaceLinFormContext::MapEqns( EntityIterator& it,
+                                        StdVector<Integer>& eqnVec,
+                                        FeFctIdType& id ) {
+
+     const SurfElem* sElem = it.GetSurfElem();
+     const MortarNcSurfElem* mSe = dynamic_cast<const MortarNcSurfElem*>(sElem);
+     if( mSe == NULL ) {
+       EXCEPTION("SurfaceLinFormContext requires a MortarNcSurfElem, which carries the "
+                 "primary/secondary surface elements of the interface.");
+     }
+
+     SurfElem* sideElem = (side_ == PRIMARY) ? mSe->ptPrimary : mSe->ptSecondary;
+     if( sideElem == NULL || sideElem->ptVolElems[0] == NULL ) {
+       EXCEPTION("SurfaceLinFormContext: the "
+                 << ((side_ == PRIMARY) ? "primary" : "secondary")
+                 << " side of NcSurfElem " << mSe->elemNum
+                 << " has no volume neighbour.");
+     }
+
+     // Same source of equation numbers as SurfaceBiLinFormContext::MapEqns(): the VOLUME
+     // element behind the surface, not the surface element itself.
+     feFct_.lock()->GetFeSpace()->GetElemEqns(eqnVec, sideElem->ptVolElems[0]);
+     id = feFct_.lock()->GetFctId();
+   }
+
 
 } // namespace CoupledField

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Large sliding: the mortar partition follows the surface too</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Gate for the mortar partition under slidingType="large", and the companion of
+      ContactSlidingRamp2d. That testcase gates the PAIRING; this one gates the PARTITION, a
+      separate mechanism that used to be a separate defect.
+
+      Why they differ. The mortar sub-cells are cut along the projected outlines of the primary
+      elements, and those outlines move relative to a sliding secondary element, so a partition
+      built once at setup stops lining up with the boundaries it was cut along. The points are
+      still paired correctly and still report the right gap -- so nothing in the reported
+      geometry looks wrong -- but their integration WEIGHTS again span more than one primary
+      element, which is precisely the Gauss-point-to-segment error that mortar segmentation
+      exists to remove.
+
+      GEOMETRY. The primary surface is a shallow symmetric tent of FOUR straight LINE3 faces.
+      The two boundaries away from the apex are the point of the mesh: they are element
+      boundaries on a STRAIGHT part of the surface, so crossing one changes nothing a point can
+      see -- same height, same normal -- and everything about how the secondary element has to
+      be cut. That separates the partition from the pairing cleanly, which the apex does not.
+      The secondary surface is one LINE3 given a rigid tangential displacement of 0.7 in x, with
+      applyContactForce="no", so nothing depends on an elasticity solution and every number is
+      arithmetic on the mesh.
+
+      THE ASSERTION is discrete, and it is three counts rather than one:
+
+      numCells 2 -> 3 numPoints 4 -> 6 numContactElements 2 -> 3
+
+      A partition frozen on the reference configuration reports 2, 4 and 2 in the deformed
+      state. It cannot report anything else: it was cut before the body moved.
+
+      minGap is reported alongside and differs by only about 1.6 % from the stale-partition
+      value, which is exactly why this defect is worth a discrete assertion: the gap is nearly
+      right even when the partition is wrong, because it depends on the pairing and the pairing
+      is refreshed either way. integratedArea is the control -- a partition is a partition of
+      the SAME surface however it is cut.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactSlidingMortar2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="master_elem" material="Aluminium"/>
+      <region name="slave_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="master_iface"/>
+      <surfRegion name="slave_iface"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis><static/></analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="master_elem"/>
+          <region name="slave_elem"/>
+        </regionList>
+
+        <contactList>
+          <!-- segmentation="mortar" is the whole point here; it is also the default, and
+               spelling it out is what makes this testcase's intent readable next to
+               ContactSlidingRamp2d, which deliberately uses "gpts". -->
+          <contactPair name="mortar_slide"
+                       primarySurface="master_iface"
+                       secondarySurface="slave_iface"
+                       slidingType="large"
+                       normalPenalty="100"
+                       initialGapHandling="fromMesh"
+                       applyContactForce="no"
+                       segmentation="mortar"
+                       integrationOrder="2"/>
+        </contactList>
+
+        <bcsAndLoads>
+          <fix name="bottom">
+            <comp dof="x"/><comp dof="y"/>
+          </fix>
+          <!-- Rigid tangential slide of the secondary interface. Prescribing both components
+               on slave_iface makes the interface translate exactly, so the cut positions move
+               by exactly 0.7 in x and the expected partition is arithmetic rather than the
+               outcome of an elasticity solve. -->
+          <displacement name="slave_iface">
+            <comp dof="x" value="0.7"/>
+            <comp dof="y" value="0.0"/>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

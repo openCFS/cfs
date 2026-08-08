@@ -144,17 +144,37 @@ namespace CoupledField {
   
 
   void StdSolveStep::PostStepStatic() {
-    
+    PDE_.PostSolveStep();
+  }
+
+
+  void StdSolveStep::PostStepTrans() {
+    // Same contract as PostStepStatic(), once per time step. Contact needs it: it is where
+    // the converged contact state of the step is reported and where the per-step active-set
+    // history is closed off and cleared.
+    PDE_.PostSolveStep();
   }
   
 
   void StdSolveStep::SolveStepStatic() {
-    
-    if (nonLin_) {
-      StepStaticNonLin();
-    }
-    else {
-      StepStaticLin();
+
+    // Outer iteration around the whole solve, driven by the PDE. Only contact's Uzawa
+    // augmented-Lagrangian update uses it curently, every other PDE keeps the default
+    // StdPDE::RequestsAnotherSolve() == false and runs the solve exactly once, as before.
+    UInt outerIter = 0;
+    while (true) {
+
+      if (nonLin_) {
+        StepStaticNonLin();
+      }
+      else {
+        StepStaticLin();
+      }
+
+      if (!PDE_.RequestsAnotherSolve(outerIter)) {
+        break;
+      }
+      ++outerIter;
     }
   }
   
@@ -299,7 +319,7 @@ namespace CoupledField {
             assemble_->AssembleNonLinRHS();
           }
           
-          // setup the matrices - Be ware that not every PDE actually knows the stiffness matrix!
+        // setup the matrices - Be ware that not every PDE actually knows the stiffness matrix!
           // TODO imporove this, e.g. by checking there is actually Newton behind
           isNewton = false;
           assemble_->AssembleMatrices(isNewton);
@@ -363,7 +383,14 @@ namespace CoupledField {
           actSol.Add(1.0, solInc);
           // store the new solution
           solVec_ = actSol;
-          
+
+          // Geometry a PDE re-derives from the solution has to be refreshed HERE, before the
+          // residual below is assembled -- because that residual is also the right-hand side
+          // of the NEXT iteration (this branch does not rebuild it at the top of the loop).
+          // Updating it afterwards leaves the next solve with a right-hand side from the old
+          // geometry and a tangent from the new one. See StdPDE::UpdateNonLinGeometry().
+          PDE_.UpdateNonLinGeometry();
+
           //=================compute residual norm
           algsys_->InitRHS(RhsLinVal_);
           // if the RHS depends on the nonlinearity, we have to re-assemble it
@@ -405,7 +432,7 @@ namespace CoupledField {
           // store the new solution
           solVec_ = actSol;
         }
-        
+
         // calculation relative residual error ====================================
         Double residualErr;
         if ( RhsLinL2Norm > 1.0 )
@@ -584,7 +611,7 @@ namespace CoupledField {
     }
     // do a time step with hysteretic behaviour;
     // TODO ldomenig: isHyst_ is 1/0 to determine if there are any hysteretic regions
-    else if (isHyst_){
+    if (isHyst_){
       StepTransHyst();
     }
     //currently not supported
@@ -1037,9 +1064,10 @@ namespace CoupledField {
            *      contain the old solution itself
            */
           stageSol.Add(1.0, solInc);
-          
+
           solVec_  = stageSol;
-          
+          PDE_.UpdateNonLinGeometry();
+
           //=================compute residual norm
           algsys_->InitRHS(RhsLinVal_);
           // if the RHS depends on the nonlinearity, we have to re-assemble it
@@ -1080,6 +1108,7 @@ namespace CoupledField {
           //solVec_  = stageSol;
           residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
           solVec_  = stageSol;
+          PDE_.UpdateNonLinGeometry();
         }
         
         // calculation of residual error =======================================
@@ -2840,6 +2869,8 @@ namespace CoupledField {
       iter->Get("incrementalErr")->SetValue(incrementalErr);
     if(etaLineSearch > 0)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+
+    PDE_.ToNonLinIterInfo(iter);
 
     if(nonLinLogging_)
     {

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- Aluminium with the Poisson ratio set to ZERO, for the same reason as in
+       ContactMortarPatch2d: it removes the lateral coupling and the corner singularity at the
+       ends of the contact patch, so the pressure distribution is smooth and the active set
+       settles at once. Nothing this testcase asserts depends on the value - the equilibrium
+       resultant contactForceY = p*L holds for any material - but a smooth pressure keeps the
+       Newton history readable, and the convergence behaviour is what this model is read for. -->
+  <material name="Aluminium">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.00E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.0 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

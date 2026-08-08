@@ -171,6 +171,7 @@
       <xsd:enumeration value="mechanic"/>
       <xsd:enumeration value="prestress"/>
       <xsd:enumeration value="shell elements"/>
+      <xsd:enumeration value="contact"/>
 
       <!-- Flow -->
       <xsd:enumeration value="flow"/>

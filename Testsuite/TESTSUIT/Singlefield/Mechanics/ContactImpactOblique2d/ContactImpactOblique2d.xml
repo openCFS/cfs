@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Oblique frictional impact between two free deformable bodies</title>
+    <authors><author>kroppert</author></authors>
+    <date>2026-08-07</date>
+    <keywords><keyword>contact</keyword></keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      A deformable disk strikes a deformable block OBLIQUELY, with Coulomb friction, under large
+      sliding. Nothing is fixed anywhere: both bodies are free, the only force in the model is
+      the contact traction, and the disk arrives with a large tangential velocity so it SLIDES
+      along the block while the contact patch forms, grows and travels.
+
+      THE INVARIANT: -contactForceX / contactForceY = mu.
+
+      The primary surface is the block's FLAT top, so the contact normal is exactly (0,1) in
+      every configuration and the reported resultant splits without ambiguity into contactForceY
+      (normal) and contactForceX (tangential). Coulomb's law fixes their ratio at -mu wherever
+      every point slips -- negative because the resultant is the traction on the SECONDARY body
+      and friction opposes its motion. It is an exact statement about the friction law, not a
+      fitted number, and it holds whatever the impact does to the pressure distribution or the
+      patch size, which is what makes it assertable at all: no closed form exists for the
+      pressure in a transient elastic impact. Under slidingType="small" it is exact to twelve
+      digits; under "large" it differs in the fourth digit because the normal is then taken on
+      the DEFORMED surface and the block's top is dented by the impact, so it tilts slightly.
+
+      WHY IT SLIDES THROUGHOUT, so the inequality is an equality: friction can change the disk's
+      tangential velocity by at most mu times the normal impulse over the mass, which is small
+      against its tangential velocity. Nothing ever sticks and numStickPoints stays 0.
+      tangent="consistent" for that reason -- every point slips, the regime where the default
+      degrades as the slide grows, and the complementary hazard (failure when points stick) does
+      not apply.
+
+      The patch FORMS, GROWS and TRAVELS: 3 -> 4 -> 5 -> 6 -> 7 -> 8 active points, with
+      numPoints, numCells and numContactElements all moving with it. Under slidingType="small"
+      all three are FROZEN by definition, so these integers gate large sliding rather than
+      merely exercising it.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ContactImpactOblique2d.h5" linearizeEntities="__none__"/>
+    </input>
+    <output><hdf5/></output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="block" material="Aluminium"/>
+      <region name="disk" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="block_top"/>
+      <surfRegion name="disk_surf"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange><gridOrder/></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme>
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>12</numSteps>
+        <deltaT>5e-6</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <!-- Only the disk is launched; the block is free and at rest, so every bit of its
+               motion arrives through the contact. -->
+          <region name="block"/>
+          <region name="disk" initialFieldD1Id="launch"/>
+        </regionList>
+
+        <contactList>
+          <!-- primary = the FLAT block top: that is what makes the contact normal exactly
+               (0,1) and the reported force split exact. -->
+          <contactPair name="oblique_impact"
+                       primarySurface="block_top"
+                       secondarySurface="disk_surf"
+                       slidingType="large"
+                       segmentation="mortar"
+                       normalSmoothing="nodal"
+                       normalPenalty="10"
+                       initialGapHandling="fromMesh"
+                       integrationOrder="2" searchDistanceFactor="8">
+            <friction type="coulomb" mu="0.2" tangentialPenalty="100" tangent="consistent"/>
+          </contactPair>
+        </contactList>
+
+        <initialValues>
+          <initialFieldD1 id="launch" quantity="mechVelocity">
+            <vector>
+              <comp dof="x" value="50.0"/>
+              <comp dof="y" value="-5.0"/>
+            </vector>
+          </initialFieldD1>
+        </initialValues>
+
+        <!-- Deliberately empty: no load, no support, nothing fixed. -->
+        <bcsAndLoads/>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement"><allRegions/></nodeResult>
+          <nodeResult type="mechVelocity"><allRegions/></nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <nonLinear method="newton" logging="no">
+              <lineSearch type="none"/>
+              <!-- A free impact carries no applied load, so RhsLinL2Norm is zero and
+                   residualErr silently falls back to the ABSOLUTE residual, which no
+                   resStopCrit can reach. Judge on incStopCrit and leave resStopCrit loose;
+                   this limitation is shared with every nonlinear PDE. -->
+              <incStopCrit>1e-9</incStopCrit>
+              <resStopCrit>1e-2</resStopCrit>
+              <maxNumIters>50</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <solverList><directLU/></solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- Aluminium with the Poisson ratio deliberately set to ZERO.
+       That is what makes this a patch test: with nu = 0 the exact solution of the loaded
+       column is uniform uniaxial stress, so the exact contact pressure is exactly the
+       applied pressure at every point of the interface. Any deviation is discretization
+       error, and a mortar-consistent scheme must produce none.
+       With the real nu = 0.33 the fixed bottom face induces a corner singularity at the
+       interface edges and the peak pressure does not converge at all. -->
+  <material name="Aluminium">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.00E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.0 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

@@ -56,6 +56,12 @@
                       default="0.0"/>
                     <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional"
                       default="no"/>
+                    <!-- Link this region to an <initialField> / <initialFieldD1> of the same
+                         id under <initialValues>. Displacement and velocity respectively. -->
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional"
+                      default=""/>
+                    <xsd:attribute name="initialFieldD1Id" type="xsd:token" use="optional"
+                      default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -66,6 +72,23 @@
           <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>Defines non-conforming interfaces</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <!-- Mechanical contact between two bodies -->
+          <xsd:element name="contactList" type="DT_MechContactList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Defines unilateral mechanical contact between two separately meshed bodies.
+                Unlike ncInterfaceList, which glues two surfaces together permanently, a contact
+                pair transmits compression only and may open.
+                Note that contact makes the problem nonlinear even for linear elastic material,
+                so a Newton solution strategy is selected automatically.
+                Supported for subType "3d", "planeStrain" and "planeStress". NOT implemented
+                for subType "axi": the contact integration weights would omit the
+                axisymmetric 2*pi*r factor, so an axisymmetric model is rejected with an
+                error rather than run with silently wrong contact forces.
+              </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
 
@@ -135,11 +158,37 @@
 
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Initial conditions for a transient mechanic analysis.
+
+                initialField sets the DISPLACEMENT and initialFieldD1 its first time
+                derivative, i.e. the VELOCITY, per region and by expression. Both name the
+                quantity ("mechDisplacement") and an id; every region carrying the matching
+                initialFieldId / initialFieldD1Id attribute is initialised from it.
+
+                initialFieldD1 is what a free impact needs: two bodies meeting with a relative
+                velocity, with no applied load anywhere. Without it the only way to get a body
+                moving is a preceding sequenceStep that leaves it in motion, which forces every
+                impact model into a two-sequence run.
+
+                Note for a free impact: with no applied load the relative residual criterion
+                has nothing to normalise against - StdSolveStep divides by the external load
+                norm only when that exceeds 1.0 and otherwise falls back to the ABSOLUTE
+                residual - so judge convergence on incStopCrit and leave resStopCrit loose.
+              </xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
 
                 <!-- Initial state of previous sequence step / external file -->
                 <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+
+                <!-- Initial displacement field, per region, by expression -->
+                <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
+
+                <!-- Initial velocity field, per region, by expression -->
+                <xsd:element name="initialFieldD1" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
 
               </xsd:choice>
             </xsd:complexType>
@@ -280,6 +329,443 @@
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical contact                                  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MechContactList">
+    <xsd:sequence>
+      <xsd:element name="contactPair" type="DT_MechContactPair" minOccurs="1"
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- A single unilateral contact pair between two bodies -->
+  <xsd:complexType name="DT_MechContactPair">
+    <xsd:annotation>
+      <xsd:documentation>
+        Unilateral contact between a primary ("master") and a secondary ("slave") surface.
+
+        Sign convention: the normal is the outward normal of the PRIMARY surface, the gap is
+        g = (x_secondary - x_primary) . n, and contact is active where g is negative
+        (penetration). The contact traction is integrated over the SECONDARY surface, so
+        prefer the finer / softer body as the secondary side.
+
+        The two surfaces must belong to two distinct volume regions; self-contact is not
+        supported.
+      </xsd:documentation>
+    </xsd:annotation>
+
+    <xsd:sequence>
+      <xsd:element name="friction" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Tangential (frictional) behaviour of this contact pair. Omitting the element
+            leaves the pair FRICTIONLESS, which is the default.
+
+            The law is penalty-regularised Coulomb friction with a return map at every
+            contact integration point: the tangential traction is tangentialPenalty * E / h
+            times the elastic tangential slip while it stays inside the Coulomb cone
+            (||t_T|| &lt;= mu * p), and is projected back onto the cone once it leaves it.
+            The stick branch is therefore a spring rather than a rigid constraint, the same
+            kind of regularisation the normal penalty makes on the gap.
+
+            The slip branch makes the tangent NON-SYMMETRIC, because the friction traction
+            depends on the normal pressure. openCFS detects that automatically and selects a
+            non-symmetric matrix format and a direct LU solver; nothing has to be configured.
+
+            Works with both slidingType="small" and slidingType="large".
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="type" use="optional" default="coulomb">
+            <xsd:annotation>
+              <xsd:documentation>
+                Friction law. Only "coulomb" is implemented; "none" is the same as omitting
+                the element.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="coulomb"/>
+                <xsd:enumeration value="none"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="mu" type="DT_NonNegFloat" use="required">
+            <xsd:annotation>
+              <xsd:documentation>
+                Coulomb friction coefficient. The tangential traction is bounded by mu times
+                the contact pressure. mu = 0 reproduces the frictionless result exactly.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="tangent" use="optional" default="reduced">
+            <xsd:annotation>
+              <xsd:documentation>
+                Which linearisation of the SLIP branch goes into the Newton tangent. This
+                changes the tangent only - the assembled friction force is identical either
+                way - so it cannot change the converged answer, only the path to it.
+
+                "reduced" (the default): drop the term by which the Coulomb limit mu*p
+                depends on the normal gap. Robust with mixed stick and slip at any penalty,
+                but it is a fixed-point iteration, so its convergence degrades as the total
+                sliding distance grows.
+
+                "consistent": the full linearisation, including that term. Being Newton
+                rather than a fixed point, its iteration count stays flat however far the
+                body slides. It is nevertheless not the default: a slipping point carries no
+                tangential stiffness of its own, so mu*normalPenalty*E/h lands in a tangent
+                row whose only diagonal is the body's elastic stiffness of order E, and
+                Newton amplifies whatever error the normal solution still carries. It can
+                diverge as soon as any point sticks unless mu*normalPenalty is kept small.
+
+                Neither setting dominates. Prefer "reduced" when the contact patch is
+                expected to stick anywhere, "consistent" for long uniform sliding; lower
+                normalPenalty if "consistent" diverges.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="reduced"/>
+                <xsd:enumeration value="consistent"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="tangentialPenalty" type="DT_PosFloat" use="optional"
+            default="100">
+            <xsd:annotation>
+              <xsd:documentation>
+                Dimensionless tangential penalty (stick stiffness), scaled internally by the
+                same E/h as normalPenalty so the value means the same thing across meshes and
+                materials.
+
+                It controls only how much elastic slip a STICKING point is allowed; it does
+                not affect the traction of a slipping point, which is fixed at mu * p by the
+                Coulomb law. Values much larger than normalPenalty make the tangential problem
+                stiffer than the normal one and can cost Newton iterations at the stick/slip
+                boundary; the default matches normalPenalty.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="augmentation" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Settings of the Uzawa outer loop, used only when formulation="augmentedLagrange".
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional" default="20">
+            <xsd:annotation>
+              <xsd:documentation>
+                Maximum number of outer (multiplier update) iterations. Each one re-runs the
+                complete Newton solve, warm-started from the previous solution, so later
+                iterations are much cheaper than the first. Running out is reported as a
+                warning and leaves the last penalty solution in place.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="tol" type="DT_PosFloat" use="optional" default="1e-8">
+            <xsd:annotation>
+              <xsd:documentation>
+                Relative convergence tolerance of the outer loop, applied to the largest
+                multiplier increment measured against the largest multiplier. An open pair,
+                where all multipliers are zero, is converged immediately.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+
+    <xsd:attribute name="name" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>Unique name of the contact pair, used in reporting.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="formulation" use="optional" default="penalty">
+      <xsd:annotation>
+        <xsd:documentation>
+          How the non-penetration constraint is enforced.
+
+          "penalty" (the default): the contact traction is normalPenalty * E / h times the
+          penetration. One solve, no outer loop, but the constraint is only satisfied to
+          O(pressure/penalty): a converged pair always penetrates a little, and reducing that
+          penetration means raising normalPenalty, which worsens the conditioning of the
+          tangent.
+
+          "augmentedLagrange": a Lagrange multiplier estimate is carried per contact
+          integration point and advanced by an Uzawa outer loop around the Newton solve, so
+          the traction becomes lambda + penalty * gap. This drives the penetration to zero at
+          a MODERATE penalty instead of needing a large one - the penetration is removed by
+          the multiplier rather than by the stiffness, so the tangent stays as well
+          conditioned as the penalty one and Newton still converges quadratically within each
+          outer iteration. Costs one complete (warm-started) re-solve per outer iteration; see
+          the &lt;augmentation&gt; element for its controls.
+
+          "augmentedLagrange" is available for STATIC analysis only and is rejected with an
+          error otherwise: re-running a time step would advance the time integration twice.
+          Use "penalty" transiently.
+
+          Combined with slidingType="large" and segmentation="mortar" it changes WHEN the
+          mortar partition is re-cut, because the multiplier lives on a contact integration
+          point and re-cutting replaces those points. See slidingType for what that costs.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="penalty"/>
+          <xsd:enumeration value="augmentedLagrange"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="primarySurface" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>
+          Name of the primary (master) surface region. Secondary integration points are
+          projected onto this surface, and the contact normal is its outward normal.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="secondarySurface" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation>
+          Name of the secondary (slave) surface region. Carries the contact integration
+          points; the contact traction is integrated here.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="slidingType" use="optional" default="small">
+      <xsd:annotation>
+        <xsd:documentation>
+          "small" (the default): the pairing and the contact normals are computed once and
+          then frozen; only the gap follows the deformation. This is not an approximation as
+          long as the relative tangential motion stays inside one primary element - on a flat
+          interface it is exact for any amount of sliding - and it is much cheaper and much
+          more robust. Use it unless you know you need otherwise.
+
+          "large": the pairing, the contact normal and the gap are recomputed on the DEFORMED
+          primary surface once per Newton iteration, so a point that slides onto a different
+          primary element re-pairs onto it and the gap follows the surface it has slid onto.
+
+          Under segmentation="mortar" the sub-cell partition is rebuilt in the same pass, so
+          the cut lines stay on the primary element boundaries they were cut along.
+
+          The geometric part of the tangent, from dn/du and the primary surface curvature, is
+          deliberately not assembled: for a small-strain model it is of order
+          pressure/stiffness, worth well under one Newton iteration. The moving pairing is thus
+          a fixed point wrapped around Newton rather than part of it, so convergence is linear
+          rather than quadratic. A converged answer is unaffected. If a frictional pair does
+          not converge, LOWER normalPenalty first - the limiting quantity is the product
+          mu * normalPenalty, the same one that limits tangent="consistent" - and use
+          formulation="augmentedLagrange" to recover the penetration accuracy that costs.
+
+          Where the contact points carry history (friction, formulation="augmentedLagrange" or
+          initialGapHandling="zero"), re-cutting the partition would replace them, so with
+          segmentation="mortar" it is held fixed for the duration of each Newton solve and
+          re-cut only at step boundaries, with the stored field interpolated onto the new
+          points. The pairing still follows the body every iteration; only the sub-cell cut
+          lines wait. The cost is accuracy within a step, as the quadrature degrades towards
+          the "gpts" one by however far the body slides in one step. Take smaller steps, or use
+          segmentation="gpts", whose points never move.
+
+          A FORCE-CARRYING pair costs extra here. The matrix sparsity pattern is built once,
+          from the initial pairing, so a secondary element that later slides onto an unpaired
+          primary element would have nowhere to assemble. To avoid that, "large" reserves a
+          block for every primary element within searchDistanceFactor element diameters of each
+          secondary element, computed once on the reference configuration. Reserved blocks
+          assemble an exact zero and change no result; they cost graph entries and assembly
+          time, and are reported as numReservedElements, deliberately NOT counted in
+          numContactElements. A body that slides beyond the reservation is reported as a
+          contact error naming both elements; raise searchDistanceFactor, or reduce the sliding
+          per step with a transient or ramped run.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="small"/>
+          <xsd:enumeration value="large"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="normalSmoothing" use="optional" default="none">
+      <xsd:annotation>
+        <xsd:documentation>
+          Where the contact normal on the primary surface comes from.
+
+          "none" (the default): the normal of the primary element the point projected onto.
+          Exact for a flat interface and for an isoparametric curved one, and the default
+          because it is what every existing model was computed with.
+
+          "nodal": averaged nodal normals. Each primary surface node gets one normal, the
+          area-weighted average of the normals of the elements meeting there, and the normal at
+          a contact point is the element's shape-function interpolation of those, renormalized.
+
+          Use it on a FACETED primary surface - a curved body meshed with straight or bilinear
+          elements - together with slidingType="large". There the element normal is piecewise
+          constant and jumps at every element boundary, so a sliding point crossing from one
+          primary element to the next sees a discontinuous normal. Smoothing removes that jump;
+          what it buys in practice is that the converged answer stops depending on which
+          segmentation scheme was used.
+
+          On a flat interface the average, the interpolation and the element normal are the
+          same vector, so switching this on cannot change a flat-interface answer. On a faceted
+          one it changes the discrete normal and therefore the answer - by the amount by which
+          the facet normal misrepresents the surface it approximates.
+
+          What it does not change: the closest-point projection still runs on the facets, so
+          the paired point is the same and the smoothed normal is not exactly orthogonal to the
+          primary surface there. The mismatch enters the gap at second order and vanishes as
+          the mesh is refined.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="none"/>
+          <xsd:enumeration value="nodal"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="segmentation" use="optional" default="mortar">
+      <xsd:annotation>
+        <xsd:documentation>
+          How the contact integral over a secondary element is discretized.
+
+          "mortar" (the default): the secondary element is cut along the projected outlines of
+          the primary elements that overlap it, and every sub-cell is integrated separately.
+          The contact pressure is then transmitted exactly even where the two interface meshes
+          do not match.
+
+          "gpts": Gauss-point-to-segment - the secondary element's own quadrature is used as
+          is. Cheaper, and identical to "mortar" wherever no primary element boundary crosses a
+          secondary element, i.e. on matching or nested meshes. Where one does, an integration
+          point near that boundary still carries a weight computed for the whole secondary
+          element, which leaves the resultant force exact but distorts the pressure
+          distribution locally. Kept so a result can be compared against the simpler scheme.
+
+          Under slidingType="large" the "mortar" partition is rebuilt as the body slides,
+          because its cut lines are the projected primary element outlines and those move with
+          it. That is what keeps the scheme a mortar one while the body slides.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="mortar"/>
+          <xsd:enumeration value="gpts"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="applyContactForce" type="DT_CFSBool" use="optional" default="yes">
+      <xsd:annotation>
+        <xsd:documentation>
+          When "yes" (the default) the penalty contact stiffness is assembled and the contact
+          pair transmits force. Contact makes the problem nonlinear even for linear elastic
+          material, so a &lt;nonLinear&gt; element is then required in the solution strategy.
+
+          When "no" the contact pair only evaluates and reports its geometry, gap and
+          pressure; nothing enters the equation system and the result is identical to a model
+          without the contactPair. Useful for checking that surfaces pair up correctly before
+          committing to a nonlinear solve.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="normalPenalty" type="DT_PosFloat" use="optional" default="100">
+      <xsd:annotation>
+        <xsd:documentation>
+          Dimensionless normal penalty factor. It is scaled internally by a representative
+          stiffness times element size, so the same value is meaningful across meshes and
+          materials. Larger values reduce penetration but worsen conditioning.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="stabilization" type="DT_NonNegFloat" use="optional" default="0">
+      <xsd:annotation>
+        <xsd:documentation>
+          Artificial normal stiffness applied to contact points that are paired but currently
+          OPEN, to stabilise a body that is supported only through the contact interface and
+          starts SEPARATED. Dimensionless and scaled internally by the same E/h as
+          normalPenalty, so the value means the same thing across meshes and materials.
+          0 (the default) switches it off entirely.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="initialGapHandling" use="optional" default="fromMesh">
+      <xsd:annotation>
+        <xsd:documentation>
+          "fromMesh": the gap measured on the as-meshed geometry is used as is, so an
+          imperfectly meshed assembly starts out pre-stressed or with a spurious opening.
+          "zero": the initially measured gap is subtracted, so the as-meshed state is
+          treated as exactly touching. This is usually what you want for assemblies whose
+          parts were meshed independently.
+
+          "zero" freezes one offset per contact integration point. Combined with
+          slidingType="large" and segmentation="mortar" - where re-cutting the partition
+          replaces those points - the partition is held fixed for the duration of each Newton
+          solve and re-cut only at step boundaries, with the offset field interpolated onto the
+          new points. See slidingType for what that costs.
+        </xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="fromMesh"/>
+          <xsd:enumeration value="zero"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="integrationOrder" type="xsd:positiveInteger" use="optional"
+      default="2">
+      <xsd:annotation>
+        <xsd:documentation>
+          Integration order for the contact points on the secondary surface. Raising it
+          resolves a partially closed gap within one element more accurately.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="projectionTolerance" type="DT_PosFloat" use="optional"
+      default="1e-10">
+      <xsd:annotation>
+        <xsd:documentation>
+          Convergence tolerance of the closest-point projection, measured on the element
+          local coordinate.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="searchDistanceFactor" type="DT_PosFloat" use="optional" default="2">
+      <xsd:annotation>
+        <xsd:documentation>
+          Projections farther from the primary surface than this multiple of the primary
+          element diameter are discarded. Raise it if surfaces start far apart, lower it if
+          unrelated surfaces are being paired.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="boundingBoxTolerance" type="DT_PosFloat" use="optional" default="0.1">
+      <xsd:annotation>
+        <xsd:documentation>
+          Relative inflation of the primary element bounding boxes used to pre-select
+          projection candidates.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
