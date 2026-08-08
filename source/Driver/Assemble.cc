@@ -199,19 +199,6 @@ namespace CoupledField
     assert( biLinContext->GetFirstEntities() != NULL );
     assert( biLinContext->GetSecondEntities() != NULL );
 
-
-    // If the datatype of the bilinearformcontext is "COMPLEX"
-    // we have to ensure that we are in an harmonic case.
-    // Otherwise we issue an error
-    if( (biLinContext->GetEntryType() == Global::IMAG ||
-         biLinContext->GetEntryType() == Global::COMPLEX )
-        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE && analysisType_ != BasePDE::HARMONIC25D) {
-      EXCEPTION( "Can not add integrator '"
-                 << biLinContext->GetIntegrator()->GetName()
-                 << "' with complex/imaginary entries for a "
-                 << "non-harmonic analysis." );
-    }
-
     FEMatrixType mappedFEType = matrixMap_[biLinContext->GetDestMat()];
     FEMatrixType mappedSecFEType = matrixMap_[biLinContext->GetSecDestMat()];
 
@@ -1867,10 +1854,6 @@ namespace CoupledField
       // additional attributes
       PtrParamNode attr = inf->Get("attributes", ParamNode::APPEND);
 
-      // entry Type (real / imag)
-      tmp = ComplexPartEnum.ToString(context.GetEntryType());
-      attr->Get("entryType")->SetValue( tmp );
-
       // flag setcounterpart
       tmp = context.IsSetCounterPart() ? "yes" : "no";
       attr->Get("counterPart")->SetValue( tmp );
@@ -2319,7 +2302,7 @@ namespace CoupledField
     if( analysisType_ == BasePDE::TRANSIENT || analysisType_ == BasePDE::STATIC || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::BUCKLING || analysisType_ == BasePDE::EIGENVALUE) {
       if ( (analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::EIGENVALUE) && (algsys_->IsMatrixComplex()) ) {
         // we have an eigenvalue problem with complex system matrices (e.g. mechanics with complex stiffness tensor)
-        Matrix2Harmonic( harmMat, elemMat, STIFFNESS, context.GetEntryType(), 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
+        Matrix2Harmonic( harmMat, elemMat, STIFFNESS, Global::REAL, 1.0 ); // elemMat -> harmMat with omega=1 and STIFFNESS will convert REAL->COMPLEX
         algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
       } else {
         algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
@@ -2337,7 +2320,7 @@ namespace CoupledField
       if ( analysisType_ == BasePDE::HARMONIC25D) {
         Matrix2Complex( harmMat, elemMat);
       } else {
-        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+        Matrix2Harmonic( harmMat, elemMat, dest, Global::REAL, omega );
       }
       
       if( analysisType_ == BasePDE::MULTIHARMONIC){
@@ -2388,7 +2371,7 @@ namespace CoupledField
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC) {
-        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+        Matrix2Harmonic( harmMat, elemMat, dest, Global::REAL, omega);
     } else {
       harmMat = elemMat;
     }

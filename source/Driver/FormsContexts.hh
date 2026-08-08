@@ -87,13 +87,6 @@ namespace CoupledField
     //! Returns the integrator
     BiLinearForm * GetIntegrator() {return integrator_; };
 
-    //! Return entry type of matrix (real/imag part)
-    Global::ComplexPart GetEntryType() {return entryType_;};
-
-    //! Set entrytype for matrix (real/imag part)
-    void SetEntryType( Global::ComplexPart &pEntryType ){
-      entryType_ = pEntryType;};
-
     //! Set eqn evaluation to volume for A operator
     void SetUseVolEqnA( bool useVolEqn ){
       useVolEqnA_ = useVolEqn;
@@ -202,9 +195,6 @@ namespace CoupledField
     
     //! Pointer to math parser instance
     MathParser* mathParser_;
-
-    //! Entry type of matrix (real/imag part)
-    Global::ComplexPart entryType_;
 
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location

@@ -24,8 +24,7 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     secMatFacHandle_ = mathParser_->GetNewHandle();
     
     //    setCounterPart_ = false;
-    entryType_ = Global::REAL;
-
+    
     // Note: By default, we do not set the counter part
     // of a matrix as well, i.e. if an element matrix
     // gets assembled to a main diagonal block within the
