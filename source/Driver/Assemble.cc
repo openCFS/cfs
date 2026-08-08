@@ -636,10 +636,6 @@ namespace CoupledField
                     LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
                   }
                   LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
-                  if(actContext.IsSetNegate()){
-                    assert(!form->IsComplex());
-                    elemMatrix*= (-1.0);
-                  }
                 }
 
                 // info.xml logging in detailed logging case for the first element only
@@ -940,10 +936,6 @@ namespace CoupledField
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
               LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString();
-              if(actContext.IsSetNegate()){
-                assert(!form->IsComplex());
-                elemMatrix*= (-1.0);
-              }
             }
 
 
@@ -1237,10 +1229,6 @@ namespace CoupledField
               //cElemMats[fctIdPair][destMat] += elemMatrixC;
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              if(actContext.IsSetNegate()== true){
-                assert(!form->IsComplex());
-                elemMatrix*= (-1.0);
-              }
 
               // insert element matrix to dest (needed later to construct rhs)
               InsertMatrix( destMat, actContext, elemMatrix,
@@ -1450,10 +1438,6 @@ namespace CoupledField
               cElemMat += elemMatrixC;
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              if(actContext.IsSetNegate()== true){
-                assert(!form->IsComplex());
-                elemMatrix*= (-1.0);
-              }
               if(iForm == 0)
                 rElemMat = elemMatrix;
               else

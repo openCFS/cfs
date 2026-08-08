@@ -31,7 +31,6 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     // big FE-Matrix, this flag must not be changed
     // through 'SetCounterPart()'
     setCounterPart_ = false;
-    negateEntries_ = false;
     
     ptPde1_ = NULL;
     ptPde2_ = NULL;

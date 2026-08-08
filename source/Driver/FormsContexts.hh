@@ -150,20 +150,10 @@ namespace CoupledField
       setCounterPart_ = setCounterPart;
     }
 
-    //! Set function for setNegate
-    void SetNegate(bool setNegate) {
-      negateEntries_ = setNegate;
-    }
-
     //! Check, if element matrix has to be assembled to
     //! upper and lower part of global matrix
     bool IsSetCounterPart() const {
     	return setCounterPart_;
-    }
-
-    //! to check if we need to negate the integrator
-    bool IsSetNegate() const {
-      return negateEntries_;
     }
 
     //! Check if this is a diagonal bilinear form
@@ -199,9 +189,6 @@ namespace CoupledField
     // Flag indicating assembling of the integrator
     // in the counterpart of the pde location
     bool setCounterPart_;
-
-    // Flag indicating negating the entries of the element matrix
-    bool negateEntries_;
 
     // Flag to indicate if the number of functions shall be aquired from the volume or surface element
     // This is needed for e.g. a gradient evaluated at a surface, since we perform the evaluation at the
