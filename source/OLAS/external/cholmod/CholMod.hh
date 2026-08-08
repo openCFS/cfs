@@ -16,7 +16,7 @@ namespace CoupledField
   class Flags;
   
   template<typename T>
-  class CholMod : public BaseIterativeSolver 
+  class CholMod : public BaseDirectSolver
   {
   public:
     CholMod(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);

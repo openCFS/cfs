@@ -5,6 +5,8 @@
 
 #include <def_use_metis.hh>
 #include <def_use_pardiso.hh>
+#include <def_use_suitesparse.hh>
+#include <def_use_superlu.hh>
 #include <def_use_arpack.hh>
 #include <def_use_phist_cg.hh>
 #include <def_use_phist_ev.hh>
@@ -4435,19 +4437,24 @@ namespace CoupledField
       // check if a solver is specified
       if(!solverNode)
       {
-        // no solver set -> use default direct solver in order of availability: pardiso, cholmod, directLDL
+        // no solver set -> use default direct solver in order of availability: pardiso, cholmod/umfpack, directLDL
+        // pardiso is usually a very good choice but not available on arm platforms (e.g. Apple)
+        bool sym = storType == BaseMatrix::SPARSE_SYM;
+        st = BaseSolver::NOSOLVER;
 #ifdef USE_PARDISO
         st = BaseSolver::PARDISO_SOLVER;
-#elif USE_CHOLMOD
-        st = BaseSolver::CHOLMOD_SOLVER;
-#else
-        if(storType == BaseMatrix::SPARSE_SYM)
-        {
-          st = BaseSolver::LDL_SOLVER; // symmetric case
-        } else {
-          st = BaseSolver::LU_SOLVER; // unsymmetric case
-        }
+#elif defined(USE_SUITESPARSE)
+        if(sym && !isMatrixComplex_)
+          st = BaseSolver::CHOLMOD;
+        if(!sym) // umpfpack in our current implementation requires unsymmetric complex matrices
+          st = BaseSolver::UMFPACK;
+#elif defined(USE_SUPERLU)
+        if(!sym)
+          st = BaseSolver::SUPERLU;
 #endif
+        if(st == BaseSolver::NOSOLVER)
+          st = sym ? BaseSolver::LDL_SOLVER : BaseSolver::LU_SOLVER;
+
         solverList->Get(BaseSolver::solverType.ToString(st),ParamNode::INSERT)->Get("id",ParamNode::INSERT)->SetValue(solverId);
       }
       else
@@ -4549,7 +4556,10 @@ namespace CoupledField
           st == BaseSolver::LU_SOLVER  ||
           st == BaseSolver::LAPACK_LU  ||
           st == BaseSolver::LAPACK_LL  ||
-          st == BaseSolver::PARDISO_SOLVER )
+          st == BaseSolver::PARDISO_SOLVER ||
+          st == BaseSolver::CHOLMOD ||
+          st == BaseSolver::UMFPACK ||
+          st == BaseSolver::SUPERLU )
           && !(pt == BasePrecond::ID ||
               pt == BasePrecond::NOPRECOND) ) {
         EXCEPTION( "A direct solver only works with the Identity (ID) "
