@@ -1,0 +1,344 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="41">
+  <summary>
+    <timer id="0" wall-clock="0.1724s" wall="0.172413" cpu="0.124838" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="50"/>
+  </summary>
+  <header id="">
+    <environment started="06-Aug-26 16:08:18" host="MacBook-Pro"/>
+    <input>
+      <regular dim="2" region="mech" elements="[10, 10, 0]" spacing="[0.1, 0.1, 0]" min="[0, 0, 0]"/>
+    </input>
+    <progOpts problem="alpha_volume" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/FeatureMapping/alpha_volume/alpha_volume.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="87a9df15b8c155bd9df6546d7a6809ad1418b029-modified" git_branch="HEAD" compiled="Aug  5 2026" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="10" ny="10" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="100" nodes="121">
+          <timer id="5" wall-clock="0.004178s" wall="0.00417754" cpu="0.001149" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0009236s" wall="0.000923625" cpu="0.000215" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.001352s" wall="0.00135183" cpu="0.000342" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="0.0003711s" wall="0.000371125" cpu="0.000104" calls="2" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="2.646e-05s" wall="2.6459e-05" cpu="2.5e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="121" elems="100" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="11"/>
+        <nodes name="top" count="11"/>
+        <nodes name="left" count="11"/>
+        <nodes name="right" count="11"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(1,1)"/>
+        <nodes name="load" count="1" coord="(1,0.5)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="10" ny="10" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="38" wall-clock="0.002895s" wall="0.002895" cpu="0.002598" calls="120"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.02224s" wall="0.0222363" cpu="0.00526" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="0.0001039s" wall="0.000103916" cpu="1.5e-05" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer id="16" wall-clock="0.01528s" wall="0.0152788" cpu="0.008162" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="load" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -1]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e+00  3.296703e-01  0.000000e+00
+                 3.296703e-01  1.098901e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="left" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="220" totalNumFreeEqns="220" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="220" lastFreeEqn="220" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="220" lastFreeIndex="220"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer id="28" label="setup_directLDL" wall-clock="0.003763s" wall="0.00376338" cpu="0.003662" calls="63"/>
+              </setup>
+              <solve>
+                <timer id="29" label="solve_directLDL" wall-clock="0.001258s" wall="0.0012585" cpu="0.001257" calls="63"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="30" wall-clock="2.737e-05s" wall="2.7374e-05" cpu="2.9e-05" calls="63"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="31" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph nnz="3472">
+        <timer id="24" wall-clock="0.001894s" wall="0.00189358" cpu="0.000748" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="25" wall-clock="2.504e-05s" wall="2.5041e-05" cpu="4e-05" calls="1" sub="true" parent="24"/>
+        </finalize>
+        <sort>
+          <timer id="26" wall-clock="1.696e-05s" wall="1.6958e-05" cpu="2.6e-05" calls="1" sub="true" parent="24"/>
+        </sort>
+        <rows number="220" min="8" max="18" mean="15.782" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="27" wall-clock="0.001251s" wall="0.0012505" cpu="0.000392" calls="1" sub="true" parent="24"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="20" wall-clock="0.004537s" wall="0.00453742" cpu="0.007706" calls="126"/>
+          <matrices>
+            <timer id="21" wall-clock="0.004241s" wall="0.00424109" cpu="0.007481" calls="63" sub="true" parent="20"/>
+          </matrices>
+          <rhs>
+            <timer id="22" wall-clock="0.0001859s" wall="0.000185877" cpu="0.0001" calls="63" sub="true" parent="20"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="23" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/FeatureMapping/alpha_volume/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
+      <constraints>
+        <constraint type="volume" name="volume_(plainAlphaDensity)" field="plainAlphaDensity" linear="no" access="filtered" bound_value="0.5" bound="upperBound" design="default"/>
+        <constraint type="distance" name="distance_(node)" parameter="0" linear="no" access="plain" locality="function_specific" local_size="3" periodic="no" bound_value="0.05" bound="lowerBound" design="node"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer id="17" wall-clock="0.002112s" wall="0.00211246" cpu="0.001151" calls="8"/>
+        </setup_design>
+        <features>
+          <mapping>
+            <timer id="18" label="features_map" wall-clock="0.01028s" wall="0.0102759" cpu="0.016487" calls="63" sub="true"/>
+          </mapping>
+          <gradient>
+            <timer id="19" label="features_grad" wall-clock="0.0003559s" wall="0.000355914" cpu="0.000271" calls="38" sub="true"/>
+          </gradient>
+          <combine type="p-norm" param="4"/>
+          <boundary type="poly" transition="0.1" extension="0"/>
+          <mesh n="[10, 10, 1]"/>
+        </features>
+        <filters use_mat_filt="yes"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="mech" design="density"/>
+        </transferFunctions>
+        <designVariables opt_vars="18" field_elems="100" field_fe_elemes="100">
+          <design type="density" upperBound="1" lowerBound="0" physicalLowerBound="0"/>
+          <pill id="0">
+            <px type="node" dof="x" tip="start" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.2"/>
+            <alpha type="alpha" lower="0" upper="1"/>
+          </pill>
+          <pill id="1">
+            <px type="node" dof="x" tip="start" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.2"/>
+            <alpha type="alpha" lower="0" upper="1"/>
+          </pill>
+          <pill id="2">
+            <px type="node" dof="x" tip="start" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.2"/>
+            <alpha type="alpha" lower="0" upper="1"/>
+          </pill>
+        </designVariables>
+        <implicitFields>
+          <field name="plainAlphaDensity" result="optResult_16"/>
+        </implicitFields>
+        <localElementCache org="1" shadow="1" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="100" bimaterial="-" groundmaterial="void"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <dumas_gcmma move_limit="0.500000" asyminit="0.5" asymdec="0.7" asyminc="1.2" a0_lin_aux_z="1" ai_lin_aux_z="0" c_lin_aux_y="1000" d_quad_aux_y="0">
+        <summary>
+          <dumas_gcmma>
+            <timer id="33" wall-clock="0.02885s" wall="0.0288535" cpu="0.034827" calls="240"/>
+          </dumas_gcmma>
+        </summary>
+        <scaling active="no"/>
+      </dumas_gcmma>
+    </optimizer>
+    <summary>
+      <eval_objective>
+        <timer id="34" wall-clock="0.0001367s" wall="0.000136749" cpu="0.000136" calls="200"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="35" wall-clock="0.0002247s" wall="0.00022472" cpu="9.3e-05" calls="81"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="36" wall-clock="0.0004205s" wall="0.000420502" cpu="0.000337" calls="19"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="37" wall-clock="0.0001909s" wall="0.000190877" cpu="0.000188" calls="19"/>
+      </eval_grad_constraints>
+      <break converged="yes">
+        <reason msg="design change below 0.01 for 2 iterations"/>
+      </break>
+      <functions>
+        <compliance min="12.948" max="196.77" oscillations="3"/>
+        <volume_plainAlphaDensity min="0.22375" max="0.50028" oscillations="9"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.12589" compliance="196.773920334431" volume_plainAlphaDensity="0.223753872145872" min_abs_distance_node="0.80623" infeas_count_distance_node="0" gc_search="0"/>
+      <iteration number="1" duration="0.004436" compliance="61.0313476488242" volume_plainAlphaDensity="0.331926326337291" min_abs_distance_node="0.81775" infeas_count_distance_node="0" gc_search="6"/>
+      <iteration number="2" duration="0.0018425" compliance="28.3342443554732" volume_plainAlphaDensity="0.453861274967994" min_abs_distance_node="0.82563" infeas_count_distance_node="0" gc_search="2"/>
+      <iteration number="3" duration="0.0023642" compliance="20.7630389144695" volume_plainAlphaDensity="0.484990654339983" min_abs_distance_node="0.82791" infeas_count_distance_node="0" gc_search="3"/>
+      <iteration number="4" duration="0.000966" compliance="16.631139947889" volume_plainAlphaDensity="0.477325203287553" min_abs_distance_node="0.80148" infeas_count_distance_node="0" gc_search="1"/>
+      <iteration number="5" duration="0.0022431" compliance="13.9172163822724" volume_plainAlphaDensity="0.495137744602327" min_abs_distance_node="0.79652" infeas_count_distance_node="0" gc_search="3"/>
+      <iteration number="6" duration="0.0030296" compliance="13.709515778939" volume_plainAlphaDensity="0.499007249601214" min_abs_distance_node="0.79168" infeas_count_distance_node="0" gc_search="4"/>
+      <iteration number="7" duration="0.001601" compliance="13.5684871621406" volume_plainAlphaDensity="0.49895011675071" min_abs_distance_node="0.77487" infeas_count_distance_node="0" gc_search="2"/>
+      <iteration number="8" duration="0.002405" compliance="13.4902841404696" volume_plainAlphaDensity="0.499134870859346" min_abs_distance_node="0.75973" infeas_count_distance_node="0" gc_search="3"/>
+      <iteration number="9" duration="0.0016021" compliance="13.3901621576085" volume_plainAlphaDensity="0.499166800550936" min_abs_distance_node="0.74237" infeas_count_distance_node="0" gc_search="2"/>
+      <iteration number="10" duration="0.0047324" compliance="13.1976663564858" volume_plainAlphaDensity="0.499694711634994" min_abs_distance_node="0.68925" infeas_count_distance_node="0" gc_search="7"/>
+      <iteration number="11" duration="0.0022407" compliance="13.0589846866604" volume_plainAlphaDensity="0.499061159273951" min_abs_distance_node="0.63974" infeas_count_distance_node="0" gc_search="3"/>
+      <iteration number="12" duration="0.0028335" compliance="12.9632742982905" volume_plainAlphaDensity="0.500276648919243" min_abs_distance_node="0.55726" infeas_count_distance_node="0" gc_search="4"/>
+      <iteration number="13" duration="0.0020474" compliance="12.9612314056785" volume_plainAlphaDensity="0.499912802891952" min_abs_distance_node="0.51006" infeas_count_distance_node="0" gc_search="3"/>
+      <iteration number="14" duration="0.0027816" compliance="12.9574261360639" volume_plainAlphaDensity="0.499917965436053" min_abs_distance_node="0.46128" infeas_count_distance_node="0" gc_search="4"/>
+      <iteration number="15" duration="0.00091546" compliance="12.9482457518996" volume_plainAlphaDensity="0.500223591813817" min_abs_distance_node="0.44039" infeas_count_distance_node="0" gc_search="1"/>
+      <iteration number="16" duration="0.000909" compliance="12.9587069647564" volume_plainAlphaDensity="0.499717828334809" min_abs_distance_node="0.40677" infeas_count_distance_node="0" gc_search="1"/>
+      <iteration number="17" duration="0.0040624" compliance="12.9584208106932" volume_plainAlphaDensity="0.499675464941708" min_abs_distance_node="0.40677" infeas_count_distance_node="0" gc_search="6"/>
+      <iteration number="18" duration="0.0034724" compliance="12.9579513585717" volume_plainAlphaDensity="0.499664594512991" min_abs_distance_node="0.40677" infeas_count_distance_node="0" gc_search="5"/>
+      <iteration number="19" duration="0.0015575" compliance="12.9593721585933" volume_plainAlphaDensity="0.499566485932491" min_abs_distance_node="0.40677" infeas_count_distance_node="0" gc_search="2"/>
+    </process>
+  </optimization>
+</cfsInfo>

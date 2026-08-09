@@ -4,6 +4,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeaturedDesign.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
@@ -190,11 +191,19 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
     py_curvature_ = PyObject_GetAttrString(kernel, ppn->Get("curvature")->As<string>().c_str());
     PythonKernel::CheckPythonFunction(py_curvature_, ppn->Get("curvature")->As<string>().c_str());
   }
+
+  // optional exact shape space Hessian, see CalcShapeHessianPython()
+  if(ppn->Has("hessian"))
+  {
+    py_hessian_ = PyObject_GetAttrString(kernel, ppn->Get("hessian")->As<string>().c_str());
+    PythonKernel::CheckPythonFunction(py_hessian_, ppn->Get("hessian")->As<string>().c_str());
+  }
 }
 
 
 void Function::DeletePythonFunction()
 {
+  Py_XDECREF(py_hessian_);
   Py_XDECREF(py_curvature_);
   Py_XDECREF(py_sparsity_);
   Py_XDECREF(py_grad_);
@@ -221,6 +230,22 @@ bool Function::CalcCurvaturePython(Vector<double>& diag)
   if(diag.GetSize() != elements.GetSize())
     EXCEPTION("the python curvature function shall return a numpy array of size " << elements.GetSize()
               << " (number of elements) but got " << diag.GetSize());
+
+  return true;
+}
+
+bool Function::CalcShapeHessianPython(Matrix<double>& full)
+{
+  if(py_hessian_ == nullptr)
+    return false;
+
+  // call like eval/grad with the opt dict; the function returns its exact Hessian directly in the
+  // full feature variable space as a 2D numpy array (same convention as the feature space gradient
+  // in ErsatzMaterial::CalcPython() - no density chain). The size check and the reduction to
+  // optimization variable space happen in FeatureMappingDesign::CalcShapeHessian().
+  PyObject* ret = PyObject_CallObject(py_hessian_, py_arg_);
+  PythonKernel::CheckPythonReturn(ret);
+  PythonKernel::Numpy2DArrayToMatrix(ret, full, true); // decref
 
   return true;
 }
@@ -278,14 +303,36 @@ double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivati
   else
   {
     Vector<double> grad(pyret, false);
-    if(grad.GetSize() != f->elements.GetSize())
-      EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize());
-
-    for(unsigned int i = 0; i < grad.GetSize(); i++)
+    // a python function returns its gradient either in density space (size = elements, e.g. tracking -
+    // chained through drho/ds by the design) or, for a feature based design, directly in the full
+    // feature variable space (size as by cfs.feature_mapping_get_parameters, e.g. an analytic volume
+    // or alpha sum over the feature geometry - as the native distance constraint no density chain).
+    // We recognize the space by the size; on the rare collision density space wins.
+    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(GetDesign());
+    if(fd != nullptr && grad.GetSize() != f->elements.GetSize()
+       && (int) grad.GetSize() == fd->GetNumberOfFeatureMappingVariables())
     {
-      DesignElement* de = f->elements[i];
-      de->AddGradient(f, grad[i]);
-      LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+      {
+        FeatureVariable* var = dynamic_cast<FeatureVariable*>(fd->GetFeaturedDesignElement(i));
+        assert(var != nullptr);
+        if(var->map != "")
+          EXCEPTION("python functions on the feature variables do not support mapped ('map') variables yet");
+        var->AddGradient(f, grad[i]);
+      }
+    }
+    else
+    {
+      if(grad.GetSize() != f->elements.GetSize())
+        EXCEPTION("got gradient of size " << grad.GetSize() << " excpected " << f->elements.GetSize()
+                  << (fd != nullptr ? " (density space) or " + std::to_string(fd->GetNumberOfFeatureMappingVariables()) + " (feature variable space)" : ""));
+
+      for(unsigned int i = 0; i < grad.GetSize(); i++)
+      {
+        DesignElement* de = f->elements[i];
+        de->AddGradient(f, grad[i]);
+        LOG_DBG2(em) << "CP: i=" << i << " pygrad=" << grad[i];
+      }
     }
   }
 
@@ -325,15 +372,15 @@ void Function::Local::Identifier::CalcLocalPythonGrad(Vector<double>& grad, cons
 PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
 {
   if(filter.GetSize() == 0)
-    throw("it seams no filter is set for optimization");
+    throw Exception("it seams no filter is set for optimization");
 
   if(PyTuple_Size(args) > 2)
-    throw("max one optional argument for get_opt_filter_values() / DesignSpace::PythonGetFilterProperties()");
+    throw Exception("max one optional argument for get_opt_filter_values() / DesignSpace::PythonGetFilterProperties()");
 
   unsigned int idx = PyTuple_Size(args) == 1 ? PyLong_AsLong(PyTuple_GetItem(args,0)) : 0;
 
   if(idx >= filter.GetSize())
-    throw("largest argument for get_opt_filter_values(idx) is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
+    throw Exception("largest argument for get_opt_filter_values(idx) is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
 
   const GlobalFilter& gf = filter[idx];
 
@@ -371,13 +418,13 @@ void DesignSpace::PythonSetFilterProperties(PyObject* args)
 
   LOG_DBG(designSpace) << "PSFP args=" << PyTuple_Size(args);
   if(PyTuple_Size(args) < 2 || PyTuple_Size(args) > 5)
-      throw("set_opt_filter_values(idx, beta, [eta, [scale, [offset]]]) has 2 ... 5 arguments, keywords are not allowed");
+      throw Exception("set_opt_filter_values(idx, beta, [eta, [scale, [offset]]]) has 2 ... 5 arguments, keywords are not allowed");
   int ok = PyArg_ParseTuple(args,"id|ddd",&idx, &beta, &eta, &scale, &offset);
   LOG_DBG(designSpace) << "PSFP args=" << PyTuple_Size(args) << " ok=" << ok << " beta=" << beta << " eta=" << eta << " scale=" << scale << " offset=" << offset;
   PythonKernel::CheckPythonReturn(ok, "set_opt_filter_values");
 
   if(idx >= (int) filter.GetSize())
-    throw("largest idx for set_opt_filter_values() is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
+    throw Exception("largest idx for set_opt_filter_values() is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
 
   GlobalFilter& gf = filter[idx];
 

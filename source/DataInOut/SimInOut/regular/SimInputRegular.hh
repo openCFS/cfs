@@ -27,6 +27,8 @@ namespace CoupledField
      @see ParseXML() */
     void ReadMesh(Grid *grid) override;
   
+    std::string GetFileLessLabel() const override { return "<regular>"; }
+
     //! Return dimension of the mesh
     unsigned int GetDim() override { return dim_; }
    

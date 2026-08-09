@@ -86,6 +86,9 @@ namespace CoupledField
     /** @return includes the complete path */
     const std::string& GetFileName() const { return fileName_; }
 
+    /** in the filename-less case (regular, network) return type for "Reading mesh ... ", otherwise empty */
+    virtual std::string GetFileLessLabel() const { return ""; }
+
     // =========================================================================
     // GENERAL SOLUTION INFORMATION
     // =========================================================================

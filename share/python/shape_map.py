@@ -113,8 +113,8 @@ def create_figure(res, minimal, maximal):
 
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_x))
   ax = fig.add_subplot(111)
-  ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
-  ax.set_ylim(min(0,minimal[1]), max(1,maximal[1]))
+  ax.set_xlim(minimal[0], maximal[0])
+  ax.set_ylim(minimal[1], maximal[1])
   return fig, ax
 
 def dump_shapes(shapes):
@@ -156,14 +156,18 @@ def matplotlib_color_coder(id):
   
   
 class Shape: 
-  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0], ref = None):
+  def __init__(self, id, dof, dof_b = None, scale = [1.0,1.0,1.0], ref = None, offset = [0, 0, 0]):
     self.id = id
     # legacy shape have no ref yet
     self.ref = ref
     self.dof = dof
     self.dof_b = dof_b
 
+    # scale and offset are used for non unity meshes, to properly place the result
+    # this is because we assume the position from the element count and number and
+    # don't have it in the .density.xml file
     self.scale = scale
+    self.offset = offset
     # the element number
     self.el = []
     # node variable a. For 3D there is also b
@@ -183,12 +187,21 @@ class Shape:
   # shape info for a given index
   def to_string(self, idx):
     return "shape=" + str(self.id) + " dof=" + str(self.dof) + " color=" + str(self.color) + " idx=" + str(idx) + " val=" + str(self.a[idx]) + " profile=" + str(self.profile[idx]) + " valid=" + str(self.valid[idx]) + ""
-   
+
+  def get_bounding_box(self):
+    minimal = self.offset[:]
+    maximal = [o + s for o, s in zip(self.offset, self.scale)]
+    for a, p in zip(self.a, self.profile):
+      minimal[self.dof] = min(minimal[self.dof], a - p)
+      maximal[self.dof] = max(maximal[self.dof], a + p)
+    return minimal, maximal
+
   #@return x, y for center point a
   def get_center(self, idx):   
     free = idx * float(1./(len(self.el)-1))
     # fails for 3D!!!
     free *= self.scale[1-self.dof]
+    free += self.offset[1-self.dof]
     val  = self.a[idx]
     # this is the a middle line
     x = free if self.dof == 1 else val
@@ -392,12 +405,18 @@ def read_legacy_xml(filename, set, profile):
 # reads 2D and 3D s
 def read_xml(xml, set, profile):
   # find scaling assuming equal mesh sizing
-  nx, ny, nz = read_mesh_info_xml(xml)
+  nx, ny, nz, min, max = read_mesh_info_xml(xml, domain = True)
 
   # TODO: fix scaling
+  offset = [0, 0, 0]
   scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
   if ny > nx:
      scale = [float(nx)/ny, 1.0, float(nz)/ny] # this is the correct scaling for y profile
+  if min is not None and max is not None:
+    print("I am scaling")
+    scale = [max[0] - min[0], max[1] - min[1], 1]
+    offset = [min[0], min[1], 0]
+  print(offset)
   
   shapes = []
   sq = 'last()' if set == None else '@id="' + str(set) + '"'
@@ -408,7 +427,7 @@ def read_xml(xml, set, profile):
     # we do not know yet if we are 2D or 3D. For 3D center nodes, the there are two nodes dof the the shape dof is the third by definition
     first_dof = dof(list[0].get('dof')) # might change
     first_shape = int(list[0].get('shape'))
-    shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref)
+    shape = Shape(id = len(shapes), dof = first_dof, scale = scale, ref = ref, offset = offset)
     for idx, el in enumerate(list):
       nr = int(el.get('nr'))
       v  = float(el.get('design'))
@@ -748,8 +767,12 @@ def plot_data(res, shapes, unit):
     minimal = [1e9]*2
     maximal = [-1e9]*2
     for shape in shapes:
-      minimal[shape.dof] = min(minimal[shape.dof], min(shape.a))
-      maximal[shape.dof] = max(maximal[shape.dof], max(shape.a))
+      smin, smax = shape.get_bounding_box()
+      for i, m in enumerate(minimal):
+        minimal[i] = min(m, smin[i])
+      for i, m in enumerate(maximal):
+        maximal[i] = max(m, smax[i])
+    print(minimal, maximal)
   
   fig, sub = create_figure(res, minimal, maximal)
   

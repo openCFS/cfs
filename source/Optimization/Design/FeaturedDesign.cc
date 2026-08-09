@@ -187,7 +187,8 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 
   // MapFeatureGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
-  if(f->IsObjective() || !Function::IsLocal(f->GetType())) // don't map local functions
+  LOG_DBG(fd) << "WGTE: fobj=" << f->IsObjective() <<" flocal=" << Function::IsLocal(f->GetType());
+  if((f->IsObjective() || !Function::IsLocal(f->GetType())) && f->GetType() != Function::Type::SLACK) // dont map slack, don't map local functions
     MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
@@ -256,7 +257,7 @@ void FeaturedDesign::WriteGradientFile()
   if(!gradplot_.is_open())
     return; // obviously the option was not set
 
-  gradplot_.precision(5);
+  gradplot_.precision(10); // enough digits for finite difference checks on the gradient
   gradplot_.flags(std::ios::scientific);
 
   int iter = opt->GetCurrentIteration();
@@ -350,7 +351,7 @@ void FeaturedDesign::SetupMapping()
   // n_ and nx_, ny_, nz_
   SetupMeshStructure();
 
-  // set physical design, which is usually the density but for spaghetti also angles.
+  // set physical design, which is usually the density but for spaghetti also angles
   map.Resize(data.GetSize());
   StdVector<Elem*> designElems;
 
@@ -459,7 +460,8 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(!features_.IsEmpty());
   vem.Reserve(features_.GetSize()); // assume nothing fixed
 
-  assert(dim_ == 2);
+  if(dim_ == 3) // Function::Local::Identifier::CalcDistance() and the sparsity/Hessian code are 2D
+    throw Exception("local '" + Function::type.ToString(f->GetType()) + "' constraints are not implemented for 3D features yet");
   StdVector<BaseDesignElement*> nodes;
 
   bool two_signs = locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS;
@@ -473,15 +475,16 @@ void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
     StdVector<FeatureVariable>& P = s->points.First();
     StdVector<FeatureVariable>& Q = s->points.Last();
 
-    // assume nothing fixed
-    if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
+    // fixed nodes are constants: LocalCondition drops them from the sparsity pattern and Hessian
+    // (EffectiveOptIndex() == -1). Without any free node the length is constant -> no constraint.
+    if(f->GetType() == Function::DISTANCE)
     {
-      if (f->GetType() == Function::DISTANCE)
-        throw Exception("distance constraints currently only for non-fixed nodes");
-      // else: Bending
-      if (FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && (!s->IsExtended()))
-        continue; // won't add empty constraint if all points are fixed -> next noodle
+      if(FeatureVariable::CountRealVariables(P) + FeatureVariable::CountRealVariables(Q) == 0)
+        continue; // next noodle
     }
+    else // Bending. Note IsFixed() is true for any fixed component
+      if(FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && !s->IsExtended())
+        continue; // won't add empty constraint if all points are fixed -> next noodle
 
     // px is element, then py, then qx then qy
     nodes.Push_back(&P[1]);

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<features xmlns="http://www.cfs++.org/simulation"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/simulation
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  <!-- external feature file for external.xml, read as if the pills were local. Note that xerces
+       fails on comments before the root element. The schemaLocation is not needed by cfs (it
+       passes its schema explicitly) but lets the editor fill defaults -->
+  <pill comment="the vertical feature">
+    <node dof="x" initial="0.5" lower="0" upper="1" tip="start"/>
+    <node dof="y" initial="0.05" lower="0" upper="1" tip="start"/>
+    <node dof="x" initial="0.5" lower="0" upper="1" tip="end"/>
+    <node dof="y" initial="0.95" lower="0" upper="1" tip="end"/>
+    <profile initial="0.1" lower="0.05" upper="0.2"/>
+  </pill>
+</features>

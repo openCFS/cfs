@@ -39,6 +39,40 @@ public:
    * @param args first argument index, optional second argument is index */
   static PyObject* Transfer(PyObject* args, bool derivative);
 
+  /** cfs.eval_function(name): on-demand evaluation of the named constraint/observation at the
+   * current design and state (in contrast to get_opt_function_values which mirrors the logging
+   * cache of the last committed iteration). Returns the value as float. */
+  static PyObject* EvalFunctionByName(PyObject* args);
+
+  /** cfs.eval_function_gradient(name, arr): on-demand computation of the named constraint's
+   * gradient w.r.t. the pseudo density, filled per element into the 1D numpy array arr (plain,
+   * size = number of pseudo densities). An observation requires the 'observeGradient' attribute. */
+  static PyObject* EvalFunctionGradientByName(PyObject* args);
+
+  /** cfs.is_function_state_dependent(name): whether the named function depends on the state (adjoint
+   * based, e.g. compliance). A second-order python driver uses this to decide whether the exact
+   * shape Hessian (cfs.evalhessian) is complete (state-independent objective) or misses the dense
+   * state-curvature block that has to be approximated (state-dependent objective). Returns bool. */
+  static PyObject* IsFunctionStateDependent(PyObject* args);
+
+  /** cfs.get_shape_jacobian(D): fill the 2D numpy array D (elements x n) with the feature mapping
+   * Jacobian d_mrho/d_s in optimization variable space at the current design.
+   * Part of the exact state-curvature Hessian block, see hessian_scipy.py. */
+  static PyObject* GetShapeJacobian(PyObject* args);
+
+  /** cfs.apply_dk_drho(name, w, b): fill the 1D numpy array b (algebraic system size, see
+   * cfs.solve_state) with sum_e w_e (dK_e/drho_e) u_e - the density-directional stiffness
+   * derivative applied to the current state. w is a 1D array of per-element weights (e.g. a
+   * column of the shape Jacobian), name gives design type/transfer function/context (e.g. the
+   * observed compliance). @see ErsatzMaterial::CalcDkDrhoTimesState() */
+  static PyObject* ApplyDkDrho(PyObject* args);
+
+  /** cfs.solve_state(name, rhs, z): solve K z = rhs with the current (factorized) state system
+   * and homogeneous Dirichlet bounds - the state derivative/adjoint semantics. rhs and z are 1D
+   * numpy arrays of the algebraic system size (= size of b from cfs.apply_dk_drho).
+   * @see ErsatzMaterial::SolveStateWithRHS() */
+  static PyObject* SolveState(PyObject* args);
+
   /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
   void GetBounds(PyObject* args);
 
@@ -65,7 +99,7 @@ public:
    * is static and queried once: get the nnz, then fill the (row, col) index arrays; per iteration fill
    * the packed value array. The python side assembles a scipy.sparse matrix from (vals, (rows, cols)).
    * @see ConditionContainer::VirtualView::CalcNumberOfJacobianNonZeros */
-  int GetNumberOfJacobianNonZeros();
+  unsigned int GetNumberOfJacobianNonZeros();
 
   /** fills two 1D arrays of size nnz: rows[k] = constraint index, cols[k] = design variable index */
   void GetConstraintSparsity(PyObject* args);

@@ -196,7 +196,7 @@ def map_bc_to_node(mesh, nodes, min, max, name, dx, dy, dz, nnx, nny, nnz, flag)
       elem.append(out_ind + 2 * nnx)
     else:
       elem.append(out_ind - 2 * nnx)
-  mesh.bc.append((name, elem))
+  mesh.bc[name] = elem
   return mesh
 
 

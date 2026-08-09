@@ -642,7 +642,8 @@
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
               Optional path to the python script. If not given, the script is searched in the
-              current working directory. 'cfs:share:python' is a special key for the cfs python directory.
+              current working directory. 'cfs:share:python' is a special key for the cfs python directory,
+              where share/python/embedded is searched first and share/python second.
               This path will be added first in sys.path, you could also set the PYTHONPATH environment variable.
             </xsd:documentation>
           </xsd:annotation>

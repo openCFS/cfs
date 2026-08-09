@@ -386,9 +386,23 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
 
   // set the result descriptions which identify the solution types
   ParamNodeList result = pn->GetList("result");
-  resultDescriptions.Reserve(result.GetSize());
+  resultDescriptions.Reserve(result.GetSize() + 1);
   for(unsigned int i = 0; i < result.GetSize(); i++)
     resultDescriptions.Push_back(ResultDescription(result[i]));
+
+  // The feature mapping geometry variable alpha gives a derived per-element field
+  // v_e = combine(alpha_f * rho_f) which the unpenalized alpha volume integrates. This is no design
+  // (nothing is optimized over it, no bounds, no transfer function) but a result channel on the
+  // reserved slot, hence exportable as an element result. Written by MapFeatureToDensity(), read by
+  // a volume function with field="plainAlphaDensity"
+  if((method == ErsatzMaterial::FEATURE_MAPPING || method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT) && pn->Has("featureMapping/alpha"))
+  {
+    for(const ResultDescription& rd : resultDescriptions)
+      if(rd.solutionType == IMPLICIT_RESULT_SLOT)
+        EXCEPTION("the result id '" << SolutionTypeEnum.ToString(IMPLICIT_RESULT_SLOT) << "' is reserved for the implicit '"
+                  << PLAIN_ALPHA_DENSITY_FIELD << "' field of the feature mapping alpha volume, use another id");
+    resultDescriptions.Push_back(ResultDescription(IMPLICIT_RESULT_SLOT, PLAIN_ALPHA_DENSITY_FIELD));
+  }
 
   // reserve for the worst case. non_design_vicinity and off-design optimization
   pseudoDesigns_.Reserve(domain->GetGrid()->GetNumRegions() * design.GetSize());
@@ -733,7 +747,8 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
-    if(warn && !added) {
+    // an implicit result is offered, not requested by the user - don't complain when nobody wants it
+    if(warn && !added && !rd.implicit) {
       assert(opt_res->definedOn == ResultInfo::NODE || opt_res->definedOn == ResultInfo::ELEMENT);
       std::stringstream ss;
       ss << "'" << SolutionTypeEnum.ToString(rd.solutionType) 
@@ -936,6 +951,15 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::ValueSpecifier value, cons
 
   for(const ResultDescription& rd : resultDescriptions)
     if(rd.value == value && rd.generic == generic)
+      return rd.solutionType - OPT_RESULT_1;
+
+  return -1;
+}
+
+int DesignSpace::GetImplicitResultIndex(const string& name) const
+{
+  for(const ResultDescription& rd : resultDescriptions)
+    if(rd.implicit && rd.generic == name)
       return rd.solutionType - OPT_RESULT_1;
 
   return -1;
@@ -2092,6 +2116,16 @@ void DesignSpace::ToInfo(ErsatzMaterial* em)
     }
     de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), App::MECH, false), em); // silent!
   }
+
+  // the fields cfs registered itself. They are no designs but per-element values a function can act
+  // on via 'field', and they can be exported as an element result of the same name
+  for(const ResultDescription& rd : resultDescriptions)
+    if(rd.implicit)
+    {
+      PtrParamNode f = in->Get("implicitFields")->Get("field", ParamNode::APPEND);
+      f->Get("name")->SetValue(rd.generic);
+      f->Get("result")->SetValue(SolutionTypeEnum.ToString(rd.solutionType));
+    }
 
   in->Get("pamping")->SetValue(pamping_);
   in->Get("regular")->SetValue(IsRegular());

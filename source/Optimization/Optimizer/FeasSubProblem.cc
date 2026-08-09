@@ -38,6 +38,10 @@ void FeasSubProblem::Init()
   // check for optional paramters
   if(ipopt != NULL)
   {
+    // the exact Hessian is the one of the real problem, not of this MMA-like subproblem
+    if(ipopt->Get("hessian")->As<std::string>() == "exact")
+      throw Exception("<ipopt hessian='exact'/> is not available for the feasPP subproblem solver");
+
     ParamNodeList list;
     list = ipopt->GetListByVal("option", "type", "string");
 

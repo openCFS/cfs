@@ -1211,11 +1211,14 @@ void DesignElement::SetEnums()
   type.Add(FEATURE_MAPPING_PY, "feature_var_Py");
   type.Add(FEATURE_MAPPING_QX, "feature_var_Qx");
   type.Add(FEATURE_MAPPING_QY, "feature_var_Qy");
-  type.Add(FEATURE_MAPPING_P,  "feature_var_P");        
+  type.Add(FEATURE_MAPPING_P,  "feature_var_P");
+  type.Add(FEATURE_MAPPING_PZ, "feature_var_Pz"); // 3D only, after P in the enum for compatibility
+  type.Add(FEATURE_MAPPING_QZ, "feature_var_Qz");
+  type.Add(FEATURE_MAPPING_ALPHA, "feature_var_alpha");
   type.Add(CP, "controlpoint");
   type.Add(ALL_FEATURES, "allFeatures");   // e.g. featureDistance -> min of all distances
   type.Add(FEATURE, "feature");            // 0-based index specified in "generic" as number
-  type.Add(ALL_DESIGNS, "allDesigns");     // ALL_DESIGNS needs last enum value   
+  type.Add(ALL_DESIGNS, "allDesigns");     // ALL_DESIGNS needs last enum value
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -1964,6 +1967,16 @@ ResultDescription::ResultDescription(PtrParamNode pn)
     throw Exception("a result 'generic' needs the 'generic' attribute set");
 
   LOG_DBG(desel) << "RD:RD " << ToString();
+}
+
+ResultDescription::ResultDescription(SolutionType st, const std::string& name)
+{
+  solutionType = st;
+  value = DesignElement::GENERIC_ELEM;
+  generic = name;
+  implicit = true;
+
+  LOG_DBG(desel) << "RD:RD implicit " << ToString();
 }
 
 

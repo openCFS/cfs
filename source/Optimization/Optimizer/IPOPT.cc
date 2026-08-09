@@ -53,8 +53,13 @@ void IPOPT::Init()
   LOG_TRACE2(ipopt) << "set max_iter to " << opt_->GetMaxIterations() << " - " 
                     << opt_->GetCurrentIteration();
   
-  // up to now we don't have hessian
-  app->Options()->SetStringValue("hessian_approximation", "limited-memory");
+  // the Hessian mode from <ipopt hessian="exact"/>, default is IPOPT's own L-BFGS. With 'exact' we
+  // serve eval_h() from BaseOptimizer::Calc[Objective|Constraint]Hessian(). Set before the option
+  // list below, but hessian_approximation is not a valid <option> name (see the schema) as it would
+  // silently contradict nnz_h_lag in get_nlp_info()
+  std::string hessian = optimizer_pn_ != NULL ? optimizer_pn_->Get("hessian")->As<std::string>() : "limited-memory";
+  exact_hessian_ = hessian == "exact";
+  app->Options()->SetStringValue("hessian_approximation", hessian);
 
   // handle restart case!
   if(base_->restart_requested)
@@ -86,9 +91,15 @@ void IPOPT::Init()
   {
     ParamNodeList list;
     list = optimizer_pn_->GetListByVal("option", "type", "string");
-    
+
     for(unsigned int i = 0; i < list.GetSize(); i++)
-      app->Options()->SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
+    {
+      const std::string name = list[i]->Get("name")->As<std::string>();
+      // the option is not in the schema's name list but the union with xsd:token accepts it anyway
+      if(name == "hessian_approximation")
+        throw Exception("set the IPOPT hessian approximation by the attribute <ipopt hessian='exact'/>, not as an option");
+      app->Options()->SetStringValue(name, list[i]->Get("value")->As<std::string>());
+    }
 
     list = optimizer_pn_->GetListByVal("option", "type", "integer");
     for(unsigned int i = 0; i < list.GetSize(); i++)
@@ -159,6 +170,32 @@ void IPOPT::SolveProblem()
 }
 
 
+void IPOPT::ToInfo(PtrParamNode pn)
+{
+  // called before and after the solve (see Optimization.cc), before there are no statistics yet.
+  // The status is not written here, it is in reason/msg via DoStopOptimizationHelper() in SolveProblem()
+  pn->Get("hessian")->SetValue(exact_hessian_ ? "exact" : "limited-memory");
+  std::string solver;
+  app->Options()->GetStringValue("linear_solver", solver, "");
+  pn->Get("linear_solver")->SetValue(solver); // ma27, mumps, ... decides if two runs are comparable
+  pn->Get("log")->SetValue(progOpts->GetSimName() + ".ipopt"); // everything detailed is there
+
+  if(!IsValid(app->Statistics()))
+    return;
+
+  SmartPtr<SolveStatistics> st = app->Statistics();
+  pn->Get("iterations")->SetValue(st->IterationCount());
+  pn->Get("nObj")->SetValue(nObj);
+  // the unscaled final values, as in IPOPT's own summary. Full precision to be comparable with the
+  // .ipopt log and between runs (e.g. native eval_h against the python driver)
+  pn->Get("objective")->SetValue(st->FinalObjective(), 10);
+  Number dual_inf, constr_viol, varbounds_viol, complementarity, kkt_error;
+  st->Infeasibilities(dual_inf, constr_viol, varbounds_viol, complementarity, kkt_error);
+  pn->Get("dual_inf")->SetValue(dual_inf, 10);
+  pn->Get("constr_viol")->SetValue(constr_viol, 10);
+  pn->Get("kkt_error")->SetValue(kkt_error, 10);
+}
+
 bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                          Index& nnz_h_lag, IndexStyleEnum& index_style)
 {
@@ -173,8 +210,9 @@ bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
   // SnOpt::InitJacobians().
   nnz_jac_g = opt_->constraints.view->CalcNumberOfJacobianNonZeros();
 
-  // we have no hessian
-  nnz_h_lag = 0;
+  // the exact Lagrangian Hessian is dense in the optimization variables (feature mapping: n is
+  // small), IPOPT wants the lower triangle only. Without it IPOPT does its own L-BFGS
+  nnz_h_lag = exact_hessian_ ? n * (n + 1) / 2 : 0;
 
   // We use the standard C index style for row/col entries
   index_style = C_STYLE;
@@ -227,7 +265,7 @@ bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
   }
   catch(Exception& e)
   {
-    std::cerr << "CFS exception occured within a call from IPOPT:" << std::endl << e.what() << std::endl;
+    std::cerr << "CFS exception occurred within a call from IPOPT:" << std::endl << e.what() << std::endl;
     throw IpoptException(e.what(), __FILE__, __LINE__); 
   }
     
@@ -302,6 +340,50 @@ bool IPOPT::eval_jac_g(Index n, const Number* x, bool new_x,
     for(unsigned int i = 0; i < tmp.GetSize(); i++)
       values[i] = tmp[i];
   }
+  return true;
+}
+
+bool IPOPT::eval_h(Index n, const Number* x, bool new_x,
+                   Number obj_factor, Index m, const Number* lambda,
+                   bool new_lambda, Index nele_hess, Index* iRow,
+                   Index* jCol, Number* values)
+{
+  assert(exact_hessian_); // otherwise IPOPT does its own L-BFGS and never asks
+
+  if(values == NULL)
+  {
+    // the dense lower triangle, matching nnz_h_lag in get_nlp_info()
+    Index index = 0;
+    for(Index i = 0; i < n; i++)
+      for(Index j = 0; j <= i; j++)
+      {
+        iRow[index] = i;
+        jCol[index] = j;
+        index++;
+      }
+    assert(index == nele_hess);
+    return true;
+  }
+
+  // obj_factor * grad^2 f + sum_c lambda_c grad^2 c_c, unscaled as eval_f/eval_g are (IPOPT scales
+  // by itself). Same assembly as the python drivers get via cfs.evalhessian[_constr]
+  Matrix<double> H;
+  if(!base_->CalcObjectiveHessian(n, x, false, H))
+    EXCEPTION("<ipopt hessian='exact'/> but the design gives no exact Hessian - feature mapping with a "
+              << "second order boundary function ('quintic'/'bezier') is required");
+
+  Matrix<double> Hg;
+  if(m > 0)
+    base_->CalcConstraintHessian(n, x, m, lambda, false, Hg);
+
+  Index index = 0;
+  for(Index i = 0; i < n; i++)
+    for(Index j = 0; j <= i; j++)
+      values[index++] = obj_factor * H[i][j] + (m > 0 ? Hg[i][j] : 0.0);
+  assert(index == nele_hess);
+
+  LOG_TRACE2(ipopt) << "eval_h: new_x = " << new_x << " obj_factor = " << obj_factor
+                    << " nele_hess = " << nele_hess << " -> avg = " << Average(values, nele_hess);
   return true;
 }
 

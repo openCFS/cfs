@@ -29,6 +29,12 @@ namespace CoupledField
       iteration->Get("nObj")->SetValue(ipopt_->nObj);
     }
 
+    void ToInfo(PtrParamNode pn) override
+    {
+      BaseOptimizer::ToInfo(pn);
+      ipopt_->ToInfo(pn);
+    }
+
   protected:
 
     void SolveProblem() override

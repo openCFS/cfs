@@ -921,10 +921,16 @@ bool Optimization::DoSolveAdjointWithState() const
 }
 
 
+bool Optimization::ValidateOptimizerTimers() const
+{
+  return baseOptimizer_ == NULL || baseOptimizer_->ValidateTimers();
+}
+
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  assert(baseOptimizer_);
-  assert(baseOptimizer_->ValidateTimers());
+  // baseOptimizer_ is still NULL during the autoscale in an optimizer's constructor, the timer
+  // handling below is prepared for that -> ValidateOptimizerTimers()
+  assert(ValidateOptimizerTimers());
 
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
   shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : shared_ptr<Timer>();
@@ -979,7 +985,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
-  assert(baseOptimizer_->ValidateTimers());
+  assert(ValidateOptimizerTimers()); // the autoscale gradient runs before baseOptimizer_ is set
 
   // solve for objectives and constraints
   // do not solve for observe

@@ -54,6 +54,22 @@ void PythonKernel::Init(PtrParamNode pn, PtrParamNode info)
     if(progOpts->DoDetailedInfo())
       pi->Get("syspath")->SetValue(status.sys_path.ToString(TS_PLAIN, ":"));
 
+    // merge optional <import> files into the kernel namespace via python's own 'from <module> import *'.
+    // This honors __all__ and on name collision the import overwrites the kernel script.
+    for(auto imp : pn->GetList("import"))
+    {
+      string file = imp->Get("file")->As<string>();
+      string path = imp->Has("path") ? imp->Get("path")->As<string>() : "";
+      LoadStatus ls = LoadPythonModule(file, path, false); // resolves cfs:share:python, checks existence, extends sys.path
+      string cmd = "from " + fs::path(file).filename().replace_extension("").string() + " import *";
+      PyObject* dict = PyModule_GetDict(kernel_); // borrowed reference
+      PyObject* res = PyRun_String(cmd.c_str(), Py_file_input, dict, dict);
+      if(!res)
+        throw Exception("cannot execute '" + cmd + "' for '" + ls.full_file + "': " + PyErr());
+      Py_DECREF(res);
+      Py_DECREF(ls.module); // the module stays alive in sys.modules
+      pi->Get("import", ParamNode::APPEND)->Get("file")->SetValue(ls.full_file);
+    }
 
     ParamNodeList lst = pn->GetList("callback");
     for(auto callback : lst) {
@@ -149,9 +165,14 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   // to this end, we construct the absolute path as it might contain cf:share:python
 
   fs::path share = progOpts->GetSchemaPath().parent_path().append("python");  // /home/fwein/code/cfs/share/xml -> share/python
+  // std::filesystem has the cool / overloading for path concatenation :)
+  fs::path embedded = share / "embedded"; // the scripts which are only loaded by cfs, see the README.md there
   fs::path givenname(file); // default
-  if(opt_path != "")
-    givenname = opt_path == "cfs:share:python" ? share / file : fs::path(opt_path) / file;
+  if(opt_path == "cfs:share:python")
+    // embedded/ has priority over share/python, hence a script can be moved there without touching any xml file
+    givenname = fs::exists(embedded / file) ? embedded / file : share / file;
+  else if(opt_path != "")
+    givenname = fs::path(opt_path) / file;
   ls.full_file = givenname.string();
   if(!std::filesystem::exists(givenname))
     throw Exception("cannot find python file '" + givenname.string() + "' for python optimizer");
@@ -162,7 +183,7 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   if(opt_path == "" || opt_path == ".")
     fs_path = fs::current_path();
   else
-    fs_path = opt_path == "cfs:share:python" ? share : fs::path(opt_path);
+    fs_path = opt_path == "cfs:share:python" ? givenname.parent_path() : fs::path(opt_path);
   LOG_DBG(pykernel) << "LPM: fs_path=" << fs_path.string() << " share=" << share.string();
 
   // up to now we did not change anything
@@ -192,8 +213,8 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   LOG_DBG(pykernel) << "LPM: original sysPath=" << ConvertPythonList<string>(sysPath).ToString();
   // insert path
   PyList_Insert(sysPath, 0, PyUnicode_FromString(fs_path.string().c_str()));
-  // add share/python to have the cfs stuff available
-  if(opt_path != "cfs:share:python")
+  // add share/python to have the cfs stuff available - also for the scripts in share/python/embedded
+  if(fs_path != share)
     PyList_Append(sysPath, PyUnicode_FromString(share.string().c_str()));
   LOG_DBG(pykernel) << "LPM: final sysPath=" << ConvertPythonList<string>(sysPath).ToString();
   // return the new sysPath

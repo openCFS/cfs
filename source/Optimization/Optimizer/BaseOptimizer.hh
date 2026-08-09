@@ -95,6 +95,25 @@ namespace CoupledField
      * @param direct_call @see EvalConstraint() */
     int EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call = true);
 
+    /** The exact objective Hessian in optimization variable space: the geometric terms from
+     * DesignSpace::CalcShapeHessian() plus, for a state dependent objective (native compliance), the
+     * dense state-curvature block ErsatzMaterial::CalcStateHessianBlock().
+     * Sets the design to x and evaluates the objective gradient first as the aggregation and feature
+     * terms need dJ/drho_e stored on the design elements.
+     * Used by IPOPT::eval_h() and cfs.evalhessian() (PythonOptimizer::EvalHessian())
+     * @param cfs_scale @see EvalObjective() - affects the stored gradient and hence the terms
+     * @return false if the design provides no exact Hessian */
+    bool CalcObjectiveHessian(int n, const double* x, bool cfs_scale, Matrix<double>& H);
+
+    /** The multiplier contracted constraint Hessian sum_c lambda_c Hess(c_c) in optimization variable
+     * space. Raw, the caller's lambda carries sign and scaling. Local constraints (e.g. the per
+     * feature 'distance' length constraint) contribute sparse via Condition::CalcHessian(), global
+     * ones dense via DesignSpace::CalcShapeHessian() plus the state block if state dependent.
+     * Constraints without an exact Hessian contribute nothing.
+     * Used by IPOPT::eval_h() and cfs.evalhessian_constr() (PythonOptimizer::EvalConstraintHessian())
+     * @param cfs_scale @see CalcObjectiveHessian() */
+    void CalcConstraintHessian(int n, const double* x, int m, const double* lambda, bool cfs_scale, Matrix<double>& H);
+
     /** return the objective value. useful for multi objective */
     double GetObjectiveValue() const { return design_.value; }
 

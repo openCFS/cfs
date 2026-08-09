@@ -11,6 +11,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/ToolsFull.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Optimization/Optimizer/BaseOptimizer.hh"
 
 using std::string;
 using std::to_string;
@@ -1092,7 +1093,11 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scaling) const
   return design_id;
 }
 
-void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
+void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling) {
+  WriteGradientToExternMap(out, vs, access, f, scaling, true);
+}
+
+void ShapeMapDesign::WriteGradientToExternMap(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling, bool map)
 {
   // TODO: Almost same as FeaturedDesign::WriteGradientToExtern()
 
@@ -1103,7 +1108,7 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   // we cannot cache easily for mapped_constr_gradient_ as we would need it for each function.
   // MapShapeGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
-  if(f->IsObjective() || !Function::IsLocal(f->GetType())) // don't map local functions
+  if((f->IsObjective() || !Function::IsLocal(f->GetType())) && map) // don't map local functions
     MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
@@ -2092,45 +2097,129 @@ void ShapeMapDesign::MapFeatureGradient(Function* f)
 
 void ShapeMapDesign::WriteGradientFile()
 {
-  // plot the stuff like this:
-  // plot "shape_map_mech.grad.dat" u 1:6 every ::0::40 w lp, "shape_map_mech.grad.dat" u ($1-41):6 every ::41::82 w lp
-
   if(!gradplot_.is_open())
     return; // obviously the option was not set
-
   // for shape map only the state of a single iteration makes sense, hence we overwrite for every iteration
   gradplot_.seekp(0);
 
-  gradplot_.precision(8);
-  gradplot_.flags(std::ios::scientific);
+  // set format options
+  gradplot_.precision(11);
+  gradplot_.setf(std::ios::scientific);
+  gradplot_.setf(std::ios::left);
 
-  assert(opt->objectives.data.GetSize() == 1);
-  gradplot_ << "# iteration: " << opt->GetCurrentIteration() << std::endl;
-  gradplot_ << "# gnuplot: plot \"" << progOpts->GetSimName() << ".grad.dat\"  u 1:6 every ::0::" << (shape_[0].end_opt-1) << " w lp";
-  gradplot_ << ", \"" + progOpts->GetSimName() << ".grad.dat\"  u ($1-" << shape_[0].end_opt << "):6 every ::"
-      << shape_[0].end_opt << "::" << (2*shape_[0].end_opt) << " w lp" << std::endl;
-  gradplot_ << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt->objectives.data[0]->ToString();
+  // We need to start the timer so the eval functions work, I dont know if this timer makes sense here
+  ConditionContainer& cc = opt->constraints;
+  BaseOptimizer* base = opt->GetOptimizerInstance();
+  base->opt_timer->Start();
 
-  int cnt = 6; // will be preincremented
-  for(unsigned int g = 0; g < opt->constraints.all.GetSize(); g++)
-    if(opt->constraints.all[g]->HasDenseJacobian())
-      gradplot_ << " ("  << std::to_string(++cnt) << ") " + ToValidXML(opt->constraints.all[g]->ToString()) + "\t";
-  gradplot_ << std::endl;
+  // METADATA
+  // get number of global constraints
+  unsigned int n_glob = 0;
+  for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++)
+    if (!cc.view->Get(cid)->IsLocalCondition())
+      n_glob++;
+  gradplot_ << "# === METADATA ===" << std::endl;
+  gradplot_ << std::setw(24) << "# iteration: " << opt->GetCurrentIteration() << std::endl;
+  gradplot_ << std::setw(24) << "# n_vars: " << GetNumberOfVariables() << std::endl;
+  gradplot_ << std::setw(24) << "# n_constraints: " << cc.view->GetNumberOfActiveConstraints() << std::endl;
+  gradplot_ << std::setw(24) << "# n_glob_constraints: " << n_glob << std::endl;
+  gradplot_ << std::setw(24) << "# n_jac_nonzero: " << cc.view->CalcNumberOfJacobianNonZeros() << std::endl;
 
-  Function* c = opt->objectives.data[0];
-  for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
-  {
-    ShapeParamElement* spe = opt_shape_param_[e];
-    ShapeParam* shape = GetShape(spe);
-    gradplot_ << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << shape->idx << " \t";
-    gradplot_ << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + dynamic_cast<ShapeMapVariable*>(opt_shape_param_[e])->sym->GetPlainSymGradient(c)) << " \t";
-
-    for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
-      if(opt->constraints.all[g]->HasDenseJacobian())
-        gradplot_ << spe->constraintGradient[g] << " \t";
-    gradplot_ << std::endl;
+  // VARIABLES
+  //header
+  gradplot_ << std::endl << "# === VARIABLES ===" << std::endl;
+  gradplot_ << std::setw(6) << "# vid "
+    << std::setw(8) << "nr "
+    << std::setw(8) << "type "
+    << std::setw(24) << "design "
+    << std::setw(24) << "lower_bound "
+    << std::setw(24) << "upper_bound "
+    << std::setw(4) << "dof "
+    << std::setw(8) << "shape "
+    << std::setw(4) << "ref" << std::endl;
+  // data
+  for (unsigned int vid = 0; vid < GetNumberOfVariables(); vid++) {
+    BaseDesignElement* bde = GetDesignElement(vid);
+    gradplot_ << std::setw(6) << vid << " "
+      << std::setw(8) << bde->GetIndex() << " "
+      << std::setw(8) << bde->type.ToString(bde->GetType()) << " " 
+      << std::setw(24) << bde->GetPlainDesignValue() << " "
+      << std::setw(24) << bde->GetLowerBound() << " " 
+      << std::setw(24) << bde->GetUpperBound() << " ";
+    // if we have a shape parameter, write addititonal info
+    ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(bde);
+    if (spe == nullptr)
+      gradplot_ << std::setw(4) << -1 << " " 
+        << std::setw(8) << -1 << " " 
+        << std::setw(4) << -1 << std::endl;
+    else
+      gradplot_ << std::setw(4) << spe->dof_ << " " 
+        << std::setw(8) << GetShape(spe)->idx << " " 
+        << std::setw(4) << GetShape(spe)->GetReferenceId() << std::endl;
   }
-  // trust on the destructor to close the file
+
+  // for now, we only support slack, and therefore only print constraints (no objective functions)
+  // if you need non-slack, add === OBJECTIVE_VALUES === here and === OBJECTIVE_GRADIENTS === later
+  assert(aux_design_.GetSize() > 0);
+
+  // FUNCTION VALUES
+  // header
+  gradplot_ << std::endl << "# === CONSTRAINT VALUES ===" << std::endl;
+  gradplot_ << std::setw(6) << "# cid "
+    << std::setw(24) << "type "
+    << std::setw(24) << "value "
+    << std::setw(16) << "bound_type "
+    << std::setw(24) << "bound "
+    << std::setw(16) << "local" << std::endl;
+  // data
+  for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++) {
+    Condition* g = cc.view->Get(cid);
+    assert(g->IsActive());
+
+    // we get the constraint value with this function and not GetValue(),
+    // to get the correct slack constraints g - slack < 0
+    double value = base->EvalConstraint(g, false, false, true);
+
+    gradplot_ << std::setw(6) << cid << " " 
+    << std::setw(24) << g->type.ToString(g->GetType()) << " " 
+    << std::setw(24) << value << " " 
+    << std::setw(16) << g->bound.ToString(g->GetBound()) << " "
+    << std::setw(24) << g->GetBoundValue() << " ";
+    if (g->IsLocalCondition()) {
+      LocalCondition* lg = dynamic_cast<LocalCondition*>(g);
+      gradplot_ << std::setw(16) << lg->GetCurrentPosition() << std::endl;
+    } else
+      gradplot_ << std::setw(16) << -1 << std::endl;
+  }
+
+  // JACOBIAN SPARSE
+  // header
+  gradplot_ << std::endl << "# === JACOBIAN SPARSE ===" << std::endl;
+  gradplot_ << std::setw(6) << "# cid "
+    << std::setw(6) << "vid "
+    << std::setw(24) << "gradient" << std::endl;
+  // data
+  for (int cid = 0; cid < cc.view->GetNumberOfActiveConstraints(); cid++) {
+    Condition* g = cc.view->Get(cid);
+    StdVector<unsigned int>& pattern = g->GetSparsityPattern();
+    StdVector<double> grad(pattern.GetSize());
+    grad.window.Set(grad);
+    if (g->HasDenseJacobian())
+      // we get the dense gradients directly
+      // mapping has to be turned off, otherwise we add to the precomputed gradient a second time
+      WriteGradientToExternMap(grad, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g, true, false);
+    else {
+      // local constraint gradients are not stored, we need to recompute
+      opt->CalcConstraintGradient(g, &grad);
+    }
+    for (size_t i = 0; i < pattern.GetSize(); i++) {
+      unsigned int vid = pattern[i];
+      gradplot_ << std::setw(6) << cid << " " 
+        << std::setw(6) << vid << " " 
+        << std::setw(24) << grad[i] << std::endl;
+    }
+  }
+  base->opt_timer->Stop();
 }
 
 
@@ -2158,7 +2247,7 @@ void ShapeMapDesign::ExportLevelSet() const
   for(unsigned int i = 0; i <= ny_; i++)
     out << i << " ";
   out << "\nZ_COORDINATES 1 int\n0\n\n";
-  out << "POINT_DATA " << ((nx_+1) * (ny_+1) * 1) << "\n";
+  out << "POINT_DATA " << ((nx_+1) * (ny_+1) * 1) << std::endl;
   out << "SCALARS lsf_0 float 1\n";
   out << "LOOKUP_TABLE default\n";
   // first shot simply takes the density, cooler options are nodes and Gaussian points
@@ -2923,6 +3012,8 @@ void ShapeMapDesign::ShapeParam::ParseSymmetry(ShapeParam* target, const PtrPara
   target->y_sym = pn->Get("bottom_up_sym")->As<string>() != "none";
   target->z_sym = pn->Has("front_back_sym") ? pn->Get("front_back_sym")->As<string>() != "none" : false;
   target->diag  = pn->Get("diagonal_sym")->As<string>() != "none";
+  // the default symmetry plane is 0.5 (set in XSD), so symmetry works on unity square 1 x 1 per default
+  target->sym_plane = pn->Get("sym_plane")->As<double>();
 }
 
 void ShapeMapDesign::ShapeParam::ParseBounds(ShapeParam* target, const PtrParamNode& pn)
@@ -2977,6 +3068,7 @@ void ShapeMapDesign::ShapeParam::CopyBaseCenterProperties(ShapeParam* base)
   y_sym = base->y_sym;
   z_sym = base->z_sym;
   diag = base->diag;
+  sym_plane = base->sym_plane;
 }
 
 void ShapeMapDesign::ShapeParam::FlipOrientation(int center_node)
@@ -3075,7 +3167,6 @@ void ShapeMapDesign::ShapeParam::CopyProperties(const ShapeParam* ref, bool copy
   upper = ref->upper;
   value = ref->value;
   clamp = ref->clamp;
-  max   = ref->max;
   fixed = ref->fixed;
   if(!copy_master_data) // don't make the slave a master
     slave = ref->slave;
@@ -3083,6 +3174,7 @@ void ShapeMapDesign::ShapeParam::CopyProperties(const ShapeParam* ref, bool copy
   y_sym = ref->y_sym;
   z_sym = ref->z_sym;
   diag  = ref->diag;
+  sym_plane = ref->sym_plane;
 }
 
 bool ShapeMapDesign::ShapeParam::ShallInduceMirrorSymmetry() const
@@ -3345,7 +3437,7 @@ inline void ShapeMapDesign::ElementSymmetry::ApplyDesign()
   {
     Virtual& vir = hidden[i];
     assert(!(vir.reciprocal && vir.elem->GetType() != DesignElement::NODE));
-    double val = vir.reciprocal ? (vir.shape->max - base->GetPlainDesignValue()) : base->GetPlainDesignValue();
+    double val = vir.reciprocal ? (2 * vir.shape->sym_plane - base->GetPlainDesignValue()) : base->GetPlainDesignValue();
     vir.elem->SetDesign(val);
     LOG_DBG2(SMD) << "ES:AD base=" << base->GetIndex() << "/" << base->dof_ << " vir=" << vir.elem->GetIndex() << "/" << vir.elem->dof_
         << " r=" << vir.reciprocal << " t=" << vir.elem->GetType() << " o=" << base->GetPlainDesignValue() << " -> " << val;

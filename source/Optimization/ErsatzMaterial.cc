@@ -54,6 +54,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/FeatureMappingDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
@@ -1780,7 +1781,12 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   // only for physical
   // TODO: assumes a single transfer function for all regions!
   // TODO: App::MECH is stupid when we do App::LBM
-  TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
+  // a 'field' function (feature mapping field="plainAlphaDensity") integrates a derived per-element value
+  // instead of the design: v_e is already the constraint quantity combine(alpha_f * rho_f), there is
+  // no physical mapping for it. The elements are the ordinary design elements, they carry the volumes
+  int field_idx = f->GetField().empty() ? -1 : design->GetImplicitResultIndex(f->GetField());
+  assert(f->GetField().empty() || field_idx >= 0); // checked in Function::CheckField()
+  TransferFunction* tf = f->IsPhysical() && field_idx < 0 ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
   bool regular = design->IsRegular();
   // FIXME: Careful: This is not always the number of elements in the grid!
   // e.g. for FMO it is number of design tensor entries times the number of elements in the grid
@@ -1817,7 +1823,7 @@ double ErsatzMaterial::CalcTrivialVolume(Function* f, bool derivative, bool norm
   {
     DesignElement* de = f->elements[i];
 
-    double val = de->GetDesign(f, tf); // PLAIN, FILTERED or PHYSICAL
+    double val = field_idx >= 0 ? de->specialResult[field_idx] : de->GetDesign(f, tf); // PLAIN, FILTERED or PHYSICAL
     double vol = (regular ? 1.0 : de->CalcVolume())/total_vol;
     sum += vol * val;
     if(derivative)
@@ -4106,9 +4112,174 @@ void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
   }
 }
 
+void ErsatzMaterial::CalcDkDrhoTimesState(Function* f, const Vector<double>& w, Vector<double>& out, Excitation* ex)
+{
+  // the density-directional derivative of the stiffness operator applied to the current state:
+  //   out = sum_e w_e (dK_e/drho_e) u_e
+  // This is the pseudo load of the state derivative K du/ds_i = -b_i for w = drho/ds_i and the
+  // building block of the exact state-curvature Hessian block 2 b_i^T z_j of self-adjoint
+  // functions (see CalcStateHessianBlock() and hessian_scipy.py). The element part mirrors
+  // CalcU1KU2() (dK_e/drho_e via SetElementK incl. the transfer function chain), the scatter into
+  // the algebraic vector mirrors StressConstraint::CalcElemAdjointRHS() (elem_eqn_idx).
+  assert(f != NULL);
+  if(ex == nullptr)
+  {
+    // the python api (cfs.apply_dk_drho) has no excitation argument - multiload goes via
+    // CalcStateHessianBlock() which passes the excitation explicitly
+    if(me->excitations.GetSize() != 1)
+      throw Exception("CalcDkDrhoTimesState needs an explicit excitation for multiple excitations");
+    ex = &me->excitations[0];
+  }
+  ex->Apply(true);
+
+  TransferFunction* tf = design->GetTransferFunction(f->GetDesignType(), App::MECH, true);
+  StdVector<SingleVector*>& u_elem = forward.Get(ex)->elem[App::MECH];
+
+  int elements = design->GetNumberOfElements();
+  if((int) w.GetSize() != elements)
+    throw Exception("CalcDkDrhoTimesState: weight vector size " + std::to_string(w.GetSize())
+                    + " does not match the " + std::to_string(elements) + " design elements");
+  assert(u_elem.GetSize() == (unsigned int) elements);
+
+  // algebraic system size like the raw forward solution
+  out.Resize(forward.Get(ex)->GetRealVector(StateSolution::RAW_VECTOR).GetSize());
+  out.Init();
+
+  Matrix<double> mat;
+  Vector<double> mat_vec;
+
+  // single region assumed (as the single excitation above) - extend on demand
+  ElementAccess ea(context->pde->GetAssemble()->GetBiLinForm(context->mat->stiff.integrator, design->data[0].elem->regionId));
+
+  for(int e = 0; e < elements; e++)
+  {
+    if(w[e] == 0.0)
+      continue; // sparse: e.g. for feature mapping only the transition zone contributes
+
+    DesignElement* de = &design->data[e];
+    Vector<double>& u_e = dynamic_cast<Vector<double>& >(*u_elem[e]);
+
+    if(mat.GetNumRows() != u_e.GetSize()) {
+      mat.Resize(u_e.GetSize(), u_e.GetSize()); // SetElementK() relies on the proper size
+      mat_vec.Resize(u_e.GetSize());
+    }
+
+    SetElementK(f, de, tf, App::MECH, dynamic_cast<DenseMatrix*>(&mat), true); // derivative
+
+    mat_vec = mat * u_e;
+
+    ea.SetElem(de->elem);
+    assert(ea.elem_eqn_idx.GetSize() == mat_vec.GetSize());
+    for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
+      if(ea.elem_eqn_idx[n] >= 0) // < 0 is HDBC or constrained
+        out[ea.elem_eqn_idx[n]] += w[e] * mat_vec[n];
+  }
+}
+
+void ErsatzMaterial::SolveStateWithRHS(Function* f, const Vector<double>& rhs, Vector<double>& out, Excitation* ex)
+{
+  // solve K z = rhs with the current state system: same matrix (the direct solver reuses its
+  // factorization), homogeneous Dirichlet bounds via the IDBC->HDBC swap of
+  // PrepareAdjointSystem() - the semantics of a state derivative or adjoint. Mirrors the
+  // custom-rhs LOCAL_STRESS case of SolveAdjointProblem().
+  assert(f != NULL);
+  if(ex == nullptr)
+  {
+    // see CalcDkDrhoTimesState() on the NULL default
+    if(me->excitations.GetSize() != 1)
+      throw Exception("SolveStateWithRHS needs an explicit excitation for multiple excitations");
+    ex = &me->excitations[0];
+  }
+  ex->Apply(true);
+
+  SystemState state = PrepareAdjointSystem(*ex, f, true); // custom rhs, see below
+
+  shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
+  fe->GetSystem()->InitRHS(fe->GetFctId());
+  fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
+  context->pde->GetAssemble()->GetAlgSys()->Solve();
+
+  out.Resize(rhs.GetSize());
+  fe->GetSystem()->GetSolutionVal(out, fe->GetFctId(), false); // homogeneous Dirichlet -> no idbc
+
+  RestoreStateSystem(state);
+
+  // write the forward solution back such that subsequent evaluations and commits see the state
+  forward.Get(ex)->Write(context->pde);
+}
+
+void ErsatzMaterial::CalcStateHessianBlock(Function* f, Matrix<double>& H)
+{
+  // the dense state-curvature block of the exact Hessian of a self-adjoint function: for the
+  // weighted sum J = sum_l w_l u_l^T f_l (multiload) it is sum_l 2 w_l B_l^T K^-1 B_l with the
+  // pseudo loads (B_l)_i = sum_e D_ei (dK_e/drho_e) u_e^l - the load cases decouple, there are no
+  // cross terms. Excitation filter and weight mirror the gradient
+  // (Optimization::CalcObjectiveGradient()/CalcConstraintGradient() with GetWeightedFactor() in
+  // CalcCompliance()), so the block is consistent with what evalgradobj returns.
+  assert(f != NULL);
+  if(f->GetType() != Function::COMPLIANCE)
+    throw Exception("the state-curvature Hessian block is only implemented for the self-adjoint 'compliance'");
+
+  FeatureMappingDesign* fmd = dynamic_cast<FeatureMappingDesign*>(design);
+  if(fmd == nullptr)
+    throw Exception("the state-curvature Hessian block requires a feature mapping design");
+
+  Matrix<double> D; // the shape Jacobian d_mrho/d_s in optimization variable space
+  fmd->CalcShapeJacobianOptSpace(D);
+  unsigned int n = D.GetNumCols();
+  unsigned int elements = D.GetNumRows();
+
+  H.Resize(n, n);
+  H.Init();
+
+  Vector<double> w(elements);
+  StdVector<Vector<double> > B(n);
+  Vector<double> z;
+
+  for(unsigned int idx = 0; idx < f->ctxt->excitations.GetSize(); idx++)
+  {
+    Excitation* ex = f->ctxt->excitations[idx];
+    if(!f->DoEvaluate(ex))
+      continue;
+    double weight = ex->GetWeightedFactor(f);
+    if(weight == 0.0)
+      continue;
+
+    // per-excitation pseudo loads b_i from this excitation's state, then n back-substitutions
+    // against its factorized system; cost n solves per excitation, no new FE systems
+    for(unsigned int i = 0; i < n; i++)
+    {
+      for(unsigned int e = 0; e < elements; e++)
+        w[e] = D[e][i];
+      CalcDkDrhoTimesState(f, w, B[i], ex);
+    }
+    for(unsigned int j = 0; j < n; j++)
+    {
+      SolveStateWithRHS(f, B[j], z, ex);
+      for(unsigned int i = 0; i < n; i++)
+      {
+        double bz = 0.0;
+        B[i].Inner(z, bz);
+        H[i][j] += 2.0 * weight * bz;
+      }
+    }
+  }
+
+  // b_i^T z_j = z_i^T K z_j is symmetric, clean up solver round-off
+  for(unsigned int i = 0; i < n; i++)
+  {
+    for(unsigned int j = i + 1; j < n; j++)
+    {
+      double avg = 0.5 * (H[i][j] + H[j][i]);
+      H[i][j] = avg;
+      H[j][i] = avg;
+    }
+  }
+}
+
 void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& excite, Function* f, int timestep_mode_local, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment)
 {
-  assert(baseOptimizer_->ValidateTimers());
+  assert(ValidateOptimizerTimers()); // the autoscale evaluation runs before baseOptimizer_ is set
   assert(context->pde != NULL);
   assert(context->sequence == excite.sequence);
   assert(f == NULL || f != NULL); // f is NULL for forward problem
@@ -4448,7 +4619,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     eval_timer->Start();
 }
 
-ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& excite, Function* f)
+ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& excite, Function* f, bool custom_rhs)
 {
   assert(context->sequence == excite.sequence);
   assert(f->ctxt == context);
@@ -4486,7 +4657,8 @@ ErsatzMaterial::SystemState ErsatzMaterial::PrepareAdjointSystem(Excitation& exc
 
   // set the adjoint rhs, ignored for LOCAL_STRESS and LOCAL_BUCKLING_LOAD_FACTOR
   // (for these done explicitly in ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f))
-  if(f->GetType() != Function::LOCAL_STRESS && f->GetType() != Function::LOCAL_BUCKLING_LOAD_FACTOR)
+  // and when the caller provides the rhs itself (SolveStateWithRHS())
+  if(!custom_rhs && f->GetType() != Function::LOCAL_STRESS && f->GetType() != Function::LOCAL_BUCKLING_LOAD_FACTOR)
     ConstructAdjointRHS(excite, f);
 
   assert(context->GetDriver()->GetAnalysisId().adjoint == false);

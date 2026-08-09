@@ -14,9 +14,9 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
                 Designs from SIMP Density Fields; 2026 (to be submitted :))</references>
     <isVerified>no</isVerified>
     <description>
-      Solve tracking problem which python density tracking funcion of bar_10.density.xml reference.
-      FE is disabled. We use ipopt with manually tuned options. snopt is faster and als dumas_gcmma (for a larger mesh).
-      Mesh is bulk2d_10 (create_mesh.py --type bulk2d --res 10 --file python_tracking.mesh).
+      Solve tracking problem which python density tracking function of bar_10.density.xml reference.
+      FE is disabled. We test for a single pill only to increase stability
+      Mesh is bulk2d_10 (create_mesh.py --type bulk2d --res 10).
     </description>
   </documentation>
 
@@ -89,6 +89,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
   <optimization>
     <!-- design tracking objective implemented in share/python/tracking.py -->
     <costFunction type="python" task="minimize">
+      <stopping type="designChange" queue="2" value="0.001"/>
       <python name="track" init="track_init" eval="track_eval" grad="track_grad" script="kernel">
         <!-- the bar shaped target field rho* the features shall reproduce -->
         <option key="target" value="bar_10.density.xml"/>
@@ -97,48 +98,35 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
 
     <!-- has internally local constraints for each feature but the logging is the local constraint aggregation -->
     <constraint type="distance" design="node" bound="lowerBound" value="0.05"/>
-    <constraint type="distance" design="node" bound="upperBound" value="0.8"/>
+    <!-- too short for a single bar, hence final location in the center -->
+    <constraint type="distance" design="node" bound="upperBound" value="0.7"/>
 
-    <!-- snopt is faster, also dumas_gcmma is good (for a larger mesh). The ipopt options are hand-tuned for
-      fast test. Works also with defaults. -->
-    <optimizer type="ipopt" maxIterations="50">
-      <ipopt>
-        <option name="tol" type="real" value="1e-3"/>
-        <option name="limited_memory_max_history" type="integer" value="20"/>
-        <option name="mu_strategy" type="string" value="monotone"/>
-        <option name="mu_init" type="real" value="0.01"/>
-        <option name="acceptable_tol" type="real" value="10"/>
-        <option name="acceptable_compl_inf_tol" type="real" value="10"/>
-        <option name="acceptable_obj_change_tol" type="real" value="1e-2"/>
-        <option name="acceptable_iter" type="integer" value="3"/>
-      </ipopt>
-      <snopt>
-        <option type="integer" name="verify_level" value="3" />
-      </snopt>
-    </optimizer>
+    <optimizer type="dumas_gcmma" maxIterations="20"/>
 
     <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
       <featureMapping transition=".1" boundary="poly" order="5" combine="p-norm" p="3">
         <pill>
-          <node dof="x" initial="0.1"  upper="1" lower="0" tip="start"/>
-          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
-          <node dof="x" initial="0.3" upper="1" lower="0" tip="end"/>
-          <node dof="y" initial="0.8" upper="1" lower="0" tip="end"/>
+          <node dof="x" initial="0.11"  upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.31" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.31" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.79" upper="1" lower="0" tip="end"/>
           <profile initial="0.05" lower="0.02" upper="0.4"/>
         </pill>
-        <pill>
+        <!-- a single pill is more stable -->
+        <!-- <pill>
           <node dof="x" initial="0.8" upper="1" lower="0" tip="start"/>
           <node dof="y" initial="0.3" upper="1" lower="0" tip="start"/>
           <node dof="x" initial="0.7"  upper="1" lower="0" tip="end"/>
           <node dof="y" initial="0.9" upper="1" lower="0" tip="end"/>
           <profile initial="0.05" lower="0.02" upper="0.4"/>
-        </pill>
+        </pill> -->
       </featureMapping>
       <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
 
       <transferFunction type="identity" application="mech"/>
-      <export save="last" write="iteration"/>
+      <export save="all" write="iteration"/>
     </ersatzMaterial>
-    <commit mode="forward" stride="1"/>
+    <!-- compare final h5ref only -->
+    <commit mode="forward" stride="99"/>
   </optimization>
 </cfsSimulation>

@@ -93,10 +93,11 @@ public:
                  NODE, PROFILE, // shape mapping and spaghetti
                  NORMAL, RADIUS, // spaghetti height and radius
                  CP,            // spline box control point
-                 FEATURE_MAPPING_PX, FEATURE_MAPPING_PY, FEATURE_MAPPING_QX, FEATURE_MAPPING_QY, FEATURE_MAPPING_P, 
+                 FEATURE_MAPPING_PX, FEATURE_MAPPING_PY, FEATURE_MAPPING_QX, FEATURE_MAPPING_QY, FEATURE_MAPPING_P,
                  FEATURE_MAPPING_PZ, FEATURE_MAPPING_QZ, // special case for 3D
+                 FEATURE_MAPPING_ALPHA, // geometry variable scaling the feature density (Norato's size variable)
                  ALL_FEATURES,   // have this after feature mapping variables to have them >= FEATURE_MAPPING_PX and < ALL_FEATURES
-                 FEATURE, 
+                 FEATURE,
                  ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
   /** This defines how to access variables (design, objective_gradient, ...),
@@ -194,6 +195,9 @@ public:
 
   /** Set the upper bound of the design variable */
   void SetUpperBound(const double v) { upper_ = v; }
+
+  /** Set the index of the design variable */
+  void SetIndex(const unsigned int i) {index_ = i; }
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints)

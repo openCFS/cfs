@@ -104,7 +104,9 @@ public:
    * The interpreter got it's cfs_modules (functions to be called from python) when initializing the interpreter.
    * We insert path first to  sys.path and append share/python at the end.
    * @param file the python module to be loaded (python file with extension). Can include a full path if attribute path is empty
-   * @param path optional path (leave empty if not given, this implicitly loads the cwd). "cfs:share:python" is a special key which uses ProgramOption->GetSchemaPath() + "../python" 
+   * @param path optional path (leave empty if not given, this implicitly loads the cwd). "cfs:share:python" is a special
+   * key which uses ProgramOption->GetSchemaPath() + "../python". There the subdirectory embedded/ (scripts only loaded
+   * by cfs) is searched first, then share/python itself (the libraries and the dual use scripts). See share/python/embedded/README.md
    * @param preload_numpy import numpy as np before modifying sys.path - prevents segfaults for some tests with Python 3.12*/
   LoadStatus LoadPythonModule(const std::string& file, std::string path = "", bool preload_numpy = true);
 

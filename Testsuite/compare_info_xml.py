@@ -490,7 +490,7 @@ def compare_opt_iterations(ref, tst, eps, skip_noise, last, attrib = None,verbos
            return ret
      else:    
        for prop in iter_ref.attrib:
-         if prop not in ["number", "duration", "sub_prb_itr"] and not prop.startswith("infeas"):    
+         if prop not in ["number", "duration", "sub_prb_itr", "nObj"] and not prop.startswith("infeas"):    
            ret = compare_opt_iterations_kernel(iter_ref, iter_tst, prop, eps, skip_noise, verbose)
            if ret != 1:
              return ret

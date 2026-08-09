@@ -170,10 +170,10 @@ def make_mesh(name, Nx, W_in, W_out, W_ch, W_abh, L_in, L_out, L_abh, t_pml: flo
             mesh.elements.append(e)
             last_top_i = i
 
-    mesh.bc.append(('L_in', Ls_in))
-    mesh.bc.append(("L_out", Ls_out))
-    mesh.bc.append(('L_axi', Ls_axi))
-    mesh.bc.append(("L_top", Ls_top))
+    mesh.bc["L_in"] = Ls_in
+    mesh.bc["L_out"] = Ls_out
+    mesh.bc["L_axi"] = Ls_axi
+    mesh.bc["L_top"] = Ls_top
 
     mesh_tool.write_ansys_mesh(mesh, name)
 

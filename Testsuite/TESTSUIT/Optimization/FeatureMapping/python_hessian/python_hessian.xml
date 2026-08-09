@@ -15,7 +15,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     <isVerified>no</isVerified>
     <description>
       Second-order variant of python_reward. For the test scipy.optimizate trust-region is used via
-      share/python/hessian_scipy.py. For real use, switch to hessian_ipopt.py based on cyipopt.
+      share/python/embedded/hessian_scipy.py. For real use, switch to the native Hessian IPOPT
+      (see hessian_compliance) or to hessian_ipopt.py based on cyipopt.
     </description>
   </documentation>
 
@@ -96,7 +97,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     <!-- second-order python optimizer (scipy trust-constr with the exact Lagrangian Hessian via
          cfs.evalhessian + cfs.evalhessian_constr); set fd_check="true" to verify the analytic gradient
          and Hessian against finite differences (developer tool, off in the testsuite).
-         scipy trust-constr is only the testsuite vehicle (cyipopt is not on the runners); in practice use ipopt_hession.py -->
+         scipy trust-constr is only the testsuite vehicle (cyipopt is not on the runners); in practice use
+         the native Hessian IPOPT (see hessian_compliance) or hessian_ipopt.py -->
     <optimizer type="python" maxIterations="100">
       <!-- <python file="hessian_ipopt.py" path="cfs:share:python"> -->
       <python file="hessian_scipy.py" path="cfs:share:python">

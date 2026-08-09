@@ -12,3 +12,5 @@ build/
 Testing/
 .vscode
 *.DS_Store
+.cache
+.claude

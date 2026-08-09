@@ -73,6 +73,12 @@ bool Function::CalcCurvaturePython(Vector<double>& diag)
 }
 
 
+bool Function::CalcShapeHessianPython(Matrix<double>& full)
+{
+  return false;
+}
+
+
 double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivative)
 {
   assert(false);

@@ -15,6 +15,7 @@
 #include "Optimization/Optimizer/PythonOptimizer.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/FeatureMappingDesign.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/PythonKernel.hh"
 #include "Utils/ToolsFull.hh"
@@ -242,21 +243,17 @@ void PythonOptimizer::EvalHessian(PyObject *args)
 {
   PyObject *xobj = nullptr, *hobj = nullptr;
   if(!PyArg_ParseTuple(args, "O!O!", &PyArray_Type, &xobj, &PyArray_Type, &hobj))
-    throw("cfs.evalhessian(x, H) expects a 1D design array and a 2D Hessian array");
+    throw Exception("cfs.evalhessian(x, H) expects a 1D design array and a 2D Hessian array");
 
   Vector<double> x(xobj, false); // 1D design, borrowed
   assert(x.GetSize() == n);
 
-  // set the design to x and evaluate the objective gradient first: the aggregation and feature
-  // Hessian terms need d_obj/d_rho_e, which is stored on the design elements by this call
-  StdVector<double> grad(n);
-  BaseOptimizer::EvalGradObjective(n, x.GetPointer(), true, grad);
-
-  Optimization* optim = domain->GetOptimization();
-  Function* obj = optim->objectives.data[0];
+  // the complete exact Hessian - geometric terms plus, for a state dependent objective (native
+  // compliance), the dense state-curvature block. Shared with IPOPT::eval_h(), see
+  // BaseOptimizer::CalcObjectiveHessian(). No python observation wrapper (observed_objective.py) needed
   Matrix<double> H;
-  if(!optim->GetDesign()->CalcShapeHessian(obj, H))
-    throw("cfs.evalhessian: no exact shape Hessian available (needs feature mapping with a 'curvature' objective)");
+  if(!BaseOptimizer::CalcObjectiveHessian(n, x.GetPointer(), true, H))
+    throw Exception("cfs.evalhessian: no exact shape Hessian available (needs feature mapping with a 'curvature' objective)");
 
   // fill the python-provided 2D array; MatrixToNumpyArray works from any TU now (shared numpy table)
   PythonKernel::MatrixToNumpyArray(H, hobj);
@@ -297,7 +294,7 @@ void PythonOptimizer::EvalGradConstraints(PyObject *args)
   grad.Export(obj[1]);
 }
 
-int PythonOptimizer::GetNumberOfJacobianNonZeros()
+unsigned int PythonOptimizer::GetNumberOfJacobianNonZeros()
 {
   return optimization->constraints.view->CalcNumberOfJacobianNonZeros();
 }
@@ -311,7 +308,7 @@ void PythonOptimizer::GetConstraintSparsity(PyObject *args)
   Vector<double>& cols = data[1];
 
   assert(rows.GetSize() == cols.GetSize());
-  assert(rows.GetSize() == optimization->constraints.view->CalcNumberOfJacobianNonZeros());
+  assert(rows.GetSize() == GetNumberOfJacobianNonZeros());
 
   // (constraint, design variable) index pairs in packed order; same order as the values below.
   // doubles here, the python side casts them to int for the scipy.sparse matrix.
@@ -354,34 +351,16 @@ void PythonOptimizer::EvalConstraintHessian(PyObject *args)
 {
   PyObject *xobj = nullptr, *vobj = nullptr, *hobj = nullptr;
   if(!PyArg_ParseTuple(args, "O!O!O!", &PyArray_Type, &xobj, &PyArray_Type, &vobj, &PyArray_Type, &hobj))
-    throw("cfs.evalhessian_constr(x, v, H) expects a 1D design x, a 1D multiplier v (size m) and a 2D n x n H");
+    throw Exception("cfs.evalhessian_constr(x, v, H) expects a 1D design x, a 1D multiplier v (size m) and a 2D n x n H");
 
   Vector<double> x(xobj, false); // borrowed
   Vector<double> v(vobj, false);
   assert(x.GetSize() == n && (int) v.GetSize() == m);
 
-  // set the design; the element values suffice for the geometric per-constraint Hessian
-  optimization->GetDesign()->ReadDesignFromExtern(x.GetPointer());
-
-  Matrix<double> H(n, n);
-  H.Init();
-
-  // sum_c v_c * Hess(c_c) via the generic per-constraint Hessian interface (raw, scipy's v carries
-  // the bound sign). Constraints without an exact Hessian contribute nothing.
-  ConditionContainer::VirtualView* view = optimization->constraints.view;
-  StdVector<double> out;
-  for(int c = 0; c < m; c++)
-  {
-    Condition* g = view->Get(c);
-    Matrix<unsigned int>& hp = g->GetHessianSparsityPattern();
-    if(hp.GetNumRows() == 0)
-      continue;
-    out.Resize(hp.GetNumRows());
-    g->CalcHessian(out, 1.0);
-    for(unsigned int k = 0; k < hp.GetNumRows(); k++)
-      H[hp(k, 0)][hp(k, 1)] += v[c] * out[k];
-  }
-  view->Done(); // reset a potential slope constraint to global mode, like EvalGradConstraints()
+  // sum_c v_c * Hess(c_c), raw as scipy's v carries the bound sign. Shared with IPOPT::eval_h(),
+  // see BaseOptimizer::CalcConstraintHessian()
+  Matrix<double> H;
+  BaseOptimizer::CalcConstraintHessian(n, x.GetPointer(), m, v.GetPointer(), true, H);
 
   PythonKernel::MatrixToNumpyArray(H, hobj);
 }
@@ -592,7 +571,7 @@ PyObject* PythonOptimizer::GetDims(PyObject* args)
 /** number of design variables */
 PyObject* PythonOptimizer::GetNumDesign(PyObject* args)
 {
-  return PyLong_FromLong(domain->GetOptimization()->GetDesign()->data.GetSize());
+  return PyLong_FromLong(domain->GetOptimization()->GetDesign()->GetNumberOfPseudoDensities());
 }
 
 
@@ -640,7 +619,7 @@ PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 
   if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
-    throw("arguments for opt_get_design_value() are 0-based index and optionally access");
+    throw Exception("arguments for opt_get_design_value() are 0-based index and optionally access");
 
   unsigned int idx = PyLong_AsLong(PyTuple_GetItem(args,0));
 
@@ -661,7 +640,7 @@ PyObject* PythonOptimizer::GetDesignValues(PyObject* args)
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 
   if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
-    throw("arguments for opt_get_design_values() are numpy-return, access (optional)");
+    throw Exception("arguments for opt_get_design_values() are numpy-return, access (optional)");
 
   Function::Access ac = PyTuple_Size(args) == 2 ? ParseAccess(PyTuple_GetItem(args,1)) : Function::PLAIN;
 
@@ -682,17 +661,127 @@ PyObject* PythonOptimizer::GetPseudoDensity(PyObject* args)
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 
   if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
-    throw("arguments for get_pseudo_density() are numpy-return, access (optional)");
+    throw Exception("arguments for get_pseudo_density() are numpy-return, access (optional)");
 
   Function::Access ac = PyTuple_Size(args) == 2 ? ParseAccess(PyTuple_GetItem(args,1)) : Function::PLAIN;
 
   // DesignSpace::data is the element pseudo density, for feature mapping the aggregated mrho_e
-  Vector<double> py(space->data.GetSize());
-  for(unsigned int i = 0, n = space->data.GetSize(); i < n; i++)
+  Vector<double> py(space->GetNumberOfPseudoDensities());
+  for(unsigned int i = 0, n = space->GetNumberOfPseudoDensities(); i < n; i++)
     py[i] = GetDesign(&space->data[i], ac);
 
   py.Export(PyTuple_GetItem(args,0)); // borrowed reference
 
+  Py_RETURN_NONE;
+}
+
+PyObject* PythonOptimizer::EvalFunctionByName(PyObject* args)
+{
+  char* ns = nullptr;
+  if(!PyArg_ParseTuple(args, "s", &ns))
+    throw Exception("cfs.eval_function(name) expects the function name");
+
+  Optimization* opt = domain->GetOptimization();
+  Condition* g = dynamic_cast<Condition*>(opt->GetFunction(string(ns)));
+  if(g == nullptr)
+    throw Exception("cfs.eval_function: '" + string(ns) + "' is no constraint or observation");
+
+  return PyFloat_FromDouble(opt->CalcConstraint(g));
+}
+
+PyObject* PythonOptimizer::EvalFunctionGradientByName(PyObject* args)
+{
+  char* ns = nullptr;
+  PyObject* arr = nullptr;
+  if(!PyArg_ParseTuple(args, "sO", &ns, &arr))
+    throw Exception("cfs.eval_function_gradient(name, arr) expects the function name and a 1D numpy array");
+
+  Optimization* opt = domain->GetOptimization();
+  Condition* g = dynamic_cast<Condition*>(opt->GetFunction(string(ns)));
+  if(g == nullptr)
+    throw Exception("cfs.eval_function_gradient: '" + string(ns) + "' is no constraint or observation");
+  if(g->IsObservation() && !g->HasObserveGradient())
+    throw Exception("cfs.eval_function_gradient: give the observation '" + string(ns) + "' the attribute observeGradient='true'");
+
+  DesignSpace* space = opt->GetDesign();
+
+  // the gradient slots accumulate (AddGradient), so clear ours before the fresh computation
+  for(unsigned int e = 0, n = space->data.GetSize(); e < n; e++)
+    space->data[e].Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+
+  opt->CalcConstraintGradient(g);
+
+  Vector<double> py(space->GetNumberOfPseudoDensities());
+  for(unsigned int e = 0, n = space->GetNumberOfPseudoDensities(); e < n; e++)
+    py[e] = space->data[e].GetPlainGradient(g);
+  py.Export(arr); // borrowed reference
+
+  Py_RETURN_NONE;
+}
+
+PyObject* PythonOptimizer::IsFunctionStateDependent(PyObject* args)
+{
+  char* ns = nullptr;
+  if(!PyArg_ParseTuple(args, "s", &ns))
+    throw Exception("cfs.is_function_state_dependent(name) expects the function name");
+
+  Function* f = domain->GetOptimization()->GetFunction(string(ns)); // throws on unknown name
+  return PyBool_FromLong(f->IsStateDependent() ? 1 : 0);
+}
+
+PyObject* PythonOptimizer::GetShapeJacobian(PyObject* args)
+{
+  PyObject* arr = nullptr;
+  if(!PyArg_ParseTuple(args, "O", &arr))
+    throw Exception("cfs.get_shape_jacobian(D) expects a 2D numpy array (elements x n)");
+
+  FeatureMappingDesign* fmd = dynamic_cast<FeatureMappingDesign*>(domain->GetOptimization()->GetDesign());
+  if(fmd == nullptr)
+    throw Exception("cfs.get_shape_jacobian requires a feature mapping design");
+
+  Matrix<double> D;
+  fmd->CalcShapeJacobianOptSpace(D);
+  PythonKernel::MatrixToNumpyArray(D, arr);
+  Py_RETURN_NONE;
+}
+
+PyObject* PythonOptimizer::ApplyDkDrho(PyObject* args)
+{
+  char* ns = nullptr;
+  PyObject *wobj = nullptr, *bobj = nullptr;
+  if(!PyArg_ParseTuple(args, "sOO", &ns, &wobj, &bobj))
+    throw Exception("cfs.apply_dk_drho(name, w, b) expects the function name, 1D weights (elements) and the 1D result (algebraic size)");
+
+  Optimization* opt = domain->GetOptimization();
+  Function* f = opt->GetFunction(string(ns)); // throws on unknown name
+  ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
+  if(em == nullptr)
+    throw Exception("cfs.apply_dk_drho requires an ersatz material optimization");
+
+  Vector<double> w(wobj, false); // borrowed
+  Vector<double> b;
+  em->CalcDkDrhoTimesState(f, w, b);
+  b.Export(bobj);
+  Py_RETURN_NONE;
+}
+
+PyObject* PythonOptimizer::SolveState(PyObject* args)
+{
+  char* ns = nullptr;
+  PyObject *robj = nullptr, *zobj = nullptr;
+  if(!PyArg_ParseTuple(args, "sOO", &ns, &robj, &zobj))
+    throw Exception("cfs.solve_state(name, rhs, z) expects the function name and two 1D arrays of the algebraic size");
+
+  Optimization* opt = domain->GetOptimization();
+  Function* f = opt->GetFunction(string(ns));
+  ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(opt);
+  if(em == nullptr)
+    throw Exception("cfs.solve_state requires an ersatz material optimization");
+
+  Vector<double> rhs(robj, false); // borrowed
+  Vector<double> z;
+  em->SolveStateWithRHS(f, rhs, z);
+  z.Export(zobj);
   Py_RETURN_NONE;
 }
 

@@ -3,7 +3,6 @@
 
 #include "Optimization/Design/FeaturedDesign.hh"
 #include "Utils/ToolsFull.hh"
-#include <forward_list>
 
 namespace CoupledField
 {
@@ -58,10 +57,11 @@ public:
    * Uses node_ip_result_map */
   double GetNodalSpecialResult(unsigned int nodeNumb, const ResultDescription& descr);
 
-  /** Triggered by the 'hessexport' attribute: for each function with curvature information
-   * (Function::CalcCurvature()) append the exact shape Hessian and the current function value to
-   * <simname>.hessian.xml, accumulating one <iteration> block (design variables + Hessian) for all
-   * iterations */
+  /** Triggered by the 'hessexport' attribute: append the exact shape Hessian of every function,
+   * split into its terms, to <simname>.hessian.xml - one <iteration> block per iteration, the file
+   * keeps the whole history. Purely diagnostic, the optimizer gets its Hessian via
+   * CalcShapeHessian(). Format documented in the test case Optimization/FeatureMapping/
+   * pill_volume_hessian/README.md, together with the data of that test to read along */
   void WriteHessExportFile() override;
 
   /** assemble the exact total shape Hessian of func in optimization variable space (n x n).
@@ -70,6 +70,12 @@ public:
    * @param H_opt resized to n x n, n = opt_shape_param_.GetSize()
    * @return false if func has no curvature information */
   bool CalcShapeHessian(const Function* func, Matrix<double>& H_opt) override;
+
+  /** the Jacobian D = d_mrho/d_s mapped to optimization variable space (linked variables
+   * accumulate, fixed variables are dropped). Backend of the python api cfs.get_shape_jacobian
+   * for the exact state-curvature Hessian block, see hessian_scipy.py.
+   * @param D_opt resized to (elements x n), n = opt_shape_param_.GetSize() */
+  void CalcShapeJacobianOptSpace(Matrix<double>& D_opt);
 
   /** To be used in GetAnisoMechTensor and set in AnisotropicGradientHelper().
    * In the anisotropic case we compute the gradient much different from the isotropic case. 
@@ -114,17 +120,39 @@ protected:
     void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const override;
 
     /** second derivatives of the distance, symmetric. For p always zero.
-     * @param out resized to 5x5 and fully set */
+     * @param out resized to num_var_by_feature^2 and fully set */
     void HessDistance(const Point& X, FeatureVariable::Tip part, Matrix<double>& out) const override;
 
     /** exact Hessian of the pill length ||Q-P|| (the native 'distance' constraint) w.r.t. the feature
-     * variables [Px Py Qx Qy P]; the profile p does not enter. Purely geometric (no transition
-     * function), so independent of the boundary order. @param out resized to 5x5 and fully set. */
+     * variables [Px Py (Pz) Qx Qy (Qz) P]; the profile p does not enter. Purely geometric (no transition
+     * function), so independent of the boundary order. @param out resized to num_var_by_feature^2 and fully set. */
     void HessLength(Matrix<double>& out) const;
 
     /** calculate the gradient of the angle in the anisotropic case, 0 for p
      * @param s index 0 ... 4 */
     inline double GradAngle(int s) const;
+
+    /** parse the optional geometry variable alpha (Norato's size variable) which scales the
+     * feature density. @param pn the pill's own <alpha> or the global one from <featureMapping> */
+    void ParseAlpha(PtrParamNode pn, int idx);
+
+    /** append alpha when present */
+    void GetAllVariables(StdVector<FeatureVariable*>& out) const override;
+
+    int GetTotalVariables() const override { return Feature::GetTotalVariables() + (HasAlpha() ? 1 : 0); }
+
+    void ToInfo(PtrParamNode in) override
+    {
+      Feature::ToInfo(in);
+      if(HasAlpha())
+        alpha.ToInfo(in->Get("alpha", ParamNode::APPEND));
+    }
+
+    /** is the optional geometry variable alpha present? Set by ParseAlpha(), no own flag needed */
+    bool HasAlpha() const { return alpha.var == BaseDesignElement::FEATURE_MAPPING_ALPHA; }
+
+    /** the optional geometry variable in [0,1], scaling the feature density as alpha^q * rho */
+    FeatureVariable alpha;
 
     double angle = -1.0; // only for anisotropic
 
@@ -134,12 +162,12 @@ protected:
     // this are helper variables for Pill for efficient distance calculation. Call Update() on every change!
     // P and Q are in Feature
     Point U; // normalized vector Q-P
-    Point V; // normal to U
+    Point V; // normal to U - 2D only, in 3D the perpendicular direction depends on the point
     double length = 0.0; // || start_ - end_ ||
-    double length2 = 0.0; // dx*dx + dy*dy w.o. sqrt
-    double dx = 0.0; // the x-component of the vector from start to end
-    double dy = 0.0; // 
-    double dp_norm = 0.0; // Q_x*P_y - Q_y*P_x
+    double length2 = 0.0; // length^2
+    double dx = 0.0; // the x-component of the vector from start to end - 2D only
+    double dy = 0.0; // 2D only
+    double dp_norm = 0.0; // Q_x*P_y - Q_y*P_x - 2D only
   };
 
   /** base class for boundary function */
@@ -341,6 +369,9 @@ private:
    * for efficient determination where we are outside/inside/need integration. After SetupMapping() */
   void SetupFixedIntegrationPoints();
 
+  /** distances of the first n ips to all features - the expensive part of the mapping, hence parallel */
+  void CalcIpDistances(StdVector<IntegrationPoint>& ips, unsigned int n) const;
+
   /** little helper */
   void SetupParsedFeatures(PtrParamNode base) override;
 
@@ -381,6 +412,18 @@ private:
    * Handles linking (map_to). @param opt_idx resized to pills * num_var_by_feature */
   void BuildOptIndexMap(StdVector<int>& opt_idx) const;
 
+  /** accumulate a full feature variable space matrix into optimization variable space: linked
+   * variables (map_to) add up on their common target, fixed variables (-1) are dropped.
+   * @param H_full (pills * num_var_by_feature)^2
+   * @param H_opt must already be n x n and initialized, n = opt_shape_param_.GetSize() */
+  void ReduceToOptSpace(const Matrix<double>& H_full, Matrix<double>& H_opt) const;
+
+  /** is d_func/d_rho_e stored on the design elements? The two geometric Hessian terms are weighted
+   * with it, so without a gradient evaluation of func in this iteration (a constraint with
+   * mode="observation" is never part of the regular gradient loop) they are zero instead of just
+   * sparse - which would look like a structural statement in the export */
+  bool HasStoredGradient(const Function* func) const;
+
   /** helper for CalcShapeHessianTerms() which sets H_agg and H_feat, 
    * the two geometric Hessian terms in full variable space, see eqn. 'hessian_terms' in the tracking paper.
    * H_agg: sum_e w_e * d^2 mrho/(d_rho_f d_rho_g) * d_rho_f/d_s_i * d_rho_g/d_s_j (cross-feature)
@@ -388,13 +431,15 @@ private:
    * with w_e = d_func/d_mrho_e from the DesignElement gradient of func */
   void AssembleHessianTerms(const Function* func, Matrix<double>& H_agg, Matrix<double>& H_feat) const;
 
-  /** helper for WriteHessExportFile(): build one term element <name> with its non-empty (f,g) blocks
-   * as children, sliced from the full-space term matrix H. Term-major: the term is the parent, each
-   * <block f g dim1 dim2> its child (data without the <real> wrapper). diagonal_only restricts to the
-   * f==g blocks (the feature/geometry term). Returns a self-closing <name/> when H has no content
-   * (e.g. the curvature term of a function linear in rho). @param nv num_var_by_feature, block size */
-  std::string HessExportTermXML(const std::string& name, unsigned int nv,
-      const Matrix<double>& H, bool diagonal_only) const;
+  /** helper for WriteHessExportFile(): build one term element <name> from the optimization space
+   * matrix H. Term-major: the term is the parent, the matrices are its children (data without the
+   * <real> wrapper). With blocks the (f,g) partition of H is written, only the non-empty ones and
+   * only g >= f (the terms are symmetric), otherwise a single <total>. Returns a self-closing
+   * <name/> when H is zero (e.g. the curvature term of a function linear in rho).
+   * @param feature_cols per feature its optimization columns in local variable order, see
+   *        WriteHessExportFile(). Format documented in the pill_volume_hessian test case. */
+  std::string HessExportTermXML(const std::string& name, const Matrix<double>& H,
+      const StdVector<StdVector<int> >& feature_cols, bool blocks) const;
 
   /** traverse all existing features (pills) and searches for first occurrence key.
    * consider to add simple formulas (-key, 1-key, key + 5, ...) when needed
@@ -419,12 +464,12 @@ private:
   /** We extend FeaturedDesign::Item to hold our integration points as extension. */
   struct ItemIP : FeaturedDesign::ItemExtension
   {
-    typedef enum { CORNER, INNER } Storage;
     StdVector<IntegrationPoint*> corner; // shared integration points at mesh cell corners - constant
     StdVector<IntegrationPoint*> inner;  // higher order integration, also shared at edges
     Point center; // barycenter for debug and some order stuff
-    Vector<double> rho; // integrated rho for each feature to be combined. Necessary for gradient calculation
-    Vector<double> drho_ds_full; // for any variable of any feature
+    Vector<double> rho; // integrated rho for each feature to be combined; with alpha the scaled rho_hat = alpha^q * rho
+    Vector<double> rho_org; // the unscaled rho, only filled with alpha (for the alpha Hessian entries)
+    Vector<double> drho_ds_full; // for any variable of any feature; with alpha the scaled chain incl. the alpha column
         
     std::string ToString() override;
     
@@ -437,15 +482,8 @@ private:
     StdVector<IntegrationPoint*> GetAllIP();
   };
 
-  /* helper for SetupDesign() to create an ip and add it to the extension of the given item
-   @param ref the to be created integration point is ref + (dx,dy) */
-  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy);
-
-  /** helper for SetupDesign() to add ip at extension of item to corner or inner. */
-  void SetupDesignAddIP(ItemIP::Storage storage, Item& item, IntegrationPoint* ip);
-
   /** when we have nodal results, we set up here the mapping from node to index in corners. -1 for no mapping */
-  void SetupNodeIPMap(); 
+  void SetupNodeIPMap();
 
   /** convenience helper which does the dynamic_cast */
   inline ItemIP* GetItemIP(unsigned int item_idx); 
@@ -482,17 +520,54 @@ private:
    * @see SetupNodeIPMap(); */
   StdVector<int> node_ip_result_map; 
 
-  /** If integration order is 1 or > 2 there are the "inner" ip, 
-   * however many of them are also shared on edges by 2 Item for order > 2.
-   * We have a list as we don't know in advance the number of ip in the design and we must not Resize, otherwise
-   * ItemIP::inner would dangle. 
-   * For order > 2 we dynamically delete the data and recreate by MapFeatureToDensity() */ 
-  std::forward_list<IntegrationPoint> inners;
+  /** The non-corner "inner" integration points. For order 1 the static element barycenters. For
+   * order > 2 the first num_inner_ entries are the current dynamic lattice points, rebuilt by
+   * MapFeatureToDensity() each mapping: the vector only grows (high-water mark) and slots are
+   * reused, so their dist/part allocations survive and mappings are allocation free after the
+   * first one. All ItemIP::inner pointers are re-wired each mapping after the final Resize,
+   * hence no dangling */
+  StdVector<IntegrationPoint> inners_;
+
+  /** the used entries of inners_, inners_.GetSize() is the high-water mark */
+  unsigned int num_inner_ = 0;
+
+  /** inverse of Item::lexicographic_pos: design element index by virtual cell of the regular
+   * lexicographic box, -1 where the domain is not design (e.g. a fixed region) */
+  StdVector<int> lex_to_item_;
+
+  /** working array for order > 2: slot+1 in inners_ by refined global lattice point
+   * ((order-1)*n+1 points per direction) or 0. Reused over the mappings, the memory scales
+   * with (order-1)^dim * cells */
+  StdVector<int> lattice_slot_;
+
+  /** working array for order > 2: is the element crossed by a transition zone, i.e. does it get
+   * inner integration points? */
+  StdVector<char> item_active_;
+
+  /** coordinate origin (lower node) of the virtual lexicographic mesh box */
+  Point origin_;
 
   /** Add Pill : public Feature once needed */
   StdVector<Pill> pills;
-  /** the number of variables by feature, assume constant for all features */
-  const unsigned int num_var_by_feature = 5;
+  /** the number of geometry variables by feature: nodes and profile, the order matches
+   * Feature::GetAllVariables(): 2D [Px Py Qx Qy p], 3D [Px Py Pz Qx Qy Qz p] */
+  unsigned int num_geom_var_by_feature = 2 * dim_ + 1;
+
+  /** the total number of variables by feature, assume constant for all features. That is the
+   * geometry variables plus the optional geometry variable alpha as the LAST one, hence the alpha
+   * index is num_var_by_feature-1. Set in the constructor once has_alpha_ is known. */
+  unsigned int num_var_by_feature = 0;
+
+  /** do the pills have the geometry variable alpha (global <alpha> element)? Then num_var_by_feature is 6 */
+  bool has_alpha_ = false;
+
+  /** SIMP-like penalization exponent q for alpha: rho_hat = alpha^q * rho */
+  double alpha_q_ = 1.0;
+
+  /** with alpha the DesignElement::specialResult index of the implicit plainAlphaDensity field
+   * v_e = combine(alpha_f * rho_f), written by MapFeatureToDensity(). -1 without alpha.
+   * @see DesignSpace::PLAIN_ALPHA_DENSITY_FIELD */
+  int plain_alpha_density_res_idx_ = -1;
 
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;

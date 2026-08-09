@@ -181,6 +181,7 @@
                               <xsd:element name="rhsValues" type="DT_BcInhomVector" />
                               <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
                               <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull" />
+                              <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
                               <xsd:element name="transform">
                                 <xsd:complexType>
                                   <xsd:attribute name="excitation" type="DT_Excitation" use="required" />
@@ -253,6 +254,11 @@
           <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function" />
 
           <xsd:attribute name="design" use="optional" type="DT_Design" />
+
+          <!-- act on a derived per-element field instead of the design value -->
+          <xsd:attribute name="field" use="optional" type="DT_DerivedField">
+            <xsd:annotation><xsd:documentation>currently only for feature mapping with alpha variable (for unpenalized volume)</xsd:documentation></xsd:annotation>
+          </xsd:attribute>
 
           <xsd:attribute name="notation" default="voigt" use="optional">
             <xsd:simpleType>
@@ -344,6 +350,12 @@
           <!-- The design is optional. If not given it is for all -->
           <xsd:attribute name="design" use="optional" type="DT_Design"/>
 
+          <!-- act on a derived per-element field instead of the design value -->
+          <xsd:attribute name="field" use="optional" type="DT_DerivedField">
+            <xsd:annotation><xsd:documentation>currently only for feature mapping with alpha variable (for unpenalized volume)</xsd:documentation></xsd:annotation>
+          </xsd:attribute>
+
+
           <!-- A constraint value is 
            'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional">
@@ -380,6 +392,9 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+
+          <!-- when in mode="observation" do also compute the gradient. Allows to construct advanced python functions. -->
+          <xsd:attribute name="observeGradient" use="optional" default="false" type="xsd:boolean" />
           <xsd:attribute name="access" use="optional" default="default" type="DT_Access"/>
           <!-- constraints are integrated via penalty/lagrange multipliers in the level set method. Note the difference to penalizedVolume which has a parameter! -->
           <xsd:attribute name="penalty" use="optional" default="0.0" type="xsd:float" />
@@ -726,7 +741,8 @@
                             <xsd:enumeration value="iterations_limit" />
                             <xsd:enumeration value="timing_level" />
                             <xsd:enumeration value="verify_level" />
-                             <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="scale_option" />
+                            <xsd:enumeration value="major_step_limit" />
                             <xsd:enumeration value="major_print_level" />
                             <xsd:enumeration value="minor_print_level" />
                             <xsd:enumeration value="print_frequency" />
@@ -1165,15 +1181,32 @@
                         </xsd:element>
                       </xsd:sequence>
                       <!-- the center attributes -->
-
-                      <!-- symmetry along the x-axis - y-axis or xy-plane -->
-                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- symmetry along the y-axis - x-axis or xz-plane -->
-                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- symmetry along the z-axis - xy-plane -->
-                      <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- induces shape with dof and orientation flipped. For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar. -->
-                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
+                       <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the x-axis, y-axis, or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the y-axis, x-axis, or xz-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="front_back_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the z-axis or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Induces shape with flipped coordinates.
+                              For the center case we do this for all diagonals concurrently, this makes a three bar cross out of one bar.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="sym_plane" use="optional" type="xsd:double" default="0.5" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Defines the symmetry plane for the mirror direction (symmetry direction equal to dof).
+                              For clone direction, the shape is always mirrored on the shape center.
+                              The default value is 0.5, so symmetry for a unity square works per default.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                     </xsd:complexType>
                   </xsd:element>
 
@@ -1191,10 +1224,28 @@
                       <!-- alternative to lower, upper and initial -->
                       <xsd:attribute name="fixed" type="xsd:token" use="optional" />
                       <!-- optional symmetries -->
-                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" />
-                      <!-- induces shape with other dof -->
-                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" />
+                      <xsd:attribute name="left_right_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the x-axis, y-axis, or xy-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="bottom_up_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation><xsd:documentation>Symmetry along the y-axis, x-axis, or xz-plane.</xsd:documentation></xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="diagonal_sym" use="optional" type="DT_Symmetry" default="none" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Induces shape with flipped coordinates.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
+                      <xsd:attribute name="sym_plane" use="optional" type="xsd:double" default="0.5" >
+                        <xsd:annotation>
+                          <xsd:documentation>
+                              Defines the symmetry plane for the mirror direction (symmetry direction equal to dof).
+                              For clone direction, the shape is always mirrored on the shape center.
+                              The default value is 0.5, so symmetry for a unity square works per default.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                       <!-- Gives a relative bound for the start and end value of the first and last node (respects symmetry). Overwrites shapeMap relative_*_bound if given. Negative disables. -->
                       <xsd:attribute name="clamp" type="xsd:float" use="optional" default="-1" />
                     </xsd:complexType>
@@ -1873,6 +1924,20 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
+    <xsd:attribute name="hessian" use="optional" default="limited-memory">
+      <xsd:annotation>
+        <xsd:documentation>IPOPT's hessian_approximation: 'limited-memory' is IPOPT's own L-BFGS,
+                           'exact' requests the exact Lagrangian Hessian from cfs (feature mapping
+                           with a second order boundary function, see IPOPT::eval_h). Not for the
+                           feasPP subproblem solver</xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="limited-memory" />
+          <xsd:enumeration value="exact" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- matparser expression with function and derivative for density projection and transfer function -->
@@ -1951,6 +2016,17 @@
     <xsd:attribute name="beta" use="optional" type="xsd:float" />
   </xsd:complexType>
 
+  <!-- Derived per-element fields a function can act on instead of a design value. Such a field is no
+       design variable (no bounds, no transfer function), it is written by the mapping and offered as
+       an element result of the same name -->
+  <xsd:simpleType name="DT_DerivedField">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="plainAlphaDensity">
+        <xsd:annotation><xsd:documentation>feature mapping with the geometry variable alpha: v_e = combine(alpha_f * rho_f) with the plain alpha (no exponent q). This is the quantity of the unpenalized alpha volume; design="density" gives the alpha^q volume instead</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- This describes the design element which is a list of possible values -->
   <xsd:simpleType name="DT_Design">
     <xsd:restriction base="xsd:token">
@@ -1958,7 +2034,7 @@
         <xsd:annotation><xsd:documentation>default value</xsd:documentation></xsd:annotation>
       </xsd:enumeration>
       <xsd:enumeration value="density">
-        <xsd:annotation><xsd:documentation>standard value for most simp results</xsd:documentation></xsd:annotation>  
+        <xsd:annotation><xsd:documentation>standard value for most simp results</xsd:documentation></xsd:annotation>
       </xsd:enumeration>
       <xsd:enumeration value="allFeatures">
         <xsd:annotation><xsd:documentation>when doing feature mapping and alternative is 'feature' and 'generic'</xsd:documentation></xsd:annotation>
@@ -1991,6 +2067,12 @@
       </xsd:enumeration>
       <xsd:enumeration value="feature_var_P">
         <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by profile width</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Pz">
+        <xsd:annotation><xsd:documentation>3D only: for featureDistance/Projected to 'gradDistance' by start tip z with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Qz">
+        <xsd:annotation><xsd:documentation>3D only: for featureDistance/Projected to 'gradDistance' by end tip z with feature idx in 'generic'</xsd:documentation></xsd:annotation>
       </xsd:enumeration>
       <!-- all elasticity tensor coefficients for elast FMO -->
       <xsd:enumeration value="mech_all" />
@@ -2362,7 +2444,7 @@
       <xsd:enumeration value="constr_viol_tol" />
       <xsd:enumeration value="acceptable_tol" />
       <xsd:enumeration value="warm_start_init_point" />
-      <xsd:enumeration value="hessian_approximation" />
+      <!-- no hessian_approximation here, this is the 'hessian' attribute of the ipopt element -->
       <xsd:enumeration value="derivative_test" />
       <xsd:enumeration value="derivative_test_print_all" />
       <xsd:enumeration value="bound_push" />
@@ -2599,6 +2681,13 @@
         <xsd:documentation>Optional curvature function for second order (Hessian) support (see python_hessian test)</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="hessian" type="xsd:token" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Optional Hessian function for second order support of a function defined directly
+        on the feature variables (no density representation, e.g. an analytic volume). Returns the full
+        feature variable space matrix as 2D numpy array (see pill_volume_hessian test). Alternative to curvature.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
   
 
@@ -2739,6 +2828,11 @@
           <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
         </xsd:annotation>
       </xsd:element>
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariableMapping">
+        <xsd:annotation>
+          <xsd:documentation>Overrides the global featureMapping alpha for this pill, e.g. fixed="1" for a non-removable pill. Requires the global alpha element</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
     <xsd:attribute name="comment" type="xsd:token">
       <xsd:annotation>
@@ -2746,8 +2840,21 @@
         </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
-   
+
   <!-- end of DT_Pill -->
+
+  <!-- root element for an external feature file, see the 'external' element within 'featureMapping'.
+       As a global element it validates as document root against CFS.xsd, which also fills the defaults -->
+  <xsd:element name="features">
+    <xsd:annotation>
+      <xsd:documentation>Root element for an external feature mapping file, referenced via the 'external' element within 'featureMapping'. The content is read as if the features were local</xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
 
   <!-- A noodle is part of a spaghetti(ParamNode) -->
   <xsd:complexType name="DT_Noodle">
@@ -2836,14 +2943,39 @@
     </xsd:sequence>
     <!-- can be the full path if attribute path is not used -->
     <xsd:attribute name="file" type="xsd:string" use="required" />
-    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
+    <!-- optional root for file with cfs:share:python a special key to be resolved via schema path, searching share/python/embedded first and share/python second -->
     <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
   </xsd:complexType>
 
   <!-- classic feature mapping base with C++ implementation -->
   <xsd:complexType name="DT_FeatureMapping">
     <xsd:sequence>
-      <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>Adds a geometry variable alpha typically [0,1] to every pill (Norato's size variable), scaling the feature density as alpha^q * rho. Allows the optimizer to remove features. With q &gt; 1 assume a groundmaterial as the density can drop below rhomin. A pill can override with its own alpha element (e.g. fixed)</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="initial" type="xsd:token" use="required" />
+          <xsd:attribute name="lower" type="xsd:token" use="required" />
+          <xsd:attribute name="upper" type="xsd:token" use="required" />
+          <xsd:attribute name="q" type="xsd:float" use="required">
+            <xsd:annotation>
+              <xsd:documentation>SIMP-like penalization exponent on alpha in the mapped (stiffness) density.
+                                 The implicit field 'plainAlphaDensity' is the same without q; a volume function has to
+                                 state field="plainAlphaDensity" or design="density" explicitly then.</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="external" minOccurs="0" maxOccurs="unbounded">
+        <xsd:annotation>
+          <xsd:documentation>Loads features from an external file with root element 'features' containing pill elements. The file is validated against this schema, so the defaults apply as for local pills. The external features come first (files in order, each in file order), then the local pills - e.g. an external base skeleton with a varying number of features plus special local pills. At least one feature from either source is required</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="file" type="xsd:string" use="required" />
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="pill" minOccurs="0" maxOccurs="unbounded" type="DT_Pill" />
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">
       <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary from void to solid</xsd:documentation></xsd:annotation>
@@ -3347,6 +3479,12 @@
 
   <!-- The possible excitations we have -->
   <xsd:simpleType name="DT_Excitation">
+    <!-- for magnetic coupling we combine two excitations (0_1) - here fixed  the first. -->
+    <!-- we numeriate excitations by their index and start with 0-based -->
+    <xsd:union memberTypes="DT_Excitation_Keywords DT_Excitation_Numbers" />
+  </xsd:simpleType>
+  <!-- Strict list of special keywordds -->
+  <xsd:simpleType name="DT_Excitation_Keywords">
     <xsd:restriction base="xsd:string">
       <xsd:enumeration value="all" />
       <xsd:enumeration value="x" />
@@ -3355,60 +3493,13 @@
       <xsd:enumeration value="yz" />
       <xsd:enumeration value="xz" />
       <xsd:enumeration value="xy" />
-      <!-- for magnetic coupling we combine two excitations - here fixed  the first. -->
       <xsd:enumeration value="0_1" />
-      <!-- we numeriate excitations by their index and start with 0-based -->
-      <xsd:enumeration value="0" />
-      <xsd:enumeration value="1" />
-      <xsd:enumeration value="2" />
-      <xsd:enumeration value="3" />
-      <xsd:enumeration value="4" />
-      <xsd:enumeration value="5" />
-      <xsd:enumeration value="6" />
-      <xsd:enumeration value="7" />
-      <xsd:enumeration value="8" />
-      <xsd:enumeration value="9" />
-      <xsd:enumeration value="10" />
-      <xsd:enumeration value="11" />
-      <xsd:enumeration value="12" />
-      <xsd:enumeration value="13" />
-      <xsd:enumeration value="14" />
-      <xsd:enumeration value="15" />
-      <xsd:enumeration value="16" />
-      <xsd:enumeration value="17" />
-      <xsd:enumeration value="18" />
-      <xsd:enumeration value="19" />
-      <xsd:enumeration value="20" />
-      <xsd:enumeration value="21" />
-      <xsd:enumeration value="22" />
-      <xsd:enumeration value="23" />
-      <xsd:enumeration value="24" />
-      <xsd:enumeration value="25" />
-      <xsd:enumeration value="26" />
-      <xsd:enumeration value="27" />
-      <xsd:enumeration value="28" />
-      <xsd:enumeration value="29" />
-      <xsd:enumeration value="30" />
-      <xsd:enumeration value="31" />
-      <xsd:enumeration value="32" />
-      <xsd:enumeration value="33" />
-      <xsd:enumeration value="34" />
-      <xsd:enumeration value="35" />
-      <xsd:enumeration value="36" />
-      <xsd:enumeration value="37" />
-      <xsd:enumeration value="38" />
-      <xsd:enumeration value="39" />
-      <xsd:enumeration value="40" />
-      <xsd:enumeration value="41" />
-      <xsd:enumeration value="42" />
-      <xsd:enumeration value="43" />
-      <xsd:enumeration value="44" />
-      <xsd:enumeration value="45" />
-      <xsd:enumeration value="46" />
-      <xsd:enumeration value="47" />
-      <xsd:enumeration value="48" />
-      <xsd:enumeration value="49" />
-      <xsd:enumeration value="50" />
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!-- Regex pattern for numbers -->
+  <xsd:simpleType name="DT_Excitation_Numbers">
+    <xsd:restriction base="xsd:string">
+      <xsd:pattern value="[0-9]+" />
     </xsd:restriction>
   </xsd:simpleType>
 
