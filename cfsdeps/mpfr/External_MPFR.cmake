@@ -52,7 +52,7 @@ assert_unset(POSTINSTALL_SCRIPT)
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
-  create_external_unpack_precompiled()
+  create_unpack_precompiled()
 # if not, build newly and possibly pack the stuff
 else()
   # add external project step actually building an cmake package including a patch 

@@ -30,6 +30,10 @@ set_precompiled_pckg_file()
 set_package_library_default()
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
+
+# hsl delivers no static library, so PACKAGE_LIBRARY (libhsl.a) is none of the delivered
+# files. Name the dynamic library Ipopt loads at runtime for create_unpack_precompiled()
+set(PACKAGE_ARTIFACT "${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_SHARED_LIBRARY_PREFIX}hsl${CMAKE_SHARED_LIBRARY_SUFFIX}")
 # this is the standard target for configure projects (builds in source). This directory will be zipped
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
@@ -58,7 +62,7 @@ generate_postinstall_script()
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
-  create_external_unpack_precompiled()
+  create_unpack_precompiled()
 # if not, build newly and possibly pack the stuff
 else()
   # add external project step actually building an cmake package including a patch 

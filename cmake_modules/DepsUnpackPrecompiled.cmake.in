@@ -1,0 +1,39 @@
+# unpack a precompiled package from the cfsdeps cache into the cfs build dir
+
+# the .cmake.in file is converted to .cmake by DependencyTools.cmake with
+# create_unpack_precompiled() by the use of configure_file().
+#
+# configure_file() replaces @*@ variables. The resulting .cmake is called by the
+# add_custom_command() of create_unpack_precompiled() via cmake -P ..., hence there is
+# no context of the cmake variables and we need to "import" all via @*@.
+
+# for the asserts
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+set(PACKAGE_NAME "@PACKAGE_NAME@")
+set(CMAKE_BINARY_DIR "@CMAKE_BINARY_DIR@")
+# e.g. /Users/fwein/code/cfsdepscache/precompiled/arpack_3.9.1-a_MACOSX_26_ARM64_F-GNU-15.1.0.zip
+set(PRECOMPILED_PCKG_FILE "@PRECOMPILED_PCKG_FILE@")
+# the files whose existence means "the package is unpacked", see create_unpack_precompiled()
+set(UNPACK_ARTIFACTS "@UNPACK_ARTIFACTS@")
+
+assert_set(PACKAGE_NAME)
+assert_set(UNPACK_ARTIFACTS)
+assert_file_exists("${PRECOMPILED_PCKG_FILE}")
+
+message(STATUS "unpacking precompiled ${PACKAGE_NAME} from ${PRECOMPILED_PCKG_FILE}")
+
+# TOUCH gives the extracted files the current time. The timestamps stored in the archive are
+# the ones of the packing machine and are typically years old (eigen 3.4.0 e.g. carries 2021).
+# Without TOUCH the artifacts would be older than the archive, so the unpacking would be
+# repeated with every build, and neither a relink nor a recompile of cfs would be triggered
+# when a dependency is exchanged in an existing build dir.
+file(ARCHIVE_EXTRACT INPUT "${PRECOMPILED_PCKG_FILE}" DESTINATION "${CMAKE_BINARY_DIR}" TOUCH)
+
+# the artifacts are the promised output of the custom command, so a missing one is an error
+# here and not a mysterious "no rule to make target" later on
+foreach(ARTIFACT ${UNPACK_ARTIFACTS})
+  if(NOT EXISTS "${ARTIFACT}")
+    message(FATAL_ERROR "${PRECOMPILED_PCKG_FILE} does not deliver ${ARTIFACT}")
+  endif()
+endforeach()

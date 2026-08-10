@@ -28,6 +28,9 @@ set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 # the clean-<package> target deletes everything to allow a clean make <package>
 add_clean_target()
 
+# header only, so we have no PACKAGE_LIBRARY. Name a delivered file for create_unpack_precompiled()
+set(PACKAGE_ARTIFACT "${CMAKE_BINARY_DIR}/include/signature_of_eigen3_matrix_library")
+
 # Don't use use install_manifest.txt
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
@@ -58,7 +61,7 @@ assert_unset(POSTINSTALL_SCRIPT)
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
-  create_external_unpack_precompiled()
+  create_unpack_precompiled()
 
 # if not, build newly and possibly pack the stuff
 else()
