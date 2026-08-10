@@ -170,7 +170,7 @@
               <xsd:element name="linearSystems" minOccurs="0">
                 <xsd:complexType>
                   <xsd:sequence>
-                    <xsd:element name="system" type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
+                    <xsd:element name="system" type="DT_SystemSpec" minOccurs="0" maxOccurs="unbounded" />
                   </xsd:sequence>
                   <xsd:attribute name="getRidOfZeros" default="auto">
                     <xsd:annotation>
@@ -194,6 +194,20 @@
                       </xsd:documentation>
                     </xsd:annotation>
                   </xsd:attribute> 
+                  <xsd:attribute name="assembly" default="dynamic">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                          "deterministic" disables more efficient perallel assemly of the global FE matrices. 
+                          Only very sensitive problems (bloch2d) benefit from deterministic.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="dynamic"/>
+                          <xsd:enumeration value="deterministic"/>
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:attribute>
                 </xsd:complexType>
               </xsd:element>
             </xsd:sequence>
@@ -206,6 +220,7 @@
                 </xsd:restriction>
               </xsd:simpleType>
             </xsd:attribute>
+            
           </xsd:complexType>
         </xsd:element>
 

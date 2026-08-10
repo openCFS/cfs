@@ -115,7 +115,6 @@ namespace CoupledField
     }
   }
 
-
   // **************
   //   Destructor
   // **************
