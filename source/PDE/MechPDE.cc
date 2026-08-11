@@ -454,14 +454,11 @@ namespace CoupledField {
         BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
-        assemble_->AddBiLinearForm(stiffIntDescr);
-        bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
-        LOG_DBG(mechpde) << "Add Lin BDB" << std::endl;
-
-        // check for Rayleigh damping (stiffness part)
+        
+        // check for Rayleigh damping (stiffness part) - MUST be done BEFORE AddBiLinearForm!
         if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
           RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
-          stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
+          stiffIntDescr->AddMatrix(DAMPING, actDamp.beta);
         }
         // check for Kelvin-Voigt damping
         else if (dampingList_[actRegion] == KELVIN_VOIGT) {
@@ -483,6 +480,11 @@ namespace CoupledField {
           assemble_->AddBiLinearForm(dampIntDescr);
           LOG_TRACE(mechpde) << "Add Kelvin Voigt Damp BDB" << std::endl;
         }
+        
+        // Add stiffness integrator after secondary matrix is set up
+        assemble_->AddBiLinearForm(stiffIntDescr);
+        bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
+        LOG_DBG(mechpde) << "Add Lin BDB" << std::endl;
       }
 
       // ====================================================================
@@ -521,17 +523,17 @@ namespace CoupledField {
         BiLinFormContext *nlContext = new BiLinFormContext(nlBInt, STIFFNESS);
         nlContext->SetEntities(actSDList, actSDList);
         nlContext->SetFeFunctions(myFct, myFct);
-        assemble_->AddBiLinearForm(nlContext);
-
-        // check for damping
+        
+        // check for damping - MUST be done BEFORE AddBiLinearForm!
         if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
           RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
-          nlContext->SetSecDestMat(DAMPING, actDamp.beta);
+          nlContext->AddMatrix(DAMPING, actDamp.beta);
         }
         else if (dampingList_[actRegion] == KELVIN_VOIGT) {
           EXCEPTION("Kelvin-Voigt damping and non-linear elasticity is not implemented/tested.");
         }
-
+        
+        assemble_->AddBiLinearForm(nlContext);
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results.
         bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,nlBInt) );
@@ -669,7 +671,7 @@ namespace CoupledField {
       // Check for Rayleigh damping (mass part)
       if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
         RaylDampingData &actDamp = regionRaylDamping_[actRegion];
-        massContext->SetSecDestMat(DAMPING, actDamp.alpha);
+        massContext->AddMatrix(DAMPING, actDamp.alpha);
       }
 
       // Important: Add mass-integrator to global list, as we need them later

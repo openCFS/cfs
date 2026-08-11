@@ -365,13 +365,11 @@ void ShapeOpt::CalcMinusU1dKU2(StateContainer& forward, StateContainer& adjoint,
           BiLinFormContext* massIntCtxt = GetFormContext(elem->regionId, pde, pde, "MassInt");
           massInt = (MassInt*)massIntCtxt->GetIntegrator();
           if(!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, elem)){ // check whether damping is also design and if get it from there
-            if(biLinForm->GetSecDestMat() != NOTYPE){
-              parser->SetExpr(mathParserHandle, biLinForm->GetSecMatFac());
-              dampingBeta = parser->Eval(mathParserHandle);
+            if(biLinForm->GetNumberOfMatrixes() >= 2){
+              dampingBeta = biLinForm->GetMatrixFactor(2);
             }
-            if(massIntCtxt->GetSecDestMat() != NOTYPE){
-              parser->SetExpr(mathParserHandle, massIntCtxt->GetSecMatFac());
-              dampingAlpha = parser->Eval(mathParserHandle);
+            if(massIntCtxt->GetNumberOfMatrixes() >= 2){
+              dampingAlpha = massIntCtxt->GetMatrixFactor(2);
             }
           }
         }

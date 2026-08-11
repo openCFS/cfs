@@ -1594,15 +1594,6 @@ namespace CoupledField {
     // Calls method ApplyBC and ApplyLoads in FeFunction
     PDE_.SetBCs();
 
-    // Computation of effective matrix:
-    /* NOTE: this is commented because we also include the MASS matrix
-             in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
-             Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
-             comparing different matrix parts, that's why it's still here
-
-       NOTE2: uncommented because we have to set IDBCs
-       (Afterwards a different mechanism handles the IDBC)
-    */
     std::map<FEMatrixType,Double> empty;
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
@@ -1698,12 +1689,6 @@ namespace CoupledField {
       // Sets flag that matrix was already assembled. The method CheckNonLinearities re-does this
       assemble_->PostAssemble();
 
-      // Computation of effective matrix:
-      /* NOTE: this is commented because we also include the MASS matrix
-               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
-               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
-               comparing different matrix parts, that's why it's still here
-      */
       //std::map<FEMatrixType,Double> empty;
       //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 
@@ -2483,12 +2468,6 @@ namespace CoupledField {
       this->AssembleMH(solStrat_->GetNumHarmN(), solStrat_->GetNumHarmM());
       assemble_->PostAssemble();
 
-      // Computation of effective matrix:
-      /* NOTE: this is commented because we also include the MASS matrix
-               in the SYSTEM matrix, as defined in Assemble::CreateMatrixMap().
-               Sometimes having an extra MASS matrix is benefitial, e.g. for exporting and
-               comparing different matrix parts, that's why it's still here
-      */
       //std::map<FEMatrixType,Double> empty;
       //algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty, true );
 

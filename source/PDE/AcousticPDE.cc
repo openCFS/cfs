@@ -1766,8 +1766,8 @@ namespace CoupledField{
       if (complexFluidFormulation_)
       EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
       RaylDampingData &actDamp = regionRaylDamping_[actRegion];
-      massContext->SetSecDestMat(DAMPING, actDamp.alpha);
-      stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
+      massContext->AddMatrix(DAMPING, actDamp.alpha);
+      stiffIntDescr->AddMatrix(DAMPING, actDamp.beta);
     }
 
     // add bilinear form descriptions to the assembler

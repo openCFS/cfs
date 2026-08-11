@@ -43,9 +43,9 @@ namespace CoupledField
 
     //! Constructor
     //! \param biLinForm pointer to the bilinearform to be wrapped
-    //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
-    //!                bilinearform
-    BiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat );
+    //! \param physicalMat physical Matrix (STIFFNESS, MASS, ...) of the
+    //!                   bilinearform
+    BiLinFormContext( BiLinearForm* biLinForm, FEMatrixType physicalMat );
 
     //! Destructor
     virtual ~BiLinFormContext();
@@ -65,24 +65,28 @@ namespace CoupledField
 
     static void SetEnums();
 
-    //! Get destination matrix
-    FEMatrixType GetDestMat() const { return destMat_; }
+    //! Add a new matrix the bilinear form contributes to
+    void AddMatrix( FEMatrixType physicalMatrix, const std::string factorStr = "1");
 
-    //! Set destination matrix
-    void SetDestMat(FEMatrixType destMat) { destMat_ = destMat; }
+    //! return the number of defined matrices the bilinear form contributes to
+    unsigned int GetNumberOfMatrixes() const;
 
-    //! Defines a secondary destination for the element matrix
-    void SetSecDestMat( FEMatrixType aSecMat,
-                        std::string aSecMatFac ); 
+    //! Get the physical matrix type for the primary matrix (defined via constructor = default)
+    FEMatrixType GetPhysicalMatrixType(const unsigned int i = 1) const;
 
-    //! Returns matrix type of the secondary matrix
-    FEMatrixType GetSecDestMat() const { return secDestMat_; }
+    //! Get the physical matrix type for the primary matrix (set via SetAlgebraicMatrixType )
+    FEMatrixType GetAlgebraicMatrixType(const unsigned int i = 1) const;
 
-    //! Returns the factor the secondary matrix gets multiplied with (string representation)
-    std::string GetSecMatFac() const;
+    bool HasTimeFreqDependentFactor(const unsigned int i = 1) const;
 
-    //! Returns the current value of the secondary matrix factor (evaluated, number representation)
-    Double EvalSecMatFac() const;
+    //! Set the algebraic matrix the from should assemble to, should be done in Assemble during AddBiLinearForm depending on analysis type and nonlinearity of coefs or time/frequency dependence of factors
+    void SetAlgebraicMatrixType(const FEMatrixType algMat, const unsigned int number = 1);
+
+    //! return the math-parser-evaluated matrix factor for the expression
+    Double GetMatrixFactor(const unsigned int i ) const;
+
+    //! Check if secondary matrix factor is time/frequency dependent
+    bool IsSecMatFacTimeFrequencyDependent() const;
     
     //! Returns the integrator
     BiLinearForm * GetIntegrator() {return integrator_; };
@@ -174,14 +178,14 @@ namespace CoupledField
     //! Pointer to bilinearform
     BiLinearForm * integrator_;
 
-    //! Destination matrix type
-    FEMatrixType destMat_;
+    //! Physical matrices the bilinear form should assemble to, defined by the physics of the PDE (order of time derivative)
+    StdVector<FEMatrixType> physicalMatrices_;
+    
+    // destination matrices in the algebraic system the bilinear form contributes to (depending on analysis, non-linearities, ...)
+    StdVector<FEMatrixType> algebraicMatrices_;
 
-    //! Secondary destination matrix
-    FEMatrixType secDestMat_;
-
-    //! Handle for secondary matrix factor
-    unsigned int secMatFacHandle_;
+    // stores function handles defining the coefficients the matrices should be multiplied with
+    StdVector<unsigned int> matrixFactorHandles_;
     
     //! Pointer to math parser instance
     MathParser* mathParser_;

@@ -1,5 +1,6 @@
 #include "FormsContexts.hh"
 
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "PDE/SinglePDE.hh"
@@ -7,24 +8,30 @@
 #include "Domain/Domain.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
+
+#include <cmath>
 
 namespace CoupledField {
 
 Enum<BiLinearForm::Type> BiLinearForm::type;
 
+DEFINE_LOG(formsctx, "formsctx")
+
 
   BiLinFormContext::BiLinFormContext( BiLinearForm* biLinForm,
-                                      FEMatrixType destMat) {
+                                      FEMatrixType physicalMat) {
 
     integrator_ = biLinForm;
 
-    destMat_ = destMat;
-    secDestMat_ = NOTYPE;
+    physicalMatrices_.Init();
+    algebraicMatrices_.Init();
+    matrixFactorHandles_.Init();
+
     mathParser_ = domain->GetMathParser();
-    secMatFacHandle_ = mathParser_->GetNewHandle();
     
     //    setCounterPart_ = false;
-    
+
     // Note: By default, we do not set the counter part
     // of a matrix as well, i.e. if an element matrix
     // gets assembled to a main diagonal block within the
@@ -37,12 +44,16 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
 
     useVolEqnA_ = biLinForm->GetUseVolEqnA();
     useVolEqnB_ = biLinForm->GetUseVolEqnB();
+    
+    AddMatrix(physicalMat);
   }
 
   BiLinFormContext::~BiLinFormContext() {
     
-    // release math parser handle
-    mathParser_->ReleaseHandle(secMatFacHandle_);
+    // release math parser handles
+    for (const auto& handle : matrixFactorHandles_ ) {
+       mathParser_->ReleaseHandle(handle);
+    }
     
     // delete bilinearform
     if( integrator_ != NULL ) {
@@ -154,21 +165,57 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     }
   }
 
-  void BiLinFormContext::SetSecDestMat( FEMatrixType aSecMat,
-                                        std::string aSecMatFac ) {
-    secDestMat_ = aSecMat;
-    mathParser_->SetExpr(secMatFacHandle_, aSecMatFac);  
-    mathParser_->Eval(secMatFacHandle_);
+  void BiLinFormContext::AddMatrix( FEMatrixType physicalMatrix, std::string factorStr ) {
+    unsigned int handle = mathParser_->GetNewHandle();
+    mathParser_->SetExpr(handle,factorStr);
+    mathParser_->Eval(handle);
+    // add to lists
+    physicalMatrices_.push_back(physicalMatrix);
+    algebraicMatrices_.push_back(NOTYPE);
+    matrixFactorHandles_.push_back(handle);
+    LOG_DBG(formsctx) << "AddMatrix: physicalMatrix=" << Enum2String(physicalMatrix) << " factorStr=" << factorStr << " physicalMatrices_.GetSize()=" << physicalMatrices_.GetSize();
   }
-  std::string BiLinFormContext::GetSecMatFac() const {
-    return mathParser_->GetExpr(secMatFacHandle_);
+
+  unsigned int BiLinFormContext::GetNumberOfMatrixes() const {
+    return physicalMatrices_.GetSize();
+  }
+
+  FEMatrixType BiLinFormContext::GetPhysicalMatrixType(const unsigned int i) const {
+    return physicalMatrices_[i-1];
+  }
+
+  FEMatrixType BiLinFormContext::GetAlgebraicMatrixType(const unsigned int i) const {
+    return algebraicMatrices_[i-1];
+  }
+
+  void BiLinFormContext::SetAlgebraicMatrixType(const FEMatrixType algMat, const unsigned int number) {
+    if (number < 1 || number > algebraicMatrices_.GetSize()) {
+      EXCEPTION("BiLinFormContext::SetAlgebraicMatrixType: index " << number << " out of bounds (valid range: 1-" << algebraicMatrices_.GetSize() << ")");
+    }
+    algebraicMatrices_[number - 1] = algMat;
+    LOG_DBG(formsctx) << "SetAlgebraicMatrixType: algMat=" << Enum2String(algMat) << " number=" << number;
+  }
+
+  bool BiLinFormContext::HasTimeFreqDependentFactor(const unsigned int i) const {
+    std::string expr = mathParser_->GetExpr(matrixFactorHandles_[i-1]);
+    bool isTimeFreqDependent = CoefFunction::ExprDependsOnTimeFreq(mathParser_, expr);
+    LOG_DBG(formsctx) << "Expression '" << expr << "' of Matrix " << i << "isTimeFreqDependent = " << isTimeFreqDependent;
+    return isTimeFreqDependent;
+  }
+
+  Double BiLinFormContext::GetMatrixFactor(const unsigned int i ) const {
+    assert( i >=1 );
+    assert( i <= GetNumberOfMatrixes() );
+    return mathParser_->Eval(matrixFactorHandles_[i-1]);
   }
   
-  Double BiLinFormContext::EvalSecMatFac() const {
-    return mathParser_->Eval(secMatFacHandle_);
-  }
-  
-  
+  bool BiLinFormContext::IsSecMatFacTimeFrequencyDependent() const {
+      // TODO: remove this function by refactro
+      if (GetNumberOfMatrixes() < 2) { // No secondary matrix factor set
+        return false;
+      }
+      return HasTimeFreqDependentFactor(2);
+    }
   
   std::string BiLinFormContext::ToString()
   {
