@@ -124,7 +124,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             			<logging> true </logging>
             			<stopCrit> 9 </stopCrit>
             			<m0> 30 </m0>
-                        <Ne> 100 </Ne>
+                        <!-- 32 gives the same eigenvalues as 100 but is three times faster -->
+                        <Ne> 32 </Ne>
           			</feast>
         		</eigenSolverList>
       		</system>
