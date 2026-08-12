@@ -125,6 +125,9 @@ namespace CoupledField {
   template<typename T>
   void COCRSolver<T>::Solve( const BaseMatrix &sysMat, const BaseVector &rhs, BaseVector &sol ) {
 
+    // measure iteration time
+    loopTimer_.ResetStart();
+
     // Setup( sysMat );
     if ( ptPrecond_ == NULL ) {
       EXCEPTION( "COCRSolver requires a preconditioner. Set <Precond><Id/></Precond> for unpreconditioned operation.");
@@ -171,8 +174,6 @@ namespace CoupledField {
       Vector<T> &azVec   = dynamic_cast<Vector<T>&>( *az_   );
 
       aborted_ = false;
-      // measure iteration time
-      loopTimer_.ResetStart();
 
       // ------------------------
       //   Main loop
