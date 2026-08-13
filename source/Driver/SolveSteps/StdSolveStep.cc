@@ -799,11 +799,12 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if( useGetRidOfZeros_ && assemble_->IsMatrixUpdated() ) {
+      // Condition must mirror the one that triggered GetRidOfZeros() above.
+      if( useGetRidOfZeros_ && (assemble_->IsMatrixUpdated() || schemeCoefChanged) ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
-      
+
      // Since the entries of solVec_ are pointers to the SingleVector
      // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);

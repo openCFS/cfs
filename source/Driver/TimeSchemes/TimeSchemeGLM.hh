@@ -126,8 +126,11 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //! Restores dtCurrent_, dtPrev1_, dtPrev2_ from last-accepted snapshots; call on step rejection to keep BDF2 coefficient history consistent for the retry.
     void reset_dt();
 
+    //! Only adaptive runs clear coefChanged_ (in FinishStep). Without the adaptiveEnabled_
+    //! guard the flag set by the initial ComputeCoefficients() would stay latched for the
+    //! whole fixed-dt run and force a system matrix rebuild in every step.
     virtual bool CoefficientsChanged() const override {
-      return curScheme_ && curScheme_->coefChanged_;
+      return curScheme_ && curScheme_->adaptiveEnabled_ && curScheme_->coefChanged_;
     }
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
