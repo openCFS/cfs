@@ -9,7 +9,8 @@ namespace CoupledField {
 class AdaptiveTimesteppingData {
 public:
 
-    //! AdaptiveTimesteppingData contains all Data neccesery for the Adaptive Schemes, is part of domain. Includes xml parsing.
+    //! Parses the <adaptiveTimeStepping> block and validates the mode/child combinations
+    //! that XSD 1.0 cannot express.
     void InitFromXml(PtrParamNode node);
 
     // config (read-only after init)
@@ -22,7 +23,7 @@ public:
     double rtol_            = 0.0;     // 0 = disabled
     double atol_            = 0.0;
     double minStepFactor_   = 0.2;
-    int    controllerType_   = 0;    // 0 = I, 1 = PI, 2 = PID
+    int    controllerType_  = 0;       // 0 = I, 1 = PI (PI.3.4), 2 = PID (H312)
     bool   startFromDtMin_  = false;
 
     // per-step state (written by TimeSchemeGLM, read by TransientDriver)
@@ -33,7 +34,7 @@ public:
     int    consecutiveNaN_       = 0;     // consecutive NaN-solution steps; abort after threshold
 
     // Multi-field LTE: each field registers via FinishStepLTE(); FinishStep() makes one consistent decision.
-    // fieldLocalErrors_ per field; getControllingError() returns max. 
+    // fieldLocalErrors_ per field; getControllingError() returns max.
     std::vector<double> fieldLocalErrors_;
     bool lteCollected_     = false;  // true once at least one field has registered
     bool stepDecisionMade_ = false;  // true once the first field called ComputeAdaptiveStepSize
@@ -78,10 +79,10 @@ public:
 
     bool is_error_finite(Double Error);
 
-    //! Post-saturation growth limiter: caps h_next to 1.5×h for 3 steps after a force-accept.
+    //! Enter post-saturation mode; call at every toleranceNotReachable site.
     void   mark_saturated();
 
-    //! Call mark_saturated() at every toleranceNotReachable site; apply_post_saturation_cap() after BDF2 cap.
+    //! Post-saturation growth limiter: caps h_next to 1.5x h for 3 steps after a force-accept.
     Double apply_post_saturation_cap(Double h_next, Double h,
                                      Double local_error, bool accepted);
 
@@ -109,7 +110,7 @@ public:
     //! I-controller: simple single-step power-law formula
     Double iController(bool* accepted, Double local_error_, Double dtCurrent_);
 
-    //! PI.3.4 controller (Söderlind 2002) (includes error rejektion)
+    //! PI.3.4 controller (Söderlind 2002); includes error rejection.
     Double piController(bool* accepted, Double local_error_, Double dtCurrent_);
 
     //! H312 PID controller (Söderlind 2005, eq. 38) — for non-smooth/noisy problems

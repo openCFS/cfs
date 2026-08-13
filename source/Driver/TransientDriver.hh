@@ -67,9 +67,10 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
-    //! Reads stepRejected, toleranceNotReachable, localError from atData_ after each solve; returns true if the step is accepted. Implements retry cap and PI anti-windup.
+    //! Reads the adaptive state from atData_ after each solve; true if the step is accepted.
+    //! Implements the retry cap and PI anti-windup.
     bool adaptTimestep(int retryCount);
-    
+
 
   protected:
 
@@ -111,23 +112,7 @@ namespace CoupledField {
     // =======================================================================
 
     //! True when the <adaptiveTimeStepping> XML block is present.
-    bool adaptiveEnabeled_;
-
-    //! deltaTMin_& deltaTMax_ :  Determin Bounds for adaptivity
-    Double deltaTMin_;
-    Double deltaTMax_;
-
-    //! tol_: Error Tolerance -> determins when a step has to be rerun
-    Double tol_;
-
-     //! Sigma: A factor[0-1], user defines step increase 
-    Double sigma_;
-
-    //! restartCount_ : tracks howmany restarts were done
-    UInt restartCount_;
-
-    //! Step-size controller type: 0=I, 1=PI (PI.3.4), 2=PID (H312).
-    int controllerType_;
+    bool adaptiveEnabled_;
 
     // =======================================================================
     //  Restart related data
@@ -155,13 +140,13 @@ namespace CoupledField {
     //! Target simulation end time, computed as firstdt_ * numstep_; loop exits once actTime_ >= this value.
     double simulationENDTime_;
 
-    //! Flag, Is set when simulationENDTime_ is reached
     bool simulationEndTimeReached_;
 
     //! LTE error from the last accepted step; fed to MathParser as prevError for the PI controller's integral term.
     double prevLTEerror_;
 
-    //! LTE error saved at the first rejection of a retry sequence; fed back to the PI controller when toleranceNotReachable is set to prevent integrator windup.
+    //! LTE error saved at the first rejection of a retry sequence; fed back to the PI
+    //! controller when toleranceNotReachable is set, to prevent integrator windup.
     double antiWindupError_;
 
     //! Cumulative count of all step rejections across the whole simulation run.

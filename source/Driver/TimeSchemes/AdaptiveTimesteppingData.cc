@@ -5,7 +5,6 @@ namespace CoupledField {
 void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
     enabled_ = true;
 
-    // <deltaT min=".." max=".."/>
     PtrParamNode deltaTNode = node->Get("deltaT");
     dtMin_ = deltaTNode->Get("min")->MathParse<Double>();
     dtMax_ = deltaTNode->Get("max")->MathParse<Double>();
@@ -20,7 +19,6 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
         errorScheme_ = 1;  // max-norm
     }
 
-    // <controller type="I|PI|PID"/>
     std::string ctrl = errNode->Get("controller")->Get("type")->As<std::string>();
     if      (ctrl == "PI")  controllerType_ = 1;
     else if (ctrl == "PID") controllerType_ = 2;
@@ -47,13 +45,12 @@ void AdaptiveTimesteppingData::InitFromXml(PtrParamNode node) {
         tol_ = valNode->MathParse<Double>();
     }
 
-    // <cutback>, <minFactor>: optional children of the method element.
     PtrParamNode sigmaNode = errNode->Get("cutback", ParamNode::PASS);
     if (sigmaNode) sigma_ = sigmaNode->MathParse<Double>();
     PtrParamNode minSFNode = errNode->Get("minFactor", ParamNode::PASS);
     if (minSFNode) minStepFactor_ = minSFNode->MathParse<Double>();
 
-    // <startup mode="startAtMin|warmUpLTE">; omitted => first step uses deltaT (old default).
+    // <startup> omitted => the first step uses deltaT itself.
     startFromDtMin_ = false;
     PtrParamNode startupNode = node->Get("startup", ParamNode::PASS);
     if (startupNode) {
@@ -174,8 +171,7 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
     Double sigma       = sigma_;
     Double prev_error_ = prevError_;
     double k = 3; // For BDF2
-    // Söderlind PI.3.4 gains (kI=0.3/k, kP=0.4/k); the earlier 0.6 retune compensated
-    // the since-fixed inverted step-ratio in Bdf2::ComputeCoefficients.
+    // Söderlind PI.3.4 gains (kI=0.3/k, kP=0.4/k).
     Double alpha = 0.3/k ;
     Double beta  = 0.4/k;
 
@@ -195,7 +191,7 @@ Double AdaptiveTimesteppingData::apply_post_saturation_cap(
 
       *accepted = (est <= Rtol);
     }
-  
+
     return h_next;
   }
 
@@ -269,7 +265,7 @@ AdaptiveTimesteppingData::computeNextStep(
     const double maxRatio = (maxGrowthRatio_ > 0.0) ? maxGrowthRatio_
                                                     : 1.0 + std::sqrt(2.0);
 
-    // 1. NaN/Inf guard — Newton solver diverged; solution vector is NaN.
+    // NaN/Inf guard: Newton solver diverged; solution vector is NaN.
     // GLM history is still clean here, so reject and retry at dtMin. Abort after 3 in a row.
     if (!is_error_finite(est)) {
         consecutiveNaN_++;
@@ -284,7 +280,7 @@ AdaptiveTimesteppingData::computeNextStep(
     }
     consecutiveNaN_ = 0;
 
-    // 2. Growing-error detection — LTE increases as dt shrinks → force-accept current step.
+    // Growing-error detection: LTE increases as dt shrinks → force-accept current step.
     // Reverting to h_prev would re-run from a polluted initial guess at the larger dt
     // that already failed, producing even larger errors.
     if (prevRetryError_ > 0.0 && est > prevRetryError_) {
@@ -296,21 +292,20 @@ AdaptiveTimesteppingData::computeNextStep(
     }
     prevRetryError_ = est;
 
-    // 3. Saturation early detection — h/h_prev < minStepFactor → ratio already minimal.
+    // Saturation early detection: h/h_prev < minStepFactor → ratio already minimal.
     if (h_prev > 0.0 && h / h_prev < minStepFactor_) {
         toleranceNotReachable_ = true;
         mark_saturated();
         return {std::max(h, dtMin), true};
     }
 
-    // 4. Controller dispatch.
     bool   accepted = false;
     double h_next   = 0.0;
     if      (controllerType_ == 0) h_next = iController(&accepted,  est, h);
     else if (controllerType_ == 1) h_next = piController(&accepted, est, h);
     else                           h_next = pidController(&accepted, est, h);
 
-    // 4b. LTE stability damping — pulls h_next toward h when LTE trend is unstable.
+    // LTE stability damping: pulls h_next toward h when LTE trend is unstable.
     // Applies symmetrically to growth and shrinkage, for all controller types.
     double sf = lteDampingEnabled_ ? lteStabilityFactor(est) : 1.0;
     if (sf < 1.0) {
@@ -319,26 +314,23 @@ AdaptiveTimesteppingData::computeNextStep(
                   << ") — damping step change to dt=" << h_next << "\n";
     }
 
-    // 5. Scheme stability cap — upper bound on growth ratio (maxGrowthRatio_:
+    // Scheme stability cap: upper bound on growth ratio (maxGrowthRatio_:
     // BDF2 zero-stability bound 1+sqrt(2); Newmark is A-stable, wider cap allowed).
     if (h_next / h > maxRatio)
         h_next = h * maxRatio;
 
-    // 6. Lower bound — prevent too-large shrinkage (BDF2 ill-conditioning).
+    // Lower bound: prevent too-large shrinkage (BDF2 ill-conditioning).
     const double h_next_unclamped = h_next;
     if (h_next < h * minStepFactor_)
         h_next = h * minStepFactor_;
 
-    // 7. Post-saturation growth limiter.
     if (!accepted)
         mark_saturated();
     h_next = apply_post_saturation_cap(h_next, h, est, accepted);
 
-    // 8. Absolute clamps.
     h_next = std::max(h_next, dtMin);
     h_next = std::min(h_next, dtMax);
 
-    // 9. Force-accepts.
     if (!accepted && h_next >= dtMax * 0.9999)
         accepted = true;
 

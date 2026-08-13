@@ -23,11 +23,9 @@
 #include "GLMSchemeLib.hh"
 #include "Utils/mathParser/mathParser.hh"
 
-
 namespace CoupledField{
 
 class AdaptiveTimesteppingData;
-
 
 //see below for description
 class TimeSchemeGLM : public BaseTimeScheme{
@@ -39,15 +37,12 @@ class TimeSchemeGLM : public BaseTimeScheme{
       TOTAL
     } NonLinType;
 
-
-
     /*!
      *  Constructor of the GLM scheme
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
      *  \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
     TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
-    
     
     /*!
      * Alternative constructor to directly pass a pre-constructed GLM-scheme
@@ -163,7 +158,6 @@ class TimeSchemeGLM : public BaseTimeScheme{
       nLinType_ = INCREMENTAL;
     }
 
-
   protected:
     //! Pointer to the MathParser instance; lazily resolved in BeginStep().
     MathParser * mathparser_ = nullptr;
@@ -195,7 +189,6 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     // Bool if we have to reset the glmVector
     bool resetGlmVector_ = false;
-
 
     ///Stores for each stage, for each time derivative the stage values
     StdVector< SingleVector* > stageVector_;
@@ -241,7 +234,6 @@ class TimeSchemeGLM : public BaseTimeScheme{
     //! Rejection handling: reset_dt() plus undo of the solver's glm overwrite for
     //! stage-aliasing schemes (Newmark) so the retry starts from clean step-start state.
     void RestoreRejectedStep();
-
 
     ///just export the scheme to a file
     void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter){

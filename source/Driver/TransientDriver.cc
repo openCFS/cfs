@@ -54,15 +54,12 @@ namespace CoupledField {
     actTimeStep_ = 0;
     initialTime_ = 0.0;
     firstdt_ = 0.0;
-    restartCount_ = 0;
-    controllerType_ = 0;
     restartStep_ = 0;
     simulationENDTime_ = 0.0;
     endStep_ = 0;
-    adaptiveEnabeled_ = false;
+    adaptiveEnabled_ = false;
     dt_ = 0.0;
     stepStartTime_ = 0.0;
-    sigma_ = 1.2;
     isRestarted_ = false;
     prevLTEerror_ = 0.0;
     antiWindupError_ = 1;
@@ -85,20 +82,13 @@ namespace CoupledField {
     PtrParamNode adaptiveNode = param_->Get("adaptiveTimeStepping", ParamNode::PASS);
     if (adaptiveNode)
     {
-      adaptiveEnabeled_ = true;
+      adaptiveEnabled_ = true;
       atData_ = std::make_shared<AdaptiveTimesteppingData>();
       atData_->InitFromXml(adaptiveNode);
       domain_->SetAdaptiveData(atData_);
 
-      // keep TransientDriver members in sync for local use
-      deltaTMin_  = atData_->dtMin_;
-      deltaTMax_  = atData_->dtMax_;
-      sigma_      = atData_->sigma_;
-      controllerType_ = atData_->controllerType_;
-      tol_        = atData_->tol_;
-
-      if(deltaTMin_ > deltaTMax_)
-        EXCEPTION("Exception: .xml config is Wrong. DeltaTMin has to be smaller then deltaTmax.")
+      if(atData_->dtMin_ > atData_->dtMax_)
+        EXCEPTION("Exception: .xml config is Wrong. DeltaTMin has to be smaller than deltaTmax.")
     }
 
 
@@ -150,7 +140,7 @@ namespace CoupledField {
     initialTime_ = accTime;
     actTime_ = accTime;
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
-    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ ); //RD. and inital time are set correctly (when using adaptive)
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t0", initialTime_ );
     
   }
   // ==============
@@ -183,12 +173,7 @@ namespace CoupledField {
     
   void TransientDriver::SolveProblem()
   {
-     if (atData_) {
-       atData_->localError_ = 0.0;
-       atData_->stepRejected_ = false;
-     }
-     
-    // notify resultHandler about beginning of new sequence step 
+    // notify resultHandler about beginning of new sequence step
     ResultHandler * resHandler = domain_->GetResultHandler();
 
     if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ )
@@ -198,18 +183,16 @@ namespace CoupledField {
     ReadRestart();
     
     // correct numstep due to restart
-    numstep_ = numstep_ - restartStep_; 
+    numstep_ = numstep_ - restartStep_;
     
     UInt startStep = restartStep_ + 1;
     endStep_ = numstep_ + restartStep_;
     Double timeStepPercent = (double)numstep_/10;
-    Double percentCounter = timeStepPercent;     
+    Double percentCounter = timeStepPercent;
   
  
    
 
-    // Note: no controller restriction for magnetic PDEs anymore — the I/PI divergence
-    // only occurred with nonlinear materials, which MagBasePDE::InitTimeStepping rejects.
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
@@ -230,8 +213,8 @@ namespace CoupledField {
     // Outer loop over all timesteps
     UInt count = 0;
     // For adaptive runs, deltaT defines total sim time. The first step size
-    // is dtMin when startAtDtMin="ON", otherwise deltaT.
-    Double startDt = (adaptiveEnabeled_ && atData_->startFromDtMin_ && atData_->dtMin_ > 0.0)
+    // is dtMin with <startup mode="startAtMin">, otherwise deltaT.
+    Double startDt = (adaptiveEnabled_ && atData_->startFromDtMin_ && atData_->dtMin_ > 0.0)
                      ? atData_->dtMin_ : firstdt_;
     dt_      = startDt;
     // End of the last completed step; pre-restart steps are assumed uniform (firstdt_).
@@ -240,7 +223,7 @@ namespace CoupledField {
     actTimeStep_ = startStep;
     int retryCount = 0;
 
-    while (actTimeStep_ <= endStep_ && simulationEndTimeReached_ == false) {     
+    while (actTimeStep_ <= endStep_ && simulationEndTimeReached_ == false) {
 
       LOG_DBG(trans_driver) << "loop over timestep " << actTimeStep_;
 
@@ -251,7 +234,7 @@ namespace CoupledField {
       }
 
       // Adaptive: each attempt (incl. retries with reduced dt_) solves at the true end of its step.
-      if (adaptiveEnabeled_)
+      if (adaptiveEnabled_)
         actTime_ = stepStartTime_ + dt_;
 
       // Set current value of timestep and time step size in the mathParser
@@ -315,7 +298,7 @@ namespace CoupledField {
         break;
       }
 
-      if (adaptiveEnabeled_) {
+      if (adaptiveEnabled_) {
         bool accepted = adaptTimestep(retryCount);  // updates dt_ to h_next
         if (!accepted) {
           retryCount++;
@@ -349,7 +332,6 @@ namespace CoupledField {
         }
 
       } else {
-        // Non-adaptive: original behavior unchanged
         resHandler->BeginStep( actTimeStep_, actTime_ );
         ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
         resHandler->FinishStep( );
@@ -380,7 +362,7 @@ namespace CoupledField {
       
     }
 
-    if (adaptiveEnabeled_) {
+    if (adaptiveEnabled_) {
       int total = atData_->totalAcceptedSteps_;
       int nMin  = atData_->stepsAtDtMin_;
       int nMax  = atData_->stepsAtDtMax_;
@@ -516,8 +498,8 @@ namespace CoupledField {
       std::cout << " [Adaptive] HINT: The first LTE-capable step is rejecting.\n"
                 << "            Initial deltaT=" << firstdt_ << " is likely too large for the given tolerance.\n"
                 << "            Add <startup mode=\"startAtMin\"/> to your <adaptiveTimeStepping> to start from deltaT/min instead.\n"
-                << "            If startAtMin isn`t viabel, try <startup mode=\"warmUpLTE\"><activateBelow>...</activateBelow></startup>\n"
-                << "            to move the adaptive start to a less transient part of the Simulation.\n";
+                << "            If startAtMin isn't viable, try <startup mode=\"warmUpLTE\"><activateBelow>...</activateBelow></startup>\n"
+                << "            to move the adaptive start to a less transient part of the simulation.\n";
     }
 
     std::cout << "*******************************************************\n";
@@ -535,7 +517,7 @@ namespace CoupledField {
       atData_->prevError_     = prevLTEerror_;
     }
 
-    std::cout << "Current Simualtion time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
+    std::cout << "Current simulation time: " << actTime_ << " Simulation end: " << simulationENDTime_ << " \n";
     std::cout << "*******************************************************\n";
     return accepted;
   }

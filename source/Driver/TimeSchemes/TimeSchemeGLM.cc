@@ -228,7 +228,7 @@ namespace CoupledField{
   
   void TimeSchemeGLM::BeginStep( bool updatePredictor, bool storeInitialIterGlmVector ) {
 
-    // Adaptive timestepping init: read flag and configure BDF2 for variable steps.
+    // Resolve the MathParser lazily; the domain is only wired up after construction.
      if(domain_ != nullptr && mathparser_ == nullptr)
      {
         mathparser_ = domain_->GetMathParser();
@@ -257,7 +257,7 @@ namespace CoupledField{
           curScheme_->adaptiveEnabled_ = true;
           adaptiveStepCount_ = 0;
           // Re-seed dt history with the actual first adaptive dt (Init() seeded firstdt_,
-          // which is wrong when StartAtmin makes the first step use dtMin).
+          // which is wrong when startAtMin makes the first step use dtMin).
           curScheme_->initialized_ = false;
           // Step-growth cap: BDF2 zero-stability bound 1+sqrt(2); Newmark is A-stable
           // (gamma=1/2, beta=1/4), only controller robustness limits growth -> 5x.
@@ -273,7 +273,6 @@ namespace CoupledField{
         }
       }
     }
-    // Adaptive Timestepping: update dt from AdaptiveTimesteppingData and recompute coefficients.
     if(curScheme_->adaptiveEnabled_)
     {
       double dt = mathparser_->GetExprVars(MathParser::GLOB_HANDLER,"dt");
@@ -504,7 +503,7 @@ namespace CoupledField{
           // save state + GLM update for this field.
 
         } else {
-          // ── Single-field path (FinishStepLTE not called) ─────────────
+          // Single-field path (FinishStepLTE not called)
           if (curType_ == GLMScheme::NEWMARK)
             LTENewmarkEstimation();
           else
@@ -537,13 +536,12 @@ namespace CoupledField{
         }
         prevPrevSol_->operator=(*glmVector_[1]);
       }
-      // coefChanged_ is sticky for adaptive (BDF2: set in AdvanceAdaptiveStep; Newmark: in
-      // ComputeCoefficients). The rebuild for this step is consumed, so clear it on accept.
+      // Sticky coefChanged_: this step's rebuild is consumed, so clear it on accept.
       curScheme_->coefChanged_ = false;
       adaptiveStepCount_++;
     }
-  
-    
+
+
     //just hack for flow and BDF2
     //bool usePredictorsOK = true;
     //if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)

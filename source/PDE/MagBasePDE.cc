@@ -100,8 +100,8 @@ namespace CoupledField
 
   void MagBasePDE::InitTimeStepping()
   {
-    // Verified 2026-06-10: const-dt BDF2 + NonLinType::INCREMENTAL diverges and Newton
-    // stalls on step 1 — scheme-level incompatibility, independent of adaptive control.
+    // const-dt BDF2 + NonLinType::INCREMENTAL diverges and Newton stalls on step 1:
+    // a scheme-level incompatibility, independent of adaptive control.
     if (GetDomain()->GetAdaptiveData() && (nonLin_ || isHysteresis_))
       EXCEPTION("Adaptive timestepping is not supported for nonlinear magnetic problems: "
                 "BDF2 with incremental nonlinearity diverges (only Trapezoidal works). "
@@ -112,10 +112,12 @@ namespace CoupledField
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
+    const bool adaptive = GetDomain()->GetAdaptiveData() != nullptr;
+
     auto makeScheme = [&]() -> GLMScheme* {
       if (integrationScheme)
         return GetXmlDefinedScheme(integrationScheme);
-      else if (GetDomain()->GetAdaptiveData())
+      else if (adaptive)
         return new Bdf2();
       else
         return new Trapezoidal(1.0);
@@ -126,15 +128,27 @@ namespace CoupledField
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
     // Important: Create a new time scheme for each additional feFunction
+    // NEW: from NACS - copy stepping scheme from mag potential
+    shared_ptr<TimeSchemeGLM> mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
+        feFunctions_[MAG_POTENTIAL]->GetTimeScheme());
+    assert(mainScheme);
+
+    // The copy ctor shares curScheme_, where the adaptive dt history and LTE state live.
+    // Adaptive therefore needs an independent GLMScheme per field; otherwise copy as before.
+    auto additionalScheme = [&]() -> TimeSchemeGLM* {
+      return adaptive ? new TimeSchemeGLM(makeScheme(), 0, nlType)
+                      : new TimeSchemeGLM(*mainScheme);
+    };
+
     if (hasVoltCoils_)
     {
-      shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(makeScheme(), 0, nlType));
+      shared_ptr<BaseTimeScheme> myScheme2(additionalScheme());
       feFunctions_[COIL_CURRENT]->SetTimeScheme(myScheme2);
     }
 
     if (isMixed_)
     {
-      shared_ptr<BaseTimeScheme> myScheme3(new TimeSchemeGLM(makeScheme(), 0, nlType));
+      shared_ptr<BaseTimeScheme> myScheme3(additionalScheme());
       feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme3);
     }
   }

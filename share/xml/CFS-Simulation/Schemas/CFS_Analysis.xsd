@@ -147,7 +147,6 @@
             <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
           </xsd:annotation>
           </xsd:element>
-          <!-- optional adaptive time stepping block -->
           <xsd:element name="adaptiveTimeStepping" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>
@@ -183,7 +182,7 @@
                   <xsd:annotation>
                     <xsd:documentation>
                       Governs the first, LTE-incapable step(s). If omitted entirely, the first step uses
-                      &lt;deltaT&gt; itself (equals the old default StartAtmin="OFF").
+                      &lt;deltaT&gt; itself.
 
                       mode="startAtMin" : first step uses deltaT/min instead (useful when deltaT &gt;&gt; wave period).
                                           Must be an empty element: &lt;startup mode="startAtMin"/&gt;.
@@ -218,7 +217,6 @@
                       tolerance and step-size factors (see DT_LTEErrorMethod). Exactly one of:
                         LTEnormalizedError : LTE with RMS norm over all DOFs, recommended for large systems.
                         LTEmaxlocalError   : LTE with max over all DOFs (strict).
-                      A future method is added as an additional choice branch with its own type.
                     </xsd:documentation>
                   </xsd:annotation>
                   <xsd:complexType>
@@ -232,8 +230,6 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
-          <!-- optional adaptive time stepping block end -->
-          <!-- optional user-defined time integration scheme -->
           <xsd:element name="integrationScheme" minOccurs="0" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>Overrides the default time integration scheme used for this PDE.
@@ -246,11 +242,26 @@
             <xsd:complexType>
               <xsd:choice minOccurs="1" maxOccurs="1">
                 <xsd:element name="trapezoidal">
+                  <xsd:annotation>
+                    <xsd:documentation>Implicit trapezoidal rule. Attribute gamma weights the new vs. old time level:
+                                        gamma=0.5 gives the Crank-Nicolson scheme (2nd-order, no dissipation),
+                                        gamma=1.0 gives backward Euler (1st-order, strongly dissipative).
+                                        Values between 0.5 and 1.0 introduce controlled numerical dissipation.
+                    </xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType>
                     <xsd:attribute name="gamma" type="xsd:double" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
                 <xsd:element name="newmark">
+                  <xsd:annotation>
+                    <xsd:documentation>Newmark-beta method for second-order systems.
+                                        gamma weights the velocity update (0.5 = non-dissipative, above 0.5 adds dissipation).
+                                        beta weights the displacement update (0.25 with gamma=0.5 gives the constant-average-acceleration
+                                        method: unconditionally stable and 2nd-order accurate).
+                                        alpha is the HHT generalized-alpha parameter; set to 0.0 for standard Newmark.
+                    </xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType>
                     <xsd:attribute name="gamma" type="xsd:double" use="required"/>
                     <xsd:attribute name="beta"  type="xsd:double" use="required"/>
@@ -258,15 +269,28 @@
                   </xsd:complexType>
                 </xsd:element>
                 <xsd:element name="bdf2">
+                  <xsd:annotation>
+                    <xsd:documentation>Backward Differentiation Formula of order 2 (BDF2).
+                                        Implicit, A-stable, 2nd-order accurate multi-step method.
+                                        Uses the two previous time steps; the first step is bootstrapped with a lower-order scheme.
+                                        No parameters.
+                    </xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType/>
                 </xsd:element>
                 <xsd:element name="rk4">
+                  <xsd:annotation>
+                    <xsd:documentation>Classical explicit Runge-Kutta method of order 4 (RK4).
+                                        Four-stage, 4th-order accurate explicit scheme.
+                                        Conditionally stable: deltaT must satisfy the CFL condition for the spatial discretization.
+                                        No parameters.
+                    </xsd:documentation>
+                  </xsd:annotation>
                   <xsd:complexType/>
                 </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
-          <!-- optional user-defined time integration scheme end -->
         </xsd:sequence>
 
         <xsd:attribute name="initialTime" default="accumulated">

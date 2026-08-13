@@ -18,8 +18,8 @@
     <description>
       Regression test for adaptive timestepping with the (default) Newmark scheme
       on MechPDE: force pulse on the cantilever tip, then free damped oscillation.
-      PI controller, normalizedError norm, relativeTol/absoluteTol scaling with
-      absoluteTol = relativeTol * tip amplitude (amplitude rule).
+      PI controller, LTEnormalizedError norm, relative/absolute tolerance scaling with
+      absolute = relative * tip amplitude.
     </description>
   </documentation>
 

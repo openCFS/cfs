@@ -699,7 +699,6 @@ namespace CoupledField {
         // are introduced, since right now only the system matrix is considered
         // for harmonic computations (no splitting in M and K).
 
-        schemeCoefChanged = false;
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++)
           if(fncIt->second->GetTimeScheme()->CoefficientsChanged()) schemeCoefChanged = true;
 
@@ -809,7 +808,7 @@ namespace CoupledField {
      // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);
     }
-    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
       fncIt->second->GetTimeScheme()->FinishStepLTE();
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
@@ -1161,7 +1160,8 @@ namespace CoupledField {
       }
     }
     
-    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
+    // FinishStep() computes the new solution vector: solution_new = solution_old + stage_solutions
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStepLTE();
     for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
@@ -1330,10 +1330,10 @@ namespace CoupledField {
       
     } //stages
     
-    //update stage — two-phase: collect all field LTEs first, then decide + update GLM
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStepLTE();
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
   }
   /** direct quasi-Newton formlation
