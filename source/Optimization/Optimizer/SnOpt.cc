@@ -43,11 +43,30 @@ int SnOpt_C_Callback(int32_t* Status, int32_t* n,
   return static_snopt->Callback(Status, *n, x, needF, nF, F, needG, nG, G, cu, lencu, iu, leniu, ru, lenru);
 }
 
-/** called by the patch just before snopt increments its own nMajor variable. Therefore the final iteration is not called */
-int SnOpt_C_CallbackUsrmjr(int32_t* nMajor)
+/** snopt's snSTOP hook. It is called once per major iteration at the accepted iterate, from the
+ *  initial design (nMajor == 0) up to the final one. All other arguments are unused, see
+ *  My_snSTOP in SnOptInterface.hh for their meaning. */
+void SnOpt_C_CallbackSnStop(
+    int32_t* iAbort, int32_t* /* KTcond */, int32_t* /* mjrPrtlvl */, int32_t* /* minimize */,
+    int32_t* /* m */, int32_t* /* maxS */, int32_t* /* n */, int32_t* /* nb */,
+    int32_t* /* nnCon0 */, int32_t* /* nnCon */, int32_t* /* nnObj0 */, int32_t* /* nnObj */,
+    int32_t* /* nS */, int32_t* /* itn */, int32_t* nMajor, int32_t* /* nMinor */,
+    int32_t* /* nSwap */, double* /* condZHZ */, int32_t* /* iObj */, double* /* scaleObj */,
+    double* /* objAdd */, double* /* fObj */, double* /* fMerit */, double* /* penParm */,
+    double* /* step */, double* /* primalInf */, double* /* dualInf */, double* /* maxVi */,
+    double* /* maxViRel */, int32_t* /* hs */, int32_t* /* neJ */, int32_t* /* nlocJ */,
+    int32_t* /* locJ */, int32_t* /* indJ */, double* /* Jcol */, int32_t* /* negCon */,
+    double* /* scales */, double* /* bl */, double* /* bu */, double* /* Fx */,
+    double* /* fCon */, double* /* gCon */, double* /* gObj */, double* /* yCon */,
+    double* /* pi */, double* /* rc */, double* /* rg */, double* /* x */,
+    char* /* cu */, int32_t* /* lencu */, int32_t* /* iu */, int32_t* /* leniu */,
+    double* /* ru */, int32_t* /* lenru */,
+    char* /* cw */, int32_t* /* lencw */, int32_t* /* iw */, int32_t* /* leniw */,
+    double* /* rw */, int32_t* /* lenrw */)
 {
   static_snopt->SetMajor(*nMajor);
-  return 0;
+  // the user break is handled in Callback() via Status = -10, so never abort from here
+  *iAbort = 0;
 }
 
 SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
@@ -224,9 +243,12 @@ void SnOpt::SolveProblem()
     assert(nA == 0);
   }
   
-  snopta(
+  // snkera instead of snopta, as only the kernel accepts our own snSTOP. The three log routines
+  // are snopt's defaults, exactly what snopta would pass.
+  snkera(
       &Start, &nF, &n, &nxname, &nFname,
-      &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback, SnOpt_C_CallbackUsrmjr,
+      &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
+      snlog, snlog2, sqlog, SnOpt_C_CallbackSnStop,
       iAfun.GetPointer(), jAvar.GetPointer(), &lenA, &nA, A.GetPointer(),
       &iGfun[0], &jGvar[0], &lenG, &nG,
       &xlow[0], &xupp[0], xnames,  &Flow[0], &Fupp[0], Fnames,
@@ -239,8 +261,21 @@ void SnOpt::SolveProblem()
   
   InfoXMLOutput();
 
-  major++; // out patched callback is not called for the final iterations
-  CommitIteration();
+  // snopt's solution is not necessarily the last design we evaluated: when snkera aborts within a
+  // major (failed line search, user break) x is an earlier point. Sync the state with x, this costs
+  // nothing in the regular case.
+  int last_design = design_.design_id;
+  EvalObjective(n, x.GetPointer(), true);
+  if(design_.design_id != last_design)
+  {
+    // the constraint values we log shall belong to the design we store
+    StdVector<double> g(std::max(nF - 1, 1));
+    EvalConstraints(n, x.GetPointer(), nF - 1, true, g.GetPointer(), false);
+  }
+
+  // for MAJOR snSTOP has already committed the final major, for NCON this commit is still pending
+  if(design_.design_id != optimization->objectives.GetLastDesignId())
+    CommitIteration();
 }
 
 void SnOpt::LogFileHeader(Optimization::Log& log)

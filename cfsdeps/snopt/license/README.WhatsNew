@@ -1,4 +1,111 @@
-README.WhatsNew                      Philip E. Gill,  April 4, 2008.
+README.WhatsNew
+
+Version 7.7.3                        Elizabeth Wong & Philip E. Gill
+                                                     January 8, 2020.
+
+  o A bug that incorrectly declared problems with infeasible elastic
+    variables optimal has been fixed.  The number and sum of infeasibilities
+    has been updated to correctly reflect elastic infeasibilities, if they
+    exist.
+
+  o Solution output has also been updated to print the constraint
+    multipliers correctly, and to correctly label infeasible constraint
+    slacks.
+
+  o Matlab mexfile bug with Fortran printfile unit that caused fort.#
+    output has been fixed.  Ctrl-C support in Matlab also updated to work
+    with r2019a.
+
+
+Version 7.7.0                        Elizabeth Wong & Philip E. Gill
+                                                      April 17, 2018.
+
+  o New subroutines snInitF, snSpecF, sqInitF, sqSpecF, npInitF,
+    npSpecF added to hide Fortran unit numbers from users; unit numbers are
+    handled internally with these subroutines.  Intended for shared-library
+    users.  Previous subroutines for init/spec are still available.
+
+  o This update also removes f2c, csrc, and cexamples from SNOPT.  Users
+    should migrate to the C/C++ interface that was first introduced in
+    version 7.2-13.
+
+  o Minor bug fixes in C/C++ interface (update to 2.1.0)
+
+
+Version 7.6.1                        Elizabeth Wong & Philip E. Gill
+                                                      April 25, 2017.
+
+  o Minor bug fixes to Fortran SNOPT library.
+
+
+Version 7.6.0                        Elizabeth Wong & Philip E. Gill
+                                                    January 11, 2017.
+
+  o Minor bug fixes to Fortran SNOPT library.
+
+  o Minor updates to Matlab mex-files and C/C++ interface.
+
+  o C/C++ interface now include SQOPT.  Also added SNOPTA to C interface.
+
+  o Minor internal updates to C/C++ interface include changes to the
+    handling of files and Fortran unit numbers, and major changes to the
+    C interface snProblem struct, which now only includes
+    workspace-related objects.
+
+
+
+Version 7.4-1.1                     Elizabeth Wong & Philip E. Gill
+                                                    January 1, 2015.
+
+  o Significant restructuring of the source files and code in
+    readiness for the addition of a second-derivative option.
+
+  o Elastic mode rewritten to handle the treatment of singular bases.
+
+  o SQOPT restructured to provide improved reliability.
+
+  o New example programs that illustrate the use of elastic mode
+    for SQOPT
+
+  o Improvements and additional output for the "Feasible point only"
+    option.
+
+  o C/C++ interface based on iso_c_binding module; f2c'd version of
+    SNOPT provided, but users should migrate to the new C/C++ interface.
+    SNOPT Fortran subroutines are called directly from C/C++; a Fortran
+    compiler is required.
+
+  o Various bug fixes.
+
+
+Version 7.2-13                      Elizabeth Wong & Philip E. Gill
+                                                    August  1, 2014.
+
+  o Various bug fixes.
+
+  o New C/C++ interface based on iso_c_binding module.
+
+
+Version 7.2-12                      Elizabeth Wong & Philip E. Gill
+                                                  February 14, 2013.
+
+  o Various bug fixes.
+
+  o Example f90 interface routines removed
+     (fortran 2003 Version due March, 2015).
+
+  o Improved configure script with libtool
+
+
+Version 7.2-9                        Philip E. Gill,  April 4, 2010.
+
+  o New version of the control interface.
+
+  o Various bug fixes.
+
+  o Example f90 interface routines added.
+
+  o mex interface for Mac OS X 10.6.3 64 bit
 
 
 Version 7.2-7                        Philip E. Gill,  April 4, 2008.

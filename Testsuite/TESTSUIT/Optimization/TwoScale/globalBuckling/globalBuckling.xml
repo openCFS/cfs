@@ -89,8 +89,7 @@
     </constraint>
     
     <optimizer type="snopt" maxIterations="5">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option name="major_optimality_tolerance" type="real" value="1e-8"/>
         <option name="verify_level" type="integer" value="-1"/>
       </snopt>

@@ -99,14 +99,7 @@
     <constraint type="curvature" bound="upperBound" value="0.3/nx" design="node" linear="true"/>
     <constraint type="curvature" bound="upperBound" value="0.3/nx" design="profile" linear="true"/>
    
-    <optimizer type="snopt" maxIterations="25">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
-        <!-- extremely early termination to achieve finished successfully --> 
-        <option name="major_optimality_tolerance" type="real" value="5e-3"/>
-        <option type="integer" name="verify_level" value="-1"/>
-      </snopt>
-    </optimizer>
+    <optimizer type="ipopt" maxIterations="9"/>
     
     <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
       <!-- we cannot achieve sufficient integration anyway - so make it faster --> 

@@ -80,8 +80,7 @@
     <constraint type="perimeter" bound="lowerBound" value="0.15" parameter="1e-3" mode="constraint" linear="false"/>
     
     <optimizer type="snopt"  maxIterations="20">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option name="verify_level" type="integer" value="-1"/>
       </snopt>
     </optimizer> 

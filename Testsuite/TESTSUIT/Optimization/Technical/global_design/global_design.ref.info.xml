@@ -1,25 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="68" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="63">
   <summary>
-    <timer wall-clock="0.423s" wall="0.423" cpu="0.387784" calls="1"/>
+    <timer id="0" wall-clock="0.2155s" wall="0.215486" cpu="0.216906" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="51"/>
+    <memory final="55"/>
   </summary>
   <header id="">
-    <environment started="2026-Jan-14 12:39:50" host="MacBookPro.fritz.box"/>
-    <progOpts problem="global_design" parameterFile="/Users/fwein/code/master/Testsuite/TESTSUIT/Optimization/Technical/global_design/global_design.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="25.12" name="Just Jacobians" build="RELEASE" git_commit="fba5cb40f09ecb2f4937f13a137a6e71fbd612e4-modified" git_branch="replace_boost" compiled="Jan 13 2026" exe="cfs"/>
+    <environment started="14-Aug-26 17:49:48" host="MacBook-Pro"/>
+    <progOpts problem="global_design" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/global_design/global_design.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="16" ny="16" nz="1">
-      <grids>
-        <timer wall-clock="0.013s" wall="0.013" cpu="0.008292" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="256" nodes="289"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="256" nodes="289">
+          <timer id="5" wall-clock="0.0006663s" wall="0.000666292" cpu="0.000669" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="8.146e-05s" wall="8.1459e-05" cpu="8.2e-05" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.000241s" wall="0.000241" cpu="0.00024" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="0.000121s" wall="0.000121" cpu="0.000121" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="5.654e-05s" wall="5.6541e-05" cpu="5.4e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="289" elems="256" isQuadratic="no"/>
       </regions>
@@ -40,52 +54,60 @@
       <globalMathParser dt="0" f="0" nx="16" ny="16" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.031s" wall="0.031" cpu="0.045406" calls="310"/>
+      <timer id="36" wall-clock="0.008913s" wall="0.00891329" cpu="0.008889" calls="310"/>
     </results>
   </header>
-  <calculation>
-    <process>
-      <sequence step="0">
-        <result data="mechDeformEnergy" location="mech" definedOn="region">
-          <item step="0" step_val="0" value="54.996" unit="Ws"/>
-          <item step="1" step_val="1" value="44.153" unit="Ws"/>
-          <item step="2" step_val="2" value="24.704" unit="Ws"/>
-          <item step="3" step_val="3" value="23.216" unit="Ws"/>
-          <item step="4" step_val="4" value="22.863" unit="Ws"/>
-          <item step="5" step_val="5" value="22.731" unit="Ws"/>
-          <item step="6" step_val="6" value="22.671" unit="Ws"/>
-          <item step="7" step_val="7" value="22.725" unit="Ws"/>
-          <item step="8" step_val="8" value="22.714" unit="Ws"/>
-          <item step="9" step_val="9" value="22.649" unit="Ws"/>
-          <item step="10" step_val="10" value="22.553" unit="Ws"/>
-          <item step="11" step_val="11" value="22.518" unit="Ws"/>
-          <item step="12" step_val="12" value="22.503" unit="Ws"/>
-          <item step="13" step_val="13" value="22.679" unit="Ws"/>
-          <item step="14" step_val="14" value="22.748" unit="Ws"/>
-          <item step="15" step_val="15" value="22.849" unit="Ws"/>
-          <item step="16" step_val="16" value="22.914" unit="Ws"/>
-          <item step="17" step_val="17" value="23.063" unit="Ws"/>
-          <item step="18" step_val="18" value="23.048" unit="Ws"/>
-          <item step="19" step_val="19" value="23.029" unit="Ws"/>
-          <item step="20" step_val="20" value="22.995" unit="Ws"/>
-          <item step="21" step_val="21" value="22.962" unit="Ws"/>
-          <item step="22" step_val="22" value="22.931" unit="Ws"/>
-          <item step="23" step_val="23" value="22.921" unit="Ws"/>
-          <item step="24" step_val="24" value="22.94" unit="Ws"/>
-          <item step="25" step_val="25" value="22.973" unit="Ws"/>
-          <item step="26" step_val="26" value="22.968" unit="Ws"/>
-          <item step="27" step_val="27" value="22.95" unit="Ws"/>
-          <item step="28" step_val="28" value="22.937" unit="Ws"/>
-          <item step="29" step_val="29" value="22.923" unit="Ws"/>
-          <item step="30" step_val="30" value="22.923" unit="Ws"/>
-        </result>
-      </sequence>
-    </process>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001099s" wall="0.00109925" cpu="0.001105" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="4.58e-07s" wall="4.58e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process>
+          <sequence step="0">
+            <result data="mechDeformEnergy" location="mech" definedOn="region">
+              <item step="0" step_val="0" value="92.901" unit="Ws"/>
+              <item step="1" step_val="1" value="60.863" unit="Ws"/>
+              <item step="2" step_val="2" value="46.181" unit="Ws"/>
+              <item step="3" step_val="3" value="29.408" unit="Ws"/>
+              <item step="4" step_val="4" value="24.285" unit="Ws"/>
+              <item step="5" step_val="5" value="23.383" unit="Ws"/>
+              <item step="6" step_val="6" value="22.631" unit="Ws"/>
+              <item step="7" step_val="7" value="22.609" unit="Ws"/>
+              <item step="8" step_val="8" value="22.545" unit="Ws"/>
+              <item step="9" step_val="9" value="22.537" unit="Ws"/>
+              <item step="10" step_val="10" value="22.542" unit="Ws"/>
+              <item step="11" step_val="11" value="22.518" unit="Ws"/>
+              <item step="12" step_val="12" value="22.515" unit="Ws"/>
+              <item step="13" step_val="13" value="22.521" unit="Ws"/>
+              <item step="14" step_val="14" value="22.659" unit="Ws"/>
+              <item step="15" step_val="15" value="22.941" unit="Ws"/>
+              <item step="16" step_val="16" value="22.957" unit="Ws"/>
+              <item step="17" step_val="17" value="22.986" unit="Ws"/>
+              <item step="18" step_val="18" value="22.978" unit="Ws"/>
+              <item step="19" step_val="19" value="22.908" unit="Ws"/>
+              <item step="20" step_val="20" value="22.867" unit="Ws"/>
+              <item step="21" step_val="21" value="22.788" unit="Ws"/>
+              <item step="22" step_val="22" value="22.785" unit="Ws"/>
+              <item step="23" step_val="23" value="22.785" unit="Ws"/>
+              <item step="24" step_val="24" value="22.809" unit="Ws"/>
+              <item step="25" step_val="25" value="22.83" unit="Ws"/>
+              <item step="26" step_val="26" value="22.825" unit="Ws"/>
+              <item step="27" step_val="27" value="22.812" unit="Ws"/>
+              <item step="28" step_val="28" value="22.762" unit="Ws"/>
+              <item step="29" step_val="29" value="22.724" unit="Ws"/>
+              <item step="30" step_val="30" value="22.724" unit="Ws"/>
+            </result>
+          </sequence>
+        </process>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.021s" wall="0.021" cpu="0.013574" calls="1"/>
+        <timer id="16" wall-clock="0.005849s" wall="0.00584913" cpu="0.005855" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -178,10 +200,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.024395" calls="51"/>
+                <timer id="27" label="setup_directLDL" wall-clock="0.01562s" wall="0.0156234" cpu="0.015593" calls="51"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.006124" calls="51"/>
+                <timer id="28" label="solve_directLDL" wall-clock="0.003583s" wall="0.0035835" cpu="0.00357" calls="51"/>
               </solve>
             </summary>
           </directLDL>
@@ -190,10 +212,10 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="2.7e-05" calls="51"/>
+                <timer id="29" wall-clock="1.971e-05s" wall="1.9708e-05" cpu="2.7e-05" calls="51"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="30" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -202,28 +224,40 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.001916" calls="1" sub="true"/>
-      </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.000964" calls="1" sub="true"/>
-      </reorder_Metis>
+      <graph nnz="9016">
+        <timer id="23" wall-clock="0.000934s" wall="0.000933958" cpu="0.000996" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="24" wall-clock="6.263e-05s" wall="6.2625e-05" cpu="0.000106" calls="1" sub="true" parent="23"/>
+        </finalize>
+        <sort>
+          <timer id="25" wall-clock="3.233e-05s" wall="3.2334e-05" cpu="5.2e-05" calls="1" sub="true" parent="23"/>
+        </sort>
+        <rows number="544" min="8" max="18" mean="16.574" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="26" wall-clock="0.0005319s" wall="0.000531875" cpu="0.000532" calls="1" sub="true" parent="23"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="0.018477" calls="102"/>
-          <assemble_matrices>
-            <timer wall-clock="0s" wall="0" cpu="0.018237" calls="51" sub="true"/>
-          </assemble_matrices>
-          <assemble_rhs>
-            <timer wall-clock="0s" wall="0" cpu="0.000118" calls="51" sub="true"/>
-          </assemble_rhs>
+          <timer id="18" wall-clock="0.008434s" wall="0.00843378" cpu="0.016015" calls="102"/>
+          <matrices>
+            <timer id="19" wall-clock="0.008256s" wall="0.00825617" cpu="0.015817" calls="51" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="8.988e-05s" wall="8.9875e-05" cpu="0.000103" calls="51" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="22" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/Users/fwein/code/master/Testsuite/TESTSUIT/Optimization/Technical/global_design/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/global_design/HALTOPT">
     <header>
       <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
@@ -232,11 +266,11 @@
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000198" calls="2"/>
+          <timer id="17" wall-clock="0.0001266s" wall="0.000126583" cpu="0.000126" calls="2"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="2.5" contribution="linear" design="density" elems="256" avg_radius="0.15625" avg_neighbors="17.328"/>
-          <timer wall-clock="0s" wall="0" cpu="0.000239" calls="1"/>
+          <timer id="21" wall-clock="0.0001304s" wall="0.000130375" cpu="0.000183" calls="1"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="3"/>
@@ -259,66 +293,66 @@
       <snopt>
         <summary snopt_outputfile="global_design.snopt">
           <snopt>
-            <timer wall-clock="0.005s" wall="0.005" cpu="0.02028" calls="241"/>
+            <timer id="31" wall-clock="0.0257s" wall="0.025696" cpu="0.025679" calls="242"/>
           </snopt>
           <snopt_exit exit="0" info="32"/>
-          <evaluations f_evals="52" g_evals="51" majors="29"/>
+          <evaluations f_evals="52" g_evals="51" majors="30"/>
         </summary>
         <scaling active="no"/>
       </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="0.079s" wall="0.079" cpu="0.099726" calls="206"/>
+        <timer id="32" wall-clock="0.05577s" wall="0.0557674" cpu="0.055065" calls="207"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.000404" calls="52"/>
+        <timer id="33" wall-clock="0.0004459s" wall="0.000445912" cpu="0.000462" calls="52"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.003021" calls="51"/>
+        <timer id="34" wall-clock="0.002082s" wall="0.00208175" cpu="0.002088" calls="51"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.000789" calls="52"/>
+        <timer id="35" wall-clock="0.0006378s" wall="0.000637795" cpu="0.000636" calls="52"/>
       </eval_grad_constraints>
       <break converged="no"/>
       <functions>
-        <compliance min="45.006" max="109.99" oscillations="6"/>
-        <volume min="0.4" max="0.4" oscillations="15"/>
-        <globalDesign min="0" max="0.86664" oscillations="4"/>
+        <compliance min="45.029" max="185.8" oscillations="6"/>
+        <volume min="0.4" max="0.4" oscillations="21"/>
+        <globalDesign min="0" max="1.5583" oscillations="5"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.129" compliance="109.991415529198" volume="0.4" globalDesign="0" nObj="2"/>
-      <iteration number="1" duration="0.005" compliance="88.3065488452775" volume="0.4" globalDesign="0" nObj="3"/>
-      <iteration number="2" duration="0.005" compliance="49.4080696638014" volume="0.4" globalDesign="0.866637478066078" nObj="4"/>
-      <iteration number="3" duration="0.005" compliance="46.4329127968475" volume="0.4" globalDesign="0.40075798980942" nObj="5"/>
-      <iteration number="4" duration="0.005" compliance="45.7268605738338" volume="0.400000000000001" globalDesign="0.253407096434729" nObj="6"/>
-      <iteration number="5" duration="0.007" compliance="45.4623031517326" volume="0.400000000000001" globalDesign="0.165914449592283" nObj="8"/>
-      <iteration number="6" duration="0.007" compliance="45.3420683815298" volume="0.4" globalDesign="0.127554265798223" nObj="10"/>
-      <iteration number="7" duration="0.008" compliance="45.4502847151733" volume="0.400000000000001" globalDesign="0.0874047765472523" nObj="12"/>
-      <iteration number="8" duration="0.007" compliance="45.427635495615" volume="0.400000000000001" globalDesign="0.067531590827329" nObj="14"/>
-      <iteration number="9" duration="0.009" compliance="45.298562502022" volume="0.400000000000001" globalDesign="0.0586553859785066" nObj="16"/>
-      <iteration number="10" duration="0.009" compliance="45.1065076379429" volume="0.400000000000001" globalDesign="0.0510986618968238" nObj="18"/>
-      <iteration number="11" duration="0.009" compliance="45.035792722508" volume="0.400000000000001" globalDesign="0.0433473522282286" nObj="20"/>
-      <iteration number="12" duration="0.009" compliance="45.0061400350847" volume="0.400000000000001" globalDesign="0.0389181129649996" nObj="22"/>
-      <iteration number="13" duration="0.01" compliance="45.3570530646592" volume="0.400000000000001" globalDesign="0.024949074930553" nObj="24"/>
-      <iteration number="14" duration="0.011" compliance="45.4956482008327" volume="0.400000000000001" globalDesign="0.0197839751654923" nObj="26"/>
-      <iteration number="15" duration="0.01" compliance="45.6977339309897" volume="0.4" globalDesign="0.0137114076153037" nObj="28"/>
-      <iteration number="16" duration="0.012" compliance="45.8285029093327" volume="0.400000000000001" globalDesign="0.0101500890299566" nObj="30"/>
-      <iteration number="17" duration="0.008" compliance="46.1255372317574" volume="0.400000000000001" globalDesign="0.00372464570242298" nObj="31"/>
-      <iteration number="18" duration="0.008" compliance="46.0952204058367" volume="0.4" globalDesign="0.00309337702346014" nObj="32"/>
-      <iteration number="19" duration="0.012" compliance="46.058465005354" volume="0.400000000000001" globalDesign="0.00274543660478476" nObj="34"/>
-      <iteration number="20" duration="0.012" compliance="45.9895507542017" volume="0.400000000000001" globalDesign="0.00236720560410001" nObj="36"/>
-      <iteration number="21" duration="0.013" compliance="45.9232187607095" volume="0.400000000000001" globalDesign="0.00224871242260632" nObj="38"/>
-      <iteration number="22" duration="0.014" compliance="45.8614199786946" volume="0.400000000000001" globalDesign="0.00224318924422687" nObj="40"/>
-      <iteration number="23" duration="0.013" compliance="45.8422095444334" volume="0.400000000000001" globalDesign="0.00214022807348047" nObj="42"/>
-      <iteration number="24" duration="0.013" compliance="45.8808010651027" volume="0.400000000000001" globalDesign="0.00175249212400565" nObj="44"/>
-      <iteration number="25" duration="0.01" compliance="45.9460578729157" volume="0.400000000000001" globalDesign="0.00122141583281299" nObj="45"/>
-      <iteration number="26" duration="0.01" compliance="45.9352421736271" volume="0.400000000000001" globalDesign="0.00111379186806728" nObj="46"/>
-      <iteration number="27" duration="0.014" compliance="45.9000403985087" volume="0.400000000000001" globalDesign="0.00117186593794887" nObj="48"/>
-      <iteration number="28" duration="0.011" compliance="45.8732509602609" volume="0.400000000000001" globalDesign="0.00117025297200425" nObj="49"/>
-      <iteration number="29" duration="0.015" compliance="45.8450831228804" volume="0.4" globalDesign="0.0011904923590946" nObj="51"/>
-      <iteration number="30" duration="0.007" compliance="45.8450831228804" volume="0.4" globalDesign="0.0011904923590946" nObj="52"/>
+      <iteration number="0" duration="0.05532" compliance="185.802857695822" volume="0.400000000000001" globalDesign="0" nObj="1"/>
+      <iteration number="1" duration="0.0033587" compliance="121.726571856533" volume="0.4" globalDesign="0.169661250841367" nObj="2"/>
+      <iteration number="2" duration="0.0028205" compliance="92.3625778604162" volume="0.4" globalDesign="1.55832125773924" nObj="3"/>
+      <iteration number="3" duration="0.0026328" compliance="58.8154852390471" volume="0.400000000000001" globalDesign="0.820944174892937" nObj="4"/>
+      <iteration number="4" duration="0.0025658" compliance="48.5709921599093" volume="0.4" globalDesign="0.485650202056065" nObj="5"/>
+      <iteration number="5" duration="0.0028651" compliance="46.7660493136802" volume="0.400000000000001" globalDesign="0.242195307995808" nObj="6"/>
+      <iteration number="6" duration="0.0026966" compliance="45.2629390277855" volume="0.400000000000001" globalDesign="0.237938538016991" nObj="7"/>
+      <iteration number="7" duration="0.0029585" compliance="45.2183561951241" volume="0.400000000000001" globalDesign="0.146893875480176" nObj="8"/>
+      <iteration number="8" duration="0.0043095" compliance="45.0896817399694" volume="0.400000000000001" globalDesign="0.10289141408867" nObj="10"/>
+      <iteration number="9" duration="0.004561" compliance="45.0734695833925" volume="0.400000000000001" globalDesign="0.0693003996228613" nObj="12"/>
+      <iteration number="10" duration="0.0046197" compliance="45.0842752250154" volume="0.4" globalDesign="0.0537764202137422" nObj="14"/>
+      <iteration number="11" duration="0.0049003" compliance="45.0358470663869" volume="0.400000000000001" globalDesign="0.0460411576526276" nObj="16"/>
+      <iteration number="12" duration="0.0046018" compliance="45.029422646819" volume="0.400000000000001" globalDesign="0.0354982311025159" nObj="18"/>
+      <iteration number="13" duration="0.004517" compliance="45.0411571108062" volume="0.400000000000001" globalDesign="0.0313750499840763" nObj="20"/>
+      <iteration number="14" duration="0.0048636" compliance="45.3188133984215" volume="0.400000000000001" globalDesign="0.0215452850778" nObj="22"/>
+      <iteration number="15" duration="0.0035563" compliance="45.8819985449492" volume="0.400000000000001" globalDesign="0.00668431893848419" nObj="23"/>
+      <iteration number="16" duration="0.0052178" compliance="45.914017197423" volume="0.400000000000001" globalDesign="0.00541488543414502" nObj="25"/>
+      <iteration number="17" duration="0.0056025" compliance="45.9722617889215" volume="0.400000000000001" globalDesign="0.00385403170063527" nObj="27"/>
+      <iteration number="18" duration="0.0060188" compliance="45.9550041006919" volume="0.400000000000001" globalDesign="0.00313820625511171" nObj="29"/>
+      <iteration number="19" duration="0.0062926" compliance="45.8169654003789" volume="0.400000000000001" globalDesign="0.00281685659431505" nObj="31"/>
+      <iteration number="20" duration="0.0062305" compliance="45.7337707487651" volume="0.400000000000001" globalDesign="0.00305187803436242" nObj="33"/>
+      <iteration number="21" duration="0.0072301" compliance="45.5768612342725" volume="0.4" globalDesign="0.00351606037733259" nObj="35"/>
+      <iteration number="22" duration="0.0071963" compliance="45.5693514160126" volume="0.400000000000001" globalDesign="0.0032530518850075" nObj="37"/>
+      <iteration number="23" duration="0.0062606" compliance="45.5702599770856" volume="0.400000000000001" globalDesign="0.00292221573484449" nObj="39"/>
+      <iteration number="24" duration="0.0064918" compliance="45.6181628776791" volume="0.4" globalDesign="0.00232651707019502" nObj="41"/>
+      <iteration number="25" duration="0.006742" compliance="45.6600259436402" volume="0.400000000000001" globalDesign="0.00173254006192406" nObj="43"/>
+      <iteration number="26" duration="0.012445" compliance="45.6499693608189" volume="0.400000000000001" globalDesign="0.00157444897279062" nObj="45"/>
+      <iteration number="27" duration="0.0049508" compliance="45.6245227655815" volume="0.400000000000001" globalDesign="0.00150648005137491" nObj="46"/>
+      <iteration number="28" duration="0.0049929" compliance="45.5246702965925" volume="0.400000000000001" globalDesign="0.00164666837836195" nObj="47"/>
+      <iteration number="29" duration="0.0077504" compliance="45.448498777486" volume="0.400000000000001" globalDesign="0.00175701375623696" nObj="49"/>
+      <iteration number="30" duration="0.0078929" compliance="45.4472206629471" volume="0.400000000000001" globalDesign="0.00163333192588373" nObj="51"/>
     </process>
   </optimization>
 </cfsInfo>

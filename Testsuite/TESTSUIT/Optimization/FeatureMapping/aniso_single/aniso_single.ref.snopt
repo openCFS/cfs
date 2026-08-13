@@ -5,11 +5,11 @@
       Minor iterations limit          100000
       Iterations limit         1000000
 1
- 
+
  SNMEMA EXIT 100 -- finished successfully
  SNMEMA INFO 104 -- memory requirements estimated
 1
- 
+
  Parameters
  ==========
 
@@ -30,24 +30,28 @@
  QPsolver Cholesky......
  Scale tolerance........     0.900       Minor feasibility tol..  1.00E-06       Iteration limit........   1000000
  Scale option...........         0       Minor optimality  tol..  5.00E-07       Minor print level......         1
- Crash tolerance........     0.100       Pivot tolerance........  3.25E-11       Partial price..........         1
- Crash option...........         3       Elastic weight.........  1.00E+04       Prtl price section ( A)         5
-                                         New superbasics........        99       Prtl price section (-I)         2
+ Crash tolerance........     0.100       Pivot tolerance........  3.25E-11       New superbasics........        99
+ Crash option...........         3       Elastic weight.........  1.00E+05
+
+ Partial pricing
+ ---------------
+ LP Partial price.......         1       Prtl price section ( A)         5       Prtl price section (-I)         2
+ QP Partial price.......         1       Prtl price section ( A)         5       Prtl price section (-I)         2
 
  The SQP Method
  --------------
  Minimize...............                 Cold start.............                 Proximal Point method..         1
  Nonlinear objectiv vars         5       Objective Row..........         1       Function precision.....  3.00E-13
  Unbounded step size....  1.00E+20       Superbasics limit......         5       Difference interval....  5.48E-07
- Unbounded objective....  1.00E+15       Reduced Hessian dim....         5       Central difference int.  6.70E-05
+ Unbounded objective....  1.00E+10       Reduced Hessian dim....         5       Central difference int.  6.70E-05
  Major step limit.......  2.00E+00       Derivative linesearch..                 Derivative option......         1
  Major iterations limit.        30       Linesearch tolerance...   0.90000       Verify level...........        -1
  Minor iterations limit.    100000       Penalty parameter......  0.00E+00       Major Print Level......         1
-                                         Major optimality tol...  1.00E-06
+ Time limit (secs)...... 9999999.0       Major optimality tol...  1.00E-06
 
  Hessian Approximation
  ---------------------
- Full-Memory Hessian....                 Hessian updates........  99999999       Hessian frequency......  99999999
+ Hessian full-memory....                 Hessian updates........  99999999       Hessian frequency......  99999999
                                                                                  Hessian flush..........  99999999
 
  Nonlinear constraints
@@ -57,14 +61,14 @@
 
  Miscellaneous
  -------------
- LU factor tolerance....      3.99       LU singularity tol.....  3.25E-11       Timing level...........         0
+ LU factor tolerance....      3.99       LU singularity tol.....  3.25E-11       Timing level...........         3
  LU update tolerance....      3.99       LU swap tolerance......  1.22E-04       Debug level............         0
  LU partial  pivoting...                 eps (machine precision)  2.22E-16       System information.....        No
                                                                                  Sticky parameters......        No
 1
- 
 
- 
+
+
 
  Matrix statistics
  -----------------
@@ -73,8 +77,8 @@
  Columns           5           0           0           0           5
 
  No. of matrix elements                    5     Density      50.000
- Biggest                          0.0000E+00  (excluding fixed columns,
- Smallest                         0.0000E+00   free rows, and RHS)
+ Biggest  constant element        0.0000E+00  (excluding fixed columns,
+ Smallest constant element        0.0000E+00   free rows, and RHS)
 
  No. of objective coefficients             0
 
@@ -83,63 +87,75 @@
  Jacobian  variables         5     Objective variables      5
  Total constraints           2     Total variables          5
 1
- 
 
- 
+
+
  The user has defined      10   out of      10   first  derivatives
 1
- 
- 
 
-   Itns Major Minors    Step   nCon Feasible  Optimal  MeritFunction     L+U BSwap     nS  condHz Penalty
-      5     0      5              1 (0.0E+00) 1.1E+00  1.3757831E+02       2                              _  r
-      9     1      4 3.9E-01      3 (0.0E+00) 9.2E-01  2.1431251E+01       2            4 1.0E+00         _n r
-     10     2      1 3.3E-01      6 (0.0E+00) 1.1E+00  1.4938530E+01       2            4 1.2E+00         _s
-     11     3      1 1.0E+00      7 (0.0E+00) 3.5E-01  6.7720254E+00       2            4 1.4E+00         _
-     12     4      1 1.0E+00      8 (0.0E+00) 1.4E-01  6.7214498E+00       2            4 1.4E+00         _
-     13     5      1 1.0E+00      9 (0.0E+00) 3.0E-02  6.7092284E+00       2            4 1.8E+00         _
-     14     6      1 1.0E+00     10 (0.0E+00) 4.1E-03  6.7080577E+00       2            4 1.6E+00         _
-     15     7      1 1.0E+00     11  9.1E-06  4.2E-03  6.7076223E+00       2            4 4.7E+00         _
+
+
+   Itns Major Minors    Step   nCon Feasible  Optimal  MeritFunction     L+U BSwap     nS condZHZ Penalty
+      5     0      5              1 (0.0E+00) 4.8E-01  1.3757831E+02       2                              _  r
+      9     1      4 3.9E-01      3 (0.0E+00) 4.9E-01  8.6307266E+00       2            4 1.0E+00         _  r
+     11     2      2 2.5E-01      6 (0.0E+00) 4.0E-01  7.2655208E+00       2            5 7.5E+00         _s
+     13     3      2 2.6E-01     13 (0.0E+00) 3.1E-01  3.3093751E+00       2            4 2.5E+00         _ M
+     14     4      1 3.4E-01     15 (0.0E+00) 1.6E-01  6.4067221E+00       2            4 1.3E+01 4.2E+04 _
+     15     5      1 1.6E-01     19 (0.0E+00) 1.2E-01  6.6997058E+00       2            4 7.8E+00 6.8E+04 _ M
+     16     6      1 1.4E-01     23 (0.0E+00) 9.9E-02  6.7551552E+00       2            4 7.8E+00 8.5E+04 _ M
+     17     7      1 2.5E-01     27 (0.0E+00) 9.2E-02  6.7624251E+00       2            4 8.2E+00 9.0E+04 _ M
+     18     8      1 4.6E-01     30 (0.0E+00) 7.4E-02  6.7482318E+00       2            4 8.9E+00 9.0E+04 _ M
+     19     9      1 5.1E-01     33 (0.0E+00) 4.1E-02  6.7311886E+00       2            4 3.0E+00 9.0E+04 _ M
+     20    10      1 7.4E-01     36 (0.0E+00) 8.0E-02  6.7069974E+00       2            4 3.3E+00 3.0E+02 _
+     21    11      1 1.0E+00     37 (0.0E+00) 4.3E-02  6.7075968E+00       2            4 2.5E+00 2.4E+04 _
+     22    12      1 1.0E+00     38 (0.0E+00) 1.1E-02  6.7063987E+00       2            4 2.7E+00 3.1E+02 _
+     23    13      1 1.0E+00     39  1.5E-05  2.3E-03  6.7058470E+00       2            4 1.0E+01 5.0E+01 _
 1
- 
+
  SNOPTA EXIT  70 -- user requested termination
  SNOPTA INFO  71 -- terminated during function evaluation
 
  Problem name                 FIXME
- No. of iterations                  15   Objective value      6.7074567210E+00
- No. of major iterations             7   Linear objective     0.0000000000E+00
- Penalty parameter           0.000E+00   Nonlinear objective  6.7074567210E+00
- No. of calls to funobj             12   No. of calls to funcon             12
+ No. of iterations                  23   Objective            6.7057136981E+00
+ No. of major iterations            13   Linear    obj. term  0.0000000000E+00
+ Penalty parameter           1.999E+01   Nonlinear obj. term  6.7057136981E+00
+ User function calls (total)        40
  No. of superbasics                  4   No. of basic nonlinears             1
  No. of degenerate steps             0   Percentage                       0.00
- Max x                       3 9.5E-01   Max pi                      1 9.3E+00
- Max Primal infeas           0 0.0E+00   Max Dual infeas             3 3.2E-01
- Nonlinear constraint violn    1.8E-05
+ Max x                       3 9.6E-01   Max pi                      1 9.3E+00
+ Max Primal infeas           7 1.5E-05   Max Dual infeas             5 2.1E-01
+ Nonlinear constraint violn    1.5E-05
 1
- 
- Name           FIXME                    Objective Value      6.7074567210E+00
 
- Status         Optimal Soln             Iteration     15    Superbasics     4
+ Name           FIXME                    Objective Value      6.7057136981E+00
+
+ Status         Optimal Soln             Iteration     23    Superbasics     4
 
  Objective               (Min)
  RHS
  Ranges
  Bounds
 
- Section 1 - Rows
+ Section 1 - Constraints
 
-  Number  ...Row.. State  ...Activity...  Slack Activity  ..Lower Limit.  ..Upper Limit.  .Dual Activity    ..i
- 
-       6  r      1    BS          .               .                None            None         -1.0          1
-       7  r      2    UL         0.30002         0.00002           None          0.30000        -9.27945      2
+  Number  ...Row.. State  ...Value......  Slack Value...  ..Lower Limit.  ..Upper Limit.  .Dual Variable    ..i
+
+       6  r      1    BS          .               .                None            None           .           1
+       7  r      2 I  UL         0.30001         0.00001           None          0.30000        -9.29590      2
 1
- 
- Section 2 - Columns
 
-  Number  .Column. State  ...Activity...  .Obj Gradient.  ..Lower Limit.  ..Upper Limit.  Reduced Gradnt    m+j
- 
-       1  x      1 N SBS         0.05803         0.40175          .              1.0             0.12170      3
-       2  x      2 N SBS         0.50046        -0.03491          .              1.0             0.08681      4
-       3  x      3 N SBS         0.95429        -0.49486          .              1.0            -0.32149      5
-       4  x      4 N SBS         0.50018        -0.06033          .              1.0             0.02569      6
-       5  x      5    BS         0.15093       -10.39211         0.05000         0.20000         0.01671      7
+ Section 2 - Variables
+
+  Number  .Column. State  ...Value......  .Obj Gradient.  ..Lower Limit.  ..Upper Limit.  .Dual Variable    m+j
+
+       1  x      1 N SBS         0.05672         0.38391          .              1.0             0.11527      3
+       2  x      2 N SBS         0.49982         0.00472          .              1.0            -0.03638      4
+       3  x      3 N SBS         0.96029        -0.34689          .              1.0            -0.21031      5
+       4  x      4 N SBS         0.49998         0.02995          .              1.0             0.00779      6
+       5  x      5 N  BS         0.15081       -10.07853         0.05000         0.20000         0.21383      7
+
+ Time for MPS input                             0.00 seconds
+ Time for solving problem                       0.04 seconds
+ Time for solution output                       0.00 seconds
+ Time for constraint functions                  0.03 seconds
+ Time for objective function                    0.00 seconds

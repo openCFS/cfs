@@ -87,10 +87,7 @@
     <!-- usually one chooses a 1.1/nx slope, this also gives slightly better designs -->
     <constraint type="slope" bound="upperBound" value="1/nx" design="node" linear="true"/>
 
-    <optimizer type="snopt" maxIterations="35">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon"/>
-    </optimizer>
+    <optimizer type="snopt" maxIterations="35"/>
 
     <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
       <shapeMap beta="80" overlap="tanh_sum">

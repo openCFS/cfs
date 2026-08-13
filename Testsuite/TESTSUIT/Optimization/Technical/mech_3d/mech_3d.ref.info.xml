@@ -1,23 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="26" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="19">
   <summary>
-    <timer wall-clock="0.111s" wall="0.111" cpu="0.110888" calls="1"/>
+    <timer id="0" wall-clock="0.06008s" wall="0.0600774" cpu="0.060436" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="50"/>
   </summary>
   <header id="">
-    <environment started="2024-Aug-07 20:00:21" host="aa6a0cf6-8114-4756-8f0a-541099d9ef10.fritz.box"/>
+    <environment started="14-Aug-26 11:27:47" host="MacBook-Pro"/>
     <progOpts problem="mech_3d" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/mech_3d/mech_3d.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="24.03" name="Ideal Implementation" build="RELEASE" git_commit="8c4886e639db84000756f6a086407e923d6d723b" git_branch="pathplan" compiled="Aug  2 2024" exe="cfs"/>
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="25ed285465fc6255abb1cdf1d98ace0e6c155815-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="3" ny="3" nz="3">
-      <grids>
-        <timer wall-clock="0.004s" wall="0.004" cpu="0.003711" calls="1"/>
-        <grid gridId="default" dimensions="3" elements="27" nodes="64"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="27" nodes="64">
+          <timer id="5" wall-clock="0.0005524s" wall="0.000552417" cpu="0.000553" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="4.879e-05s" wall="4.8792e-05" cpu="4.9e-05" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0001338s" wall="0.000133834" cpu="0.000134" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="6.037e-05s" wall="6.0375e-05" cpu="6.1e-05" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="2.417e-05s" wall="2.4167e-05" cpu="2.4e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="64" elems="27" isQuadratic="no"/>
       </regions>
@@ -42,16 +58,24 @@
       <globalMathParser dt="0" f="0" nx="3" ny="3" nz="3" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0s" wall="0" cpu="0.007758" calls="80"/>
+      <timer id="36" wall-clock="0.001659s" wall="0.00165929" cpu="0.001625" calls="72"/>
     </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001085s" wall="0.00108492" cpu="0.001092" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5.41e-07s" wall="5.41e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.012s" wall="0.012" cpu="0.012447" calls="1"/>
+        <timer id="16" wall-clock="0.006197s" wall="0.00619729" cpu="0.006201" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -135,10 +159,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.004943" calls="19"/>
+                <timer id="27" label="setup_directLDL" wall-clock="0.001302s" wall="0.00130237" cpu="0.001304" calls="8"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.001488" calls="19"/>
+                <timer id="28" label="solve_directLDL" wall-clock="0.0003092s" wall="0.000309167" cpu="0.00031" calls="8"/>
               </solve>
             </summary>
           </directLDL>
@@ -147,10 +171,10 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="1.1e-05" calls="19"/>
+                <timer id="29" wall-clock="3e-06s" wall="3e-06" cpu="4e-06" calls="8"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="30" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -159,34 +183,52 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.001186" calls="1" sub="true"/>
-      </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0s" wall="0" cpu="0.000532" calls="1" sub="true"/>
-      </reorder_Metis>
+      <graph nnz="6300">
+        <timer id="23" wall-clock="0.0005673s" wall="0.000567292" cpu="0.0006" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="24" wall-clock="2.908e-05s" wall="2.9083e-05" cpu="4e-05" calls="1" sub="true" parent="23"/>
+        </finalize>
+        <sort>
+          <timer id="25" wall-clock="3.512e-05s" wall="3.5125e-05" cpu="5.6e-05" calls="1" sub="true" parent="23"/>
+        </sort>
+        <rows number="144" min="24" max="81" mean="43.75" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="26" wall-clock="0.0002963s" wall="0.00029625" cpu="0.000297" calls="1" sub="true" parent="23"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="0.00297" calls="38"/>
+          <timer id="18" wall-clock="0.0005814s" wall="0.000581418" cpu="0.00095" calls="16"/>
+          <matrices>
+            <timer id="19" wall-clock="0.0005518s" wall="0.000551834" cpu="0.000921" calls="8" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="1.629e-05s" wall="1.629e-05" cpu="1.6e-05" calls="8" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="22" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
   <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/mech_3d/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
         <constraint type="volume" name="volume" linear="no" access="filtered" bound_value="0.5" bound="upperBound" design="default"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000125" calls="2"/>
+          <timer id="17" wall-clock="0.0001103s" wall="0.000110333" cpu="0.00011" calls="2"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="0.5" contribution="linear" design="density" elems="27" avg_radius="0.16667" avg_neighbors="0"/>
-          <timer wall-clock="0s" wall="0" cpu="4e-05" calls="1"/>
+          <timer id="21" wall-clock="4.65e-05s" wall="4.65e-05" cpu="4.9e-05" calls="1"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="3"/>
@@ -196,7 +238,7 @@
         </designVariables>
         <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="27" bimaterial="-"/>
+          <region name="mech" elements="27" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
       <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
@@ -206,46 +248,46 @@
     </header>
     <commit mode="each_forward" stride="1"/>
     <optimizer>
-      <snopt>
-        <summary snopt_outputfile="mech_3d.snopt">
-          <snopt>
-            <timer wall-clock="0s" wall="0" cpu="0.001428" calls="85"/>
-          </snopt>
-          <snopt_exit exit="0" info="1"/>
-          <evaluations f_evals="19" g_evals="17" majors="8"/>
+      <dumas_mma move_limit="0.500000" asyminit="0.5" asymdec="0.7" asyminc="1.2" a0_lin_aux_z="1" ai_lin_aux_z="0" c_lin_aux_y="1000" d_quad_aux_y="0">
+        <summary>
+          <dumas_mma>
+            <timer id="31" wall-clock="0.0001243s" wall="0.000124286" cpu="0.000127" calls="43"/>
+          </dumas_mma>
         </summary>
-      </snopt>
+        <scaling active="no"/>
+      </dumas_mma>
     </optimizer>
-    <summary problem="SNOPT: finished successfullyv - optimality conditions satisfied" snopt_exit="1">
+    <summary>
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.003995" calls="72"/>
+        <timer id="32" wall-clock="0.0003439s" wall="0.000343876" cpu="0.000345" calls="32"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="3.8e-05" calls="19"/>
+        <timer id="33" wall-clock="1.3e-05s" wall="1.3002e-05" cpu="1.3e-05" calls="8"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.00029" calls="17"/>
+        <timer id="34" wall-clock="8.787e-05s" wall="8.7874e-05" cpu="8.9e-05" calls="8"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="3.7e-05" calls="17"/>
+        <timer id="35" wall-clock="1.625e-05s" wall="1.625e-05" cpu="1.5e-05" calls="8"/>
       </eval_grad_constraints>
-      <break converged="yes"/>
+      <break converged="no">
+        <reason msg="Maximum iterations exceeded"/>
+      </break>
       <functions>
-        <compliance min="21.334" max="44.146" oscillations="0"/>
-        <volume min="0.5" max="0.5" oscillations="1"/>
+        <compliance min="21.482" max="137.45" oscillations="0"/>
+        <volume min="0.44882" max="0.5" oscillations="1"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.086" compliance="44.1457504868823" volume="0.5" nObj="3"/>
-      <iteration number="1" duration="0.002" compliance="24.9063235419131" volume="0.5" nObj="4"/>
-      <iteration number="2" duration="0.002" compliance="23.0102748204299" volume="0.5" nObj="5"/>
-      <iteration number="3" duration="0.002" compliance="21.990996201147" volume="0.5" nObj="6"/>
-      <iteration number="4" duration="0.003" compliance="21.4995226587587" volume="0.5" nObj="8"/>
-      <iteration number="5" duration="0.002" compliance="21.4744286686575" volume="0.5" nObj="10"/>
-      <iteration number="6" duration="0.003" compliance="21.4646071183231" volume="0.5" nObj="12"/>
-      <iteration number="7" duration="0.003" compliance="21.449048962374" volume="0.5" nObj="14"/>
-      <iteration number="8" duration="0.003" compliance="21.3337230843057" volume="0.5" nObj="17"/>
-      <iteration number="9" duration="0.003" compliance="21.3337230843057" volume="0.5" nObj="19"/>
+      <iteration number="0" duration="0.053728" compliance="137.446674739318" volume="0.5"/>
+      <iteration number="1" duration="0.00053675" compliance="137.446674739318" volume="0.5"/>
+      <iteration number="2" duration="0.000783" compliance="78.832273094514" volume="0.44881764283086"/>
+      <iteration number="3" duration="0.00076875" compliance="45.9663694688175" volume="0.459911963658559"/>
+      <iteration number="4" duration="0.00073446" compliance="30.5375946310639" volume="0.471627860704245"/>
+      <iteration number="5" duration="0.00078438" compliance="24.7689102201283" volume="0.487486767727109"/>
+      <iteration number="6" duration="0.00076667" compliance="23.0619865007237" volume="0.490780149528623"/>
+      <iteration number="7" duration="0.0007295" compliance="21.9784401532969" volume="0.492948485489715"/>
+      <iteration number="8" duration="0.00076821" compliance="21.4817205065647" volume="0.495485033989723"/>
     </process>
   </optimization>
 </cfsInfo>

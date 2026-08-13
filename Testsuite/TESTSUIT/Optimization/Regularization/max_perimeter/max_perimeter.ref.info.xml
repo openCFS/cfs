@@ -1,19 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="85" index="1">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="46">
   <summary>
-    <timer wall="2" cpu="1.05292" calls="1"/>
-    <memory final="131876" peak="133924"/>
+    <timer id="0" wall-clock="0.1749s" wall="0.174851" cpu="0.18104" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="55"/>
   </summary>
   <header id="">
-    <environment started="2015-Aug-13 15:37:02" host="eamc061"/>
-    <progOpts problem="max_perimeter" parameterFile="/home/fwein/code/cfs-test/TESTSUIT/Optimization/Regularization/max_perimeter/max_perimeter.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
-      <cfs version="15.07" name="Verlorene Soehne" build="Release" svn_revision="13980 modified"/>
+    <environment started="14-Aug-26 18:11:28" host="MacBook-Pro"/>
+    <progOpts problem="max_perimeter" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Regularization/max_perimeter/max_perimeter.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
-    <domain dimensions="2" elements="400" nodes="441">
+    <domain nx="20" ny="20" nz="1">
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441">
+          <timer id="5" wall-clock="0.0007638s" wall="0.000763833" cpu="0.000613" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0002656s" wall="0.000265583" cpu="0.000115" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0001437s" wall="0.00014375" cpu="0.000144" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="5.42e-07s" wall="5.42e-07" cpu="1e-06" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="7.754e-05s" wall="7.7542e-05" cpu="7.9e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
       </regions>
@@ -28,20 +48,36 @@
         <nodes name="right_upper" count="1" coord="(1,1)"/>
       </namedNodes>
       <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
     </domain>
+    <results>
+      <timer id="36" wall-clock="0.001344s" wall="0.00134405" cpu="0.001351" calls="184"/>
+    </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
-  <sequenceStep>
-    <static/>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0009483s" wall="0.000948333" cpu="0.000959" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5e-07s" wall="5e-07" cpu="2e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer id="16" wall-clock="0.005455s" wall="0.00545471" cpu="0.005458" calls="1"/>
+      </init_static>
+    </static>
     <PDE>
       <mechanic>
         <header>
           <region name="mech" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -49,8 +85,9 @@
               </bilinearForm>
             </matrixBiLinearForms>
             <rhsLinearForms>
-              <linearForm integrator="NodalForceInt" region="">
+              <linearForm integrator="NodalForceInt">
                 <entities name="right_lower" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -1]"/>
                 <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
               </linearForm>
             </rhsLinearForms>
@@ -60,7 +97,7 @@
           <regionList>
             <region name="mech"/>
           </regionList>
-          <property name="MechanicStiffnessTensor">
+          <property name="Mechanic_Stiffness_Tensor">
             <tensor dim1="6" dim2="6">
               <real>
                  1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
@@ -72,14 +109,21 @@
               </real>
             </tensor>
           </property>
-          <property name="Mechanic_Emodulus" value="1"/>
-          <property name="Mechanic_PoissonRation" value="0.3"/>
-          <property name="Mechanic_Kmodulus" value="(0.83333,0)"/>
-          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
-          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
-          <property name="Loss_TangensDelta" value="0.03"/>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Rayleigh_Alpha" value="94.238354829732771"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784384e-06"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.346154e+00  5.769231e-01  0.000000e+00
+                 5.769231e-01  1.346154e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
-        <!-- List of defined Spaces-->
         <feSpaces>
           <mechDisplacement>
             <h1Nodal>
@@ -102,7 +146,6 @@
     <OLAS>
       <mechanic>
         <setup idbcHandling="elimination" staticCondensation="no">
-          <!-- List of registered FeFunctions-->
           <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
             <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
               <usedInBlocks>
@@ -110,27 +153,18 @@
               </usedInBlocks>
             </function>
           </feFunctions>
-          <!-- List of SBM-blocks-->
           <sbmBlocks>
             <block id="0" size="840" lastFreeIndex="840"/>
           </sbmBlocks>
-          <setupTime wall="0" cpu="0.00325" calls="1"/>
-          <!-- List of defined matrices-->
-          <matrices>
-            <!-- Memory is in MByte-->
-            <system totalNumRows="840" totalNumCols="840" totalNumNonZeros="14152" totalFillLevelPerCent="2.0057" totalMemory="0.10797">
-              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="840" numCols="840" numNonZeros="14152" fillLevelPerCent="2.0057" memory="0.10797" upperBandWidth="829" lowerBandWidth="829" avgBandWidth="299" symCounterPart="no" orderingType="Metis"/>
-            </system>
-          </matrices>
         </setup>
         <solver>
           <directLDL>
             <summary>
               <setup>
-                <timer wall="0" cpu="0.08643" calls="42"/>
+                <timer id="27" label="setup_directLDL" wall-clock="0.02048s" wall="0.020476" cpu="0.020444" calls="30"/>
               </setup>
               <solve>
-                <timer wall="0" cpu="0.01874" calls="42"/>
+                <timer id="28" label="solve_directLDL" wall-clock="0.003826s" wall="0.00382579" cpu="0.003812" calls="30"/>
               </solve>
             </summary>
           </directLDL>
@@ -138,12 +172,12 @@
         <precond>
           <idPrecond>
             <summary>
-              <setup>
-                <timer wall="0" cpu="3e-05" calls="42"/>
-              </setup>
-              <precond>
-                <timer wall="0" cpu="0" calls="0"/>
-              </precond>
+              <precond_Id_setup>
+                <timer id="29" wall-clock="1.167e-05s" wall="1.1667e-05" cpu="1.5e-05" calls="30"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="30" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
             </summary>
           </idPrecond>
         </precond>
@@ -151,95 +185,124 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
+      <graph nnz="14152">
+        <timer id="23" wall-clock="0.001582s" wall="0.00158246" cpu="0.001689" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="24" wall-clock="9.713e-05s" wall="9.7125e-05" cpu="0.000166" calls="1" sub="true" parent="23"/>
+        </finalize>
+        <sort>
+          <timer id="25" wall-clock="5.125e-05s" wall="5.125e-05" cpu="8.8e-05" calls="1" sub="true" parent="23"/>
+        </sort>
+        <rows number="840" min="8" max="18" mean="16.848" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="26" wall-clock="0.001074s" wall="0.00107358" cpu="0.001072" calls="1" sub="true" parent="23"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall="1" cpu="0.151719" calls="42"/>
+          <timer id="18" wall-clock="0.007578s" wall="0.00757817" cpu="0.014554" calls="60"/>
+          <matrices>
+            <timer id="19" wall-clock="0.007467s" wall="0.00746654" cpu="0.014432" calls="30" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="5.6e-05s" wall="5.6004e-05" cpu="5.4e-05" calls="30" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="22" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_directory="/home/fwein/code/cfs-test/TESTSUIT/Optimization/Regularization/max_perimeter">
-    <header complex="no" harmonic="no" eigenvalue="no" bloch="no" homogenization="no" material="mechanic">
-      <objective type="compliance" linear="no" filtered="yes" task="minimize"/>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Regularization/max_perimeter/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
-        <constraint type="perimeter" parameter="0.001" linear="no" filtered="yes" locality="next" local_size="760" mode="constraint" design="default" bound="lowerBound" bound_value="0.15"/>
+        <constraint type="perimeter" name="perimeter" parameter="0.001" linear="no" access="filtered" locality="next" local_size="760" bound_value="0.15" bound="lowerBound" design="default"/>
       </constraints>
-      <filters>
-        <filter type="maxEdge" value="1.5" contribution="linear" design="allDesigns" avg_radius="0.075" avg_neighbors="7.41">
-          <timer wall="0" cpu="0.000592" calls="1"/>
-        </filter>
-      </filters>
-      <designSpace pamping="0">
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer id="17" wall-clock="0.0001438s" wall="0.000143791" cpu="0.000144" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="1.5" contribution="linear" design="density" elems="400" avg_radius="0.075" avg_neighbors="7.41"/>
+          <timer id="21" wall-clock="0.000148s" wall="0.000148" cpu="0.000208" calls="1"/>
+        </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="3"/>
         </transferFunctions>
-        <designVariables optimizationVariables="400" modelVariables="400" modelElements="400">
+        <designVariables opt_vars="400" field_elems="400" field_fe_elemes="400">
           <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="1e-09"/>
         </designVariables>
+        <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="400" bimaterial="-"/>
+          <region name="mech" elements="400" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
-      <snopt/>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
     </header>
     <commit mode="forward" stride="999"/>
-    <designSpace/>
     <optimizer>
-      <summary snopt_outputfile="max_perimeter.snopt">
-        <timer wall="0" cpu="0.091734" calls="376"/>
-        <snopt_timer wall="0" cpu="0.082636" calls="44"/>
-        <snopt_callback_timer wall="1" cpu="0.867469" calls="43"/>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="43" g_evals="41"/>
-      </summary>
+      <snopt>
+        <summary snopt_outputfile="max_perimeter.snopt">
+          <snopt>
+            <timer id="31" wall-clock="0.02926s" wall="0.0292572" cpu="0.029218" calls="144"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="30" g_evals="29" majors="20"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
-    <summary problem="SNOPT: resource limit error - major iteration limit reached">
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer id="32" wall-clock="0.0296s" wall="0.0296042" cpu="0.029538" calls="119"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="33" wall-clock="0.0004811s" wall="0.000481086" cpu="0.000484" calls="30"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="34" wall-clock="0.0014s" wall="0.00139971" cpu="0.001399" calls="29"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="35" wall-clock="0.001433s" wall="0.00143254" cpu="0.001432" calls="29"/>
+      </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <compliance min="18.281" max="1035.7" oscillations="2"/>
+        <perimeter min="0" max="0.15385" oscillations="8"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" compliance="98.711" perimeter="0" infeasible_perimeter="0"/>
-      <iteration number="1" compliance="82.139" perimeter="0.0094483" infeasible_perimeter="544"/>
-      <iteration number="2" compliance="70.565" perimeter="0.025828" infeasible_perimeter="735"/>
-      <iteration number="3" compliance="72.146" perimeter="0.019028" infeasible_perimeter="544"/>
-      <iteration number="4" compliance="103.06" perimeter="0.16178" infeasible_perimeter="760"/>
-      <iteration number="5" compliance="59.379" perimeter="0.13112" infeasible_perimeter="702"/>
-      <iteration number="6" compliance="36.363" perimeter="0.15388" infeasible_perimeter="753"/>
-      <iteration number="7" compliance="65.478" perimeter="0.15898" infeasible_perimeter="760"/>
-      <iteration number="8" compliance="31.163" perimeter="0.15601" infeasible_perimeter="742"/>
-      <iteration number="9" compliance="41.716" perimeter="0.15593" infeasible_perimeter="760"/>
-      <iteration number="10" compliance="61.986" perimeter="0.15864" infeasible_perimeter="760"/>
-      <iteration number="11" compliance="62.94" perimeter="0.15863" infeasible_perimeter="760"/>
-      <iteration number="12" compliance="31.061" perimeter="0.15542" infeasible_perimeter="742"/>
-      <iteration number="13" compliance="40.431" perimeter="0.15552" infeasible_perimeter="760"/>
-      <iteration number="14" compliance="57.02" perimeter="0.15807" infeasible_perimeter="760"/>
-      <iteration number="15" compliance="27.647" perimeter="0.15604" infeasible_perimeter="730"/>
-      <iteration number="16" compliance="36.034" perimeter="0.15542" infeasible_perimeter="760"/>
-      <iteration number="17" compliance="48.307" perimeter="0.15696" infeasible_perimeter="760"/>
-      <iteration number="18" compliance="56.446" perimeter="0.158" infeasible_perimeter="760"/>
-      <iteration number="19" compliance="25.11" perimeter="0.15713" infeasible_perimeter="718"/>
-      <iteration number="20" compliance="33.221" perimeter="0.15556" infeasible_perimeter="760"/>
-      <iteration number="21" compliance="44.936" perimeter="0.15673" infeasible_perimeter="760"/>
-      <iteration number="22" compliance="46.427" perimeter="0.15668" infeasible_perimeter="760"/>
-      <iteration number="23" compliance="24.903" perimeter="0.15533" infeasible_perimeter="719"/>
-      <iteration number="24" compliance="31.188" perimeter="0.15469" infeasible_perimeter="760"/>
-      <iteration number="25" compliance="39.746" perimeter="0.15589" infeasible_perimeter="760"/>
-      <iteration number="26" compliance="44.72" perimeter="0.1567" infeasible_perimeter="760"/>
-      <iteration number="27" compliance="44.717" perimeter="0.1567" infeasible_perimeter="760"/>
-      <iteration number="28" compliance="38.752" perimeter="0.1544" infeasible_perimeter="760"/>
-      <iteration number="29" compliance="28.887" perimeter="0.15069" infeasible_perimeter="757"/>
-      <iteration number="30" compliance="32.711" perimeter="0.15224" infeasible_perimeter="760"/>
-      <iteration number="31" compliance="25.513" perimeter="0.15037" infeasible_perimeter="751"/>
-      <iteration number="32" compliance="23.346" perimeter="0.15013" infeasible_perimeter="739"/>
-      <iteration number="33" compliance="21.784" perimeter="0.15009" infeasible_perimeter="725"/>
-      <iteration number="34" compliance="21.137" perimeter="0.15003" infeasible_perimeter="714"/>
-      <iteration number="35" compliance="20.574" perimeter="0.15011" infeasible_perimeter="700"/>
-      <iteration number="36" compliance="20.025" perimeter="0.15021" infeasible_perimeter="677"/>
-      <iteration number="37" compliance="20.569" perimeter="0.15" infeasible_perimeter="700"/>
-      <iteration number="38" compliance="19.81" perimeter="0.15002" infeasible_perimeter="675"/>
-      <iteration number="39" compliance="19.532" perimeter="0.15002" infeasible_perimeter="660"/>
-      <iteration number="40" compliance="19.089" perimeter="0.15005" infeasible_perimeter="658"/>
+      <iteration number="0" duration="0.053548" compliance="98.7111957813548" perimeter="0" nObj="1"/>
+      <iteration number="1" duration="0.0074948" compliance="61.6828917993752" perimeter="0.00582268588071418" nObj="5"/>
+      <iteration number="2" duration="0.0046397" compliance="61.6828917993597" perimeter="0.00582268588071863" nObj="7"/>
+      <iteration number="3" duration="0.005456" compliance="1035.73350676905" perimeter="0.0529186104148656" nObj="9"/>
+      <iteration number="4" duration="0.0064061" compliance="104.520574728716" perimeter="0.123247056584277" nObj="11"/>
+      <iteration number="5" duration="0.0046041" compliance="71.2803487374441" perimeter="0.153851871177033" nObj="12"/>
+      <iteration number="6" duration="0.0054237" compliance="61.3772377232656" perimeter="0.150452049957314" nObj="13"/>
+      <iteration number="7" duration="0.0042382" compliance="50.699052084175" perimeter="0.150105069706664" nObj="14"/>
+      <iteration number="8" duration="0.0052277" compliance="41.6729177342712" perimeter="0.150351000643537" nObj="15"/>
+      <iteration number="9" duration="0.0052079" compliance="35.3975375709726" perimeter="0.150425464408704" nObj="16"/>
+      <iteration number="10" duration="0.00543" compliance="31.697979711658" perimeter="0.150107055065722" nObj="17"/>
+      <iteration number="11" duration="0.0054475" compliance="29.4631948174837" perimeter="0.15002632728429" nObj="18"/>
+      <iteration number="12" duration="0.0059488" compliance="27.8957252809248" perimeter="0.150098468501854" nObj="19"/>
+      <iteration number="13" duration="0.0057325" compliance="26.8532067240789" perimeter="0.150082914713595" nObj="20"/>
+      <iteration number="14" duration="0.0058953" compliance="26.058265300782" perimeter="0.150039806645953" nObj="21"/>
+      <iteration number="15" duration="0.0048386" compliance="25.2197671772854" perimeter="0.150037753839315" nObj="22"/>
+      <iteration number="16" duration="0.0076505" compliance="25.2143201144676" perimeter="0.150002163416108" nObj="24"/>
+      <iteration number="17" duration="0.0057491" compliance="25.031445545417" perimeter="0.150000211620561" nObj="25"/>
+      <iteration number="18" duration="0.0050787" compliance="20.4738013683684" perimeter="0.153249805834211" nObj="26"/>
+      <iteration number="19" duration="0.0047973" compliance="18.9835462416133" perimeter="0.151093456184267" nObj="27"/>
+      <iteration number="20" duration="0.0082441" compliance="18.8967578547893" perimeter="0.150216041373198" nObj="29"/>
+      <iteration number="21" duration="0.0053988" compliance="18.2805828986239" perimeter="0.150666212704043" nObj="30"/>
     </process>
   </optimization>
 </cfsInfo>

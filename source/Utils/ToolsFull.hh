@@ -313,6 +313,29 @@ namespace CoupledField
    * @return the memory in KBytes or 0 if there was a problem */
   int MemoryUsage(bool peak);
 
+  /** Helper for the Bi/TriCubicInterpolate. Maps a value to [0, 1]
+   *  [a,b] -> [0,1] with a = offset and b = a + 1/scale.
+   * minimal rounding errors are clipped. 
+   * @param offset the lower end of the data range
+   * @param scale the reciprocal of the data range width
+   * @param periodic map values outside of the data range to the inside instead */
+  inline double NormalizeToUnitInterval(double v, double offset, double scale, bool periodic = false)
+  {
+    v = (v - offset) * scale;
+
+    if(periodic)
+    {
+      if(v > 1)        // modulus: 0.7->0.7, 2.7 -> 0.7
+        v -= (int) v; 
+      if(v < 0)        // original code: -0.7 -> 0.3, -1.7 -> -1.7, -2.7 -> -3.7
+        v += (int) v + 1;
+    }
+
+    assert(-1e-12 <= v && v <= 1.0 + 1e-12);
+
+    return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); // clip to [0,1] for eps only
+  }
+
   /** Calculates the continuous Kreisselmeier and Steinhauser max approxmiation for two values.
    * @param beta - -1 is special and makes real max, otherwise beta needs to be > 0
    * @param normalize - applies normalization by factor 0.5 */

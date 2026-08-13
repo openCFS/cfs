@@ -58,6 +58,10 @@ FortranCInterface_HEADER("${CFS_BINARY_DIR}/include/def_cfs_fortran_interface.hh
   scpip30
   # snopt
   snopta
+  snkera
+  snlog
+  snlog2
+  sqlog
   sninit
   sngeti
   sngetr

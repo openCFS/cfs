@@ -1,23 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="29" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="24">
   <summary>
-    <timer wall-clock="0.174s" wall="0.174" cpu="0.22106" calls="1"/>
+    <timer id="0" wall-clock="0.09351s" wall="0.0935073" cpu="0.10986" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="53"/>
   </summary>
   <header id="">
-    <environment started="2024-Aug-07 20:22:11" host="aa6a0cf6-8114-4756-8f0a-541099d9ef10.fritz.box"/>
+    <environment started="14-Aug-26 17:49:50" host="MacBook-Pro"/>
     <progOpts problem="periodic" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/periodic/periodic.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="24.03" name="Ideal Implementation" build="RELEASE" git_commit="8c4886e639db84000756f6a086407e923d6d723b" git_branch="pathplan" compiled="Aug  2 2024" exe="cfs"/>
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="20" ny="20" nz="1">
-      <grids>
-        <timer wall-clock="0.009s" wall="0.009" cpu="0.009296" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441">
+          <timer id="5" wall-clock="0.0008565s" wall="0.000856459" cpu="0.000724" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.000261s" wall="0.000261041" cpu="0.000128" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0002401s" wall="0.000240125" cpu="0.00024" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="9.792e-05s" wall="9.7916e-05" cpu="9.8e-05" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="8.813e-05s" wall="8.8125e-05" cpu="9e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
       </regions>
@@ -37,16 +53,24 @@
       <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.002s" wall="0.002" cpu="0.00621" calls="120"/>
+      <timer id="38" wall-clock="0.00111s" wall="0.00111033" cpu="0.001074" calls="120"/>
     </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001016s" wall="0.00101596" cpu="0.001023" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5.42e-07s" wall="5.42e-07" cpu="1e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.012s" wall="0.012" cpu="0.012358" calls="1"/>
+        <timer id="16" wall-clock="0.007082s" wall="0.0070815" cpu="0.007082" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -90,7 +114,17 @@
           <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(1e-08,0)"/>
-          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+          <property name="Rayleigh_Alpha" value="94.238354829732771"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784384e-06"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e+00  3.296703e-01  0.000000e+00
+                 3.296703e-01  1.098901e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -129,10 +163,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0.013s" wall="0.013" cpu="0.014595" calls="13"/>
+                <timer id="28" label="setup_directLDL" wall-clock="0.009134s" wall="0.009134" cpu="0.009121" calls="13"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.002863" calls="13"/>
+                <timer id="29" label="solve_directLDL" wall-clock="0.001673s" wall="0.00167267" cpu="0.001663" calls="13"/>
               </solve>
             </summary>
           </directLDL>
@@ -141,10 +175,10 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="4e-06" calls="13"/>
+                <timer id="30" wall-clock="5.417e-06s" wall="5.417e-06" cpu="9e-06" calls="13"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="31" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -153,24 +187,42 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.002589" calls="1" sub="true"/>
-      </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.001546" calls="1" sub="true"/>
-      </reorder_Metis>
+      <graph nnz="14152">
+        <timer id="24" wall-clock="0.001523s" wall="0.0015235" cpu="0.001624" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="25" wall-clock="9.317e-05s" wall="9.3167e-05" cpu="0.000166" calls="1" sub="true" parent="24"/>
+        </finalize>
+        <sort>
+          <timer id="26" wall-clock="4.037e-05s" wall="4.0375e-05" cpu="7.1e-05" calls="1" sub="true" parent="24"/>
+        </sort>
+        <rows number="840" min="8" max="18" mean="16.848" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="27" wall-clock="0.0009853s" wall="0.000985292" cpu="0.000986" calls="1" sub="true" parent="24"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="0.007666" calls="26"/>
+          <timer id="20" wall-clock="0.003377s" wall="0.00337712" cpu="0.0065" calls="26"/>
+          <matrices>
+            <timer id="21" wall-clock="0.003327s" wall="0.00332675" cpu="0.00644" calls="13" sub="true" parent="20"/>
+          </matrices>
+          <rhs>
+            <timer id="22" wall-clock="2.8e-05s" wall="2.8001e-05" cpu="2.8e-05" calls="13" sub="true" parent="20"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="23" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
   <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/periodic/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
         <constraint type="slope" name="slope_(profile)" parameter="0" linear="yes" access="plain" locality="next" local_size="20" periodic="no" bound_value="0.05" bound="upperBound" design="profile"/>
         <constraint type="curvature" name="curvature_(profile)" parameter="0" linear="yes" access="plain" locality="prev_next" local_size="19" periodic="no" bound_value="0.0125" bound="upperBound" design="profile"/>
@@ -179,21 +231,21 @@
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0.001s" wall="0.001" cpu="0.002333" calls="7"/>
+          <timer id="17" wall-clock="0.001s" wall="0.00100038" cpu="0.001114" calls="7"/>
         </setup_design>
         <features>
           <mapping>
-            <timer label="features_map" wall-clock="0s" wall="0" cpu="0.014274" calls="13" sub="true"/>
+            <timer id="18" label="features_map" wall-clock="0.002409s" wall="0.00240879" cpu="0.004096" calls="13" sub="true"/>
           </mapping>
           <gradient>
-            <timer label="features_grad" wall-clock="0.024s" wall="0.024" cpu="0.074148" calls="24" sub="true"/>
+            <timer id="19" label="features_grad" wall-clock="0.01301s" wall="0.0130127" cpu="0.025313" calls="24" sub="true"/>
           </gradient>
         </features>
         <shapeMap overlap="max">
           <numInt max_order="11" sensitivity="1e-09" integration="tailored" tailored_order="1-&gt;11 0.1-&gt;11 0.01-&gt;11 0.001-&gt;11 0.0001-&gt;11 1e-05-&gt;11 1e-06-&gt;11 1e-07-&gt;9 1e-08-&gt;8 1e-09-&gt;7 1e-10-&gt;5 ">
-            <warning> resolution and beta combination allows no sufficient numerical integration for sensitvity 1.0000000000000001e-09</warning>
+            <warning> resolution and beta combination allows no sufficient numerical integration for sensitivity 1.0000000000000001e-09</warning>
 
-            <cells integrate_fraction="0.41" avg_order="10.28" total_int="2.8426e+06"/>
+            <cells integrate_fraction="0.41" avg_order="10.268" total_int="2.8359e+06"/>
           </numInt>
           <mesh n="[20, 20, 1]" min="[0, 0]" max="[1, 1]" step="[0.05, 0.05]"/>
         </shapeMap>
@@ -208,7 +260,7 @@
         </designVariables>
         <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="400" bimaterial="-"/>
+          <region name="mech" elements="400" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
       <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
@@ -221,44 +273,45 @@
       <snopt>
         <summary snopt_outputfile="periodic.snopt">
           <snopt>
-            <timer wall-clock="0s" wall="0" cpu="0.002" calls="67"/>
+            <timer id="33" wall-clock="0.001248s" wall="0.00124809" cpu="0.001249" calls="68"/>
           </snopt>
-          <snopt_exit exit="0" info="32"/>
-          <evaluations f_evals="14" g_evals="12" majors="9"/>
+          <snopt_exit exit="0" info="3"/>
+          <evaluations f_evals="14" g_evals="12" majors="10"/>
         </summary>
+        <scaling active="no"/>
       </snopt>
     </optimizer>
-    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+    <summary problem="SNOPT: finished successfully - requested accuracy could not be achieved" snopt_exit="3">
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.013288" calls="52"/>
+        <timer id="34" wall-clock="0.002311s" wall="0.00231109" cpu="0.003886" calls="53"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="9.4e-05" calls="14"/>
+        <timer id="35" wall-clock="5.292e-05s" wall="5.2916e-05" cpu="5.4e-05" calls="14"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0.012s" wall="0.012" cpu="0.037871" calls="12"/>
+        <timer id="36" wall-clock="0.006886s" wall="0.00688571" cpu="0.013034" calls="12"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0.012s" wall="0.012" cpu="0.037237" calls="13"/>
+        <timer id="37" wall-clock="0.006558s" wall="0.00655767" cpu="0.012712" calls="13"/>
       </eval_grad_constraints>
-      <break converged="no"/>
+      <break converged="yes"/>
       <functions>
-        <compliance min="4.5841" max="5.4922" oscillations="0"/>
-        <volume min="0.29999" max="0.30003" oscillations="6"/>
+        <compliance min="4.5841" max="6.0621" oscillations="0"/>
+        <volume min="0.2008" max="0.30003" oscillations="7"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.099" compliance="5.49219770615078" max_abs_slope_profile="0.049665" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300030381531618" nObj="3"/>
-      <iteration number="1" duration="0.014" compliance="4.63848720752431" max_abs_slope_profile="0.023954" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="0" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300020315253271" nObj="5"/>
-      <iteration number="2" duration="0.007" compliance="4.59853272490521" max_abs_slope_profile="0.020198" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="0" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299990441232484" nObj="6"/>
-      <iteration number="3" duration="0.007" compliance="4.5867295810651" max_abs_slope_profile="0.018951" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300004671445713" nObj="7"/>
-      <iteration number="4" duration="0.007" compliance="4.58498811255442" max_abs_slope_profile="0.019638" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999967626627" nObj="8"/>
-      <iteration number="5" duration="0.007" compliance="4.58420983243168" max_abs_slope_profile="0.020959" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000025592766" nObj="9"/>
-      <iteration number="6" duration="0.007" compliance="4.58414361576845" max_abs_slope_profile="0.021378" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.29999999795926" nObj="10"/>
-      <iteration number="7" duration="0.007" compliance="4.58410284321544" max_abs_slope_profile="0.021857" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000001354999" nObj="11"/>
-      <iteration number="8" duration="0.007" compliance="4.58409097245147" max_abs_slope_profile="0.022047" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999999465011" nObj="12"/>
-      <iteration number="9" duration="0.007" compliance="4.58408642161474" max_abs_slope_profile="0.022106" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999999255927" nObj="13"/>
-      <iteration number="10" duration="0.002" compliance="4.58408642161474" max_abs_slope_profile="0.022106" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999999255927" nObj="14"/>
+      <iteration number="0" duration="0.058661" compliance="6.06212176030575" max_abs_slope_profile="3.5465e-07" infeas_count_slope_profile="0" max_abs_curvature_profile="7.093e-07" infeas_count_curvature_profile="0" max_abs_periodic_profile="3.5462e-11" infeas_count_periodic_profile="0" volume="0.200799999999999" nObj="2"/>
+      <iteration number="1" duration="0.003601" compliance="4.9609487456637" max_abs_slope_profile="0.05" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="3" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300030955517918" nObj="3"/>
+      <iteration number="2" duration="0.0056465" compliance="4.64432040962225" max_abs_slope_profile="0.030094" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="0" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299969715001516" nObj="5"/>
+      <iteration number="3" duration="0.0030178" compliance="4.59073238696547" max_abs_slope_profile="0.025097" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000736018195" nObj="6"/>
+      <iteration number="4" duration="0.0029959" compliance="4.58434915302935" max_abs_slope_profile="0.022162" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300001307701153" nObj="7"/>
+      <iteration number="5" duration="0.0030012" compliance="4.58410683460796" max_abs_slope_profile="0.022171" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.29999998569717" nObj="8"/>
+      <iteration number="6" duration="0.0030453" compliance="4.58408687409031" max_abs_slope_profile="0.022192" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999998759959" nObj="9"/>
+      <iteration number="7" duration="0.002996" compliance="4.58408555716466" max_abs_slope_profile="0.02217" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000000149987" nObj="10"/>
+      <iteration number="8" duration="0.0029693" compliance="4.58408485661734" max_abs_slope_profile="0.022138" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.299999999977461" nObj="11"/>
+      <iteration number="9" duration="0.003088" compliance="4.58408461035263" max_abs_slope_profile="0.022115" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000000026401" nObj="12"/>
+      <iteration number="10" duration="0.0030784" compliance="4.58408447782977" max_abs_slope_profile="0.022099" infeas_count_slope_profile="0" max_abs_curvature_profile="0.0125" infeas_count_curvature_profile="2" max_abs_periodic_profile="0" infeas_count_periodic_profile="0" volume="0.300000000014767" nObj="13"/>
     </process>
   </optimization>
 </cfsInfo>

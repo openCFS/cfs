@@ -147,10 +147,7 @@
     <constraint type="volume" design="density" bound="upperBound" value="0.6" />
     <constraint type="slope" design="rotAngle" value="0.17453" bound="upperBound" />
 
-    <optimizer type="snopt" maxIterations="5">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon"/>
-    </optimizer>
+    <optimizer type="snopt" maxIterations="5"/>
     <ersatzMaterial method="paramMat" material="mechanic">
       <regions>
         <region name="mech" />

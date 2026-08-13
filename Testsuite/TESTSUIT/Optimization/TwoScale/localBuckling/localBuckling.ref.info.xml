@@ -1,49 +1,68 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="28" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="15">
   <summary>
-    <timer wall-clock="0.248s" wall="0.248" cpu="0.535775" calls="1"/>
+    <timer id="0" wall-clock="0.06235s" wall="0.0623468" cpu="0.061877" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="438.93" peak="440.93"/>
+    <memory final="51"/>
   </summary>
   <header id="0">
-    <environment started="2023-Jul-04 17:00:46" host="mo42"/>
-    <progOpts problem="localBuckling" parameterFile="/home/daniel/code/tempo2/Testsuite/TESTSUIT/Optimization/TwoScale/localBuckling/localBuckling.xml" schemaPath="/home/daniel/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="23.05" name="Heavy Headache" build="RELEASE" git_commit="ea4a62dc28bd3b4f84f03fcc703608e27229f6e8" git_branch="local_constraints" compiled="Jul  4 2023" exe="cfs.rel"/>
-      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    <environment started="14-Aug-26 18:11:32" host="MacBook-Pro"/>
+    <progOpts problem="localBuckling" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/TwoScale/localBuckling/localBuckling.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="5" ny="5" nz="1">
-      <grids>
-        <timer wall-clock="0.004s" wall="0.004" cpu="0.004009" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="25" nodes="36"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="25" nodes="36">
+          <timer id="4" wall-clock="0.0007156s" wall="0.000715625" cpu="0.000716" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="0.0002861s" wall="0.000286083" cpu="0.000279" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="6.588e-05s" wall="6.5875e-05" cpu="6.5e-05" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="6.25e-07s" wall="6.25e-07" cpu="0" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="9.75e-06s" wall="9.75e-06" cpu="1.1e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="36" elems="25" isQuadratic="no"/>
       </regions>
       <namedNodes>
-        <nodes name="bottom" count="6"/>
-        <nodes name="top" count="6"/>
-        <nodes name="left" count="6"/>
-        <nodes name="right" count="6"/>
         <nodes name="bottom_left" count="1" coord="(0,0)"/>
         <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="top" count="6"/>
+        <nodes name="bottom" count="6"/>
         <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="left" count="6"/>
+        <nodes name="right" count="6"/>
         <nodes name="top_right" count="1" coord="(1,1)"/>
       </namedNodes>
       <namedElements/>
       <globalMathParser dt="0" f="0" nx="5" ny="5" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.011s" wall="0.011" cpu="0.089196" calls="132"/>
+      <timer id="35" wall-clock="0.002094s" wall="0.00209441" cpu="0.002071" calls="84"/>
     </results>
   </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0004005s" wall="0.000400459" cpu="0.000407" calls="1"/>
+    </hdf5>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.034s" wall="0.034" cpu="0.141747" calls="1"/>
+        <timer id="15" wall-clock="0.006864s" wall="0.00686396" cpu="0.006842" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -87,6 +106,15 @@
           <property name="Mechanic_Elasticity_Modulus" value="(10,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(0,0)"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e+01  3.296703e+00  0.000000e+00
+                 3.296703e+00  1.098901e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e+00
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -122,31 +150,25 @@
           </sbmBlocks>
         </setup>
         <solver>
-          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+          <directLDL>
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.014443" calls="11"/>
+                <timer id="26" label="setup_directLDL" wall-clock="9.275e-05s" wall="9.2748e-05" cpu="9.4e-05" calls="11"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.003135" calls="261"/>
+                <timer id="27" label="solve_directLDL" wall-clock="0.001136s" wall="0.00113559" cpu="0.001146" calls="261"/>
               </solve>
             </summary>
-            <process>
-              <call number="1">
-                <symbfact cpu="0.001015" wall="0" peakMem="190" permanentMem="189"/>
-                <numfact cpu="3.4e-05" wall="0" peakMem="27"/>
-              </call>
-            </process>
-          </pardiso>
+          </directLDL>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="6e-06" calls="11"/>
+                <timer id="28" wall-clock="4.125e-06s" wall="4.125e-06" cpu="0" calls="11"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="29" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -155,21 +177,42 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0s" wall="0" cpu="0.000396" calls="1" sub="true"/>
-      </graph_setup>
+      <graph nnz="832">
+        <timer id="22" wall-clock="0.0002645s" wall="0.000264458" cpu="0.000268" calls="1" sub="true" parent="15"/>
+        <finalize>
+          <timer id="23" wall-clock="1.842e-05s" wall="1.8416e-05" cpu="1.9e-05" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="1.421e-05s" wall="1.4209e-05" cpu="1.4e-05" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="60" min="8" max="18" mean="13.867" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="25" wall-clock="0.0001002s" wall="0.00010025" cpu="0.0001" calls="1" sub="true" parent="22"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.02s" wall="0.02" cpu="0.07492" calls="22"/>
+          <timer id="17" wall-clock="0.001081s" wall="0.00108092" cpu="0.001112" calls="22"/>
+          <matrices>
+            <timer id="18" wall-clock="0.001051s" wall="0.0010505" cpu="0.001086" calls="11" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="1.325e-05s" wall="1.3249e-05" cpu="1.2e-05" calls="11" sub="true" parent="17"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/daniel/code/tempo2/Testsuite/TESTSUIT/Optimization/TwoScale/localBuckling/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/TwoScale/localBuckling/HALTOPT">
     <header>
-      <objective type="slack" name="slack" linear="no" access="plain" task="maximize"/>
+      <objective type="slack" name="slack" linear="no" access="plain" term="linear" scale="1" task="maximize"/>
       <constraints>
         <constraint type="localBucklingLoadFactor" name="localBucklingLoadFactor_0" parameter="0" ev="0" linear="no" access="physical" locality="element" local_size="25" bound_value="slack" bound="lowerBound" design="default"/>
         <constraint type="globalTwoScaleVolume" name="globalTwoScaleVolume" linear="yes" access="filtered" locality="multiple_designs_element" local_size="25" normalize="yes" power="1" bound_value="0.5" bound="upperBound" design="default"/>
@@ -177,11 +220,11 @@
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000179" calls="4"/>
+          <timer id="16" wall-clock="5.975e-05s" wall="5.975e-05" cpu="6.2e-05" calls="4"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="1.6" contribution="linear" design="stiff1" elems="25" avg_radius="0.32" avg_neighbors="5.76"/>
-          <timer wall-clock="0s" wall="0" cpu="2.5e-05" calls="1"/>
+          <timer id="20" wall-clock="4.546e-05s" wall="4.5459e-05" cpu="5e-05" calls="1"/>
         </filters>
         <transferFunctions>
           <transferFunction type="identity" application="no_app" design="default"/>
@@ -192,7 +235,7 @@
         </designVariables>
         <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="25" bimaterial="-"/>
+          <region name="mech" elements="25" bimaterial="-" groundmaterial="-"/>
         </regions>
         <designMaterial type="hom-rect-C1" bias="no"/>
       </designSpace>
@@ -203,42 +246,45 @@
     </header>
     <commit mode="forward" stride="1"/>
     <optimizer>
-      <summary snopt_outputfile="localBuckling.snopt">
-        <snopt>
-          <timer wall-clock="0s" wall="0" cpu="0.002064" calls="57"/>
-        </snopt>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="11" g_evals="10"/>
-      </summary>
-      <snopt/>
+      <snopt>
+        <summary snopt_outputfile="localBuckling.snopt">
+          <snopt>
+            <timer id="30" wall-clock="0.0009427s" wall="0.000942668" cpu="0.00095" calls="54"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="11" g_evals="10" majors="5"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.000161" calls="54"/>
+        <timer id="31" wall-clock="0.0005698s" wall="0.000569837" cpu="0.00058" calls="55"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.002189" calls="11"/>
+        <timer id="32" wall-clock="0.0006261s" wall="0.000626122" cpu="0.000621" calls="11"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.012043" calls="10"/>
+        <timer id="33" wall-clock="2.409e-05s" wall="2.4085e-05" cpu="2.5e-05" calls="10"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.033969" calls="261"/>
+        <timer id="34" wall-clock="0.001929s" wall="0.00192868" cpu="0.001902" calls="261"/>
       </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <slack min="1e-08" max="0.067474" oscillations="0"/>
+        <globalTwoScaleVolume min="0.4" max="0.5" oscillations="0"/>
+        <compliance min="3.5225" max="5.9779" oscillations="1"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.197" slack="1e-08" min_abs_localBucklingLoadFactor_0="0.009541" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.4" compliance="5.97794579200251"/>
-      <iteration number="1" duration="0.005" slack="0.0191072208974251" min_abs_localBucklingLoadFactor_0="0.019534" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.419222320892431" compliance="5.24398013102816"/>
-      <iteration number="2" duration="0.005" slack="0.0542813296052124" min_abs_localBucklingLoadFactor_0="0.052091" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.49743727955627"/>
-      <iteration number="3" duration="0.005" slack="0.0195277037183661" min_abs_localBucklingLoadFactor_0="0.019528" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.417719732117388" compliance="5.32354538782231"/>
-      <iteration number="4" duration="0.004" slack="0.0660706962772855" min_abs_localBucklingLoadFactor_0="0.066064" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.61669950710666"/>
-      <iteration number="5" duration="0.005" slack="0.0616702591906063" min_abs_localBucklingLoadFactor_0="0.061289" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.65672509215744"/>
-      <iteration number="6" duration="0.005" slack="0.067249811472908" min_abs_localBucklingLoadFactor_0="0.067243" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.60666298833758"/>
-      <iteration number="7" duration="0.004" slack="0.0665359136302787" min_abs_localBucklingLoadFactor_0="0.066535" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.61986873315145"/>
-      <iteration number="8" duration="0.005" slack="0.0674970004025949" min_abs_localBucklingLoadFactor_0="0.067496" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.60121321221019"/>
-      <iteration number="9" duration="0.006" slack="0.0673358012366932" min_abs_localBucklingLoadFactor_0="0.067336" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.60484215818875"/>
-      <iteration number="10" duration="0.002" slack="0.0674970004025949" min_abs_localBucklingLoadFactor_0="0.067496" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.60121321221019"/>
+      <iteration number="0" duration="0.052977" slack="1e-08" min_abs_localBucklingLoadFactor_0="0.009541" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.4" compliance="5.97794579200249" nObj="1"/>
+      <iteration number="1" duration="0.0013092" slack="0.0117837248118837" min_abs_localBucklingLoadFactor_0="0.011953" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.402676939864985" compliance="5.82804536272712" nObj="2"/>
+      <iteration number="2" duration="0.0018218" slack="0.0119690414842167" min_abs_localBucklingLoadFactor_0="0.011969" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.402708270939891" compliance="5.82703527934253" nObj="4"/>
+      <iteration number="3" duration="0.0016885" slack="0.0601595089463038" min_abs_localBucklingLoadFactor_0="0.059968" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.63634888155177" nObj="6"/>
+      <iteration number="4" duration="0.0016856" slack="0.0657969093881524" min_abs_localBucklingLoadFactor_0="0.065793" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.52251389603963" nObj="8"/>
+      <iteration number="5" duration="0.0016378" slack="0.0667466324336977" min_abs_localBucklingLoadFactor_0="0.066747" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.5551767134436" nObj="10"/>
+      <iteration number="6" duration="0.00076896" slack="0.0674735222026459" min_abs_localBucklingLoadFactor_0="0.067469" infeas_count_localBucklingLoadFactor_0="0" globalTwoScaleVolume="0.5" compliance="3.59887928201002" nObj="11"/>
     </process>
   </optimization>
 </cfsInfo>

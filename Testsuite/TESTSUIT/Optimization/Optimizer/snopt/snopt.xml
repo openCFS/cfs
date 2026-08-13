@@ -81,8 +81,7 @@
     <constraint type="volume" bound="upperBound" value="0.5" />
     
     <optimizer type="snopt"  maxIterations="10">
-      <!-- nCon is only for compatabiliy of old test cases --> 
-      <snopt iteration="nCon">
+      <snopt>
         <!-- verify_level=3 triggers finite difference check.
             level 0 does a simple test, -1 switches really off. See .snopt file -->
         <option name="verify_level" type="integer" value="-1"/>
