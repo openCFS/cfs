@@ -64,7 +64,7 @@
        </storeResults>
       </mechanic>
     </pdeList>
-    <linearSystems>
+    <linearSystems assembly="deterministic">
       <system>
         <solverList>
           <directLDL/> 

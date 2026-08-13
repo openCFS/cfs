@@ -114,7 +114,7 @@
       </mechanic>
     </pdeList>
 
-    <linearSystems>
+    <linearSystems assembly="deterministic">
       <system>
         <solutionStrategy>
           <standard>

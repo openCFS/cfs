@@ -105,7 +105,10 @@ namespace CoupledField {
 
     //! Return struct with solution strategy
     shared_ptr<SolStrategy> GetSolStrategy() {return solStrat_;}
-    
+
+    //! Return the <linearSystems> ParamNode (parent of the <system> node)
+    PtrParamNode GetLinearSystemsParam() const { return myParam_->GetParent(); }
+
     //! Update algebraic system in multistep solution strategy
     void UpdateToSolStrategy();
 

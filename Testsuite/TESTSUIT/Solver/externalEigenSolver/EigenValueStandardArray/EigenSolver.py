@@ -9,7 +9,7 @@ AFileName = sys.argv[1]
 arg_sigma = complex(sys.argv[2])
 arg_k = int(sys.argv[3])
 arg_which = sys.argv[4]
-arg_tol = sys.argv[5]
+arg_tol = float(sys.argv[5])
 
 # import system matrices
 A = mmread(AFileName)

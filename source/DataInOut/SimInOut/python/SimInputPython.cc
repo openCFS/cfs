@@ -141,8 +141,7 @@ void SimInputPython::SetNodes(PyObject* args)
     grid->SetNodeCoordinate(i+1, loc);
   }
 
-  // we must not decref array!
-  Py_XDECREF(args);
+  // we must not decref array nor args, both are borrowed references of the METH_VARARGS caller
 }
 
 void SimInputPython::SetRegions(PyObject* args)
@@ -171,8 +170,7 @@ void SimInputPython::SetRegions(PyObject* args)
   LOG_DBG(pymesh) << "SR: regs=" << reg_names.ToString();
   grid->AddRegions(reg_names, reg_ids);
 
-  // we must not decref list as this would remove the item from python!
-  Py_XDECREF(args);
+  // we must not decref list as this would remove the item from python, args is borrowed as well
 }
 
 void SimInputPython::AddElements(PyObject* args)
@@ -213,8 +211,6 @@ void SimInputPython::AddElements(PyObject* args)
     LOG_DBG3(pymesh) << "AE: r=" << r << " num=" << num << " rid=" << rid << " connect=" << connect.ToString();
     grid->SetElemData(num, (Elem::FEType) type, rid, connect.GetPointer());
   }
-
-  Py_XDECREF(args);
 }
 
 void SimInputPython::AddNamedNodes(PyObject* args)
@@ -247,8 +243,6 @@ void SimInputPython::AddNamedNodesElements(PyObject* args, bool nodes)
     grid->AddNamedNodes(string(s), stv);
   else
     grid->AddNamedElems(string(s), stv);
-
-  Py_XDECREF(args);
 }
 
 

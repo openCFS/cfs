@@ -392,6 +392,10 @@ void LISSolver::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVect
   lis_solver_get_iter(solver_,&iterations);
   curr->Get("iterations")->SetValue(iterations);
 
+  // a NaN residual passes both checks below, as any comparison with NaN is false
+  if(!std::isfinite(norm))
+    EXCEPTION("LIS returned the non-finite residual " << norm << " after " << iterations << " iterations");
+
   if(norm > tolerance_ && norm <= minTol_)
     infoNode_->Get(ParamNode::SUMMARY)->SetWarning("residual norm " + lexical_cast<string>(norm) + " exceeds target "
           + lexical_cast<string>(tolerance_) + " but within minimal tolerance " + lexical_cast<string>(minTol_) + " after " +  lexical_cast<string>(norm) + " iterations");

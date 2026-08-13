@@ -77,7 +77,8 @@
         </storeResults>
       </mechanic>
     </pdeList>
-    <linearSystems>
+    <!-- have deterministic assembly, which improves reproducibility for parallel assembly -->
+    <linearSystems assembly="deterministic">
       <system>
         <solutionStrategy>
           <standard>

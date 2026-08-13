@@ -243,7 +243,7 @@ namespace CoupledField {
     int retValue = std::system(command); // execute command in terminal
     if( retValue != 0)
     {
-      EXCEPTION("Error while calling external eigensolver, return value: " << retValue);
+      EXCEPTION("Error while calling external eigensolver '" << cmd << "', std::system() status: " << retValue);
     }
     
     // import eigenvalues and eigenvectors

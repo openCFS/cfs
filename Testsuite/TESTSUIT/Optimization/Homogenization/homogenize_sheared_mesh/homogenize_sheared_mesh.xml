@@ -51,6 +51,11 @@
             <setup idbcHandling="elimination" />
           </standard>
         </solutionStrategy>
+        <solverList>
+          <!-- the system is because of the periodic boundary conditions not pos def. 
+               Use practically pardiso or umfpack for 2D -->
+          <directLDL/>
+        </solverList>
       </system>
     </linearSystems>
   </sequenceStep>

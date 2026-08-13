@@ -32,10 +32,9 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/DesignSpace.hh"
-
 #include "Utils/PythonKernel.hh"
+
+using std::string; 
 
 namespace CoupledField
 {
@@ -533,19 +532,11 @@ namespace CoupledField
       if(size > 0)
         matrixUpdated_ = true;
 
-      // Choose how the entities are distributed over the threads. This is
-      // decided once here (not per entity), based on whether a design is
-      // present:
-      //  - With a design (optimization/homogenization) the assembly must be
-      //    reproducible: the involved eigenvalue/homogenization systems are
-      //    nearly singular, so the ~1e-15 differences of a run-dependent
-      //    accumulation order can change the result. Each thread then processes
-      //    a FIXED contiguous range (deterministic - every matrix entry gets one
-      //    fixed partial sum per thread and their atomic merge is commutative).
-      //  - Otherwise the threads grab chunks dynamically via a shared counter,
-      //    which balances the load better (e.g. on performance/efficiency cores)
-      //    and distributes small entity lists over several threads.
-      const bool deterministic = domain->HasDesign();
+      // by default we assemble in parallel with dynamic scheduling (chunks).
+      // via <linearSystems assembly="deterministic"> this can be disabled. Default is "dynamic"
+      PtrParamNode lsNode = algsys_->GetLinearSystemsParam();
+      assert(!lsNode || !lsNode->Has("assembly") || (lsNode->Get("assembly")->As<string>() == "deterministic" || lsNode->Get("assembly")->As<string>() == "dynamic"));
+      const bool deterministic = (lsNode && lsNode->Has("assembly") && lsNode->Get("assembly")->As<string>() == "deterministic");
       const UInt entityChunk = 32;
       UInt nextEntity = 0;
 

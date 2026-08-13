@@ -702,7 +702,7 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"set_regions", PythonKernel::mesher_set_regions, METH_VARARGS, "set region names by list of strings"},
   {"add_elements", PythonKernel::mesher_add_elements, METH_VARARGS, "parameters total_number, fe_type, int numpy array of 1-based node ids"},
   {"add_named_nodes", PythonKernel::mesher_add_named_nodes, METH_VARARGS, "string and int numpy array of 1-based node ids"},
-  {"add_naned_elements", PythonKernel::mesher_add_named_elements, METH_VARARGS, "string and int numpy array of 1-based element ids"},
+  {"add_named_elements", PythonKernel::mesher_add_named_elements, METH_VARARGS, "string and int numpy array of 1-based element ids"},
 
   /* general optimization */
   {"getDims", opt_getDims, METH_VARARGS, "Returns info on optimization design domain dimensions: dim, nx, ny, nz."},
