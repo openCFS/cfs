@@ -45,7 +45,10 @@
       <eigenFrequency>
         <isQuadratic>no</isQuadratic>
         <numModes>6</numModes>
-        <freqShift>0</freqShift>
+        <!-- at the Gamma point k=(0,0) the periodic K is singular (rigid body translations). With
+             freqShift=0 umfpack factorizes exactly this matrix (rcond=7e-15) and shift-and-invert
+             then depends on rounding. Any small shift regularizes it, the modes stay the same. -->
+        <freqShift>1000</freqShift>
         <writeModes>no</writeModes>
         <bloch>
            <ibz sample="symmetric" steps="6" />
@@ -68,7 +71,8 @@
         </storeResults>
       </mechanic>
     </pdeList>
-    <linearSystems>
+    <!-- the bloch eigenvalue problem is the sensitive one here, it needs the deterministic assembly -->
+    <linearSystems assembly="deterministic">
       <system>
         <solutionStrategy>
           <standard>
@@ -76,7 +80,7 @@
         </solutionStrategy>
         <solverList>
           <umfpack>
-            <tol>0.01</tol>          
+            <tol>0.01</tol>
             <symtol>0.0001</symtol>
           </umfpack>
         </solverList>

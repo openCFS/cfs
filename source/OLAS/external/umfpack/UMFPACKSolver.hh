@@ -202,6 +202,9 @@ namespace CoupledField {
     //! number of non zero entries
     UInt nnz_;
 
+    //! a (nearly) singular factorization is warned only once, we might be called in a loop
+    bool warnedSingular_ = false;
+
     Integer status;
 
     std::vector<double> Info;

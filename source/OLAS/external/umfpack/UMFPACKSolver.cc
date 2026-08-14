@@ -1,3 +1,4 @@
+#include <cmath>
 #include <fstream>
 
 #include <filesystem>
@@ -493,6 +494,16 @@ namespace CoupledField {
     double mb = Info[UMFPACK_PEAK_MEMORY] * Info[UMFPACK_SIZE_OF_UNIT] / (1024.0 * 1024.0);
     out->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, isComplex_, Info[UMFPACK_FLOPS], mb));
     out->Get("flops")->SetValue(Info[UMFPACK_FLOPS]);
+
+    double rcond = Info[UMFPACK_RCOND]; // reciprocal condition number - small is bad
+    out->Get("rcond")->SetValue(rcond);
+    if(!warnedSingular_ && (std::isnan(rcond) || rcond < 1e-14))
+    {
+      warnedSingular_ = true;
+      std::ostringstream msg; // std::to_string() would print a tiny rcond as 0.000000
+      msg << "umfpack factorized a (nearly) singular matrix with reciprocal condition number " << rcond;
+      infoNode_->Get(ParamNode::SUMMARY)->SetWarning(msg.str());
+    }
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
