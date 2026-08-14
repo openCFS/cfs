@@ -17,6 +17,7 @@
 
 #include "StdVector.hh"
 #include "Domain/ElemMapping/Elem.hh"
+#include "General/Exception.hh"
 #include <map>
 #include <type_traits>
 
@@ -56,6 +57,23 @@ protected:
      numSlots_ = CFS_NUM_THREADS;
   }
   UInt numSlots_;
+
+#ifdef USE_OPENMP
+  //! Validates a thread/slot index against numSlots_ and the actual container size
+  //! before it is used to index into a StdVector. Only an assert() previously guarded
+  //! this (compiled out in release builds), which allowed silent out-of-bounds access
+  //! whenever the container size and numSlots_ went out of sync - see comment history.
+  inline UInt CheckedThreadIdx(Integer tNum, UInt containerSize) const{
+    UInt idx = (tNum >= 0) ? (UInt) tNum : (UInt) omp_get_thread_num();
+    if(idx >= numSlots_ || idx >= containerSize){
+      WARN("ThreadLocalStorage: thread index " << idx << " out of bounds "
+           << "(numSlots_=" << numSlots_ << ", container size=" << containerSize
+           << ", omp_get_thread_num()=" << omp_get_thread_num() << ")");
+      EXCEPTION("ThreadLocalStorage: thread index out of bounds - see warning above for details");
+    }
+    return idx;
+  }
+#endif
 };
 
 /*! This class stores and administrates thread local copies of
@@ -80,10 +98,7 @@ public:
 
    inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
-    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
-    assert((int) omp_get_thread_num() < (int) numSlots_);
-    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
-    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+    return tlsContainer_[this->CheckedThreadIdx(tNum, tlsContainer_.GetSize())];
 #else
     return tlsContainer_[0];
 #endif
@@ -91,10 +106,7 @@ public:
 
    inline const T& Mine(Integer tNum = -1) const {
 #ifdef USE_OPENMP
-    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
-    assert((int) omp_get_thread_num() < (int) numSlots_);
-    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
-    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+    return tlsContainer_[this->CheckedThreadIdx(tNum, tlsContainer_.GetSize())];
 #else
     return tlsContainer_[0];
 #endif
@@ -103,10 +115,7 @@ public:
 
    inline const T& ConstMine(Integer tNum = -1) const{
 #ifdef USE_OPENMP
-    // both asserts should test the same, but sometimes tlsContainer_ is not of size numSlots_
-    assert((int) omp_get_thread_num() < (int) numSlots_);
-    assert((int) omp_get_thread_num() < (int) tlsContainer_.GetSize());
-    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+    return tlsContainer_[this->CheckedThreadIdx(tNum, tlsContainer_.GetSize())];
 #else
     return tlsContainer_[0];
 #endif
@@ -177,7 +186,7 @@ public:
   inline T*& Mine(Integer tNum = -1)
   {
 #ifdef USE_OPENMP
-     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+    return tlsContainer_[this->CheckedThreadIdx(tNum, tlsContainer_.GetSize())];
 #else
     return tlsContainer_[0];
 #endif
@@ -211,7 +220,7 @@ public:
   inline V& operator[](const K& a){
    isCleared_ = false;
 #ifdef USE_OPENMP
-    return tlsContainer_[omp_get_thread_num()][a];
+    return tlsContainer_[this->CheckedThreadIdx(-1, tlsContainer_.GetSize())][a];
 #else
     return dummyContainer_[a];
 #endif
@@ -220,7 +229,7 @@ public:
   inline std::map<K,V>& Mine(Integer tNum = -1){
    isCleared_ = false;
 #ifdef USE_OPENMP
-   return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+   return tlsContainer_[this->CheckedThreadIdx(tNum, tlsContainer_.GetSize())];
 #else
     return dummyContainer_;
 #endif
@@ -228,7 +237,7 @@ public:
 
   bool empty() const {
 #ifdef USE_OPENMP
-    return tlsContainer_[omp_get_thread_num()].empty();
+    return tlsContainer_[this->CheckedThreadIdx(-1, tlsContainer_.GetSize())].empty();
 #else
     return dummyContainer_.empty();
 #endif
@@ -237,7 +246,7 @@ public:
   inline tl_iterator begin(){
    isCleared_ = false;
 #ifdef USE_OPENMP
-    return tlsContainer_[omp_get_thread_num()].begin();
+    return tlsContainer_[this->CheckedThreadIdx(-1, tlsContainer_.GetSize())].begin();
 #else
     return dummyContainer_.begin();
 #endif
@@ -246,7 +255,7 @@ public:
   inline tl_iterator end(){
    isCleared_ = false;
 #ifdef USE_OPENMP
-    return tlsContainer_[omp_get_thread_num()].end();
+    return tlsContainer_[this->CheckedThreadIdx(-1, tlsContainer_.GetSize())].end();
 #else
     return dummyContainer_.end();
 #endif
@@ -255,7 +264,7 @@ public:
   inline tl_iterator find(K key){
    isCleared_ = false;
 #ifdef USE_OPENMP
-    return tlsContainer_[omp_get_thread_num()].find(key);
+    return tlsContainer_[this->CheckedThreadIdx(-1, tlsContainer_.GetSize())].find(key);
 #else
     return dummyContainer_.find(key);
 #endif
