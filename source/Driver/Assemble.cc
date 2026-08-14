@@ -656,14 +656,11 @@ namespace CoupledField
                   }
                 }
 
-                // info.xml logging in detailed logging case for the first element only
-                if(i == 0 && progOpts->DoDetailedInfo())
+                // info.xml logging in detailed logging case for the first element only.
+                // IsElemType() as this works only for element integrators, we need an element for the region id
+                if(i == 0 && progOpts->DoDetailedInfo() && it1.IsElemType())
                 {
                   PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
-
-                  // works only for element integrators
-                  if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
-                    continue; // no element, no region id
 
                   // make sure to have only one output for non-static case (e.g. optimization)
                   std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
@@ -961,14 +958,11 @@ namespace CoupledField
             }
 
 
-            // info.xml logging in detailed logging case for the first element only
-            if(i == 0 && progOpts->DoDetailedInfo())
+            // info.xml logging in detailed logging case for the first element only.
+            // IsElemType() as this works only for element integrators, we need an element for the region id
+            if(i == 0 && progOpts->DoDetailedInfo() && it1.IsElemType())
             {
               PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
-
-              // works only for element integrators
-              if(it1.GetType() != EntityList::ELEM_LIST && it1.GetType() != EntityList::SURF_ELEM_LIST && it1.GetType() != EntityList::NC_ELEM_LIST)
-                continue; // no element, no region id
 
               // make sure to have only one output for non-static case (e.g. optimization)
               std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
