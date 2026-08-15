@@ -139,10 +139,10 @@ namespace CoupledField {
     UMFPACKSolver();
 
     //! Handle for symbolic factorization data of UMFPACK
-    void *Symbolic;
+    void *Symbolic = nullptr;
 
     //! Handle for numeric factorization data of UMFPACK
-    void *Numeric ;
+    void *Numeric = nullptr;
 
     //@{
     //! Vectors containing the information about the CRS- or SCRS-matrix

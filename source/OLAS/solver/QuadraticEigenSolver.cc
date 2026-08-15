@@ -42,7 +42,11 @@ namespace CoupledField
   {
     LOG_DBG(quadEigenSolver) << "destructor";
     xml_ = NULL;
+    // we own the inner solver and the linearised matrices
+    delete solverForGeneralisedEVP;
     solverForGeneralisedEVP = NULL;
+    delete A_;
+    delete B_;
     A_ = B_ = NULL;
   }
 

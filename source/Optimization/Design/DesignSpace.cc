@@ -2562,7 +2562,9 @@ PtrCoefFct DesignSpace::DesignRegion::GetScndMaterial(MaterialClass mc, Material
     {
       // apparently first run
       MaterialHandler* matLoader = domain->GetMaterialHandler();
-      BaseMaterial* mat = matLoader->LoadMaterial(scnd_material, mc);
+      // we own what LoadMaterial() returns, keep it alive next to the cache
+      scnd_material_objects.Push_back(std::shared_ptr<BaseMaterial>(matLoader->LoadMaterial(scnd_material, mc)));
+      BaseMaterial* mat = scnd_material_objects.Last().get();
       MathParser* mp = domain->GetMathParser();
 
       switch(mt)

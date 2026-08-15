@@ -118,7 +118,6 @@ LISSolver::LISSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryTy
 
   xml_ = pn;
   firstSetup_ = true;
-  ownMatrixA_ = false;
 
   maxIter_    = pn->Has("maxIter") ? pn->Get("maxIter")->As<int>() : 10000;
   tolerance_  = pn->Has("tolerance") ? pn->Get("tolerance")->As<double>() : 1e-12;
@@ -145,9 +144,9 @@ LISSolver::~LISSolver(){
   err = lis_vector_destroy(x_); CHKERR(err);
   err = lis_vector_destroy(b_); CHKERR(err);
 
-  //matrix A_ shares a pointer in case of real valued problems
-  //there would be a double free otherwise
-  if(ownMatrixA_) {
+  // A_ references arrays owned by cfs, unset detaches them before destroy
+  if(A_ != nullptr) {
+    err = lis_matrix_unset(A_); CHKERR(err);
     err = lis_matrix_destroy(A_); CHKERR(err);
   }
   err = lis_matrix_destroy(A0_); CHKERR(err);
@@ -233,7 +232,6 @@ void LISSolver::Setup(BaseMatrix &sysmat){
         lisZero(b_);
       #endif
     }
-    ownMatrixA_ = false;   // cbuf_ owns the data
   }
   else
   {
@@ -262,7 +260,6 @@ void LISSolver::Setup(BaseMatrix &sysmat){
         err = lis_vector_duplicate(A_,&b_); CHKERR(err);
         lisZero(b_);
       }
-      ownMatrixA_ = false;
     #endif
   }
 

@@ -313,6 +313,11 @@ namespace CoupledField{
       
       
       order_ = isoOrder;
+      // create the reference elements once per region, as the GRID case above
+      if( !refElems_[region].empty() ) {
+        mappingType_[region] = mType;
+        return;
+      }
 
       // In case we have polynomial order 1, we can simply use the explicit
       // type elements. In all other cases, we have to check, if TENSOR_TYPE

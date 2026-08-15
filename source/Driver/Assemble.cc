@@ -549,7 +549,6 @@ namespace CoupledField
 
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
           //copy bilinear forms
-          // TODO: According to fsanatize, this is a huge memory leak...
           biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
         }
 
@@ -747,7 +746,7 @@ namespace CoupledField
         } // loop over entities of the chunk
 
         } // while loop over chunks
-        for( UInt iForm = 0; iForm < forms.GetSize()&&UseOpenMP(); ++iForm ) {
+        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
           //delete copied bilinear forms
           delete biLinForms[iForm];
         }

@@ -32,13 +32,13 @@ SimInputPython::SimInputPython(std::string fileName, PtrParamNode inputNode, Ptr
   info_ = infoNode->Get(ParamNode::HEADER)->Get("domain/python");
   capabilities_.insert( SimInput::MESH);
 
-  python->Register(this);
+  PythonKernel::Register(this);
   // InitModule() does the real work
 }
 
 SimInputPython::~SimInputPython()
 {
-  python->Register(this, true); // remove
+  PythonKernel::Register(this, true); // remove
 }
 
 

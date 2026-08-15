@@ -315,6 +315,8 @@ namespace CoupledField {
       // Finally compute symbolic factorization
       if(isComplex_) 
       {      
+        // Setup() is called again for every wave vector, drop the previous factorisation
+        umfpack_zi_free_symbolic( &Symbolic );
         umfpack_zi_symbolic (probDim_, probDim_,
                              &Rp[0], &Ri[0], &Rx[0], NULL,
                              &Symbolic, &Control[0], &Info[0]) ;
@@ -359,6 +361,7 @@ namespace CoupledField {
       }
       else 
       {    
+        umfpack_di_free_symbolic( &Symbolic );
         umfpack_di_symbolic (probDim_, probDim_,
                              &Rp[0], &Ri[0], &Rx[0],
                              &Symbolic, &Control[0], &Info[0]) ;
@@ -414,7 +417,8 @@ namespace CoupledField {
 
       if(isComplex_) 
       {      
-        // only factorise (numerical)
+        // only factorise (numerical), drop a previous factorisation first
+        umfpack_zi_free_numeric( &Numeric );
         status = umfpack_zi_numeric (&Rp[0], &Ri[0], &Rx[0], NULL,
                                      Symbolic, &Numeric, &Control[0], &Info[0]);
         if (status < 0)
@@ -450,6 +454,7 @@ namespace CoupledField {
       }
       else 
       {      
+        umfpack_di_free_numeric( &Numeric );
         status = umfpack_di_numeric (&Rp[0], &Ri[0], &Rx[0],
                                      Symbolic, &Numeric, &Control[0], &Info[0]);
         if (status < 0)

@@ -472,7 +472,7 @@ class Function
       Vector<double> vol_b_;
       Vector<double> vol_c_;
 
-      ApproxData* volumeInterpolator_;
+      ApproxData* volumeInterpolator_ = nullptr;
 
       /** total volume for CalcLaminatesVol in the unregular grid case*/
       double total_vol_;

@@ -137,8 +137,8 @@ namespace CoupledField
     delete idbcHandler_;
     idbcHandler_ = NULL;
 
-    //delete eigenValues_;
-    eigenValues_ = NULL;
+    if(ownsEigenValues_) delete eigenValues_;
+    eigenValues_ = nullptr;
     delete eigenValError_; eigenValError_ = NULL;
 
     for( UInt i = 0; i < numBlocks_; ++i )
@@ -650,6 +650,7 @@ namespace CoupledField
       BaseVector *bVec = GenerateSingleVectorObject(eType, totalSize);
       BaseVector *errVec = GenerateSingleVectorObject(BaseMatrix::DOUBLE, totalSize);
       eigenValues_ = dynamic_cast<SingleVector*>(bVec);
+      ownsEigenValues_ = true;
       eigenValError_ = dynamic_cast<SingleVector*>(errVec);
     }
     ExportLinSys(true, false, false); // setup
@@ -1016,11 +1017,8 @@ namespace CoupledField
     eigenSolver_->GetSolveTimer()->Start();
 
     eigenSolver_->CalcEigenValues(sol,err,minVal,maxVal);
-    //SingleVector ev = dynamic_cast< SingleVector & > sol;
-    //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
-    //eigenValues_ = dynamic_cast<SingleVector &>(sol);
-    //eigenValues_ = dynamic_cast<SingleVector>(*sol);
-    //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
+    // from here on eigenValues_ is only borrowed from sol
+    if(ownsEigenValues_) { delete eigenValues_; ownsEigenValues_ = false; }
     eigenValues_ = dynamic_cast<SingleVector *>(&sol);
     ExportLinSys(false, false, true);
 
@@ -1033,11 +1031,8 @@ namespace CoupledField
     eigenSolver_->GetSolveTimer()->Start();
 
     eigenSolver_->CalcEigenValues(sol,err);
-    //SingleVector ev = dynamic_cast< SingleVector & > sol;
-    //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
-    //eigenValues_ = dynamic_cast<SingleVector &>(sol);
-    //eigenValues_ = dynamic_cast<SingleVector>(*sol);
-    //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
+    // from here on eigenValues_ is only borrowed from sol
+    if(ownsEigenValues_) { delete eigenValues_; ownsEigenValues_ = false; }
     eigenValues_ = dynamic_cast<SingleVector *>(&sol);
     ExportLinSys(false, false, true);
 

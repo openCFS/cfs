@@ -257,14 +257,9 @@ namespace CoupledField {
                             a, colind, rowptr,
                             &at, &rowind, &colptr);
 
-        Astore = static_cast<NCformat*>(malloc(sizeof(NCformat)));
-        Astore->nnz = nnz_;
-        Astore->nzval = at;
-        Astore->rowind = rowind;
-        Astore->colptr = colptr;
-
-        dCreate_CompCol_Matrix(&A, probDim_, probDim_, nnz_, at, asub, xa, SLU_NC, SLU_D, SLU_GE);
-        A.Store = Astore;
+        // dCreate_CompCol_Matrix allocates the NCformat store itself, don't overwrite A.Store by our own
+        dCreate_CompCol_Matrix(&A, probDim_, probDim_, nnz_, at, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+        Astore = static_cast<NCformat*>(A.Store);
 
         printf("Dimension %dx%d; # nonzeros %d\n", A.nrow, A.ncol, Astore->nnz);
       }

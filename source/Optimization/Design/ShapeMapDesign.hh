@@ -31,7 +31,7 @@ public:
 
   ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
-  virtual ~ShapeMapDesign() { } ;
+  virtual ~ShapeMapDesign();
 
   virtual void PostInit(int objectives, int constraints) override;
 

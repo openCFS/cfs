@@ -328,11 +328,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  //reset RHS to zero:
 		  this->solVec_.Init();
 
-		  NodeList* nodeList = new NodeList(this->srcGrid_);
-		  nodeList->SetNodes(measNodes_);
+		  NodeList nodeList(this->srcGrid_);
+		  nodeList.SetNodes(measNodes_);
 
 		  //StdVector<Integer> measEqs(measNodes_.GetSize());
-		  EntityIterator entIt = nodeList->GetIterator();
+		  EntityIterator entIt = nodeList.GetIterator();
 
 		  Vector<DATA_TYPE> actPDEsol(measNodes_.GetSize());
 		  actPDEsol.Init();
@@ -565,11 +565,11 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 
-	NodeList* nodeList = new NodeList(this->srcGrid_);
-	nodeList->SetNodes(measNodes_);
+	NodeList nodeList(this->srcGrid_);
+	nodeList.SetNodes(measNodes_);
 
 	//StdVector<Integer> measEqs(measNodes_.GetSize());
-	EntityIterator entIt = nodeList->GetIterator();
+	EntityIterator entIt = nodeList.GetIterator();
 
 	Vector<DATA_TYPE> actPDEsol(measNodes_.GetSize());
 	UInt k=0;

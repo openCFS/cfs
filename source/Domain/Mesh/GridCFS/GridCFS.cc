@@ -2559,8 +2559,9 @@ void GridCFS::MapFaces()
         }
       
         // LOG_DBG2(gridcfs) << "FEN: elem=" << elem->elemNum << " nbhs=" << neighborhood.GetSize();
-        // neighborhood is filled now, copy it to elem
+        // neighborhood is filled now, copy it to elem. might be called more than once
         assert(neighborhood.GetSize() > 0); // assume there is no single element case
+        delete elem->extended->neighborhood;
         elem->extended->neighborhood = new StdVector<std::pair<Elem*, int> >(neighborhood);
       }
     }

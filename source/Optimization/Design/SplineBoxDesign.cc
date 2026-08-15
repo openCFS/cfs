@@ -170,6 +170,19 @@ SplineBoxDesign::SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   setup_timer_->Stop();
 }
 
+SplineBoxDesign::~SplineBoxDesign()
+{
+  // shape_param_ owns the elements, opt_shape_param_ is only a subset of the same pointers
+  for(ShapeParamElement* sp : shape_param_)
+    delete sp;
+
+  for(BSpline* bs : bsplines_)
+    delete bs;
+
+  delete bicubicInterpolator_;
+  delete tricubicInterpolator_;
+}
+
 /* <splinebox degree="3" cpx="4" cpy="5" cpz="3" fixed_boundary="true">
      <boundingBox lowerXLimit="0" upperXLimit="1" .../>   optional
      <allControlPoints lower="0" upper="1"/>              oder

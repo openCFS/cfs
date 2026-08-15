@@ -473,18 +473,25 @@ namespace CoupledField {
     bool converged = false;
     Integer  ido = 0, info = 0;
 
+    // owned by StdVector as in FindEigenvalues(), the raw pointers are only views
     // temp vector to store B*x
-    Complex *tempV = new Complex [size_];
+    StdVector<Complex> tempVMem(size_);
+    Complex *tempV = tempVMem.GetPointer();
     // pointers to the position of x and y in workD
     Complex *vecX, *vecY;
 
     // temp working space required in znaupd
-    Complex *workD = new Complex [3*size_];
-    Complex *residual = new Complex [size_];
+    StdVector<Complex> workDMem(3*size_);
+    Complex* workD = workDMem.GetPointer();
+    StdVector<Complex> residualMem(size_);
+    Complex* residual = residualMem.GetPointer();
     Integer lenWorkL = numArnoldiVec_*(3*numArnoldiVec_+5);
-    Complex *workL = new Complex [lenWorkL];
-    Complex *matrixV = new Complex [size_*numArnoldiVec_];
-    Double  *workDbleD = new Double [numArnoldiVec_];
+    StdVector<Complex> workLMem(lenWorkL);
+    Complex* workL = workLMem.GetPointer();
+    StdVector<Complex> matrixVMem(size_*numArnoldiVec_);
+    Complex* matrixV = matrixVMem.GetPointer();
+    StdVector<double> workDbleDMem(numArnoldiVec_);
+    double* workDbleD = workDbleDMem.GetPointer();
 
     InitQuadTempSpace(tempV, residual, workD, workL, matrixV, workDbleD);
 
@@ -588,14 +595,18 @@ namespace CoupledField {
     //       memory allocation here!
 
     bool rvec = true;
-    Double *select = new Double [numArnoldiVec_];
-    Complex *d = new Complex [numArnoldiVec_*2];
-    Complex *zwv = new Complex [numArnoldiVec_*2];
+    StdVector<double> selectMem(numArnoldiVec_);
+    double* select = selectMem.GetPointer();
+    StdVector<Complex> dMem(numArnoldiVec_*2);
+    Complex* d = dMem.GetPointer();
+    StdVector<Complex> zwvMem(numArnoldiVec_*2);
+    Complex* zwv = zwvMem.GetPointer();
 
     // we define a second tmp-array to store all eigenvectors,
     // also for the negative frequencies.
     // zEigenVectors_ will only store data for positive freqs.
-    Complex *zEV = new Complex [numEV_*size_];
+    StdVector<Complex> zEVMem(numEV_*size_);
+    Complex* zEV = zEVMem.GetPointer();
 
     for (int i=0; i< numArnoldiVec_*2; i++) {
       d[i] = (Complex) 0.0;
@@ -617,17 +628,25 @@ namespace CoupledField {
 
     Integer numEVConverged = iparams[4];
 
-    Complex *z1 = new Complex [size_/2];
-    Complex *z2 = new Complex [size_/2];
-    Complex *z3 = new Complex [size_/2];
-    Complex *zA = new Complex [size_];
-    Complex *zB = new Complex [size_];
-    Complex *zC = new Complex [size_];
-    Complex *ztmp;
+    StdVector<Complex> z1Mem(size_/2);
+    Complex* z1 = z1Mem.GetPointer();
+    StdVector<Complex> z2Mem(size_/2);
+    Complex* z2 = z2Mem.GetPointer();
+    StdVector<Complex> z3Mem(size_/2);
+    Complex* z3 = z3Mem.GetPointer();
+    StdVector<Complex> zAMem(size_);
+    Complex* zA = zAMem.GetPointer();
+    StdVector<Complex> zBMem(size_);
+    Complex* zB = zBMem.GetPointer();
+    StdVector<Complex> zCMem(size_);
+    Complex* zC = zCMem.GetPointer();
+    Complex* ztmp;
 
     // we only count and treat/store eigenvalues with positive frequency value
-    Integer *sortedEV = new Integer [numEVConverged];
-    Double  *sortedFreq = new Double [numEVConverged];
+    StdVector<int> sortedEVMem(numEVConverged);
+    int* sortedEV = sortedEVMem.GetPointer();
+    StdVector<double> sortedFreqMem(numEVConverged);
+    double* sortedFreq = sortedFreqMem.GetPointer();
     for (Integer ncv=0; ncv < numEVConverged; ncv++) {
       sortedEV[ncv] = -1;
       sortedFreq[ncv] = 0.0;
@@ -657,7 +676,8 @@ namespace CoupledField {
       }
     }
 
-    Integer *evPos = new Integer [numEVConverged];
+    StdVector<int> evPosMem(numEVConverged);
+    int* evPos = evPosMem.GetPointer();
     for (Integer pos=0; pos<numEVConverged; pos++) {
       evPos[pos] = -1;
     }

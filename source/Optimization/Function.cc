@@ -258,8 +258,7 @@ Function::~Function()
     local = NULL;
   }
 
-  // this might lead to problems when they are active in Assemble and ~Assemble deletes them
-  output_forms.Clear();
+  output_forms.Clear(); // only a view, Assemble owns the contexts
 }
 
 void Function::Init()
@@ -1667,6 +1666,8 @@ Function::Local::~Local() {
     delete structure_;
     structure_ = NULL;
   }
+  delete volumeInterpolator_;
+  volumeInterpolator_ = nullptr;
 }
 
 void Function::Local::SetupVirtualElementMap(Phase ph) {

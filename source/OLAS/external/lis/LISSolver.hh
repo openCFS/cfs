@@ -141,8 +141,6 @@ namespace CoupledField
    ///reset solution vector to zero if Setup is called
    bool resetXZero_;
 
-   bool ownMatrixA_;
-
    /** real CRS embedded as complex (imag=0) for the complex LIS build */
    std::vector<Complex> cbuf_;
 

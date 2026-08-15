@@ -81,11 +81,13 @@ public:
   /** optional python module (script). Can be NULL */
   PyObject* GetKernel() { return kernel_; }
 
-  /** to by called by the pathon mesher to forward the static functions from cfs_modules_, called from python to the class */
-  void Register(SimInputPython* mesher, bool remove = false) { this->mesher_ = remove ? NULL : mesher; }
+  /** to by called by the python mesher to forward the static functions from cfs_modules_. 
+   * @param remove true makes Unregister() */
+  static void Register(SimInputPython* mesher, bool remove = false) { mesher_ = remove ? nullptr : mesher; }
 
-  /** register PythonOptimizer. Note that Optimization is not registered but taken from domain->GetOptimization() */
-  void Register(PythonOptimizer* opt, bool remove = false) { this->pyopt_ = remove ? NULL : opt; }
+  /** register PythonOptimizer. Note that Optimization* is not registered but taken from domain->GetOptimization()
+   * @param remove true makes Unregister() */
+  static void Register(PythonOptimizer* opt, bool remove = false) { pyopt_ = remove ? nullptr : opt; }
 
   /** return value of LoadPythonModule. How easy this is with Python :( */
   struct LoadStatus

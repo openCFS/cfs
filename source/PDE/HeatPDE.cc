@@ -1822,10 +1822,11 @@ void HeatPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<Linear
     ctx->SetEntities(actSDList);
     ctx->SetFeFunction(myFct);
 
-    if(linForms != NULL)
+    // the ownership is always with Assemble, which deletes allLinForms_.
+    // linForms is only an additional non-owning view for the optimization excitations
+    assemble_->AddLinearForm(ctx);
+    if(linForms != nullptr)
       linForms->Push_back(ctx);
-    else
-      assemble_->AddLinearForm(ctx);
   }
 }
 

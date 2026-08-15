@@ -195,13 +195,13 @@ PyObject* opt_evalobj(PyObject *self, PyObject *args)
  * optional argument is the index of the transfer function */
 PyObject* opt_transfer(PyObject *self, PyObject *args)
 {
-  return PythonKernel::CheckOpt() ? python->GetPyOpt()->Transfer(args, false) : nullptr;
+  return PythonKernel::CheckOpt() ? PythonOptimizer::Transfer(args, false) : nullptr;
 }
 
 /** evaluate the derivatrive of the transfer function. See opt_transfer() */
 PyObject* opt_d_transfer(PyObject *self, PyObject *args)
 {
-  return PythonKernel::CheckOpt() ? python->GetPyOpt()->Transfer(args, true) : nullptr;
+  return PythonKernel::CheckOpt() ? PythonOptimizer::Transfer(args, true) : nullptr;
 }
 
 /** cfs.cfs_commitIteration() commits iteration to cfs */
