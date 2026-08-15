@@ -76,7 +76,7 @@ def order(timers, sort_by_id=False):
   for t in timers:
     if t.cnt == 0:
       continue
-    if not t.sub or t.parent_id == None:
+    if not t.sub or t.parent_id == None or t.parent_id not in map:
       main.append(t)
     else:
       # we are a sub-timer with known parent, add to tree structure
