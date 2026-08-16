@@ -55,6 +55,19 @@ using namespace std;
 // Create global info node
 PtrParamNode infoNode;
 
+#ifdef __SANITIZE_ADDRESS__
+/** LeakSanitizer reads this weak symbol by itself, no LSAN_OPTIONS needed.
+ * Only what we cannot free: CPython keeps state after Py_Finalize(), see PythonKernel::Release().
+ * libxml2/libxslt come with the lxml module our Python scripts import. */
+extern "C" const char* __lsan_default_suppressions()
+{
+  return "leak:libpython3.\n"
+         "leak:_multiarray_umath\n"
+         "leak:libxml2.\n"
+         "leak:libxslt.\n";
+}
+#endif
+
 #ifdef USE_PETSC
 int main(int argc, const char **argv)
 {
