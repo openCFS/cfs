@@ -136,9 +136,9 @@ namespace CoupledField {
     Double tolerance_;
 
     //! Shift to be applied. Only there as member variable for ToInfo().
-    Complex valueShift_;
+    Complex valueShift_ = 0.0;
     //! Number of eigenvalues. Only there as member variable for ToInfo().
-    int numEV_;
+    int numEV_ = 0;
 
     //! Maximum number of iterations
     UInt maxIterations_;

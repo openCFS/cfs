@@ -250,14 +250,14 @@ namespace CoupledField {
     struct NcInterfaceInfo {
       UInt              interfaceId;
       NcCouplingType    type;
-      LagrangeMultType  lagrangeMultType;
+      LagrangeMultType  lagrangeMultType = LM_STANDARD;
       Double            nitscheFactor;
       Double            nitscheFactorDamp;
       Double            layerThickness; // parameter for thin layer formulation with non conforming interface condition
       string            layerMaterial; // material for thin layer formulation with non conforming interface condition
-      bool              thinLayer;
-      bool              crossPointHandling;
-      bool              movingMortarForm;
+      bool              thinLayer = false;
+      bool              crossPointHandling = false;
+      bool              movingMortarForm = false;
     };
         
 
@@ -351,7 +351,7 @@ namespace CoupledField {
     // if there are some regions which are hysteretic and others have other nonlinearities
     // isHysteresis_ and nonLinNonHyst_ are both true
     bool isHysteresis_;
-    bool nonLinNonHyst_;
+    bool nonLinNonHyst_ = false;
     
     std::string modelName_;
 

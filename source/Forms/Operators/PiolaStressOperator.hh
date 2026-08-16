@@ -950,7 +950,7 @@ namespace CoupledField{
       return new SurfaceNormalPreStressOperator(*this);
     }
 
-    virtual ~SurfaceNormalPreStressOperator() { return; }
+    virtual ~SurfaceNormalPreStressOperator() { delete preStressOp_; }
 
     virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
 

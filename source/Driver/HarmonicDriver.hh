@@ -150,7 +150,7 @@ protected:
   FreqSamplingType samplingType_;
   
   //! Flag whether stepping strategy is standard or tree based
-  bool treeStepping_;
+  bool treeStepping_ = false;
 
   //! Number of tree levels in case of tree stepping
   UInt maxTreeLevel_;

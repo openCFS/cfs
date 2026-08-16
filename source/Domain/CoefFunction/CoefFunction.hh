@@ -944,7 +944,7 @@ protected:
   bool isActive_;
 
   //! approximate source terms with delta functions
-  CoefInverseSourceApprox approxSourceType_;
+  CoefInverseSourceApprox approxSourceType_ = NOINFORMATION;
 };
 
 
