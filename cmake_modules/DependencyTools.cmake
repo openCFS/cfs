@@ -53,6 +53,7 @@ macro(clear_depencency_variables)
   unset(DEPS_PREFIX)
   unset(DEPS_SOURCE)
   unset(DEPS_SUBDIR)
+  unset(DEPS_INCLUDE_DIR)
   unset(DEPS_INSTALL)
   set(DEPS_LIB_TYPE "static") # default
   unset(USE_C_CXX)
@@ -160,7 +161,12 @@ macro(set_standard_variables)
   mark_as_advanced(${_UPPER_PACKAGE_NAME}_LIBRARY)
 
   # almost all packages go to CMAKE_BINARY_DIR/include. Even fortran packages like arpack have includes
-  set(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR "${CMAKE_BINARY_DIR}/include" CACHE FILEPATH "${PACKAGE_NAME} include dir.")
+  # if a non-standard path is desired, set DEPS_INCLUDE_DIR
+  if(DEFINED DEPS_INCLUDE_DIR)
+    set(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR "${DEPS_INCLUDE_DIR}" CACHE FILEPATH "${PACKAGE_NAME} include dir.")
+  else()
+    set(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR "${CMAKE_BINARY_DIR}/include" CACHE FILEPATH "${PACKAGE_NAME} include dir.")
+  endif()
   mark_as_advanced(${_UPPER_PACKAGE_NAME}_INCLUDE_DIR)
  
   # cmake package building directly to cfs build. precompiled package via manifest

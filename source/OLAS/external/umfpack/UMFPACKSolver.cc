@@ -4,7 +4,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#include <umfpack.h>
+#include <suitesparse/umfpack.h>
 
 #include "MatVec/BaseMatrix.hh"
 #include "MatVec/StdMatrix.hh"

@@ -5,12 +5,11 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "suitesparse")
-# SuiteSparse >= 6 is CMake based, but has not root CMakeLists.txt which we add ourselves
-# see also https://github.com/Fabian188/SuiteSparse-root-cmake
-# we compile this GPL with all available modules
-set(PACKAGE_VER "7.0.1")
+# SuiteSparse >= 7 has good CMake support, we use it as-is
+# we compile the required (sub-)projects including GPL licensed code paths
+set(PACKAGE_VER "7.13.0") #
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "d31bbe2a26dced338b23e71f7c9b541a")
+set(PACKAGE_MD5 "704e33348f0ef892c806aa1f480f3ba3") # 7.13.0
 set(PACKAGE_MIRRORS "https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/${PACKAGE_FILE}")  
 set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
@@ -20,8 +19,6 @@ add_standard_mirrors_or_set_local()
  # we only have a C compiler
 use_c_and_fortran(ON OFF)
 
-# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
-
 # we cannot link a parallel compiled suitesparse with debug without openmp
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -29,20 +26,20 @@ else()
   set(DEPS_ID "NO-OPENMP")
 endif()
 
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
-
-set_static_cache_lib("AMD_LIBRARY" "amd" "AMD lib from SuiteSparse")
 
 # Windows has non-standard _static.lib ending
 assert_unset(PACKAGE_LIBRARY)
-set(LIBS "umfpack;cholmod;camd;ccolamd;colamd;amd;suitesparseconfig")
+set(LIBS "umfpack;cholmod;camd;ccolamd;colamd;amd;suitesparse_config")
 foreach(ITEM ${LIBS})
+  string(REPLACE "_" "" ITEM "${ITEM}") # remove the underscore in suitesparse_config because the lib is called differently than the project
   if(UNIX)
     list(APPEND PACKAGE_LIBRARY "${CMAKE_BINARY_DIR}/lib/lib${ITEM}.a")
   else()
     list(APPEND PACKAGE_LIBRARY "${CMAKE_BINARY_DIR}/lib/${ITEM}_static.lib")  
-  endif()  
-endforeach()   
+  endif()
+endforeach()
 
 # creates SUITESPARSE_LIBRAY as CACHE variable, hence it will not be overwritten once in cache!
 set_standard_variables() 
@@ -56,25 +53,26 @@ set_deps_args_default(ON) # set compiler flags
 # we potentially build the suitesparse subprojects in parallel but we need to process them sequentially
 set(DEPS_BUILD_THREADS 1)
 
+# switch off shared-libs, demos and testing so suitesparse compiles without the need to link BLAS/LAPACK
+# enabling umfpack enables all other LIBS since they are dependencies. This avoids weird CMake issues with quotes and semicolons
 set(DEPS_ARGS
   ${DEPS_ARGS}
-  -DBUILD_STATIC:BOOL=ON
-  -DUSE_OPENMP:BOOL=${USE_OPENMP}
-  -DALLOW_64BIT_BLAS:BOOL=ON
-  -DALLOW_GPL_EXTENSIONS:BOOL=ON 
-  -DBUILD_THREADS=${CFS_DEPS_BUILD_THREADS}) # the global number of build threads (default is system threads)
+  -DSUITESPARSE_ENABLE_PROJECTS=umfpack
+  -DBUILD_STATIC_LIBS:BOOL=ON
+  -DBUILD_SHARED_LIBS:BOOL=OFF
+  -DSUITESPARSE_USE_OPENMP:BOOL=${USE_OPENMP}
+  -DSUITESPARSE_DEMOS=OFF
+  -DBUILD_TESTING=OFF
+  -DSUITESPARSE_USE_64BIT_BLAS:BOOL=OFF
+  -DCHOLMOD_GPL:BOOL=ON 
+  )
 
-if(UNIX AND USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  list(APPEND DEPS_ARGS -DSUGGEST_BLAS_LIBRARIES=${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a)
-elseif(UNIX AND USE_BLAS_LAPACK STREQUAL "MKL") # we assume properly set up mkl for Windows
-  list(APPEND DEPS_ARGS -DSUGGEST_BLAS_LIBRARIES=${MKL_LIB_DIR}/libmkl_intel_lp64.a) 
-endif()  
+# make sure SUITESPARSE does not try to find BLAS/LAPACK
+# this is not required as we link it in CFS
+list(APPEND DEPS_ARGS -DBLA_VENDOR=Generic -DBLAS_LIBRARIES=/dummy -DLAPACK_LIBRARIES=/dummy)
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
-
-# copies your CMakeLists.txt and suitesparse_install.cmake for SuiteSparse 7 as long this is not upstream
-generate_patches_script()
 
 assert_unset(POSTINSTALL_SCRIPT)
 
@@ -88,7 +86,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  create_external_cmake_patched()  
+  create_external_cmake()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
