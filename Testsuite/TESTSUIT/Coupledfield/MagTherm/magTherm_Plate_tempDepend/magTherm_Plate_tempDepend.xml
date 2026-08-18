@@ -139,7 +139,8 @@
         <couplingList>
             <iterative>
                 <convergence logging="yes" maxNumIters="10" stopOnDivergence="yes">
-                    <quantity name="magJouleLossPowerDensity" value="1e-6"/>
+                    <!-- Note: tolerance was 1e-6 before fix to CoefFunctionAccumulator (= vs +=) -->
+                    <quantity name="magJouleLossPowerDensity" value="1e-4"/>
                 </convergence>
             </iterative>
         </couplingList>
@@ -150,8 +151,8 @@
                     <standard>
                         <nonLinear logging="yes">
                             <lineSearch/>
-                            <incStopCrit> 1e-5</incStopCrit>
-                            <resStopCrit> 1e-5</resStopCrit>
+                            <incStopCrit> 1e-7</incStopCrit>
+                            <resStopCrit> 1e-7</resStopCrit>
                             <maxNumIters> 20  </maxNumIters>
                         </nonLinear>
                     </standard>

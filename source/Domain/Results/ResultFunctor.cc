@@ -4,6 +4,7 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <algorithm>
 
 namespace CoupledField {
 
@@ -73,7 +74,10 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ )
+      // bounded by dim_ (the per-element span reserved in vec) and tempField's actual
+      // size, since either can be the smaller one depending on element/formulation
+      // (see 36df5e07e for the H-formulation edge-element case where tempField < dim_)
+      for(UInt iDim = 0; iDim < std::min(dim_, tempField.GetSize()); iDim++ )
         vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
     }
     break;

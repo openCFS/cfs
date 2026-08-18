@@ -50,7 +50,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>                    
+                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -65,43 +65,46 @@
             </xsd:annotation>
           </xsd:element>
 
-          <!-- List defining nonlinear types -->
+          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="reluctivity_magstrict" type="DT_MagneticNonLinReluc"/>
+                <xsd:element name="permeability" type="DT_MagneticNonLinPerm">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining material dependencies -->
           <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <xsd:element name="permeabilityFrozen" type="DT_matDependency">
                   <xsd:annotation>
                     <xsd:documentation>
-                      Frozen magnetic permeability (read from file). Here, the magnetic permeability is not used from a material 
+                      Frozen magnetic permeability (read from file). Here, the magnetic permeability is not used from a material
                       file but stems from a precomputation. This can be used when a working point is known and the material state
                       of this working point shall be used for different computations.
                     </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="permeability" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic permeability depends on magnetic intensity</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
-          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
-		    <xsd:element name="reluctivity_magstrict" type="DT_MagneticNonLinReluc"/>  
-
-                <xsd:element name="permeability" type="DT_MagneticNonLinPerm">
-                  <xsd:annotation>
-                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-                 <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
-                  <xsd:annotation>
-                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-              </xsd:choice>
-
-            </xsd:complexType>
-          </xsd:element>
-          
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -158,6 +161,11 @@
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>Exciting magnetic field intensity precomupted by curl-curl formulation</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="measuredFieldIntensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Measured magnetic field intensity (will be read from file) </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
@@ -375,6 +383,7 @@
       <xsd:enumeration value="magPolarization"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
+      <xsd:enumeration value="magPotentialGrad"/>
       
       <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
       <xsd:enumeration value="pseudoDensity" />
@@ -410,6 +419,9 @@
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magGradAdjParam"/>
+      <xsd:enumeration value="volume"/>
+      <xsd:enumeration value="magAveragedFieldIntensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 

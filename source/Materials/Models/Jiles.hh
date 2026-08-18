@@ -2,6 +2,7 @@
 #define FILE_JILES_2004
 
 #include <list>
+#include <atomic>
 
 #include "MatVec/Vector.hh"
 #include "Domain/Domain.hh"
@@ -29,7 +30,7 @@ public:
 
   void RampUp(Integer Nt, Double E, Integer idx);
 
-  void saveValues(bool InstantSave);
+  void saveValues(bool InstantSave, Integer idx = -1);
 
 private:
   //==============
@@ -38,6 +39,9 @@ private:
 
   UInt numElems_;
   Double MaxE_;
+
+  //current index
+  UInt idx_;
 
   Double Ps_;
   Double a_;
@@ -65,6 +69,8 @@ private:
   MathParser* mp_;
 
   Vector<Integer> isFirstTime_;
+  bool isFirstTimeFinished_;
+  std::atomic<UInt> numInitialized_;  //!< Atomic counter for initialized elements (OpenMP safe)
 
   UInt timeStep_;
 
@@ -72,6 +78,9 @@ private:
   double isMH_;
 
   std::string varHandle_;
+
+  Vector<Double> currentDirection_;
+  std::map<UInt,Vector<Double>> initialDirection_;
 };
 } //end of namespace
 

@@ -250,7 +250,6 @@ namespace CoupledField
 
     shared_ptr<Timer> init_analysis_timer;
 
-    
   protected:
 
   private:

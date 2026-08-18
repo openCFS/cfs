@@ -2,6 +2,7 @@
 #define CFS_INTERPOLATE_HH
 
 #include <map>
+#include <mutex>
 #include <string>
 
 #include "General/Environment.hh"
@@ -52,6 +53,11 @@ namespace CoupledField {
 
     //! Map filename <-> y-value vector
     static std::map<std::string, Vector<Double> > yVals_;
+
+    //! Guards xVals_/yVals_ - Interpolate() is called concurrently by
+    //! multiple OpenMP assembly threads (each with its own MathParserOMP
+    //! handle, but all resolving to this same static cache)
+    static std::mutex mapMutex_;
   };
 
 

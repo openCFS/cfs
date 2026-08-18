@@ -491,6 +491,7 @@ add_subdirectory(share/scripts)
 add_subdirectory(share/xml)
 add_subdirectory(share/xsl)
 add_subdirectory(share/python)
+add_subdirectory(share/SMSM_directions)
 
 # generate compile_commands.json in the build dir which is used e.g. by vscode
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # since project() sets a cache entry for it

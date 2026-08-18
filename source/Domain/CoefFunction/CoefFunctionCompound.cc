@@ -38,33 +38,21 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
-  
-  // update internal variables 
+
+  // update internal variables
   UpdateXpr( lpm );
-  
-  parser_->EvalMatrix( handle_, locMatrix, 
-                         this->numRows_, this->numCols_ ); 
+
+  parser_->EvalMatrix( handle_, locMatrix,
+                         this->numRows_, this->numCols_ );
 
   // Rotate material, if coordinate system is not the global one
   TransformTensorByCoordSys(coefMat, locMatrix, lpm);
-
-//#pragma omp critical
-//  {
-//#ifdef USE_OPENMP
-//    std::cout << omp_get_thread_num() << " "<< lpm.ptEl->elemNum << std::endl;
-//#else
-//    std::cout << lpm.ptEl->elemNum << std::endl;
-//#endif
-//  std::cout << lpm.lp.coord << std::endl;
-//  std::cout << coefMat << std::endl  << std::endl;
-//  }
 }
 
 void CoefFunctionCompound<Double>::
 GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR );
 
-  //assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> pointCoord;
 
   // First, obtain global coordinates of current point,
@@ -73,7 +61,7 @@ GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
   // register it at the mathParser and compute local coefficient vector
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
-  // update internal variables 
+  // update internal variables
   UpdateXpr(lpm);
 
   Vector<Double> locVector;
@@ -90,7 +78,7 @@ GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
 void CoefFunctionCompound<Double>::
 GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
   assert(this->dimType_ == SCALAR);
-  
+
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;
   assert(lpm.shapeMap != nullptr);
@@ -98,7 +86,6 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
   parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
   // update internal variables
-
   UpdateXpr( lpm );
   coefScalar = parser_->Eval( handle_ );
 }
@@ -267,7 +254,7 @@ RegisterCoefFct( const std::string& name,
 void CoefFunctionCompound<Double>::
 UpdateXpr( const LocPointMapped& lpm ) {
   //should be fine if parallel or not...
-  
+
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
@@ -332,7 +319,7 @@ CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
   dependType_ = CoefFunction::GENERAL;
   isAnalytic_ = false;
   isComplex_ = true;
-  
+
   numRows_ = 0;
   numCols_ = 0;
   parser_ = NULL;
@@ -340,7 +327,7 @@ CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
   parser_ = mp;
   handleReal_ = parser_->GetNewHandle( true );
   handleImag_ = parser_->GetNewHandle( true );
-  
+
   // always store default coordinate system
   coordSysDefault_ = domain->GetCoordSystem();
 }
@@ -362,14 +349,14 @@ GetTensor( Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
   parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
-  
-  // update internal variables 
+
+  // update internal variables
   UpdateXpr( lpm );
-  
-  parser_->EvalMatrix( handleReal_, temp, 
+
+  parser_->EvalMatrix( handleReal_, temp,
                        this->numRows_, this->numCols_ );
   locMatrix.SetPart(Global::REAL, temp);
-  parser_->EvalMatrix( handleImag_, temp, 
+  parser_->EvalMatrix( handleImag_, temp,
                        this->numRows_, this->numCols_ );
   locMatrix.SetPart(Global::IMAG, temp);
 
@@ -383,15 +370,14 @@ GetVector( Vector<Complex>& coefVec, const LocPointMapped& lpm ) {
   Vector<Double> temp, pointCoord;
   Vector<Complex> locVector;
 
-  // First, obtain global coordinates of current point, register it at the mathParser
-  // and compute local coefficient vector
+  // First, obtain global coordinates of current point
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
   parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
 
-  // update internal variables 
+  // update internal variables
   UpdateXpr( lpm );
-  
+
   parser_->EvalVector( handleReal_, temp );
   locVector.Resize(temp.GetSize());
   locVector.SetPart(Global::REAL, temp);
@@ -409,16 +395,16 @@ void CoefFunctionCompound<Complex>::
 GetScalar( Complex& coefScalar, const LocPointMapped& lpm ) {
   assert(this->dimType_ == SCALAR);
   Double real, imag;
-  
-  // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+
+  // First, obtain global coordinates of current point
+  Vector<Double> pointCoord;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
   parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
-  
-  // update internal variables 
+
+  // update internal variables
   UpdateXpr( lpm );
-  
+
   real = parser_->Eval( handleReal_ );
   imag = parser_->Eval( handleImag_ );
   coefScalar = Complex(real, imag);
@@ -622,7 +608,7 @@ RegisterCoefFct( const std::string& name,
 
 void CoefFunctionCompound<Complex>::
 UpdateXpr( const LocPointMapped& lpm ) {
-  
+
 //#ifdef USE_OPENMP
 //  if(omp_get_num_threads() == 1 && CFS_NUM_THREADS>1){
 //    WARN("Calling from serial region. May be dangerous")
@@ -635,21 +621,21 @@ UpdateXpr( const LocPointMapped& lpm ) {
     const std::string & name = it->first;
     // query dimType
     CoefDimType dim = coefDimTypes_[name];
-    
+
     if( dim == SCALAR ) {
       Complex temp;
       it->second->GetScalar( temp, lpm );
       scalVarsReal_[name] = temp.real();
       scalVarsImag_[name] = temp.imag();
-//      std::cerr << "setting " << name << " to (" << temp.real() 
-//          << ", " << temp.imag()<< ")\n"; 
+//      std::cerr << "setting " << name << " to (" << temp.real()
+//          << ", " << temp.imag()<< ")\n";
     } else if( dim == VECTOR ) {
       Vector<Complex> temp;
       it->second->GetVector( temp, lpm );
       vecVarsReal_[name] = temp.GetPart(Global::REAL);
       vecVarsImag_[name] = temp.GetPart(Global::IMAG);
-//      std::cerr << "setting " << name << " to \n\tREAL:" 
-//          << (temp.GetPart(Global::REAL)).ToString() 
+//      std::cerr << "setting " << name << " to \n\tREAL:"
+//          << (temp.GetPart(Global::REAL)).ToString()
 //          << "\n\tIMAG: " << (temp.GetPart(Global::IMAG)).ToString() << "\n";
     } else if( dim == TENSOR ) {
       Matrix<Complex> temp;
@@ -659,7 +645,7 @@ UpdateXpr( const LocPointMapped& lpm ) {
     } else {
       EXCEPTION( "Unknown dimension type of coefficient function '" << name << "'")
     }
-    
+
   }
 }
 

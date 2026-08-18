@@ -247,7 +247,7 @@
           <xsd:enumeration value="minResidual">
           <xsd:annotation>
               <xsd:documentation>
-                An array of line search parameters gamma is used to evaluate the residual for 
+                An array of line search parameters gamma is used to evaluate the residual for
                 gamma = [0.1 0.2 0.3 0.4 0.5 0.6 0.6 0.7 0.8 0.9 1] and the one which minimizes the residual
                 is used for the Newton step.
               </xsd:documentation>
@@ -270,6 +270,18 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
+          <xsd:enumeration value="minEnergyHeavy">
+          <xsd:annotation>
+            <xsd:documentation>
+              Computes the optimal line search parameter by minimizing the residual L2-norm
+              in the Newton direction. A fixed set of parameters eta in 
+              {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0} are evaluated and the 
+              parameter that yields the smallest residual norm is selected.
+              In contrast to minEnergyHeuristic, which minimizes the energy derivative,
+              this method directly minimizes the residual.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:enumeration>
           <xsd:enumeration value="Armijo">
           <xsd:annotation>
               <xsd:documentation>
@@ -292,13 +304,37 @@
               <xsd:documentation>
                 Advanced linesearch: Improves quality, not neccessary speed. Only available for multiharmonic
                 Analysis.
-                
+
                 Linesearch first consideres only first harmonics, and will increase considered harmonics if error doest decrease.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="Inexact">
+            <xsd:annotation>
+              <xsd:documentation>
+                Inexact line search using backtracking with Armijo-Goldstein condition.
+                Starts with gamma = 1 and reduces it until sufficient decrease is achieved.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
         </xsd:restriction>
       </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="tolerance" type="DT_PosFloat" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Convergence tolerance for iterative line search methods (e.g., Brent method).
+          Default: 1e-3. Lower values give more precise line search but require more iterations.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Maximum iterations for iterative line search methods.
+          Default: 1000.
+        </xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
 
@@ -329,6 +365,36 @@
       <xsd:element name="resStopCrit" type="DT_PosFloat" minOccurs="0"/>
       <xsd:element name="maxNumIters" type="xsd:positiveInteger" minOccurs="0"/>
       <xsd:element name="abortOnMaxNumIters" type="DT_CFSBool" default="yes" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="useStagnationDetection" type="DT_CFSBool" default="no" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Enable stagnation detection for nonlinear iterations.
+            If enabled, monitors improvement in residual over a window of iterations.
+            When improvement becomes too small, iteration stops with warning
+            and proceeds to next time step. Can be understood as a safety measure if termination criteria are
+            too restrictive. Default: no. Currently only implemented in the EBHysteresisModel.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="stagnationWindowSize" type="xsd:positiveInteger" default="5" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Number of recent iterations inspected for stagnation detection.
+            Stagnation is detected when the best improvement in this window falls below stagnation tolerance
+            and the incremental error is small enough. Default: 5.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="stagnationTolerance" type="DT_PosFloat" default="0.1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>
+            Relative improvement threshold for stagnation detection.
+            Improvement = (residualErr_prev - residualErr) / (residualErr_prev + 1e-15).
+            When max improvement is smaller than tolerance in the window, stagnation is detected.
+            Default: 0.1 (i.e., 10% improvement per iteration).
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
       <xsd:element name="stopOnLimit" type="DT_StopIter" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional" default="newton"/>
