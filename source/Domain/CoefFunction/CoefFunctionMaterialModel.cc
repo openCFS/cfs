@@ -114,10 +114,9 @@ void CoefFunctionMaterialModel<T>::GetScalar(
     RealDependentVec.Resize(DependentVec.GetSize());
     RealDependentVec.Init(0);
 
-    for ( UInt i=0; i<DependentVec.GetSize(); i++)
+    for ( UInt i=0; i < sizeVec; i++) {
       RealDependentVec[i] = std::real(DependentVec[i]);
-    //RealDependentVec[1] = std::real(DependentVec[1]);
-    //RealDependentVec[2] = std::real(DependentVec[2]);
+    }
 
     coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
 
