@@ -63,9 +63,9 @@
 #endif
 
 #ifdef USE_SUITESPARSE
-#include <cholmod.h>
-#include <umfpack.h>
-#include <amd.h>
+#include <suitesparse/cholmod.h>
+#include <suitesparse/umfpack.h>
+#include <suitesparse/amd.h>
 #endif
 
 #ifdef USE_CGAL

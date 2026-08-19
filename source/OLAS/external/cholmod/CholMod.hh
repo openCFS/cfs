@@ -7,7 +7,7 @@
 #include "General/Enum.hh"
 
 // include the original cholmod header
-#include "cholmod.h" 
+#include <suitesparse/cholmod.h>
 
 namespace CoupledField 
 {
