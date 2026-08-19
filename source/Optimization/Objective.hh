@@ -181,6 +181,9 @@ public:
   /** calculate the distance of the current design to the last one and keep the current design */
   void PushBackDesign(const DesignSpace* space);
 
+  /** design_id of the last committed iteration, PushBackDesign() is called by CommitIteration() */
+  int GetLastDesignId() const { return last_design_; }
+
   /** Calls Objective::ToInfo() */
   void ToInfo(PtrParamNode in);
 

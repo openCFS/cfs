@@ -9,6 +9,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "Domain/Domain.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
+#include "Domain/CoefFunction/CoefFunctionMaterialModel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "Driver/AnalysisID.hh"
@@ -1024,6 +1025,38 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
     
     return acc;
+  }
+
+  PtrCoefFct IterSolveStep::GetMaterialModelCoefFct( RegionIdType region,
+                                                     const std::string& pdeName ) {
+    LOG_TRACE(itersolvestep) << "Returning material model CoefFct of PDE '"
+        << pdeName << "' on region '" << region << "'";
+
+    // finalize, if not yet done
+    if( !isFinalized_) {
+      LOG_DBG(itersolvestep) << "Calling ::Finalize()";
+      Finalize();
+    }
+
+    // The material model coefficient function is no coupling quantity in the
+    // sense of the fixed-point iteration: it is the (linearized) material
+    // operator itself, which is directly used as material tensor of a
+    // bilinear form. Therefore it must not be wrapped into a
+    // CoefFunctionAccumulator and must not take part in any convergence
+    // criterion
+    for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
+      if( rPDE_.singlePDEs_[i]->GetName() != pdeName )
+        continue;
+
+      const std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex> > >
+          models = rPDE_.singlePDEs_[i]->GetModelCoefm();
+      auto it = models.find(region);
+      if( it != models.end() && it->second )
+        return it->second;
+    }
+
+    EXCEPTION( "Could not return material model coefficient function of Physic '"
+        << pdeName << "' on region '" << region << "'" );
   }
 
   void IterSolveStep::GetUpdateGeoForPDE( SolutionType type,

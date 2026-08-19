@@ -39,6 +39,8 @@ namespace CoupledField{
       InitGLMs();
 
       curScheme_ = scheme;
+      // the caller hands the scheme over to us, nobody else deletes it
+      ownsScheme_ = true;
       curType_ = scheme->GetType();
 
       curScheme_->solDerivOrder_ = solDerivOrder;
@@ -67,10 +69,9 @@ namespace CoupledField{
     }
     glmVector_.Clear();
 
-    for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
-       if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
-         if( i < initialIterGlmVector_.GetSize())
-           delete initialIterGlmVector_[i];
+    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
+       if( i < initialIterGlmVector_.GetSize())
+         delete initialIterGlmVector_[i];
     }
     initialIterGlmVector_.Clear();
 
@@ -89,12 +90,9 @@ namespace CoupledField{
       ++it;
     }
     availSchemes.clear();
-    
-    // Note: as the "curScheme_" pointer was taken initially from the 
-    // availSchemes map, it was already deleted in the previous statement
-    // and we must NOT delete it again.
-    //delete curScheme_;
-    curScheme_ = NULL;
+    // a scheme from availSchemes is deleted above, only our own is left
+    if(ownsScheme_) delete curScheme_;
+    curScheme_ = nullptr;
     
     for( UInt i = 0; i < predictors_.GetSize(); ++i ) {
       delete predictors_[i];

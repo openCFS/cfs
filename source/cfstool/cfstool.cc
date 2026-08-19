@@ -1378,6 +1378,16 @@ namespace CFSTool {
 
 } //Namespace CFSTool
 
+#ifdef __SANITIZE_ADDRESS__
+/** see CFS.cc - keep both in sync */
+extern "C" const char* __lsan_default_suppressions()
+{
+  return "leak:libpython3.\n"
+         "leak:_multiarray_umath\n"
+         "leak:libxml2.\n"
+         "leak:libxslt.\n";
+}
+#endif
 
 int main(int argc, char** argv)
 {

@@ -16,7 +16,7 @@ public:
 
   SplineBoxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
-  virtual ~SplineBoxDesign() { } ;
+  virtual ~SplineBoxDesign();
 
   void PostInit(int objectives, int constraints) override;
 
@@ -188,10 +188,10 @@ private:
   Interpolation interpolation_;
 
   /** 2D interpolator for density field */
-  BiCubicInterpolate* bicubicInterpolator_;
+  BiCubicInterpolate* bicubicInterpolator_ = nullptr;
 
   /** 3D interpolator for density field */
-  TriCubicInterpolate* tricubicInterpolator_;
+  TriCubicInterpolate* tricubicInterpolator_ = nullptr;
 
   /** bounding box of spline box w.r.t. density field */
   Matrix<double> cover_box_;

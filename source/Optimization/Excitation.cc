@@ -1262,6 +1262,10 @@ void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
       break;
   }
 
+  // DefineTestStrainIntegrator() registered the forms with Assemble, which keeps the
+  // ownership. Take them out of the active working set again, as in ReadLoads().
+  ass->GetLinForms().Resize(0); // the elements must not be destructed
+
   test_strain.Resize(6, 0.0); // always full dimensions
   test_strain[ts] = 1.0;
 

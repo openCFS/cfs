@@ -227,10 +227,23 @@ namespace CoupledField {
     BaseDirectSolver() {
     }
 
-    //! Default Destructor. 
+    //! Default Destructor.
     ~BaseDirectSolver()  {
     }
 
+    /** Warns once if the factorization is that expensive that an iterative solver were probably the
+     * better choice. No return of the warning state
+     * @param nnz entries in the factor(s), so including the fill-in if given
+     * @param flops operations for the factorization, 0 if the library does not tell
+     * @param mb memory of the factorization in MB as reported by the library, 0 for unknown. Then it
+     *        is estimated from nnz
+     * @return memory of the (computed/estimated) factorization in MB as convenience. */
+    double CheckDirectPlausibility(double nnz, bool is_complex, double flops = 0.0, double mb = 0.0);
+
+  private:
+
+    /** the factorization is repeated in every nonlinear/optimization iteration, warn only once */
+    bool warned_plausibility_ = false;
   };
 
 

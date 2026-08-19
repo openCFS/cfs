@@ -1,25 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="14" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="5">
   <summary>
-    <timer wall-clock="2.695s" wall="2.695" cpu="3.50605" calls="1"/>
+    <timer id="0" wall-clock="0.4254s" wall="0.425368" cpu="0.42565" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="1222.3" peak="1222.3"/>
+    <memory final="112"/>
   </summary>
   <header id="">
-    <environment started="2022-Jun-01 12:45:32" host="motown"/>
-    <progOpts problem="spaghetti_cantilever" parameterFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_cantilever/spaghetti_cantilever.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="22.03" name="Frohes Fensterln" build="Release" git_commit="d0c065f16dee0e203ca680d7de519fca1ea8c434" git_branch="arrabbiata" exe="cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="3" OMP_NUM_THREADS="3"/>
+    <environment started="14-Aug-26 18:11:26" host="MacBook-Pro"/>
+    <progOpts problem="spaghetti_cantilever" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_cantilever/spaghetti_cantilever.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="20" ny="20" nz="1">
-      <grids>
-        <timer wall-clock="0.007s" wall="0.007" cpu="0.00846" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441">
+          <timer id="5" wall-clock="0.0009434s" wall="0.000943375" cpu="0.000786" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.0002895s" wall="0.000289542" cpu="0.000131" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0002886s" wall="0.000288625" cpu="0.00029" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="0.0001318s" wall="0.00013175" cpu="0.000131" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="8.367e-05s" wall="8.3667e-05" cpu="8.4e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
       </regions>
@@ -39,18 +53,26 @@
       <namedElements/>
       <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
     </domain>
-    <python version="3.6.15 (default, Sep 23 2021, 15:41:43) [GCC]"/>
+    <python version="3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]"/>
     <results>
-      <timer wall-clock="0.008s" wall="0.008" cpu="0.009025" calls="24"/>
+      <timer id="39" wall-clock="0.001124s" wall="0.00112417" cpu="0.001119" calls="24"/>
     </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001027s" wall="0.00102654" cpu="0.001034" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5e-07s" wall="5e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.014s" wall="0.014" cpu="0.015392" calls="1"/>
+        <timer id="16" wall-clock="0.006795s" wall="0.0067945" cpu="0.006776" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -94,6 +116,15 @@
           <property name="Mechanic_Elasticity_Modulus" value="(0.001,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(1e-09,0)"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e-03  3.296703e-04  0.000000e+00
+                 3.296703e-04  1.098901e-03  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-04
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -129,48 +160,25 @@
           </sbmBlocks>
         </setup>
         <solver>
-          <cholmod>
-            <header>
-              <parameters>
-                <factorization>
-                  <nmethods default="0"/>
-                  <postorder default="1"/>
-                  <dbound default="0"/>
-                </factorization>
-                <supernodal>
-                  <method default="auto"/>
-                  <switch default="40"/>
-                </supernodal>
-                <output>
-                  <level default="3"/>
-                  <precise default="0"/>
-                </output>
-              </parameters>
-            </header>
+          <directLDL>
             <summary>
               <setup>
-                <timer label="setup_cholmod" wall-clock="0.004s" wall="0.004" cpu="0.013437" calls="4"/>
+                <timer id="29" label="setup_directLDL" wall-clock="0.002238s" wall="0.00223792" cpu="0.002238" calls="3"/>
               </setup>
               <solve>
-                <timer label="solve_cholmod" wall-clock="0s" wall="0" cpu="0.000162" calls="4"/>
+                <timer id="30" label="solve_directLDL" wall-clock="0.0004175s" wall="0.000417542" cpu="0.000418" calls="3"/>
               </solve>
             </summary>
-            <process>
-              <setup selected_factorization_method="1" ll_flop_count="8.9905e+05" nz_in_L="24416" nz_in_triA="7496" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
-                <method id="1" lnz="24416" fl="8.9905e+05"/>
-              </setup>
-              <solver/>
-            </process>
-          </cholmod>
+          </directLDL>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="5e-06" calls="4"/>
+                <timer id="31" wall-clock="1.375e-06s" wall="1.375e-06" cpu="1e-06" calls="3"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -179,41 +187,63 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.002309" calls="1" sub="true"/>
-      </graph_setup>
+      <graph nnz="14152">
+        <timer id="25" wall-clock="0.001711s" wall="0.00171058" cpu="0.001665" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="26" wall-clock="9.908e-05s" wall="9.9083e-05" cpu="0.000175" calls="1" sub="true" parent="25"/>
+        </finalize>
+        <sort>
+          <timer id="27" wall-clock="4.167e-05s" wall="4.1667e-05" cpu="7.3e-05" calls="1" sub="true" parent="25"/>
+        </sort>
+        <rows number="840" min="8" max="18" mean="16.848" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="28" wall-clock="0.0009795s" wall="0.000979459" cpu="0.000979" calls="1" sub="true" parent="25"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.058s" wall="0.058" cpu="0.11212" calls="8"/>
+          <timer id="21" wall-clock="0.001983s" wall="0.0019825" cpu="0.003779" calls="6"/>
+          <matrices>
+            <timer id="22" wall-clock="0.001966s" wall="0.00196625" cpu="0.003754" calls="3" sub="true" parent="21"/>
+          </matrices>
+          <rhs>
+            <timer id="23" wall-clock="1.154e-05s" wall="1.1542e-05" cpu="1e-05" calls="3" sub="true" parent="21"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="24" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_cantilever/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_cantilever/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints/>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0.647s" wall="0.647" cpu="1.16266" calls="7"/>
+          <timer id="17" wall-clock="0.2101s" wall="0.210108" cpu="0.20966" calls="7"/>
         </setup_design>
-        <features>
+        <features radius="0.25" orientation="rounded">
           <mapping>
-            <timer label="features_map" wall-clock="0.802s" wall="0.802" cpu="0.800765" calls="4" sub="true"/>
+            <timer id="18" label="features_map" wall-clock="0.07817s" wall="0.0781661" cpu="0.078003" calls="3" sub="true"/>
           </mapping>
           <gradient>
-            <timer label="features_grad" wall-clock="1.159s" wall="1.159" cpu="1.40116" calls="4" sub="true"/>
+            <timer id="19" label="features_grad" wall-clock="0.09756s" wall="0.0975595" cpu="0.097401" calls="3" sub="true"/>
           </gradient>
-        </features>
-        <spaghetti combine="p-norm" radius="0.25" orientation="rounded">
-          <python file="/home/jgreif/code/cfs/share/python/spaghetti.py" options="">
-            <timer wall-clock="2.425s" wall="2.425" cpu="3.19237" calls="31" sub="true"/>
-          </python>
+          <combine type="p-norm"/>
           <boundary type="poly" transition="0.05"/>
           <mesh n="[20, 20, 1]"/>
           <info_field genericElem="d_compliance_density_by_d_s0_px d_compliance_rotAngle_by_d_s0_px d_compliance_density_by_d_s0_py d_compliance_rotAngle_by_d_s0_py d_compliance_density_by_d_s0_qx d_compliance_rotAngle_by_d_s0_qx d_compliance_density_by_d_s0_qy d_compliance_rotAngle_by_d_s0_qy d_compliance_density_by_d_s0_p d_compliance_rotAngle_by_d_s0_p d_compliance_density_by_d_s0_a1 d_compliance_rotAngle_by_d_s0_a1 d_compliance_density_by_d_s1_px d_compliance_rotAngle_by_d_s1_px d_compliance_density_by_d_s1_py d_compliance_rotAngle_by_d_s1_py d_compliance_density_by_d_s1_qx d_compliance_rotAngle_by_d_s1_qx d_compliance_density_by_d_s1_qy d_compliance_rotAngle_by_d_s1_qy d_compliance_density_by_d_s1_p d_compliance_rotAngle_by_d_s1_p d_compliance_density_by_d_s1_a1 d_compliance_rotAngle_by_d_s1_a1"/>
+        </features>
+        <spaghetti>
+          <python file="/Users/fwein/code/cfs/share/python/spaghetti.py" options="silent=1 order=3 p=8">
+            <timer id="20" wall-clock="0.3605s" wall="0.360531" cpu="0.35978" calls="12" sub="true"/>
+          </python>
         </spaghetti>
         <filters use_mat_filt="no"/>
         <transferFunctions>
@@ -223,27 +253,27 @@
         </transferFunctions>
         <designVariables opt_vars="10" field_elems="800" field_fe_elemes="400">
           <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
-          <design type="rotAngle" upperBound="6.2832" lowerBound="0" physicalLowerBound="0"/>
+          <design type="rotAngle" upperBound="6.2832" lowerBound="-6" physicalLowerBound="-6"/>
           <noodle id="0" segments="2">
             <px type="node" dof="x" tip="start" lower="0" upper="1"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="1"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" fixed="0.17"/>
-            <a type="normal" lower="-0.2" upper="0.2" size="1"/>
+            <a type="normal" lower="-0.200000" upper="0.200000" size="1"/>
           </noodle>
           <noodle id="1" segments="2">
             <px type="node" dof="x" tip="start" lower="0" upper="1"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="1"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="1"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" fixed="0.17"/>
-            <a type="normal" lower="-0.2" upper="0.2" size="1"/>
+            <a type="normal" lower="-0.200000" upper="0.200000" size="1"/>
           </noodle>
         </designVariables>
         <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="400" bimaterial="-"/>
+          <region name="mech" elements="400" bimaterial="-" groundmaterial="-"/>
         </regions>
         <designMaterial type="density-times-rotated-2dtensor" bias="yes"/>
       </designSpace>
@@ -253,42 +283,39 @@
       </excitations>
     </header>
     <commit mode="forward" stride="1"/>
-    <designSpace>
-      <header>
-        <warning> There are designs specified that are not used!</warning>
-
-      </header>
-    </designSpace>
     <optimizer>
-      <summary snopt_outputfile="spaghetti_cantilever.snopt">
-        <snopt>
-          <timer wall-clock="0s" wall="0" cpu="0.008935" calls="25"/>
-        </snopt>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="5" g_evals="4"/>
-      </summary>
-      <snopt/>
+      <snopt>
+        <summary snopt_outputfile="spaghetti_cantilever.snopt">
+          <snopt>
+            <timer id="34" wall-clock="0.0003928s" wall="0.000392792" cpu="0.000396" calls="20"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="4" g_evals="3" majors="1"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="0.617s" wall="0.617" cpu="0.622729" calls="17"/>
+        <timer id="35" wall-clock="0.05338s" wall="0.0533775" cpu="0.053255" calls="14"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="6e-06" calls="5"/>
+        <timer id="36" wall-clock="1.75e-06s" wall="1.75e-06" cpu="4e-06" calls="4"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="1.188s" wall="1.188" cpu="1.45478" calls="4"/>
+        <timer id="37" wall-clock="0.1009s" wall="0.100909" cpu="0.100747" calls="3"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="4e-05" calls="4"/>
+        <timer id="38" wall-clock="1.717e-05s" wall="1.7166e-05" cpu="1.5e-05" calls="3"/>
       </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <compliance min="60.719" max="61.464" oscillations="0"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" duration="1.144" compliance="61.4640200182947"/>
-      <iteration number="1" duration="0.522" compliance="403.969156372741"/>
-      <iteration number="2" duration="0.519" compliance="247.134118515871"/>
-      <iteration number="3" duration="0.504" compliance="60.8480956016037"/>
+      <iteration number="0" duration="0.29747" compliance="61.4640200182942" nObj="1"/>
+      <iteration number="1" duration="0.12638" compliance="60.718574131629" nObj="3"/>
     </process>
   </optimization>
 </cfsInfo>

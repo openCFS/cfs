@@ -1,25 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="89" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="84">
   <summary>
-    <timer wall-clock="3.663s" wall="3.663" cpu="3.65492" calls="1"/>
+    <timer id="0" wall-clock="1.691s" wall="1.69102" cpu="1.8373" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="275.85" peak="289.31"/>
+    <memory final="279"/>
   </summary>
   <header id="">
-    <environment started="2024-Aug-08 00:41:04" host="mojo"/>
-    <progOpts problem="bloch2d_search" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Dynamic/bloch2d_search/bloch2d_search.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="24.03" name="Ideal Implementation" build="RELEASE" git_commit="0093e68b16a1a9499676ae390d82aea1ec4498a8" git_branch="pathplan" compiled="Aug  7 2024" exe="cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    <environment started="14-Aug-26 17:59:18" host="MacBook-Pro"/>
+    <progOpts problem="bloch2d_search" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Dynamic/bloch2d_search/bloch2d_search.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="16" ny="16" nz="1">
-      <grids>
-        <timer wall-clock="0.008s" wall="0.008" cpu="0.007893" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="256" nodes="289"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="256" nodes="289">
+          <timer id="4" wall-clock="0.0006318s" wall="0.000631791" cpu="0.000635" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="8.021e-05s" wall="8.0209e-05" cpu="8e-05" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="0.0001888s" wall="0.000188791" cpu="0.000189" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="6.646e-05s" wall="6.6458e-05" cpu="6.6e-05" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="5.937e-05s" wall="5.9375e-05" cpu="5.9e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="289" elems="256" isQuadratic="no"/>
       </regions>
@@ -35,65 +49,70 @@
         <nodes name="center" count="1" coord="(0.5,0.5)"/>
       </namedNodes>
       <namedElements/>
-      <globalMathParser dt="0" f="7412.6" nx="16" ny="16" nz="1" step="0" t="0" t0="0"/>
+      <globalMathParser dt="0" f="8301.6" nx="16" ny="16" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.024s" wall="0.024" cpu="0.063718" calls="576"/>
+      <timer id="46" wall-clock="0.003661s" wall="0.00366067" cpu="0.003646" calls="576"/>
     </results>
   </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.00104s" wall="0.00103979" cpu="0.001045" calls="1"/>
+    </hdf5>
+  </output>
   <sequenceStep sequence="1">
     <eigenFrequency>
       <init_eigenFrequency>
-        <timer wall-clock="0.011s" wall="0.011" cpu="0.011306" calls="1"/>
+        <timer id="15" wall-clock="0.005829s" wall="0.00582933" cpu="0.005834" calls="1"/>
       </init_eigenFrequency>
-      <result iteration="9">
-        <wave_vector step="0" k_x="0" k_y="0" id="iter:9_excite:(0,0,0)">
-          <mode nr="1" frequency="0.000413626588998878" errorbound="1.0093e-05"/>
-          <mode nr="2" frequency="0.000435062030455427" errorbound="1.0772e-05"/>
-          <mode nr="3" frequency="437.621464929134" errorbound="1.5439e-17"/>
-          <mode nr="4" frequency="7101.09052636788" errorbound="2.2658e-15"/>
-          <mode nr="5" frequency="7190.81373586243" errorbound="1.4353e-15"/>
-          <mode nr="6" frequency="7391.96929927112" errorbound="2.0162e-14"/>
+      <result iteration="10">
+        <wave_vector step="0" k_x="0" k_y="0" id="iter:10excite:0">
+          <mode nr="1" frequency="0.000434514153998623" errorbound="1.1235e-05"/>
+          <mode nr="2" frequency="0.000442055826486949" errorbound="9.339e-06"/>
+          <mode nr="3" frequency="748.029777849618" errorbound="1.7478e-16"/>
+          <mode nr="4" frequency="8113.65131970667" errorbound="4.0498e-13"/>
+          <mode nr="5" frequency="8118.4732443698" errorbound="4.8664e-13"/>
+          <mode nr="6" frequency="8153.59834764716" errorbound="1.0101e-13"/>
         </wave_vector>
-        <wave_vector step="1" k_x="1.5708" k_y="0" id="iter:9_excite:(1.5708,0,0)">
-          <mode nr="1" frequency="101.46427932482" errorbound="2.3371e-16"/>
-          <mode nr="2" frequency="240.568043563943" errorbound="4.4705e-17"/>
-          <mode nr="3" frequency="480.074373058225" errorbound="1.5991e-17"/>
-          <mode nr="4" frequency="7134.15638894372" errorbound="3.9012e-14"/>
-          <mode nr="5" frequency="7207.54533671794" errorbound="6.7862e-14"/>
-          <mode nr="6" frequency="7396.70580261715" errorbound="9.3746e-13"/>
+        <wave_vector step="1" k_x="1.5708" k_y="0" id="iter:10excite:1">
+          <mode nr="1" frequency="58.5250623583715" errorbound="6.7043e-16"/>
+          <mode nr="2" frequency="110.068787628943" errorbound="3.1673e-16"/>
+          <mode nr="3" frequency="789.532260032833" errorbound="6.8044e-18"/>
+          <mode nr="4" frequency="8126.13928680563" errorbound="2.5666e-14"/>
+          <mode nr="5" frequency="8151.63455776437" errorbound="1.6266e-13"/>
+          <mode nr="6" frequency="8185.48902819555" errorbound="5.7457e-14"/>
         </wave_vector>
-        <wave_vector step="2" k_x="3.1416" k_y="0" id="iter:9_excite:(3.14159,0,0)">
-          <mode nr="1" frequency="220.426053353979" errorbound="4.4209e-17"/>
-          <mode nr="2" frequency="464.328968061303" errorbound="1.3238e-17"/>
-          <mode nr="3" frequency="651.628338071608" errorbound="7.3373e-18"/>
-          <mode nr="4" frequency="7185.95999392086" errorbound="3.0189e-13"/>
-          <mode nr="5" frequency="7266.05183459361" errorbound="1.1745e-12"/>
-          <mode nr="6" frequency="7412.08827675281" errorbound="5.0934e-13"/>
+        <wave_vector step="2" k_x="3.1416" k_y="0" id="iter:10excite:2">
+          <mode nr="1" frequency="160.07484295078" errorbound="9.5991e-17"/>
+          <mode nr="2" frequency="342.633093046241" errorbound="3.178e-17"/>
+          <mode nr="3" frequency="943.346840598361" errorbound="4.3456e-18"/>
+          <mode nr="4" frequency="8133.23933950892" errorbound="1.1853e-15"/>
+          <mode nr="5" frequency="8223.46574892299" errorbound="9.5615e-15"/>
+          <mode nr="6" frequency="8304.16138396098" errorbound="1.8075e-13"/>
         </wave_vector>
-        <wave_vector step="3" k_x="3.1416" k_y="1.5708" id="iter:9_excite:(3.14159,1.5708,0)">
-          <mode nr="1" frequency="270.447765285883" errorbound="3.6816e-17"/>
-          <mode nr="2" frequency="472.316252920402" errorbound="1.3706e-17"/>
-          <mode nr="3" frequency="695.97777481113" errorbound="5.4791e-18"/>
-          <mode nr="4" frequency="7190.12250176662" errorbound="8.7719e-14"/>
-          <mode nr="5" frequency="7278.51695886357" errorbound="9.7732e-14"/>
-          <mode nr="6" frequency="7446.7853899023" errorbound="6.1931e-13"/>
+        <wave_vector step="3" k_x="3.1416" k_y="1.5708" id="iter:10excite:3">
+          <mode nr="1" frequency="354.477174960617" errorbound="2.2868e-17"/>
+          <mode nr="2" frequency="471.84735506834" errorbound="1.2227e-17"/>
+          <mode nr="3" frequency="849.268423795898" errorbound="3.9818e-18"/>
+          <mode nr="4" frequency="8168.86709844293" errorbound="3.2039e-15"/>
+          <mode nr="5" frequency="8289.07353281895" errorbound="2.1378e-13"/>
+          <mode nr="6" frequency="8348.40622290359" errorbound="4.6322e-13"/>
         </wave_vector>
-        <wave_vector step="4" k_x="3.1416" k_y="3.1416" id="iter:9_excite:(3.14159,3.14159,0)">
-          <mode nr="1" frequency="421.745548351188" errorbound="1.4478e-17"/>
-          <mode nr="2" frequency="510.111458472086" errorbound="1.1286e-17"/>
-          <mode nr="3" frequency="846.246790015247" errorbound="4.279e-18"/>
-          <mode nr="4" frequency="7215.61361558246" errorbound="3.0323e-14"/>
-          <mode nr="5" frequency="7323.63845404131" errorbound="1.1898e-13"/>
-          <mode nr="6" frequency="7498.90369315005" errorbound="9.8112e-13"/>
+        <wave_vector step="4" k_x="3.1416" k_y="3.1416" id="iter:10excite:4">
+          <mode nr="1" frequency="465.207684835263" errorbound="1.2232e-17"/>
+          <mode nr="2" frequency="690.778422245215" errorbound="5.7123e-18"/>
+          <mode nr="3" frequency="853.234366579803" errorbound="4.0494e-18"/>
+          <mode nr="4" frequency="8204.80009826386" errorbound="5.4012e-17"/>
+          <mode nr="5" frequency="8330.33162917539" errorbound="4.2258e-16"/>
+          <mode nr="6" frequency="8537.39172145948" errorbound="1.7236e-13"/>
         </wave_vector>
-        <wave_vector step="5" k_x="1.5708" k_y="1.5708" id="iter:9_excite:(1.5708,1.5708,0)">
-          <mode nr="1" frequency="182.991111120867" errorbound="6.2641e-17"/>
-          <mode nr="2" frequency="265.532335199459" errorbound="3.4864e-17"/>
-          <mode nr="3" frequency="536.503098214521" errorbound="1.5603e-17"/>
-          <mode nr="4" frequency="7137.38655381195" errorbound="4.4876e-14"/>
-          <mode nr="5" frequency="7225.36160280736" errorbound="1.1989e-13"/>
-          <mode nr="6" frequency="7412.57833763738" errorbound="6.0769e-13"/>
+        <wave_vector step="5" k_x="1.5708" k_y="1.5708" id="iter:10excite:5">
+          <mode nr="1" frequency="157.660465180339" errorbound="8.2328e-17"/>
+          <mode nr="2" frequency="417.804201874907" errorbound="2.2741e-17"/>
+          <mode nr="3" frequency="691.205619200319" errorbound="6.1604e-18"/>
+          <mode nr="4" frequency="8122.05435965769" errorbound="1.9562e-15"/>
+          <mode nr="5" frequency="8185.09503510852" errorbound="2.7446e-14"/>
+          <mode nr="6" frequency="8301.57126996362" errorbound="1.1041e-13"/>
         </wave_vector>
       </result>
     </eigenFrequency>
@@ -138,7 +157,17 @@
           <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(1e-08,0)"/>
-          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+          <property name="Rayleigh_Alpha" value="94.238354829732771"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784384e-06"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.346154e+00  5.769231e-01  0.000000e+00
+                 5.769231e-01  1.346154e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -169,75 +198,93 @@
         <solve_eigen>
           <summary>
             <setup_arpack>
-              <timer wall-clock="0.264s" wall="0.264" cpu="0.360256" calls="132"/>
+              <timer id="25" wall-clock="0.2467s" wall="0.246693" cpu="0.246" calls="222"/>
             </setup_arpack>
             <solve_arpack>
-              <timer wall-clock="2.426s" wall="2.426" cpu="2.49433" calls="132"/>
+              <timer id="26" wall-clock="1.151s" wall="1.15112" cpu="1.17279" calls="222"/>
             </solve_arpack>
           </summary>
           <umfpack>
             <summary>
               <setup>
-                <timer label="setup_umfpack" wall-clock="0.004s" wall="0.004" cpu="0.004972" calls="2" sub="true"/>
+                <timer id="477" label="setup_umfpack" wall-clock="0.002049s" wall="0.00204933" cpu="0.002049" calls="2" sub="true" parent="25"/>
               </setup>
               <solve>
-                <timer label="solve_umfpack" wall-clock="0s" wall="0" cpu="0.012541" calls="25" sub="true"/>
+                <timer id="478" label="solve_umfpack" wall-clock="0.0031s" wall="0.00310037" cpu="0.00311" calls="34" sub="true" parent="26"/>
               </solve>
             </summary>
           </umfpack>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="0.000462" calls="264" sub="true"/>
+                <timer id="34" wall-clock="0.0001785s" wall="0.000178466" cpu="0.000211" calls="444" sub="true" parent="25"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+                <timer id="35" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true" parent="26"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
           <header frequencies="6" type="LM" shift="(0,0)" computeMode="shift_and_invert" tol="1e-08" maxIter="5000" arnoldiVectors="1024" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="yes"/>
-          <arpack analysis_id="iter:9_excite:(1.5708,1.5708,0)">
-            <rci solve_x="1" solve_B_x="24" matvec_B_x="77" total="103"/>
+          <arpack analysis_id="iter:10excite:5">
+            <rci solve_x="1" solve_B_x="33" matvec_B_x="107" total="142"/>
           </arpack>
         </solve_eigen>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.001939" calls="1" sub="true"/>
-      </graph_setup>
+      <graph nnz="9216">
+        <timer id="22" wall-clock="0.0004458s" wall="0.00044575" cpu="0.000515" calls="1" sub="true" parent="15"/>
+        <finalize>
+          <timer id="23" wall-clock="6.383e-05s" wall="6.3833e-05" cpu="0.000113" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="3.362e-05s" wall="3.3625e-05" cpu="5.5e-05" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="512" min="18" max="18" mean="18" estimated_row_size="100"/>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.4s" wall="0.4" cpu="0.457188" calls="132"/>
+          <timer id="17" wall-clock="0.1314s" wall="0.131414" cpu="0.25756" calls="222"/>
+          <matrices>
+            <timer id="18" wall-clock="0.1312s" wall="0.13123" cpu="0.257196" calls="222" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true" parent="17"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Dynamic/bloch2d_search/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Dynamic/bloch2d_search/HALTOPT">
     <header>
-      <objective type="bandgap" name="bandgap" linear="no" access="physical" task="maximize"/>
+      <objective type="bandgap" name="bandgap" linear="no" access="physical" term="linear" scale="1" task="maximize"/>
       <multipleExcitations type="no_type"/>
       <constraints>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_0" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(0,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_0" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(0,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_1" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(1.5708,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_1" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(1.5708,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_2" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_2" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,0,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_3" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,1.5708,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_3" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,1.5708,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_4" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,3.14159,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_4" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(3.14159,3.14159,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_5" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="(1.5708,1.5708,0)"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_5" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="(1.5708,1.5708,0)"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_0" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="0"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_0" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="0"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_1" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="1"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_1" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="1"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_2" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="2"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_2" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="2"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_3" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="3"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_3" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="3"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_4" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="4"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_4" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="4"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_3_wv_5" ev="3" access="physical" mode="observation" design="default" bloch="full" excitation="5"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_4_wv_5" ev="4" access="physical" mode="observation" design="default" bloch="full" excitation="5"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0.001s" wall="0.001" cpu="0.000888" calls="2"/>
+          <timer id="16" wall-clock="0.0001605s" wall="0.0001605" cpu="0.000161" calls="2"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="1.3" contribution="linear" design="density" elems="256" avg_radius="0.08125" avg_neighbors="3.75"/>
-          <timer wall-clock="0s" wall="0" cpu="0.000168" calls="1"/>
+          <timer id="20" wall-clock="0.0001048s" wall="0.000104833" cpu="0.000144" calls="1"/>
         </filters>
         <ersatzMaterialFile file="circular_2d-v_0.5-o_6-inv_16.density.xml" source="problem file"/>
         <transferFunctions>
@@ -249,17 +296,17 @@
         </designVariables>
         <localElementCache org="12" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="256" bimaterial="-"/>
+          <region name="mech" elements="256" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
       <sequence step="1" complex="yes" harmonic="no" eigenvalue="yes" bloch="yes" material="mechanic" homogenization="no"/>
       <excitations>
-        <excitation index="0" meta_idx="0" label="(0,0,0)" weight="0" normalized_weight="0"/>
-        <excitation index="1" meta_idx="0" label="(1.5708,0,0)" weight="0" normalized_weight="0"/>
-        <excitation index="2" meta_idx="0" label="(3.14159,0,0)" weight="0" normalized_weight="0"/>
-        <excitation index="3" meta_idx="0" label="(3.14159,1.5708,0)" weight="0" normalized_weight="0"/>
-        <excitation index="4" meta_idx="0" label="(3.14159,3.14159,0)" weight="0" normalized_weight="0"/>
-        <excitation index="5" meta_idx="0" label="(1.5708,1.5708,0)" weight="1" normalized_weight="1"/>
+        <excitation index="0" meta_idx="0" label="0" weight="0" normalized_weight="0"/>
+        <excitation index="1" meta_idx="0" label="1" weight="0" normalized_weight="0"/>
+        <excitation index="2" meta_idx="0" label="2" weight="0" normalized_weight="0"/>
+        <excitation index="3" meta_idx="0" label="3" weight="0" normalized_weight="0"/>
+        <excitation index="4" meta_idx="0" label="4" weight="0" normalized_weight="0"/>
+        <excitation index="5" meta_idx="0" label="5" weight="1" normalized_weight="1"/>
       </excitations>
     </header>
     <commit mode="forward" stride="999"/>
@@ -267,131 +314,132 @@
       <snopt>
         <summary snopt_outputfile="bloch2d_search.snopt">
           <snopt>
-            <timer wall-clock="0.004s" wall="0.004" cpu="0.008979" calls="104"/>
+            <timer id="27" wall-clock="0.005042s" wall="0.00504208" cpu="0.00499" calls="165"/>
           </snopt>
           <snopt_exit exit="0" info="32"/>
-          <evaluations f_evals="23" g_evals="22" majors="9"/>
+          <evaluations f_evals="38" g_evals="37" majors="10"/>
         </summary>
+        <scaling active="no"/>
       </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="0.009s" wall="0.009" cpu="0.019104" calls="89"/>
+        <timer id="28" wall-clock="0.02693s" wall="0.0269336" cpu="0.026908" calls="150"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="2.9e-05" calls="23"/>
+        <timer id="29" wall-clock="2.3e-05s" wall="2.3e-05" cpu="3.3e-05" calls="38"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.017145" calls="22"/>
+        <timer id="30" wall-clock="0.007849s" wall="0.00784908" cpu="0.007834" calls="37"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="7.1e-05" calls="22"/>
+        <timer id="31" wall-clock="8.946e-05s" wall="8.9461e-05" cpu="8.7e-05" calls="37"/>
       </eval_grad_constraints>
       <break converged="no"/>
       <functions>
-        <bandgap min="1577.8" max="6254.8" oscillations="0"/>
-        <eigenfrequency_3_wv_0 min="0.79383" max="4155.2" oscillations="3"/>
-        <eigenfrequency_4_wv_0 min="5733" max="7101.1" oscillations="2"/>
-        <eigenfrequency_3_wv_1 min="217.46" max="3651.6" oscillations="3"/>
-        <eigenfrequency_4_wv_1 min="5719.9" max="7134.2" oscillations="2"/>
-        <eigenfrequency_3_wv_2 min="504.75" max="3053.9" oscillations="1"/>
-        <eigenfrequency_4_wv_2 min="5577.6" max="7186" oscillations="1"/>
-        <eigenfrequency_3_wv_3 min="545.65" max="3356.9" oscillations="1"/>
-        <eigenfrequency_4_wv_3 min="5706" max="7190.1" oscillations="2"/>
-        <eigenfrequency_3_wv_4 min="703.05" max="3312.6" oscillations="1"/>
-        <eigenfrequency_4_wv_4 min="5731" max="7215.6" oscillations="2"/>
-        <eigenfrequency_3_wv_5 min="305.12" max="3328.9" oscillations="3"/>
-        <eigenfrequency_4_wv_5 min="5764.8" max="7137.4" oscillations="1"/>
+        <bandgap min="650.52" max="7170.3" oscillations="0"/>
+        <eigenfrequency_3_wv_0 min="0.57704" max="4945.4" oscillations="2"/>
+        <eigenfrequency_4_wv_0 min="5624.3" max="8113.7" oscillations="0"/>
+        <eigenfrequency_3_wv_1 min="209.54" max="4169" oscillations="2"/>
+        <eigenfrequency_4_wv_1 min="5782.9" max="8126.1" oscillations="0"/>
+        <eigenfrequency_3_wv_2 min="491.27" max="3407.9" oscillations="2"/>
+        <eigenfrequency_4_wv_2 min="5907" max="8133.2" oscillations="1"/>
+        <eigenfrequency_3_wv_3 min="530.06" max="3901.2" oscillations="2"/>
+        <eigenfrequency_4_wv_3 min="5910.8" max="8168.9" oscillations="1"/>
+        <eigenfrequency_3_wv_4 min="682.98" max="3831.8" oscillations="3"/>
+        <eigenfrequency_4_wv_4 min="5595.9" max="8204.8" oscillations="0"/>
+        <eigenfrequency_3_wv_5 min="293.67" max="3775.7" oscillations="2"/>
+        <eigenfrequency_4_wv_5 min="5691.1" max="8122.1" oscillations="0"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.44" bandgap="1577.82469501067" max_ef_3_wv="0" min_ef_4_wv="0" nObj="2">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="4155.2" eigenfrequency_4_wv_0="5733"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="3651.6" eigenfrequency_4_wv_1="5824.2"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="3053.9" eigenfrequency_4_wv_2="6026.5"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="3356.9" eigenfrequency_4_wv_3="6004"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="3312.6" eigenfrequency_4_wv_4="5952.9"/>
-        <excitation index="5" objective="1577.8" objective_weight="1" eigenfrequency_3_wv_5="3328.9" eigenfrequency_4_wv_5="5832.8"/>
+      <iteration number="0" duration="0.098349" bandgap="650.515692267038" max_ef_3_wv="0" min_ef_4_wv="4" nObj="1">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="4945.4" eigenfrequency_4_wv_0="5624.3"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="4169" eigenfrequency_4_wv_1="5782.9"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="3407.9" eigenfrequency_4_wv_2="6078.1"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="3901.2" eigenfrequency_4_wv_3="5912.6"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="3831.8" eigenfrequency_4_wv_4="5595.9"/>
+        <excitation index="5" objective="650.52" objective_weight="1" eigenfrequency_3_wv_5="3775.7" eigenfrequency_4_wv_5="5691.1"/>
       </iteration>
-      <iteration number="1" duration="0.183" bandgap="2190.75663515764" max_ef_3_wv="0" min_ef_4_wv="5" nObj="3">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="3574" eigenfrequency_4_wv_0="6305.5"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="3319" eigenfrequency_4_wv_1="5891.2"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="2983.4" eigenfrequency_4_wv_2="5786.2"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="3219.9" eigenfrequency_4_wv_3="6027"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="2937.8" eigenfrequency_4_wv_4="6243.6"/>
-        <excitation index="5" objective="2190.8" objective_weight="1" eigenfrequency_3_wv_5="3197.4" eigenfrequency_4_wv_5="5764.8"/>
+      <iteration number="1" duration="0.044595" bandgap="5202.77737189452" max_ef_3_wv="4" min_ef_4_wv="0" nObj="2">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="0.57704" eigenfrequency_4_wv_0="5885.8"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="209.54" eigenfrequency_4_wv_1="5889.4"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="491.27" eigenfrequency_4_wv_2="5907"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="530.06" eigenfrequency_4_wv_3="5910.8"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="682.98" eigenfrequency_4_wv_4="5928.4"/>
+        <excitation index="5" objective="5202.8" objective_weight="1" eigenfrequency_3_wv_5="293.67" eigenfrequency_4_wv_5="5893.2"/>
       </iteration>
-      <iteration number="2" duration="0.169" bandgap="3387.37398424365" max_ef_3_wv="4" min_ef_4_wv="2" nObj="4">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="1225.1" eigenfrequency_4_wv_0="5902.1"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="1502.1" eigenfrequency_4_wv_1="5719.9"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="1772" eigenfrequency_4_wv_2="5577.6"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="1989" eigenfrequency_4_wv_3="5706"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="2190.2" eigenfrequency_4_wv_4="5731"/>
-        <excitation index="5" objective="3387.4" objective_weight="1" eigenfrequency_3_wv_5="1738.3" eigenfrequency_4_wv_5="5766.9"/>
+      <iteration number="2" duration="0.042833" bandgap="6080.8850232064" max_ef_3_wv="4" min_ef_4_wv="0" nObj="3">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="0.67473" eigenfrequency_4_wv_0="6812"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="228.78" eigenfrequency_4_wv_1="6816.6"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="525.44" eigenfrequency_4_wv_2="6835.4"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="569.08" eigenfrequency_4_wv_3="6839.9"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="731.13" eigenfrequency_4_wv_4="6858.5"/>
+        <excitation index="5" objective="6080.9" objective_weight="1" eigenfrequency_3_wv_5="321.07" eigenfrequency_4_wv_5="6821.2"/>
       </iteration>
-      <iteration number="3" duration="0.467" bandgap="4435.54526585147" max_ef_3_wv="4" min_ef_4_wv="0" nObj="7">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="860.74" eigenfrequency_4_wv_0="5930.8"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="1003.5" eigenfrequency_4_wv_1="5992.1"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="1183.9" eigenfrequency_4_wv_2="6012.8"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="1322.7" eigenfrequency_4_wv_3="6022.4"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="1495.3" eigenfrequency_4_wv_4="5931.9"/>
-        <excitation index="5" objective="4435.5" objective_weight="1" eigenfrequency_3_wv_5="1133.3" eigenfrequency_4_wv_5="6073.8"/>
+      <iteration number="3" duration="0.043061" bandgap="7002.57709731048" max_ef_3_wv="4" min_ef_4_wv="0" nObj="4">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="0.72995" eigenfrequency_4_wv_0="7820.7"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="263.08" eigenfrequency_4_wv_1="7837.2"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="587.03" eigenfrequency_4_wv_2="7881.5"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="639.36" eigenfrequency_4_wv_3="7899.7"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="818.14" eigenfrequency_4_wv_4="7951"/>
+        <excitation index="5" objective="7002.6" objective_weight="1" eigenfrequency_3_wv_5="369.83" eigenfrequency_4_wv_5="7854"/>
       </iteration>
-      <iteration number="4" duration="0.157" bandgap="5263.44072041757" max_ef_3_wv="4" min_ef_4_wv="0" nObj="8">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="748.37" eigenfrequency_4_wv_0="6107.9"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="682.29" eigenfrequency_4_wv_1="6117.9"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="784.23" eigenfrequency_4_wv_2="6139.1"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="797.37" eigenfrequency_4_wv_3="6145.6"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="844.48" eigenfrequency_4_wv_4="6167.1"/>
-        <excitation index="5" objective="5263.4" objective_weight="1" eigenfrequency_3_wv_5="701.65" eigenfrequency_4_wv_5="6123.7"/>
+      <iteration number="4" duration="0.16935" bandgap="7008.14299128894" max_ef_3_wv="4" min_ef_4_wv="0" nObj="8">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="336.1" eigenfrequency_4_wv_0="7831.3"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="397.35" eigenfrequency_4_wv_1="7845.2"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="633.52" eigenfrequency_4_wv_2="7885.9"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="665.91" eigenfrequency_4_wv_3="7903"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="823.15" eigenfrequency_4_wv_4="7952.9"/>
+        <excitation index="5" objective="7008.1" objective_weight="1" eigenfrequency_3_wv_5="449.45" eigenfrequency_4_wv_5="7859.6"/>
       </iteration>
-      <iteration number="5" duration="0.158" bandgap="5623.9411133752" max_ef_3_wv="4" min_ef_4_wv="0" nObj="9">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="0.79383" eigenfrequency_4_wv_0="6327"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="217.46" eigenfrequency_4_wv_1="6330.7"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="504.75" eigenfrequency_4_wv_2="6347.9"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="545.65" eigenfrequency_4_wv_3="6354"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="703.05" eigenfrequency_4_wv_4="6374.8"/>
-        <excitation index="5" objective="5623.9" objective_weight="1" eigenfrequency_3_wv_5="305.12" eigenfrequency_4_wv_5="6336.4"/>
+      <iteration number="5" duration="0.09004" bandgap="7022.93963412109" max_ef_3_wv="4" min_ef_4_wv="0" nObj="10">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="687.81" eigenfrequency_4_wv_0="7863.1"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="663.74" eigenfrequency_4_wv_1="7868.5"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="764.92" eigenfrequency_4_wv_2="7897.1"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="744.84" eigenfrequency_4_wv_3="7911"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="840.15" eigenfrequency_4_wv_4="7957.4"/>
+        <excitation index="5" objective="7022.9" objective_weight="1" eigenfrequency_3_wv_5="635.61" eigenfrequency_4_wv_5="7875"/>
       </iteration>
-      <iteration number="6" duration="0.598" bandgap="5994.06514957228" max_ef_3_wv="4" min_ef_4_wv="5" nObj="13">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="156.76" eigenfrequency_4_wv_0="6743.9"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="254.43" eigenfrequency_4_wv_1="6739.9"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="520.22" eigenfrequency_4_wv_2="6758.2"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="575.17" eigenfrequency_4_wv_3="6754.1"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="740.8" eigenfrequency_4_wv_4="6764.9"/>
-        <excitation index="5" objective="5994.1" objective_weight="1" eigenfrequency_3_wv_5="353.72" eigenfrequency_4_wv_5="6734.9"/>
+      <iteration number="6" duration="0.26058" bandgap="7029.01111869319" max_ef_3_wv="4" min_ef_4_wv="1" nObj="16">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="834.51" eigenfrequency_4_wv_0="7883.1"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="784.46" eigenfrequency_4_wv_1="7882.2"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="836.61" eigenfrequency_4_wv_2="7901.5"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="794.69" eigenfrequency_4_wv_3="7916"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="853.22" eigenfrequency_4_wv_4="7959.5"/>
+        <excitation index="5" objective="7029" objective_weight="1" eigenfrequency_3_wv_5="727.99" eigenfrequency_4_wv_5="7884.7"/>
       </iteration>
-      <iteration number="7" duration="0.492" bandgap="6141.29363389692" max_ef_3_wv="4" min_ef_4_wv="0" nObj="16">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="135.72" eigenfrequency_4_wv_0="6893.1"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="253.05" eigenfrequency_4_wv_1="6937.3"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="531.04" eigenfrequency_4_wv_2="6996"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="584.4" eigenfrequency_4_wv_3="6985.8"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="751.77" eigenfrequency_4_wv_4="6983.8"/>
-        <excitation index="5" objective="6141.3" objective_weight="1" eigenfrequency_3_wv_5="352.91" eigenfrequency_4_wv_5="6915.8"/>
+      <iteration number="7" duration="0.2578" bandgap="7030.94215731145" max_ef_3_wv="4" min_ef_4_wv="1" nObj="22">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="854.91" eigenfrequency_4_wv_0="7887.4"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="804.69" eigenfrequency_4_wv_1="7886.1"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="854.46" eigenfrequency_4_wv_2="7903.7"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="806.25" eigenfrequency_4_wv_3="7918.8"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="855.16" eigenfrequency_4_wv_4="7961"/>
+        <excitation index="5" objective="7030.9" objective_weight="1" eigenfrequency_3_wv_5="740.9" eigenfrequency_4_wv_5="7887.4"/>
       </iteration>
-      <iteration number="8" duration="0.47" bandgap="6230.76292108944" max_ef_3_wv="4" min_ef_4_wv="0" nObj="19">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="175.88" eigenfrequency_4_wv_0="6997.3"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="284.47" eigenfrequency_4_wv_1="7035"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="555.06" eigenfrequency_4_wv_2="7103.4"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="602.56" eigenfrequency_4_wv_3="7088.6"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="766.49" eigenfrequency_4_wv_4="7102.1"/>
-        <excitation index="5" objective="6230.8" objective_weight="1" eigenfrequency_3_wv_5="371.85" eigenfrequency_4_wv_5="7023.4"/>
+      <iteration number="8" duration="0.43024" bandgap="7031.06690274777" max_ef_3_wv="4" min_ef_4_wv="1" nObj="32">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="855.17" eigenfrequency_4_wv_0="7887.5"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="804.96" eigenfrequency_4_wv_1="7886.2"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="854.72" eigenfrequency_4_wv_2="7903.8"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="806.4" eigenfrequency_4_wv_3="7918.9"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="855.18" eigenfrequency_4_wv_4="7961.1"/>
+        <excitation index="5" objective="7031.1" objective_weight="1" eigenfrequency_3_wv_5="741.05" eigenfrequency_4_wv_5="7887.5"/>
       </iteration>
-      <iteration number="9" duration="0.494" bandgap="6254.84373635264" max_ef_3_wv="4" min_ef_4_wv="0" nObj="22">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="437.62" eigenfrequency_4_wv_0="7101.1"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="480.07" eigenfrequency_4_wv_1="7134.2"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="651.63" eigenfrequency_4_wv_2="7186"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="695.98" eigenfrequency_4_wv_3="7190.1"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="846.25" eigenfrequency_4_wv_4="7215.6"/>
-        <excitation index="5" objective="6254.8" objective_weight="1" eigenfrequency_3_wv_5="536.5" eigenfrequency_4_wv_5="7137.4"/>
+      <iteration number="9" duration="0.044518" bandgap="7060.3226570572" max_ef_3_wv="2" min_ef_4_wv="0" nObj="33">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="750.33" eigenfrequency_4_wv_0="8012.2"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="796.36" eigenfrequency_4_wv_1="8016.6"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="951.85" eigenfrequency_4_wv_2="8022.2"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="851.61" eigenfrequency_4_wv_3="8061.3"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="845.92" eigenfrequency_4_wv_4="8098.8"/>
+        <excitation index="5" objective="7060.3" objective_weight="1" eigenfrequency_3_wv_5="695" eigenfrequency_4_wv_5="8019"/>
       </iteration>
-      <iteration number="10" duration="0.01" bandgap="6254.84373635264" max_ef_3_wv="4" min_ef_4_wv="0" nObj="23">
-        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="437.62" eigenfrequency_4_wv_0="7101.1"/>
-        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="480.07" eigenfrequency_4_wv_1="7134.2"/>
-        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="651.63" eigenfrequency_4_wv_2="7186"/>
-        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="695.98" eigenfrequency_4_wv_3="7190.1"/>
-        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="846.25" eigenfrequency_4_wv_4="7215.6"/>
-        <excitation index="5" objective="6254.8" objective_weight="1" eigenfrequency_3_wv_5="536.5" eigenfrequency_4_wv_5="7137.4"/>
+      <iteration number="10" duration="0.20646" bandgap="7170.30447910831" max_ef_3_wv="2" min_ef_4_wv="0" nObj="37">
+        <excitation index="0" objective="0" objective_weight="0" eigenfrequency_3_wv_0="748.03" eigenfrequency_4_wv_0="8113.7"/>
+        <excitation index="1" objective="0" objective_weight="0" eigenfrequency_3_wv_1="789.53" eigenfrequency_4_wv_1="8126.1"/>
+        <excitation index="2" objective="0" objective_weight="0" eigenfrequency_3_wv_2="943.35" eigenfrequency_4_wv_2="8133.2"/>
+        <excitation index="3" objective="0" objective_weight="0" eigenfrequency_3_wv_3="849.27" eigenfrequency_4_wv_3="8168.9"/>
+        <excitation index="4" objective="0" objective_weight="0" eigenfrequency_3_wv_4="853.23" eigenfrequency_4_wv_4="8204.8"/>
+        <excitation index="5" objective="7170.3" objective_weight="1" eigenfrequency_3_wv_5="691.21" eigenfrequency_4_wv_5="8122.1"/>
       </iteration>
     </process>
   </optimization>

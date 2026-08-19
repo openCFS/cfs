@@ -169,6 +169,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     /// pointer to time scheme
     GLMScheme* curScheme_;
+    //! curScheme_ is ours only from the GLMScheme* constructor
+    bool ownsScheme_ = false;
 
     /// type of timescheme
     GLMScheme::SchemeType curType_;

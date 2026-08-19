@@ -76,6 +76,8 @@ namespace CoupledField {
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
     
     shared_ptr<CoefFunctionMaterialModel<Complex>> GetModelCoef(){ return matModelCoef_; };
+
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> > GetModelCoefm() { return matModelCoefm_;};
     
     virtual AnalysisType GetAnalysisType() const {
       return analysistype_;
@@ -180,6 +182,7 @@ namespace CoupledField {
       EXCEPTION("Not implemented in base class");
     }
 
+
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes()
     { return regionNonLinTypes_;};
 
@@ -250,14 +253,14 @@ namespace CoupledField {
     struct NcInterfaceInfo {
       UInt              interfaceId;
       NcCouplingType    type;
-      LagrangeMultType  lagrangeMultType;
+      LagrangeMultType  lagrangeMultType = LM_STANDARD;
       Double            nitscheFactor;
       Double            nitscheFactorDamp;
       Double            layerThickness; // parameter for thin layer formulation with non conforming interface condition
       string            layerMaterial; // material for thin layer formulation with non conforming interface condition
-      bool              thinLayer;
-      bool              crossPointHandling;
-      bool              movingMortarForm;
+      bool              thinLayer = false;
+      bool              crossPointHandling = false;
+      bool              movingMortarForm = false;
     };
         
 
@@ -351,7 +354,7 @@ namespace CoupledField {
     // if there are some regions which are hysteretic and others have other nonlinearities
     // isHysteresis_ and nonLinNonHyst_ are both true
     bool isHysteresis_;
-    bool nonLinNonHyst_;
+    bool nonLinNonHyst_ = false;
     
     std::string modelName_;
 
@@ -375,9 +378,14 @@ namespace CoupledField {
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
 
+    // Coefficient function for material model (per-region map)
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >  matModelCoefm_;
+
     // scalar factor used to influence the non-linearity
     double nonLinScalarFac_;
+
     //@}
+
     
     
     // -----------------------------------------------------------------------

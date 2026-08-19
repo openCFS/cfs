@@ -89,7 +89,6 @@ namespace CoupledField{
        LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
-
 #ifdef NDEBUG
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else

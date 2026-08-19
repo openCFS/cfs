@@ -92,9 +92,8 @@
     <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
     <constraint type="curvature" bound="upperBound" value="0.2/nx" design="node" linear="true"/>
 
-    <optimizer type="snopt" maxIterations="20">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+    <optimizer type="snopt" maxIterations="3">
+      <snopt>
         <option type="integer" name="verify_level" value="-1"/>
       </snopt>
     </optimizer>
@@ -117,5 +116,3 @@
     <commit stride="99"/>
   </optimization> 
 </cfsSimulation>
-
-

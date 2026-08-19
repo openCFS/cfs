@@ -10,25 +10,35 @@ namespace CoupledField {
   // define static maps
   std::map<std::string, Vector<Double> > Interpolate1D::xVals_ = 
     std::map<std::string, Vector<Double> >();
-  std::map<std::string, Vector<Double> > Interpolate1D::yVals_ = 
+  std::map<std::string, Vector<Double> > Interpolate1D::yVals_ =
     std::map<std::string, Vector<Double> >();
-  
-  Double Interpolate1D::Interpolate( const char* fileName, 
+
+  std::mutex Interpolate1D::mapMutex_;
+
+  Double Interpolate1D::Interpolate( const char* fileName,
                                      double xEntry,
                                      double method ) {
 
-    // check if file was already read in
-    if( xVals_.find(std::string(fileName)) == xVals_.end() ) {
-      Vector<Double> xValsTemp, yValsTemp;
-      ReadFile( fileName, xValsTemp, yValsTemp );
-      xVals_[fileName] = xValsTemp;
-      yVals_[fileName] = yValsTemp;
-    }
+    // xVals_/yVals_ are static caches shared by every thread's parser
+    // handle, so all access to them must be serialized - std::map is not
+    // safe for concurrent read/insert, even across unrelated call sites.
+    Vector<Double> xVals, yVals;
+    {
+      std::lock_guard<std::mutex> lock(mapMutex_);
 
-    // get interpolation data,
-    //  nescessary, when file was already read in
-    Vector<Double> const & xVals = xVals_[fileName];
-    Vector<Double> const & yVals = yVals_[fileName];
+      // check if file was already read in
+      if( xVals_.find(std::string(fileName)) == xVals_.end() ) {
+        Vector<Double> xValsTemp, yValsTemp;
+        ReadFile( fileName, xValsTemp, yValsTemp );
+        xVals_[fileName] = xValsTemp;
+        yVals_[fileName] = yValsTemp;
+      }
+
+      // get interpolation data,
+      //  nescessary, when file was already read in
+      xVals = xVals_[fileName];
+      yVals = yVals_[fileName];
+    }
 
     // Convert type of interpolation
     InterpolType type = InterpolType((Integer) method);

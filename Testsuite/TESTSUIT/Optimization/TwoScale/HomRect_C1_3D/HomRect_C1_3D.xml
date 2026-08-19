@@ -94,14 +94,7 @@
       <local normalize="true" power="1" />
     </constraint>
 
-    <optimizer type="snopt" maxIterations="4">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
-        <option type="real" name="major_optimality_tolerance"
-          value="1e-6" />
-        <option type="integer" name="verify_level" value="0" />
-      </snopt>
-    </optimizer>
+    <optimizer type="ipopt" maxIterations="8"/>
     <ersatzMaterial method="paramMat" material="mechanic" region="mech">
      <filters>
        <filter type="density" design="stiff1" neighborhood="radius" value="0.5"/>

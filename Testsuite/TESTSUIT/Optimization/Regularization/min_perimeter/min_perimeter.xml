@@ -82,10 +82,7 @@
     <constraint type="volume" bound="upperBound" value="0.5" />
     <constraint type="compliance" value="20" bound="upperBound"/>
     
-    <optimizer type="snopt"  maxIterations="15">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon"/>
-    </optimizer> 
+    <optimizer type="dumas_mma"  maxIterations="16"/>
       
     <ersatzMaterial region="mech" material="mechanic" method="simp">
       <!-- no filter as we regularize via perimeter -->
@@ -100,5 +97,3 @@
   </optimization>
   
 </cfsSimulation>
-
-

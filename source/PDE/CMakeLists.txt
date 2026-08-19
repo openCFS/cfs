@@ -6,12 +6,18 @@ SET(PDE_SRCS
   BasePDE.cc
   ElecPDE.cc
   MagneticScalarPotentialPDE.cc
+  MagneticScalarPotentialAdjPDE.cc
   PerturbedFlowPDE.cc
   HeatPDE.cc
   MagBasePDE.cc
   MagEdgePDE.cc
+  MagEdgeHPDE.cc
+  MagEdgeAStarPDE.cc
+  MagEdgeAdjPDE.cc
   MagEdgeSpecialAVPDE.cc
   MagEdgeMixedAVPDE.cc
+  MagEdgeMixedSFGPDE.cc
+  MagEdgeRegulSFGPDE.cc
   MagneticPDE.cc
   DarwinPDE.cc
   MechPDE.cc

@@ -139,10 +139,10 @@ namespace CoupledField {
     UMFPACKSolver();
 
     //! Handle for symbolic factorization data of UMFPACK
-    void *Symbolic;
+    void *Symbolic = nullptr;
 
     //! Handle for numeric factorization data of UMFPACK
-    void *Numeric ;
+    void *Numeric = nullptr;
 
     //@{
     //! Vectors containing the information about the CRS- or SCRS-matrix
@@ -201,6 +201,9 @@ namespace CoupledField {
 
     //! number of non zero entries
     UInt nnz_;
+
+    //! a (nearly) singular factorization is warned only once, we might be called in a loop
+    bool warnedSingular_ = false;
 
     Integer status;
 

@@ -93,7 +93,7 @@ public:
     return new SurfaceNormalFluxDensityOperator(*this);
   }
 
-  virtual ~SurfaceNormalFluxDensityOperator() { return; }
+  virtual ~SurfaceNormalFluxDensityOperator() { delete gradOp_; }
 
   virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
 

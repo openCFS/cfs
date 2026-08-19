@@ -191,6 +191,9 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
 
     integrator_ = linearForm;
 
+    // choose whether the linearform is linear OR solution dependent (nonlinear) manually
+    typeLinearForm_ = 0;
+
     ptPde_ = NULL;
 
   }
@@ -239,11 +242,20 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
   }
 
   bool LinearFormContext::IsNonLin() {
-   // Return true if linearform is solution-dependent
-    if( integrator_->IsSolDependent() ) {
+    // with this the linearform can be set linear, altough the material is nonlinear
+    if (typeLinearForm_ == 0) { // everything is set to default option
+      // Return true if linearform is solution-dependent
+      if( integrator_->IsSolDependent() ) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (typeLinearForm_ == 1) { // linear form is declared as LINEAR
+      return false;
+    } else if (typeLinearForm_ == 2) { // linear form is declared as NONLINEAR
       return true;
     } else {
-      return false;
+      EXCEPTION("WRONG type_of_linear_form chosen")
     }
   }
 

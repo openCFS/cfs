@@ -2,6 +2,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/TriCubicInterpolate.hh"
 #include "Utils/TriCubicInterpolateCoeff.hh"
+#include "Utils/ToolsFull.hh"
 
 namespace CoupledField
 {
@@ -417,27 +418,9 @@ void TriCubicInterpolate::CalcCoeff(StdVector<double>& coeff, const StdVector<do
 inline unsigned int TriCubicInterpolate::GetLocalValues(double x, double y, double z,
     double& xloc, double& yloc, double& zloc, double& dxloc, double& dyloc, double& dzloc) const {
   // scale to [0,1] like in constructor
-  x = (x - offsetX_) * scaleX_;
-  y = (y - offsetY_) * scaleY_;
-  z = (z - offsetZ_) * scaleZ_;
-  // for periodic functions we map values outside of data range to the inside
-  if (periodic_) {
-    if (x > 1)
-      x -= (int)x;
-    if (x < 0)
-      x += (int)x + 1;
-    if (y > 1)
-      y -= (int)y;
-    if (y < 0)
-      y += (int)y + 1;
-    if (z > 1)
-      z -= (int)z;
-    if (z < 0)
-      z += (int)z + 1;
-  }
-  assert(0 <= x && x <= 1);
-  assert(0 <= y && y <= 1);
-  assert(0 <= z && z <= 1);
+  x = NormalizeToUnitInterval(x, offsetX_, scaleX_, periodic_);
+  y = NormalizeToUnitInterval(y, offsetY_, scaleY_, periodic_);
+  z = NormalizeToUnitInterval(z, offsetZ_, scaleZ_, periodic_);
 
   unsigned int kx, ky, kz;
 

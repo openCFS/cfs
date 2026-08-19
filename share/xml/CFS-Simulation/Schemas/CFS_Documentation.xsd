@@ -198,6 +198,8 @@
       <xsd:enumeration value="damping"/>
       <xsd:enumeration value="nonlinear"/>
       <xsd:enumeration value="hysteresis"/>
+      <xsd:enumeration value="EBHysteresisModel"/>
+      <xsd:enumeration value="invEBHysteresisModel"/>
       <xsd:enumeration value="linesearch"/>
       
       <!-- ========================================================== -->

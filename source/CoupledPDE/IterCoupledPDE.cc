@@ -37,7 +37,7 @@ namespace CoupledField
       pdename_ += singlePdes[actPDE] -> GetName() + "+";
     pdename_ += singlePdes[singlePdes.GetSize()-1] -> GetName();
 
-    
+    std::cout << "++ Iterative " << pdename_ << std::endl;
     // Create IterSolveStep instance
     IterSolveStep * solveStep =
         new IterSolveStep( *this, myParam_, infoNode_ ); 
@@ -60,6 +60,14 @@ namespace CoupledField
     // directly pass the query to the IterSolveStep instance
     return solveStep_->GetCouplingCoefFct( type, list, pdeName, updateGeo );
     
+  }
+
+  PtrCoefFct IterCoupledPDE::GetMaterialModelCoefFct( RegionIdType region,
+                                                      const std::string& pdeName ) {
+
+    // directly pass the query to the IterSolveStep instance
+    return solveStep_->GetMaterialModelCoefFct( region, pdeName );
+
   }
 
   void IterCoupledPDE::TriggerFinalize() {

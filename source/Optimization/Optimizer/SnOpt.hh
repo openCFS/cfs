@@ -39,11 +39,8 @@ public:
       int32_t* iu, int32_t* leniu,
       double* ru, int32_t* lenru);
 
-  /** this callback is added by a patch, note that the final major is not called */
-  int CallbackUsrmjr(int32_t* mMajor);
-
-  /** with our snopt patch we can choose if we want cfs iterations as ncon (gradient evaluations called by counting Callback)
-   * or my major (using the patched CallbackUsrmjr). The later does not call for the final solution.
+  /** we can choose if we want cfs iterations as ncon (gradient evaluations called by counting Callback)
+   * or as major (using snopt's snSTOP hook, which reports every major from the initial to the final one).
    * When we select MAJOR, nObj is logged, this is more illustrative than nCon but cfs iterations for nObj make no sense */
   typedef enum { NCON = 0, MAJOR } Iteration;
 
@@ -68,7 +65,7 @@ private:
    *  comes from snopt which currently (version 7.2) does not respect the settings properly */
   inline void setSnoptOutputFiles();
 
-  /** Does as the name suggests: calls snopta_ to solve the optimization problem */ 
+  /** Does as the name suggests: calls snkera_ to solve the optimization problem */
   void SolveProblem() override;
   
   /** put some interesting information into the info.xml file */
@@ -103,7 +100,7 @@ private:
   inline void InitJacobians();
   
   /** if we have linear constraints we only have to set them up once;
-   *  this is done in SolveProblem before the call to snopta_ */
+   *  this is done in SolveProblem before the call to snkera_ */
   inline void SetupLinearConstraints();
   
   /** Helper function for setting an int32_t option
@@ -233,7 +230,7 @@ private:
    * before a new gradient step is evaluated. Such we can do the CommitIteration() only "post mortem" :(
    * Not necessary when iteration_ == MAJOR. */
   bool perform_commit_iteration_;
-  
+
   /** filename of snopt output file */
   std::string outfilename;
 

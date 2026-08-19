@@ -1,8 +1,10 @@
 #include <iterator>
 #include <list>
+#include <type_traits>
 
 #include "MatVec/opdefs.hh"
 #include "MatVec/SCRS_Matrix.hh"
+#include "DataInOut/ProgramOptions.hh"
 
 #include "LDLSolver.hh"
 
@@ -194,6 +196,14 @@ namespace CoupledField {
       for ( UInt i = 0; i < sysMatDim_; i++ ) {
         dataD_[i] = OpType<T>::invert( dataD_[i] );
       }
+
+      // the cost of the factorization in the notation common to all direct solvers. Here the entries
+      // of the factor are exact, we allocate the arrays with rptrU_[sysMatDim_] ourselves.
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+      double factor_nnz = rptrU_[sysMatDim_];
+      out->Get("fillFactor")->SetValue(factor_nnz / scrsMat.GetNumEntries());
+      out->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, std::is_same<T,Complex>::value));
 
       // ===============
       //  Export Factor

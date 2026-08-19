@@ -105,8 +105,7 @@
     <constraint type="volume" bound="equal" value="1.0" design="mass" />
 
     <optimizer type="snopt" maxIterations="20">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option name="verify_level" type="integer" value="-1" />
       </snopt>
     </optimizer>

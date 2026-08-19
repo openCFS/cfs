@@ -1,25 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="25" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="14">
   <summary>
-    <timer wall-clock="0.529s" wall="0.529" cpu="0.871342" calls="1"/>
+    <timer id="0" wall-clock="0.1761s" wall="0.176098" cpu="0.178471" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="379.74" peak="436.5"/>
+    <memory final="59"/>
   </summary>
   <header id="">
-    <environment started="2022-Jun-01 10:04:36" host="motown"/>
-    <progOpts problem="DensityTimesRotatedTransversalIsotropic" parameterFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/DensityTimesRotatedTransversalIsotropic.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="22.03" name="Frohes Fensterln" build="Release" git_commit="d0c065f16dee0e203ca680d7de519fca1ea8c434" git_branch="arrabbiata" exe="cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="3" OMP_NUM_THREADS="3"/>
+    <environment started="14-Aug-26 18:11:30" host="MacBook-Pro"/>
+    <progOpts problem="DensityTimesRotatedTransversalIsotropic" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/DensityTimesRotatedTransversalIsotropic.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="20" ny="10" nz="1">
-      <grids>
-        <timer wall-clock="0.008s" wall="0.008" cpu="0.005538" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="200" nodes="231"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="200" nodes="231">
+          <timer id="4" wall-clock="0.000912s" wall="0.000912042" cpu="0.000734" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="0.0002263s" wall="0.000226292" cpu="8.6e-05" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="0.0002761s" wall="0.000276083" cpu="0.000276" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="0.0001243s" wall="0.000124292" cpu="0.000124" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="4.079e-05s" wall="4.0792e-05" cpu="4.1e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="231" elems="200" isQuadratic="no"/>
       </regions>
@@ -32,13 +46,18 @@
       <globalMathParser dt="0" f="0" nx="20" ny="10" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.008s" wall="0.008" cpu="0.029266" calls="170"/>
+      <timer id="35" wall-clock="0.003316s" wall="0.00331647" cpu="0.003293" calls="224"/>
     </results>
   </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001076s" wall="0.00107562" cpu="0.001081" calls="1"/>
+    </hdf5>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.013s" wall="0.013" cpu="0.042717" calls="1"/>
+        <timer id="15" wall-clock="0.006479s" wall="0.00647888" cpu="0.006484" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -76,6 +95,15 @@
           <property name="Mechanic_Elasticity_Modulus" value="(6,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(1000,0)"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 6.593407e+00  1.978022e+00  0.000000e+00
+                 1.978022e+00  6.593407e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  2.307692e+00
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -114,10 +142,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.029057" calls="10"/>
+                <timer id="26" label="setup_directLDL" wall-clock="0.002596s" wall="0.00259554" cpu="0.002586" calls="11"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.009832" calls="20"/>
+                <timer id="27" label="solve_directLDL" wall-clock="0.001215s" wall="0.001215" cpu="0.001211" calls="22"/>
               </solve>
             </summary>
           </directLDL>
@@ -126,10 +154,10 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="1.1e-05" calls="10"/>
+                <timer id="28" wall-clock="4.834e-06s" wall="4.834e-06" cpu="4e-06" calls="11"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="29" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -138,24 +166,42 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.002s" wall="0.002" cpu="0.008928" calls="1" sub="true"/>
-      </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0s" wall="0" cpu="0.000359" calls="1" sub="true"/>
-      </reorder_Metis>
+      <graph nnz="7452">
+        <timer id="22" wall-clock="0.000781s" wall="0.000781042" cpu="0.000859" calls="1" sub="true" parent="15"/>
+        <finalize>
+          <timer id="23" wall-clock="0.0001053s" wall="0.000105292" cpu="0.000162" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="3.638e-05s" wall="3.6375e-05" cpu="5.7e-05" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="454" min="10" max="18" mean="16.414" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="25" wall-clock="0.0003819s" wall="0.000381917" cpu="0.000382" calls="1" sub="true" parent="22"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.055s" wall="0.055" cpu="0.115277" calls="40"/>
+          <timer id="17" wall-clock="0.003922s" wall="0.0039225" cpu="0.007513" calls="44"/>
+          <matrices>
+            <timer id="18" wall-clock="0.003849s" wall="0.003849" cpu="0.007435" calls="22" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="3.675e-05s" wall="3.675e-05" cpu="3.3e-05" calls="22" sub="true" parent="17"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <multipleExcitations type="fixed_weights"/>
       <constraints>
         <constraint type="sumModuli" name="sumModuli_(allDesigns)" parameter="0" linear="no" access="plain" locality="multiple_designs_element" local_size="200" bound_value="15" bound="upperBound" design="allDesigns" excitation="1"/>
@@ -164,7 +210,7 @@
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000697" calls="2"/>
+          <timer id="16" wall-clock="0.0002872s" wall="0.00028725" cpu="0.00029" calls="2"/>
         </setup_design>
         <filters use_mat_filt="no">
           <filter type="maxEdge" value="1.4" contribution="linear" design="density" elems="200" avg_radius="0.14" avg_neighbors="3.7"/>
@@ -172,7 +218,7 @@
           <filter type="maxEdge" value="1.6" contribution="linear" design="emodul" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
           <filter type="maxEdge" value="1.6" contribution="linear" design="gmodul" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
           <filter type="maxEdge" value="1.6" contribution="linear" design="poisson" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
-          <timer wall-clock="0s" wall="0" cpu="0.000844" calls="5"/>
+          <timer id="20" wall-clock="0.0004441s" wall="0.000444124" cpu="0.0006" calls="5"/>
         </filters>
         <ersatzMaterialFile file="DensityTimesRotatedTransversalIsotropic.warm.density.xml" source="problem file"/>
         <transferFunctions>
@@ -189,7 +235,7 @@
         </designVariables>
         <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="200" bimaterial="-"/>
+          <region name="mech" elements="200" bimaterial="-" groundmaterial="-"/>
         </regions>
         <designMaterial type="density-times-rotated-transversal-isotropic-boxed" bias="no"/>
       </designSpace>
@@ -201,66 +247,60 @@
     </header>
     <commit mode="forward" stride="100"/>
     <optimizer>
-      <summary snopt_outputfile="DensityTimesRotatedTransversalIsotropic.snopt">
-        <snopt>
-          <timer wall-clock="0.112s" wall="0.112" cpu="0.168116" calls="49"/>
-        </snopt>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="10" g_evals="8"/>
-      </summary>
-      <snopt/>
+      <snopt>
+        <summary snopt_outputfile="DensityTimesRotatedTransversalIsotropic.snopt">
+          <snopt>
+            <timer id="30" wall-clock="0.06218s" wall="0.062181" cpu="0.062063" calls="51"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="11" g_evals="9" majors="5"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="0.008s" wall="0.008" cpu="0.028689" calls="37"/>
+        <timer id="31" wall-clock="0.004663s" wall="0.00466346" cpu="0.004653" calls="42"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.00078" calls="10"/>
+        <timer id="32" wall-clock="0.0008103s" wall="0.000810292" cpu="0.000809" calls="11"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0.137s" wall="0.137" cpu="0.253967" calls="8"/>
+        <timer id="33" wall-clock="0.03279s" wall="0.032791" cpu="0.032614" calls="9"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.00254" calls="9"/>
+        <timer id="34" wall-clock="0.001241s" wall="0.00124092" cpu="0.001238" calls="10"/>
       </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <compliance min="0.90392" max="0.90655" oscillations="0"/>
+        <volume_density min="0.6" max="0.6" oscillations="2"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.204" compliance="0.906542453481246" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999894" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
+      <iteration number="0" duration="0.070714" compliance="0.910313559081367" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="124" volume_density="0.599999899222378" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="17" nObj="2">
         <excitation index="0" objective="0.90278" objective_weight="0.5"/>
         <excitation index="1" objective="0.91031" objective_weight="0.5"/>
       </iteration>
-      <iteration number="1" duration="0.031" compliance="0.906542453481325" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999894" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
-        <excitation index="0" objective="0.90278" objective_weight="0.5"/>
-        <excitation index="1" objective="0.91031" objective_weight="0.5"/>
+      <iteration number="1" duration="0.0115" compliance="0.910014131785358" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28" nObj="3">
+        <excitation index="0" objective="0.90266" objective_weight="0.5"/>
+        <excitation index="1" objective="0.91001" objective_weight="0.5"/>
       </iteration>
-      <iteration number="2" duration="0.04" compliance="1.18290932320334" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="46">
-        <excitation index="0" objective="1.1492" objective_weight="0.5"/>
-        <excitation index="1" objective="1.2166" objective_weight="0.5"/>
+      <iteration number="2" duration="0.017904" compliance="0.909040332655113" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28" nObj="5">
+        <excitation index="0" objective="0.90244" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90904" objective_weight="0.5"/>
       </iteration>
-      <iteration number="3" duration="0.032" compliance="0.906231082953379" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999898" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
-        <excitation index="0" objective="0.90267" objective_weight="0.5"/>
-        <excitation index="1" objective="0.90979" objective_weight="0.5"/>
+      <iteration number="3" duration="0.01711" compliance="0.908799222837143" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="31" nObj="6">
+        <excitation index="0" objective="0.90209" objective_weight="0.5"/>
+        <excitation index="1" objective="0.9088" objective_weight="0.5"/>
       </iteration>
-      <iteration number="4" duration="0.024" compliance="1.08737474967515" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="134" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="53">
-        <excitation index="0" objective="1.0553" objective_weight="0.5"/>
-        <excitation index="1" objective="1.1194" objective_weight="0.5"/>
+      <iteration number="4" duration="0.027724" compliance="0.908732005155421" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="27" nObj="8">
+        <excitation index="0" objective="0.90099" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90873" objective_weight="0.5"/>
       </iteration>
-      <iteration number="5" duration="0.041" compliance="0.905979764948744" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999901" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
-        <excitation index="0" objective="0.90237" objective_weight="0.5"/>
-        <excitation index="1" objective="0.90959" objective_weight="0.5"/>
-      </iteration>
-      <iteration number="6" duration="0.043" compliance="0.905338863879149" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="30">
-        <excitation index="0" objective="0.90143" objective_weight="0.5"/>
-        <excitation index="1" objective="0.90925" objective_weight="0.5"/>
-      </iteration>
-      <iteration number="7" duration="0.045" compliance="0.904419576292134" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="31">
-        <excitation index="0" objective="0.9009" objective_weight="0.5"/>
-        <excitation index="1" objective="0.90794" objective_weight="0.5"/>
-      </iteration>
-      <iteration number="8" duration="0.059" compliance="0.904209509900873" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="29">
-        <excitation index="0" objective="0.9008" objective_weight="0.5"/>
-        <excitation index="1" objective="0.90762" objective_weight="0.5"/>
+      <iteration number="5" duration="0.026229" compliance="0.907389686084693" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="27" nObj="10">
+        <excitation index="0" objective="0.90044" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90739" objective_weight="0.5"/>
       </iteration>
     </process>
   </optimization>

@@ -45,6 +45,9 @@ public:
    * @throws exception when not ok! */ 
   void SolveProblem();
 
+  /** IpoptApplication keeps us alive via its nlp_adapter_, dropping app breaks the reference cycle */
+  void Cleanup() { app = nullptr; }
+
   /** Method to return some info about the nlp */
   bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                     Index& nnz_h_lag, IndexStyleEnum& index_style);

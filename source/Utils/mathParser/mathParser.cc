@@ -181,8 +181,9 @@ namespace CoupledField {
         
         unsigned int actHandle = *handleIt;
         // check, if variable is in use
-        if( varsInUse_[actHandle].find( varName) 
-            != varsInUse_[actHandle].end() ) {
+        auto viuIt = varsInUse_.find(actHandle);
+        if( viuIt != varsInUse_.end() && viuIt->second.find( varName)
+            != viuIt->second.end() ) {
         
           // check if signal is defined for this variable 
           // -> fire signal
@@ -225,8 +226,9 @@ namespace CoupledField {
           // i.e. the parser instance assumes that the variable is
           // locally defined. In this case we have to register
           // the variable also in the globVarsInUse_ map
-          if( varsInUse_[actHandle].find( varName) !=
-              varsInUse_[actHandle].end() ) {
+          auto viuIt = varsInUse_.find(actHandle);
+          if( viuIt != varsInUse_.end() && viuIt->second.find( varName) !=
+              viuIt->second.end() ) {
             globVarsInUse_[varName].insert(actHandle);
             pools_[actHandle].erase( varName );
           }
@@ -258,13 +260,14 @@ namespace CoupledField {
             it->second.DefineVar( varName, ptVar );
         )
 
-        // We consider the case, that we have in the 
+        // We consider the case, that we have in the
         // child parsers already a "default" value for this variable,
         // i.e. the parser instance assumes that the variable is
         // locally defined. In this case we have to register
         // the variable also in the globVarsInUse_ map
-        if( varsInUse_[actHandle].find( varName) !=
-            varsInUse_[actHandle].end() ) {
+        auto viuIt = varsInUse_.find(actHandle);
+        if( viuIt != varsInUse_.end() && viuIt->second.find( varName) !=
+            viuIt->second.end() ) {
           globVarsInUse_[varName].insert(actHandle);
           pools_[actHandle].erase( varName );
         }
@@ -295,6 +298,45 @@ namespace CoupledField {
       MathParser::SetValue( handler, tempName, locCoord[i-1] );
     }
 
+  }
+
+  CoordPtrs MathParser::GetCoordPtrs( unsigned int handle,
+                                      const CoordSystem& coosy ) {
+    CoordPtrs ptrs;
+    ptrs.numCoords = coosy.GetDim();
+
+    // Get pointers to coordinate variables
+    for ( UInt i = 1; i <= ptrs.numCoords; i++ ) {
+      std::string varName = coosy.GetDofName(i);
+      ptrs.coords[i-1] = GetValuePtr( handle, varName );
+    }
+
+    // Initialize remaining pointers to nullptr
+    for ( UInt i = ptrs.numCoords; i < 3; i++ ) {
+      ptrs.coords[i] = nullptr;
+    }
+
+    return ptrs;
+  }
+
+  void MathParser::SetCoordinatesDirect( const CoordPtrs& ptrs,
+                                         const CoordSystem& coosy,
+                                         const Vector<Double>& globCoord ) {
+    // Get local representation of global vector
+    Vector<Double> locCoord;
+    coosy.Global2LocalCoord( locCoord, globCoord );
+
+    UInt maxDim = locCoord.GetSize();
+    if ( maxDim == 3 && coosy.GetDim() == 2 ) {
+      maxDim = 2;
+    }
+
+    // Directly set coordinate values via cached pointers (no map lookups)
+    for ( UInt i = 0; i < maxDim && i < ptrs.numCoords; i++ ) {
+      if ( ptrs.coords[i] != nullptr ) {
+        *(ptrs.coords[i]) = locCoord[i];
+      }
+    }
   }
 
   void MathParser::SetExpr( unsigned int handler, const std::string & expr) {
@@ -587,9 +629,10 @@ namespace CoupledField {
     //mu::Parser & actParser = GetParser( handle );
     
     mu::varmap_type variables;
-    //MATHPARSER_EXEC( variables = actParser.GetUsedVar() ); 
+    //MATHPARSER_EXEC( variables = actParser.GetUsedVar() );
     bool isConstant = true;
-    if( varsInUse_[handle].size() != 0 ) {
+    auto viuIt = varsInUse_.find(handle);
+    if( viuIt != varsInUse_.end() && viuIt->second.size() != 0 ) {
       isConstant = false;
     }
     return isConstant;
@@ -599,7 +642,8 @@ namespace CoupledField {
     StdVector<std::string> usedVars;
     //GetExprVars( handle, usedVars );
     bool found = false;
-    if( varsInUse_[handle].find( var) != varsInUse_[handle].end() ) {
+    auto viuIt = varsInUse_.find(handle);
+    if( viuIt != varsInUse_.end() && viuIt->second.find( var) != viuIt->second.end() ) {
       found = true;
     }
     return found;
@@ -650,8 +694,34 @@ namespace CoupledField {
     }
     EXCEPTION("Variable " << varName << " is not registered in mathparser");
   }
-  
-  
+
+
+  Double* MathParser::GetValuePtr( unsigned int handle,
+                                   const std::string& varName ) {
+    // Look for related variable pool
+    PoolMap::iterator poolsIt = pools_.find( handle );
+    if ( poolsIt != pools_.end() ) {
+      VarPool::iterator varIt = poolsIt->second.find( varName );
+      if ( varIt != poolsIt->second.end() ) {
+        return &(varIt->second);
+      }
+    }
+
+    // If not in local pool and not global handler, check global pool
+    if ( handle != GLOB_HANDLER ) {
+      PoolMap::iterator globPoolsIt = pools_.find( GLOB_HANDLER );
+      if ( globPoolsIt != pools_.end() ) {
+        VarPool::iterator globVarIt = globPoolsIt->second.find( varName );
+        if ( globVarIt != globPoolsIt->second.end() ) {
+          return &(globVarIt->second);
+        }
+      }
+    }
+
+    return nullptr;
+  }
+
+
   UInt MathParser::GetNumExprs( unsigned int handle ) {
     
     // Get parser related to handle

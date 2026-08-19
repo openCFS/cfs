@@ -1,8 +1,5 @@
-#1:iter	2:compliance	3:duration
-0 	32.6687 	0
-1 	20.9613 	0
-2 	29.6745 	0
-3 	15.5474 	1
-4 	15.3169 	0
-5 	15.3114 	0
-6 	15.3104 	0
+#1:iter	2:compliance	3:duration	4:max_abs_slope_(node)	5:infeas_count_slope_(node)	6:max_abs_curvature_(node)	7:infeas_count_curvature_(node)	8:nObj
+0 	32.6687 	0.126236 	0.0375 	0 	5.55112e-17 	0 	1
+1 	16.7655 	0.0795959 	0.0258369 	0 	0.0033903 	0 	4
+2 	15.6732 	0.0354575 	0.0169577 	0 	0.00362634 	0 	5
+3 	15.373 	0.035067 	0.00993302 	0 	0.00363217 	0 	6

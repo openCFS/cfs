@@ -853,6 +853,7 @@ namespace CoupledField{
 
        this->name_ = "StrainOperatorBloch2D";
        this->wave_vector_ = NULL; // to be set
+       this->owns_wave_vector_ = false;
      }
 
      //! Copy constructor
@@ -861,6 +862,7 @@ namespace CoupledField{
        this->name_ = other.name_;
        //deep copy
        this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       this->owns_wave_vector_ = true;
        //copy values
        for(UInt i=0;i<this->wave_vector_->GetSize();i++){
          (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
@@ -873,10 +875,13 @@ namespace CoupledField{
      }
 
      //! Destructor
-     virtual ~StrainOperatorBloch2D(){ }
+     virtual ~StrainOperatorBloch2D(){
+       if(owns_wave_vector_) delete wave_vector_;
+     }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
+       if(owns_wave_vector_) { delete wave_vector_; owns_wave_vector_ = false; }
        wave_vector_ = &current_wave_vector;
      };
 
@@ -901,6 +906,8 @@ namespace CoupledField{
 
    private:
      Vector<double>* wave_vector_;
+     //! only the deep copy from the copy constructor is ours to delete
+     bool owns_wave_vector_;
    };
 
    template<class FE, class TYPE>
@@ -968,12 +975,14 @@ namespace CoupledField{
 
        this->name_ = "StrainOperatorBloch3D";
        this->wave_vector_ = NULL; // to be set
+       this->owns_wave_vector_ = false;
      }
 
      //! Copy constructor
      StrainOperatorBloch3D(const StrainOperatorBloch3D & other)
         : StrainOperator3D<FE, Double>(other){
        this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       this->owns_wave_vector_ = true;
        //copy values
        for(UInt i=0;i<this->wave_vector_->GetSize();i++){
          (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
@@ -986,10 +995,13 @@ namespace CoupledField{
      }
 
      //! Destructor
-     virtual ~StrainOperatorBloch3D(){ }
+     virtual ~StrainOperatorBloch3D(){
+       if(owns_wave_vector_) delete wave_vector_;
+     }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
+       if(owns_wave_vector_) { delete wave_vector_; owns_wave_vector_ = false; }
        wave_vector_ = &current_wave_vector;
      };
 
@@ -1014,6 +1026,8 @@ namespace CoupledField{
 
    private:
      Vector<double>* wave_vector_;
+     //! only the deep copy from the copy constructor is ours to delete
+     bool owns_wave_vector_;
    };
 
    template<class FE, class TYPE>

@@ -85,6 +85,13 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }
 
+ShapeMapDesign::~ShapeMapDesign()
+{
+  // shape_param_ owns the elements, opt_shape_param_ is only a subset of the same pointers
+  for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
+    delete shape_param_[i];
+}
+
 
 ShapeMapDesign::ShapeParam* ShapeMapDesign::InduceSymmetryNodeHelper(ShapeParam& ref_node)
 {

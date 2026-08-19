@@ -77,6 +77,11 @@ namespace CoupledField{
     delete[] b;
     delete[] cidx;
     delete[] ridx;
+    if(isfactor) {
+      Destroy_SuperNode_Matrix(&L);
+      Destroy_CompCol_Matrix(&U);
+      StatFree(&stat);
+    }
     c_ = k_ = m_ = NULL;
     c_CRS = k_CRS = m_CRS = NULL;
     xml_ = NULL;
@@ -412,6 +417,7 @@ namespace CoupledField{
     /* Deleting AC and etree, and working space */
 
     Destroy_CompCol_Permuted( &AC );
+    Destroy_SuperMatrix_Store( &A ); // only the store, the arrays below are ours
     delete[]  matms;
     delete[]  rowindms;
     delete[]  colptrms;
@@ -506,7 +512,6 @@ namespace CoupledField{
     int         info, one=1;
     SuperMatrix B;
     zCreate_Dense_Matrix(&B, n, one, (doublecomplex *)w, n, SLU_DN, SLU_Z, SLU_GE);
-    StatInit(&stat);
     trans_t trans = NOTRANS;
     zgstrs(trans, &L, &U, permc, permr, &B, &stat, &info);
     Destroy_SuperMatrix_Store(&B);
@@ -629,8 +634,9 @@ namespace CoupledField{
     bool rvec = (iseigv) ? 1 : 0; // 0 not to compute eigenvectors, 1 compute eigenvectors.
 
     char HowMny = 'A';   // 'A' for Ritz vectors, 'P' for Shur vectors.
-
-    bool *iselect = new bool[ ncv ]; // Internal working space.
+    // zneupd's select is a FORTRAN LOGICAL array, wider than bool. iselectMem owns it
+    StdVector<double> iselectMem(ncv);
+    bool* iselect = reinterpret_cast<bool*>(iselectMem.GetPointer());
     LOG_DBG(palm) << "CalcEigenValues: Mark 4";
     /* Call ARPACK routine for the Ritz values and/or Ritz vectors. */
     zneupd( &rvec, &HowMny, iselect, EigVal, EigVec, &nl, &sigma, &workv[1],

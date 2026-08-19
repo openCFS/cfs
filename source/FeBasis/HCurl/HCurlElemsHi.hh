@@ -118,6 +118,55 @@ protected:
 };
 
 
+class  FeHCurlHiLine : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiLine();
+
+  //! Copy Constructor
+  FeHCurlHiLine(const FeHCurlHiLine & other)
+    : FeHCurlHi(other){
+  }
+
+  //! Create deep copy
+  virtual FeHCurlHiLine* Clone(){
+    return new FeHCurlHiLine(*this);
+  }
+
+  //! Destructor
+  virtual ~FeHCurlHiLine();
+
+
+
+  //! Return HCurl shape functions
+  virtual void GetShFnc( Matrix<Double>& shape,
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 )
+                         {};
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl,
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 )
+                            {};
+
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl,
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 )
+                      {};
+
+protected:
+  
+  //! Calculate number of unknowns
+  void CalcNumUnknowns(){};
+  
+};
+
+
 //! HCurl conforming hierarchical higher order triangular element
 class  FeHCurlHiTria : public FeHCurlHi {
 

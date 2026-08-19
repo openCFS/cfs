@@ -17,8 +17,9 @@ namespace CoupledField
       opt_timer->Stop();
     }
     
-    virtual ~IPOPTHolder() 
-    { 
+    virtual ~IPOPTHolder()
+    {
+      ipopt_->Cleanup();
     }
     
     void LogFileLine(std::ofstream* out, PtrParamNode iteration) override

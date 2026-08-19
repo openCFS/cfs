@@ -214,6 +214,22 @@ namespace CoupledField{
     // default: use no gradients
     useGradients_[region] = false;
 
+    //ToDo: save the information...
+    // QUERY FOR USER PARAMS IS STILL TO COME
+    refElems_[region][Elem::ET_LINE2]  = new FeHCurlHiLine();
+    refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
+    refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
+    refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
+    
+    refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
+    refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
+    refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
     // The reference elements might be already set if there is no polyomial list in the xml file, because
     // in this case SetRegionApproximation calls SetDefaultElements, which sets elements for all regions at once.
@@ -481,6 +497,78 @@ namespace CoupledField{
       ++regIt1St;
     }
 #endif
+
+    // Build element nodes cache for fast lookup during assembly
+    // This pre-computes the nodes for each element to avoid repeated map lookups
+    // in GetNodesOfElement() which is called frequently (4.6% of runtime)
+    {
+      StdVector<Elem*> allElems;
+      ptGrid_->GetElems(allElems, ALL_REGIONS);
+      UInt numElems = allElems.GetSize();
+
+      // Find max element number to size the cache
+      UInt maxElemNum = 0;
+      for (UInt i = 0; i < numElems; ++i) {
+        if (allElems[i]->elemNum > maxElemNum) {
+          maxElemNum = allElems[i]->elemNum;
+        }
+      }
+
+      // Resize cache (element numbers are 1-based, so index = elemNum - 1)
+      elemNodesCache_.resize(maxElemNum);
+
+      // Get references to entity node maps
+      const EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+      const EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+      const EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+
+      // Build cache for each element
+      for (UInt i = 0; i < numElems; ++i) {
+        const Elem* ptElem = allElems[i];
+        UInt cacheIdx = ptElem->elemNum - 1;  // Convert 1-based to 0-based
+        StdVector<UInt>& cachedNodes = elemNodesCache_[cacheIdx];
+        cachedNodes.Reserve(30);
+
+        // Collect edge nodes
+        UInt numEdges = ptElem->extended->edges.GetSize();
+        for (UInt j = 0; j < numEdges; ++j) {
+          auto it = eNodes.find(std::abs(ptElem->extended->edges[j]));
+          if (it != eNodes.end()) {
+            const StdVector<UInt>& edgeNodes = it->second;
+            for (UInt k = 0; k < edgeNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(edgeNodes[k]);
+            }
+          }
+        }
+
+        // Collect face nodes
+        UInt numFaces = ptElem->extended->faces.GetSize();
+        for (UInt j = 0; j < numFaces; ++j) {
+          auto it = fNodes.find(std::abs(ptElem->extended->faces[j]));
+          if (it != fNodes.end()) {
+            const StdVector<UInt>& faceNodes = it->second;
+            for (UInt k = 0; k < faceNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(faceNodes[k]);
+            }
+          }
+        }
+
+        // Collect interior nodes
+        if (iNodes.size()) {
+          auto it = iNodes.find(ptElem->elemNum);
+          if (it != iNodes.end()) {
+            const StdVector<UInt>& intNodes = it->second;
+            for (UInt k = 0; k < intNodes.GetSize(); ++k) {
+              cachedNodes.Push_back(intNodes[k]);
+            }
+          }
+        }
+
+        // Shrink to fit to minimize memory usage
+        cachedNodes.Trim();
+      }
+    }
+
     isFinalized_ = true;
   }
   
@@ -499,11 +587,29 @@ namespace CoupledField{
   void FeSpaceHCurlHi::GetNodesOfElement( StdVector<UInt>& nodes,
                                           const Elem* ptElem,
                                           BaseFE::EntityType entType){
+    // Fast path: use pre-computed cache for the common case
+    // Cache is valid when: entType == ALL and onlyLowestOrder_ == false
+    // (the cache was built with full node collection in Finalize())
+    if (entType == BaseFE::ALL && !onlyLowestOrder_ && !elemNodesCache_.empty()) {
+      UInt cacheIdx = ptElem->elemNum - 1;  // Convert 1-based to 0-based
+      if (cacheIdx < elemNodesCache_.size()) {
+        const StdVector<UInt>& cachedNodes = elemNodesCache_[cacheIdx];
+        if (cachedNodes.GetSize() > 0) {
+          // Copy from cache
+          nodes = cachedNodes;
+          return;
+        }
+      }
+    }
+
+    // Slow path: original implementation for special cases
+    // (specific entity types or onlyLowestOrder_ mode)
     nodes.Clear();
     nodes.Reserve(30);
-    EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
-    EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
-    EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+    // Use const references and .at() for thread-safe read-only access
+    const EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+    const EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+    const EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
 
     // Collect edge nodes
     {
@@ -511,9 +617,12 @@ namespace CoupledField{
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
 
         for( UInt i = 0; i < numEdges; ++i ) {
-          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
-          for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-            nodes.Push_back(edgeNodes[j]);
+          auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+          if( it != eNodes.end() ) {
+            const StdVector<UInt>& edgeNodes = it->second;
+            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+              nodes.Push_back(edgeNodes[j]);
+            }
           }
         }
       }
@@ -528,9 +637,12 @@ namespace CoupledField{
         if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
 
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[j]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[j]);
+              }
             }
           }
         }
@@ -540,19 +652,22 @@ namespace CoupledField{
       {
         if( iNodes.size() ) {
           if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-            StdVector<UInt>& intNodes = iNodes[ptElem->elemNum];
-            for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
-              nodes.Push_back(intNodes[j]);
+            auto it = iNodes.find(ptElem->elemNum);
+            if( it != iNodes.end() ) {
+              const StdVector<UInt>& intNodes = it->second;
+              for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
+                nodes.Push_back(intNodes[j]);
+              }
             }
           }
-        } 
+        }
       }
     } // if: !lowestOrder
 
     // Ensure, that at least one virtual node is present
-    if( nodes.GetSize() == 0 ) { 
+    if( nodes.GetSize() == 0 ) {
       EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
-          << ptElem->elemNum << " of region " 
+          << ptElem->elemNum << " of region "
           <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
    }
   }
@@ -579,21 +694,23 @@ namespace CoupledField{
   
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
     RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;
-    
+
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
     }
 
-    if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(eRegion);
+    if(refElemsRegion.find(ent.GetElem()->type) == refElemsRegion.end()){
       EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
 #ifdef USE_OPENMP
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_.at(eRegion).Mine() : refElems_.at(eRegion);
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_.at(eRegion).Mine() : refElems1St_.at(eRegion);
 #else
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_.at(eRegion);
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_.at(eRegion);
 #endif
 
     FeHCurlHi * myFe = NULL;
@@ -613,43 +730,39 @@ namespace CoupledField{
       myFe = refMap[ent.GetElem()->type];
     }
 
-    // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
+    // ToDo: Currently hard coded to isotropic order. Here we should generalize the
     // setting of entity orders.
     assert (myFe);
-    
+
     return myFe;
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( UInt elemNum ){
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
-    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
+
     // Note: if the element is a surface element, we must omit the regionId
     // and look for the neigbor
     RegionIdType eRegion = GetVolElem(ptElem)->regionId;
-    //RegionIdType eRegion = ptElem->regionId;
-
-    std::string regionName = ptGrid_->GetRegion().ToString(eRegion);
-
-
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
     }
 
-
-    if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(eRegion);
+    if(refElemsRegion.find(ptElem->type) == refElemsRegion.end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
 
 #ifdef USE_OPENMP
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_.at(eRegion).Mine() : refElems_.at(eRegion);
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_.at(eRegion).Mine() : refElems1St_.at(eRegion);
 #else
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
-    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_.at(eRegion);
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_.at(eRegion);
 #endif
 
     FeHCurlHi * myFe = NULL;
@@ -668,7 +781,7 @@ namespace CoupledField{
       SetElemGrad( ptElem, myFe, eRegion, true );
       myFe = refMap[ptElem->type];
     }
-    
+
     return myFe;
   }
 
@@ -1102,17 +1215,19 @@ namespace CoupledField{
       region = ALL_REGIONS;
     }
 
-    if(refElems_[region].find(type) == refElems_[region].end()){
+    // Use .at() for thread-safe read-only access (throws if key missing)
+    const auto& refElemsRegion = refElems_.at(region);
+    if(refElemsRegion.find(type) == refElemsRegion.end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
 
 #ifdef USE_OPENMP
     if(isFinalized_ && omp_get_num_threads()>1)
-      ret = TL_refElems_[region][type];
+      ret = TL_refElems_.at(region).Mine().at(type);
     else
-      ret = refElems_[region][type];
+      ret = refElems_.at(region).at(type);
 #else
-    ret = refElems_[region][type];
+    ret = refElems_.at(region).at(type);
 #endif
     return ret;
   }

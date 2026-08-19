@@ -23,6 +23,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionMulti.cc
   CoefFunctionOpt.cc
   CoefFunctionFileData.cc
+  CoefFunctionFileDataMeas.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc

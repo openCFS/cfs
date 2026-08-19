@@ -10,12 +10,11 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "Utils/ThreadLocalStorage.hh"
+#include "Utils/mathParser/mathParser.hh"
 //#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 namespace CoupledField {
-
-class MathParser;
 
 //! Coefficient class, which is formed by a compound of several others
 
@@ -359,7 +358,7 @@ protected:
 
   //! Map variable names to tensor valued variables (real part)
   TLMap<std::string, Matrix<Double> > tensorVarsReal_;
-  
+
   //! Map variable names to tensor valued variables (imag part )
   TLMap<std::string, Matrix<Double> > tensorVarsImag_;
 };

@@ -81,10 +81,7 @@
     <constraint type="slope" bound="upperBound" value="0.3" />
 
     
-    <optimizer type="snopt"  maxIterations="20">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon"/>
-    </optimizer>
+    <optimizer type="snopt"  maxIterations="20"/>
       
     <ersatzMaterial region="mech" material="mechanic" method="simp">
       

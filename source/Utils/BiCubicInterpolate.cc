@@ -2,6 +2,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Utils/BiCubicInterpolate.hh"
 #include "Utils/BiCubicInterpolateCoeff.hh"
+#include "Utils/ToolsFull.hh"
 
 #include <fstream>
 
@@ -284,22 +285,8 @@ void BiCubicInterpolate::CalcCoeff(StdVector<double>& coeff, const StdVector<dou
 
 inline unsigned int BiCubicInterpolate::GetLocalValues(double x, double y, double& xloc, double& yloc, double& dxloc, double& dyloc) const {
   // scale to [0,1] like in constructor
-  x = (x - offsetX_) * scaleX_;
-  y = (y - offsetY_) * scaleY_;
-  // for periodic functions we map values outside of data range to the inside
-  if (periodic_) {
-    if (x > 1)
-      x -= (int)x;
-    if (x < 0)
-      x += (int)x + 1;
-    if (y > 1)
-      y -= (int)y;
-    if (y < 0)
-      y += (int)y + 1;
-  }
-
-  assert(0 <= x && x <= 1);
-  assert(0 <= y && y <= 1);
+  x = NormalizeToUnitInterval(x, offsetX_, scaleX_, periodic_);
+  y = NormalizeToUnitInterval(y, offsetY_, scaleY_, periodic_);
 
   unsigned int kx, ky;
 

@@ -13,6 +13,7 @@
 #include "opdefs.hh"
 #include "Matrix.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/SyncAccess.hh"
 
 namespace CoupledField 
 {
@@ -694,6 +695,15 @@ namespace CoupledField
   void Vector<T>::AddToEntry( const unsigned int i, const T &val )
   {
     data_[i] += val;
+  }
+
+  // ********************
+  //   AddToVectorEntry (atomic)
+  // ********************
+  template<typename T>
+  void Vector<T>::AddToEntryAtomic( const unsigned int i, const T &val )
+  {
+    SyncAccess<SYNC_DATA>::AddTo(data_[i], val);
   }
 
 

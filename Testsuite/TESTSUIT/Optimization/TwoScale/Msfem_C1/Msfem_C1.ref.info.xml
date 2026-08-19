@@ -1,0 +1,284 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="12">
+  <summary>
+    <timer id="0" wall-clock="0.1962s" wall="0.196227" cpu="0.194975" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
+    <!-- memory in MB-->
+    <memory final="143"/>
+  </summary>
+  <header id="">
+    <environment started="14-Aug-26 18:11:29" host="MacBook-Pro"/>
+    <progOpts problem="Msfem_C1" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/TwoScale/Msfem_C1/Msfem_C1.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="2" ny="2" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="4" nodes="9">
+          <timer id="4" wall-clock="0.0004378s" wall="0.000437834" cpu="0.000439" calls="2"/>
+          <readMesh>
+            <timer id="5" wall-clock="2.646e-05s" wall="2.6458e-05" cpu="2.6e-05" calls="1" sub="true" parent="4"/>
+          </readMesh>
+          <finishInit>
+            <timer id="6" wall-clock="6.737e-05s" wall="6.7375e-05" cpu="6.7e-05" calls="1" sub="true" parent="4"/>
+          </finishInit>
+          <userDefined>
+            <timer id="7" wall-clock="5.42e-07s" wall="5.42e-07" cpu="2e-06" calls="1" sub="true" parent="6"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="14" label="mapFacesEdges" wall-clock="3.334e-06s" wall="3.334e-06" cpu="3e-06" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="9" elems="4" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left" count="3"/>
+        <nodes name="right" count="3"/>
+        <nodes name="bottom" count="3"/>
+        <nodes name="top" count="3"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="2" ny="2" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer id="35" wall-clock="0.0006939s" wall="0.000693917" cpu="0.000685" calls="84"/>
+    </results>
+  </header>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.0009947s" wall="0.000994667" cpu="0.000999" calls="1"/>
+    </hdf5>
+  </output>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer id="15" wall-clock="0.006834s" wall="0.00683371" cpu="0.006837" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="right" size="3" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -0.333333]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(7872,0)"/>
+          <property name="Rayleigh_Alpha" value="0.050000000000000003"/>
+          <property name="Rayleigh_Beta" value="0.002"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e+00  3.296703e-01  0.000000e+00
+                 3.296703e-01  1.098901e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="left" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="12" totalNumFreeEqns="12" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="12" lastFreeEqn="12" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="12" lastFreeIndex="12"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer id="26" label="setup_directLDL" wall-clock="3.325e-05s" wall="3.325e-05" cpu="3e-05" calls="15"/>
+              </setup>
+              <solve>
+                <timer id="27" label="solve_directLDL" wall-clock="2.875e-05s" wall="2.8751e-05" cpu="3.3e-05" calls="15"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer id="28" wall-clock="5.959e-06s" wall="5.959e-06" cpu="1.5e-05" calls="15"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="29" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph nnz="112">
+        <timer id="22" wall-clock="0.0004202s" wall="0.00042025" cpu="0.000213" calls="1" sub="true" parent="15"/>
+        <finalize>
+          <timer id="23" wall-clock="9.25e-06s" wall="9.25e-06" cpu="9e-06" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="4.708e-06s" wall="4.708e-06" cpu="5e-06" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="12" min="8" max="12" mean="9.3333" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="25" wall-clock="4.375e-05s" wall="4.375e-05" cpu="4.4e-05" calls="1" sub="true" parent="22"/>
+        </reorder>
+      </graph>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer id="17" wall-clock="0.0002777s" wall="0.000277748" cpu="0.000314" calls="30"/>
+          <matrices>
+            <timer id="18" wall-clock="0.0002196s" wall="0.00021958" cpu="0.000254" calls="15" sub="true" parent="17"/>
+          </matrices>
+          <rhs>
+            <timer id="19" wall-clock="3.337e-05s" wall="3.3375e-05" cpu="3.2e-05" calls="15" sub="true" parent="17"/>
+          </rhs>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/TwoScale/Msfem_C1/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
+      <constraints>
+        <constraint type="globalTwoScaleVolume" name="globalTwoScaleVolume_(allDesigns)" linear="no" access="filtered" locality="multiple_designs_element" local_size="4" normalize="yes" power="1" bound_value="0.97" bound="upperBound" design="allDesigns"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer id="16" wall-clock="7.196e-05s" wall="7.1958e-05" cpu="7.2e-05" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="no">
+          <filter type="maxEdge" value="1.5" contribution="linear" design="stiff1" elems="4" avg_radius="1.5" avg_neighbors="3"/>
+          <filter type="maxEdge" value="1.5" contribution="linear" design="stiff2" elems="4" avg_radius="1.5" avg_neighbors="3"/>
+          <timer id="20" wall-clock="7.421e-05s" wall="7.4209e-05" cpu="8e-05" calls="2"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="identity" application="no_app" design="default"/>
+        </transferFunctions>
+        <designVariables opt_vars="8" field_elems="8" field_fe_elemes="4">
+          <design type="stiff1" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <design type="stiff2" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+        </designVariables>
+        <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="4" bimaterial="-" groundmaterial="-"/>
+        </regions>
+        <designMaterial type="msfem-C1" bias="no"/>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="500"/>
+    <optimizer>
+      <snopt>
+        <summary snopt_outputfile="Msfem_C1.snopt">
+          <snopt>
+            <timer id="30" wall-clock="0.0004611s" wall="0.000461081" cpu="0.000452" calls="53"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="16" g_evals="6" majors="4"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer id="31" wall-clock="7.958e-05s" wall="7.9583e-05" cpu="7.7e-05" calls="44"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer id="32" wall-clock="1.379e-05s" wall="1.3793e-05" cpu="1.3e-05" calls="16"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer id="33" wall-clock="5.129e-05s" wall="5.1291e-05" cpu="5.2e-05" calls="6"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer id="34" wall-clock="8.75e-06s" wall="8.75e-06" cpu="1.1e-05" calls="6"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+      <functions>
+        <compliance min="6.1106" max="6.922" oscillations="2"/>
+        <globalTwoScaleVolume_allDesigns min="0.96" max="1" oscillations="2"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.1948" compliance="6.92204098488102" globalTwoScaleVolume_allDesigns="0.960000049296785" nObj="10"/>
+      <iteration number="1" duration="0.00054033" compliance="6.6060834757006" globalTwoScaleVolume_allDesigns="0.971515372467418" nObj="11"/>
+      <iteration number="2" duration="0.00010471" compliance="6.11056591361187" globalTwoScaleVolume_allDesigns="1" nObj="12"/>
+      <iteration number="3" duration="0.00014246" compliance="6.71155660577984" globalTwoScaleVolume_allDesigns="0.97" nObj="14"/>
+      <iteration number="4" duration="9.8e-05" compliance="6.11056591361192" globalTwoScaleVolume_allDesigns="1" nObj="15"/>
+    </process>
+  </optimization>
+</cfsInfo>

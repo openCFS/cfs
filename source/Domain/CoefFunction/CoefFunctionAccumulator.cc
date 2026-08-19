@@ -51,9 +51,9 @@ void CoefFunctionAccumulator::GetScalar(Complex& coef, const LocPointMapped& lpm
 		//Double square = coef.real()*coef.real() - coef.imag()*coef.imag();
 		if( integrate_ )
 			//squaredSum_ = square * lpm.weight * lpm.jacDet;
-			squaredSum_ = std::abs(coef*coef) * lpm.weight * lpm.jacDet;
+			squaredSum_ += std::abs(coef*coef) * lpm.weight * lpm.jacDet;
 		else
-			squaredSum_ = std::abs(coef*coef);
+			squaredSum_ += std::abs(coef*coef);
 	}
 
 }
@@ -93,9 +93,9 @@ void CoefFunctionAccumulator::GetScalar(Double& coef,
 #pragma omp critical (CoefFunctionAccumulator)
 {
 	if( integrate_ )
-		squaredSum_ = coef * coef * lpm.weight * lpm.jacDet;
+		squaredSum_ += coef * coef * lpm.weight * lpm.jacDet;
 	else
-		squaredSum_ = coef * coef;
+		squaredSum_ += coef * coef;
 }
 
 }

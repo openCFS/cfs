@@ -170,7 +170,7 @@ namespace CoupledField
 
     if(buf_ != NULL)
     {
-      delete parser_;
+      delete buf_;
       buf_ = NULL;
     }
     // Shutdown platform dependend utilities

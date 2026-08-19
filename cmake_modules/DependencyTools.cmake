@@ -531,11 +531,11 @@ macro(create_external_encrypted_cmake_patched)
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     # disable automatic extract of the zip file by cmake (does not work for encrypted files)
     DOWNLOAD_NO_EXTRACT 1
-    # after download comes update, then patch. 
+    UPDATE_COMMAND "" # an update step gets no proper stamp file
     # usually we unpack into ${DEPS_PREFIX}/src/${PACKAGE_NAME}, however manual unzip adds a /snopt7
-    UPDATE_COMMAND unzip -q -u -P ${PACKAGE_KEY} ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}/${PACKAGE_FILE} -d ${DEPS_PREFIX}/src/${PACKAGE_NAME} 
-    # now patch the unpacked source
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
+    PATCH_COMMAND unzip -q -u -P ${PACKAGE_KEY} ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}/${PACKAGE_FILE} -d ${DEPS_PREFIX}/src/${PACKAGE_NAME}
+    # now patch the unpacked source.
+    COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
 
     CMAKE_ARGS ${DEPS_ARGS}
     

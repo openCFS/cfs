@@ -674,6 +674,8 @@ namespace CoupledField {
         LOG_DBG(aes) << "CEV: i=" << i << " ev=" << solConverted[i];
       }
 
+      ToInfo(); // numEV_ and valueShift_ are known only here
+
       PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
       in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
       in->Get("rci/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
@@ -716,6 +718,8 @@ namespace CoupledField {
     for (UInt i = 0; i < numEVs; i++ ) {
       solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
     }
+
+    ToInfo(); // numEV_ and valueShift_ are known only here
 
     PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());

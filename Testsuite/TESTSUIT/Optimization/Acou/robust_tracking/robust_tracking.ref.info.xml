@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="50">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="48">
   <summary>
-    <timer id="0" wall-clock="0.6792s" wall="0.679173" cpu="0.678533" calls="1"/>
+    <timer id="0" wall-clock="0.3153s" wall="0.315321" cpu="0.425481" calls="1"/>
     <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="200" peak="220"/>
+    <memory final="54"/>
   </summary>
   <header id="">
-    <environment started="05-Aug-26 12:59:08" host="TPX1"/>
-    <progOpts problem="robust_tracking" parameterFile="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/robust_tracking/robust_tracking.xml" schemaPath="/home/felhub/d/code_cfs/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="26.07" name="Kaum Konvergenz" build="RELEASE" git_commit="d9eae347c3dda2c864f8abf68f1687baa2e84ae7-modified" git_branch="felhub_multiexfix" compiled="Aug  5 2026" exe="cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    <environment started="14-Aug-26 17:49:46" host="MacBook-Pro"/>
+    <progOpts problem="robust_tracking" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Acou/robust_tracking/robust_tracking.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="10" ny="36" nz="1">
       <coordinateSystems>
@@ -19,15 +19,15 @@
       </coordinateSystems>
       <grids>
         <grid gridId="default" dimensions="2" elements="452" nodes="407">
-          <timer id="5" wall-clock="0.001979s" wall="0.00197906" cpu="0.00198" calls="2"/>
+          <timer id="5" wall-clock="0.001561s" wall="0.00156142" cpu="0.001267" calls="2"/>
           <readMesh>
-            <timer id="6" wall-clock="0.0009434s" wall="0.000943366" cpu="0.000943" calls="1" sub="true" parent="5"/>
+            <timer id="6" wall-clock="0.0009524s" wall="0.000952375" cpu="0.000654" calls="1" sub="true" parent="5"/>
           </readMesh>
           <finishInit>
-            <timer id="7" wall-clock="0.0002462s" wall="0.000246196" cpu="0.000246" calls="1" sub="true" parent="5"/>
+            <timer id="7" wall-clock="0.0001955s" wall="0.0001955" cpu="0.000195" calls="1" sub="true" parent="5"/>
           </finishInit>
           <userDefined>
-            <timer id="8" wall-clock="8.79e-07s" wall="8.79e-07" cpu="1e-06" calls="1" sub="true" parent="7"/>
+            <timer id="8" wall-clock="6.67e-07s" wall="6.67e-07" cpu="0" calls="1" sub="true" parent="7"/>
           </userDefined>
           <mapFacesEdges>
             <timer id="15" label="mapFacesEdges" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
@@ -62,15 +62,15 @@
       <globalMathParser dt="0" f="1000" nx="10" ny="36" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer id="40" wall-clock="0.00666s" wall="0.00666047" cpu="0.006669" calls="350"/>
+      <timer id="37" wall-clock="0.002153s" wall="0.00215266" cpu="0.002158" calls="336"/>
     </results>
   </header>
   <output>
     <hdf5>
-      <timer id="2" wall-clock="0.001308s" wall="0.00130818" cpu="0.001308" calls="1"/>
+      <timer id="2" wall-clock="0.0008745s" wall="0.000874542" cpu="0.000889" calls="1"/>
     </hdf5>
     <info>
-      <timer id="4" wall-clock="4.91e-07s" wall="4.91e-07" cpu="0" calls="1"/>
+      <timer id="4" wall-clock="5e-07s" wall="5e-07" cpu="1e-06" calls="1"/>
       <calculation>
         <process/>
       </calculation>
@@ -80,7 +80,7 @@
     <harmonic>
       <header unit="Hz" sampling="linear" start="1000" end="1000" numFreq="1"/>
       <init_harmonic>
-        <timer id="17" wall-clock="0.006689s" wall="0.00668894" cpu="0.006688" calls="1"/>
+        <timer id="17" wall-clock="0.007316s" wall="0.00731583" cpu="0.005701" calls="1"/>
       </init_harmonic>
     </harmonic>
     <PDE>
@@ -96,16 +96,16 @@
                 <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
               </bilinearForm>
-              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
-                <row pde="acoustic" functionId="0" result="acouPressure"/>
-                <column pde="acoustic" functionId="0" result="acouPressure"/>
-                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
-              </bilinearForm>
               <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionOpt" region="S_opt">
                 <row pde="acoustic" functionId="0" result="acouPressure"/>
                 <column pde="acoustic" functionId="0" result="acouPressure"/>
                 <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
               </bilinearForm>
               <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
@@ -177,39 +177,25 @@
           </sbmBlocks>
         </setup>
         <solver>
-          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+          <directLDL>
             <summary>
               <setup>
-                <timer id="29" label="setup_pardiso" wall-clock="0.03706s" wall="0.0370612" cpu="0.037059" calls="126"/>
-                <symbfact>
-                  <timer id="38" wall-clock="0.0007063s" wall="0.000706309" cpu="0.000706" calls="1" sub="true" parent="29"/>
-                </symbfact>
-                <numfact>
-                  <timer id="39" wall-clock="0.03313s" wall="0.0331305" cpu="0.033129" calls="126" sub="true" parent="29"/>
-                </numfact>
+                <timer id="28" label="setup_directLDL" wall-clock="0.01767s" wall="0.017667" cpu="0.017615" calls="126"/>
               </setup>
               <solve>
-                <timer id="30" label="solve_pardiso" wall-clock="0.05284s" wall="0.0528354" cpu="0.052822" calls="378"/>
+                <timer id="29" label="solve_directLDL" wall-clock="0.01235s" wall="0.0123495" cpu="0.012165" calls="378"/>
               </solve>
             </summary>
-            <process>
-              <!-- memory in KB-->
-              <call number="1">
-                <symbfact cpu="0.000706" wall="0.00070627" peakMem="304" permanentMem="297"/>
-                <numfact cpu="0.000241" wall="0.00024116" peakMem="169"/>
-              </call>
-            </process>
-            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
-          </pardiso>
+          </directLDL>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer id="31" wall-clock="6.786e-05s" wall="6.7858e-05" cpu="7.3e-05" calls="126"/>
+                <timer id="30" wall-clock="5.25e-05s" wall="5.25e-05" cpu="6.2e-05" calls="126"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="31" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -219,25 +205,28 @@
         </process>
       </acoustic>
       <graph nnz="3379">
-        <timer id="24" wall-clock="0.000717s" wall="0.000717031" cpu="0.000717" calls="1" sub="true" parent="17"/>
+        <timer id="24" wall-clock="0.0009848s" wall="0.000984833" cpu="0.001012" calls="1" sub="true" parent="17"/>
         <finalize>
-          <timer id="25" wall-clock="5.677e-05s" wall="5.6771e-05" cpu="5.7e-05" calls="1" sub="true" parent="24"/>
+          <timer id="25" wall-clock="4.129e-05s" wall="4.1292e-05" cpu="6.5e-05" calls="1" sub="true" parent="24"/>
         </finalize>
         <sort>
-          <timer id="26" wall-clock="2.079e-05s" wall="2.0788e-05" cpu="2.1e-05" calls="1" sub="true" parent="24"/>
+          <timer id="26" wall-clock="1.842e-05s" wall="1.8417e-05" cpu="2.2e-05" calls="1" sub="true" parent="24"/>
         </sort>
         <rows number="407" min="4" max="9" mean="8.3022" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="27" wall-clock="0.0006155s" wall="0.000615542" cpu="0.000616" calls="1" sub="true" parent="24"/>
+        </reorder>
       </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer id="19" wall-clock="0.2784s" wall="0.278377" cpu="0.277858" calls="1008"/>
+          <timer id="19" wall-clock="0.1303s" wall="0.130324" cpu="0.243" calls="1008"/>
           <matrices>
-            <timer id="20" wall-clock="0.2717s" wall="0.271681" cpu="0.271096" calls="126" sub="true" parent="19"/>
+            <timer id="20" wall-clock="0.1271s" wall="0.12709" cpu="0.239695" calls="126" sub="true" parent="19"/>
           </matrices>
           <rhs>
-            <timer id="21" wall-clock="0.006136s" wall="0.00613643" cpu="0.006113" calls="882" sub="true" parent="19"/>
+            <timer id="21" wall-clock="0.002431s" wall="0.00243056" cpu="0.002433" calls="882" sub="true" parent="19"/>
           </rhs>
         </assemble>
       </summary>
@@ -248,7 +237,7 @@
       </evaluateNonlinearity>
     </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/felhub/d/code_cfs/cfs/Testsuite/TESTSUIT/Optimization/Acou/robust_tracking/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Acou/robust_tracking/HALTOPT">
     <header>
       <objective type="slack" name="slack" linear="yes" access="plain" term="linear" scale="1" task="minimize"/>
       <multipleExcitations type="no_type"/>
@@ -260,7 +249,7 @@
       </constraints>
       <designSpace pamping="0" regular="yes" localElementCache="disabled">
         <setup_design>
-          <timer id="18" wall-clock="0.0002212s" wall="0.000221242" cpu="0.000222" calls="4"/>
+          <timer id="18" wall-clock="8.504e-05s" wall="8.5041e-05" cpu="8.5e-05" calls="4"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="3.5" contribution="linear" design="density" robust_excitation="0" elems="200" avg_radius="0.00875" avg_neighbors="28.5">
@@ -272,7 +261,7 @@
           <filter type="maxEdge" value="3.5" contribution="linear" design="density" robust_excitation="2" elems="200" avg_radius="0.00875" avg_neighbors="28.5">
             <tanh eta="0.5" beta="1.000000" scaling="2.1636" offset="-0.58174"/>
           </filter>
-          <timer id="22" wall-clock="0.0006827s" wall="0.000682671" cpu="0.000684" calls="3"/>
+          <timer id="22" wall-clock="0.0003245s" wall="0.000324541" cpu="0.000536" calls="3"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="acoustic" design="density" param="1"/>
@@ -297,156 +286,151 @@
       <snopt>
         <summary snopt_outputfile="robust_tracking.snopt">
           <snopt>
-            <timer id="33" wall-clock="0.006959s" wall="0.00695926" cpu="0.006961" calls="197"/>
+            <timer id="32" wall-clock="0.002919s" wall="0.00291867" cpu="0.002904" calls="193"/>
           </snopt>
           <snopt_exit exit="0" info="1"/>
-          <evaluations f_evals="43" g_evals="42" majors="22"/>
+          <evaluations f_evals="42" g_evals="41" majors="21"/>
         </summary>
         <scaling active="no"/>
       </snopt>
     </optimizer>
     <summary problem="SNOPT: finished successfullyv - optimality conditions satisfied" snopt_exit="1">
       <eval_objective>
-        <timer id="34" wall-clock="0.01977s" wall="0.0197659" cpu="0.019688" calls="212"/>
+        <timer id="33" wall-clock="0.0142s" wall="0.0142039" cpu="0.014745" calls="209"/>
       </eval_objective>
       <eval_constraints>
-        <timer id="35" wall-clock="0.00131s" wall="0.00130959" cpu="0.001306" calls="43"/>
+        <timer id="34" wall-clock="0.001039s" wall="0.00103892" cpu="0.001041" calls="42"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer id="36" wall-clock="0.001067s" wall="0.00106671" cpu="0.001069" calls="42"/>
+        <timer id="35" wall-clock="0.0004915s" wall="0.000491541" cpu="0.000498" calls="41"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer id="37" wall-clock="0.1387s" wall="0.138747" cpu="0.138702" calls="42"/>
+        <timer id="36" wall-clock="0.05817s" wall="0.0581743" cpu="0.058134" calls="41"/>
       </eval_grad_constraints>
       <break converged="yes"/>
       <functions>
-        <slack min="0" max="85.823" oscillations="6"/>
-        <dynamicOutputTracking_f_0 min="0.0007172" max="0.10029" oscillations="9"/>
-        <dynamicOutputTracking_f_1 min="0.0019639" max="0.020678" oscillations="2"/>
-        <dynamicOutputTracking_f_2 min="6.9279e-11" max="0.057137" oscillations="10"/>
-        <dynamicOutput_f_0 min="0.46102" max="0.73317" oscillations="11"/>
+        <slack min="0" max="100" oscillations="4"/>
+        <dynamicOutputTracking_f_0 min="0.0010248" max="0.10029" oscillations="8"/>
+        <dynamicOutputTracking_f_1 min="0.0018573" max="0.020678" oscillations="0"/>
+        <dynamicOutputTracking_f_2 min="3.1981e-10" max="0.057137" oscillations="6"/>
+        <dynamicOutput_f_0 min="0.47427" max="0.73317" oscillations="8"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" frequency="(mult)" duration="0.11642" slack="85.8225531212422" dynamicOutput_f_0="0.733171022384655" nObj="2">
+      <iteration number="0" frequency="(mult)" duration="0.063783" slack="100" dynamicOutput_f_0="0.733171022384654" nObj="1">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
-        <excitation index="2" objective="85.823" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
+        <excitation index="2" objective="100" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="1" frequency="(mult)" duration="0.013799" slack="71.6451062424844" dynamicOutput_f_0="0.733171022384655" nObj="3">
+      <iteration number="1" frequency="(mult)" duration="0.0066363" slack="99.0658872343938" dynamicOutput_f_0="0.733171022384654" nObj="2">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
-        <excitation index="2" objective="71.645" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
+        <excitation index="2" objective="99.066" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="2" frequency="(mult)" duration="0.058058" slack="0.100286523319197" dynamicOutput_f_0="0.733171022384655" nObj="6">
+      <iteration number="2" frequency="(mult)" duration="0.011762" slack="99.0658872343938" dynamicOutput_f_0="0.733171022384654" nObj="4">
         <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
         <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
-        <excitation index="2" objective="0.10029" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
+        <excitation index="2" objective="99.066" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="3" frequency="(mult)" duration="0.031176" slack="0" dynamicOutput_f_0="0.461019270619756" nObj="8">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0038634"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.019511"/>
-        <excitation index="2" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_2="0.0015538"/>
+      <iteration number="3" frequency="(mult)" duration="0.012303" slack="84.888440355636" dynamicOutput_f_0="0.733171022384653" nObj="6">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.10029"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.020678"/>
+        <excitation index="2" objective="84.888" objective_weight="0.33333" dynamicOutputTracking_f_2="0.057137"/>
       </iteration>
-      <iteration number="4" frequency="(mult)" duration="0.012865" slack="0.00545547667580813" dynamicOutput_f_0="0.469737603003933" nObj="9">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0018559"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.01086"/>
-        <excitation index="2" objective="0.0054555" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00087943"/>
+      <iteration number="4" frequency="(mult)" duration="0.0067475" slack="0" dynamicOutput_f_0="0.4906499719829" nObj="7">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0097365"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.013778"/>
+        <excitation index="2" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_2="8.7334e-05"/>
       </iteration>
-      <iteration number="5" frequency="(mult)" duration="0.040638" slack="0.00422767490060324" dynamicOutput_f_0="0.463658378418981" nObj="12">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.00080795"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.010267"/>
-        <excitation index="2" objective="0.0042277" objective_weight="0.33333" dynamicOutputTracking_f_2="0.001305"/>
+      <iteration number="5" frequency="(mult)" duration="0.012507" slack="0.0147014615940313" dynamicOutput_f_0="0.474266194677405" nObj="9">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0029885"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.011431"/>
+        <excitation index="2" objective="0.014701" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00062262"/>
       </iteration>
-      <iteration number="6" frequency="(mult)" duration="0.040663" slack="0.00408643719645996" dynamicOutput_f_0="0.466827636164274" nObj="15">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0010048"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.009658"/>
-        <excitation index="2" objective="0.0040864" objective_weight="0.33333" dynamicOutputTracking_f_2="0.0010851"/>
+      <iteration number="6" frequency="(mult)" duration="0.012502" slack="0.00481706041060918" dynamicOutput_f_0="0.487438821176766" nObj="11">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0010248"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0032557"/>
+        <excitation index="2" objective="0.0048171" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00015969"/>
       </iteration>
-      <iteration number="7" frequency="(mult)" duration="0.028869" slack="0.00334545709657543" dynamicOutput_f_0="0.465098597012501" nObj="17">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0007172"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0093343"/>
-        <excitation index="2" objective="0.0033455" objective_weight="0.33333" dynamicOutputTracking_f_2="0.001216"/>
+      <iteration number="7" frequency="(mult)" duration="0.018348" slack="0.00467736707413881" dynamicOutput_f_0="0.488057096278783" nObj="14">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0010751"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0032025"/>
+        <excitation index="2" objective="0.0046774" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00014466"/>
       </iteration>
-      <iteration number="8" frequency="(mult)" duration="0.025187" slack="0.00277864640930768" dynamicOutput_f_0="0.469346751706494" nObj="19">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.00073675"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0077654"/>
-        <excitation index="2" objective="0.0027786" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00095984"/>
+      <iteration number="8" frequency="(mult)" duration="0.012185" slack="0.00404438696470837" dynamicOutput_f_0="0.490470203727142" nObj="16">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0012789"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0029928"/>
+        <excitation index="2" objective="0.0040444" objective_weight="0.33333" dynamicOutputTracking_f_2="9.3021e-05"/>
       </iteration>
-      <iteration number="9" frequency="(mult)" duration="0.012549" slack="0.00247649403908623" dynamicOutput_f_0="0.474623454076465" nObj="20">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0008034"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0062129"/>
-        <excitation index="2" objective="0.0024765" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00065804"/>
+      <iteration number="9" frequency="(mult)" duration="0.018028" slack="0.0039182312101043" dynamicOutput_f_0="0.491075379264171" nObj="19">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0013337"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.002943"/>
+        <excitation index="2" objective="0.0039182" objective_weight="0.33333" dynamicOutputTracking_f_2="8.1805e-05"/>
       </iteration>
-      <iteration number="10" frequency="(mult)" duration="0.027996" slack="0.00249945355990959" dynamicOutput_f_0="0.481302325148227" nObj="22">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0012908"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0053434"/>
-        <excitation index="2" objective="0.0024995" objective_weight="0.33333" dynamicOutputTracking_f_2="0.00035808"/>
+      <iteration number="10" frequency="(mult)" duration="0.012" slack="0.00329920783583959" dynamicOutput_f_0="0.493680670220699" nObj="21">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.001574"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0027214"/>
+        <excitation index="2" objective="0.0032992" objective_weight="0.33333" dynamicOutputTracking_f_2="4.1783e-05"/>
       </iteration>
-      <iteration number="11" frequency="(mult)" duration="0.016557" slack="0.0026451596402624" dynamicOutput_f_0="0.494272265869272" nObj="23">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0023336"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0035651"/>
-        <excitation index="2" objective="0.0026452" objective_weight="0.33333" dynamicOutputTracking_f_2="3.3426e-05"/>
+      <iteration number="11" frequency="(mult)" duration="0.012552" slack="0.00284206425672289" dynamicOutput_f_0="0.49477435975729" nObj="23">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0016751"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0026249"/>
+        <excitation index="2" objective="0.0028421" objective_weight="0.33333" dynamicOutputTracking_f_2="2.8852e-05"/>
       </iteration>
-      <iteration number="12" frequency="(mult)" duration="0.015678" slack="0.00287516379171534" dynamicOutput_f_0="0.49960325739075" nObj="24">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0028613"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0029465"/>
-        <excitation index="2" objective="0.0028752" objective_weight="0.33333" dynamicOutputTracking_f_2="1.5979e-07"/>
+      <iteration number="12" frequency="(mult)" duration="0.012159" slack="0.00209928143707047" dynamicOutput_f_0="0.496314608796428" nObj="25">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0017574"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0024178"/>
+        <excitation index="2" objective="0.0020993" objective_weight="0.33333" dynamicOutputTracking_f_2="1.4486e-05"/>
       </iteration>
-      <iteration number="13" frequency="(mult)" duration="0.015736" slack="0.00276821433887683" dynamicOutput_f_0="0.498792593519425" nObj="25">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0026352"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0028891"/>
-        <excitation index="2" objective="0.0027682" objective_weight="0.33333" dynamicOutputTracking_f_2="1.4544e-06"/>
+      <iteration number="13" frequency="(mult)" duration="0.012006" slack="0.00209404010498681" dynamicOutput_f_0="0.499922439598964" nObj="27">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0021042"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0021076"/>
+        <excitation index="2" objective="0.002094" objective_weight="0.33333" dynamicOutputTracking_f_2="3.8536e-08"/>
       </iteration>
-      <iteration number="14" frequency="(mult)" duration="0.024532" slack="0.00261764562822489" dynamicOutput_f_0="0.499289433466585" nObj="27">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0025432"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0026857"/>
-        <excitation index="2" objective="0.0026176" objective_weight="0.33333" dynamicOutputTracking_f_2="5.4526e-07"/>
+      <iteration number="14" frequency="(mult)" duration="0.012044" slack="0.00208761711427756" dynamicOutput_f_0="0.499900945791611" nObj="29">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0020878"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0020955"/>
+        <excitation index="2" objective="0.0020876" objective_weight="0.33333" dynamicOutputTracking_f_2="4.5502e-08"/>
       </iteration>
-      <iteration number="15" frequency="(mult)" duration="0.028111" slack="0.00220950514720397" dynamicOutput_f_0="0.494140794282017" nObj="29">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0015612"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0026222"/>
-        <excitation index="2" objective="0.0022095" objective_weight="0.33333" dynamicOutputTracking_f_2="3.461e-05"/>
+      <iteration number="15" frequency="(mult)" duration="0.0060637" slack="0.00194365839987313" dynamicOutput_f_0="0.499857609961279" nObj="30">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019332"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019568"/>
+        <excitation index="2" objective="0.0019437" objective_weight="0.33333" dynamicOutputTracking_f_2="2.5375e-08"/>
       </iteration>
-      <iteration number="16" frequency="(mult)" duration="0.024471" slack="0.00199864688248571" dynamicOutput_f_0="0.499029850856529" nObj="31">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019353"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0021116"/>
-        <excitation index="2" objective="0.0019986" objective_weight="0.33333" dynamicOutputTracking_f_2="9.0358e-07"/>
+      <iteration number="16" frequency="(mult)" duration="0.012204" slack="0.00194486454645989" dynamicOutput_f_0="0.499991591449017" nObj="32">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019449"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019449"/>
+        <excitation index="2" objective="0.0019449" objective_weight="0.33333" dynamicOutputTracking_f_2="6.1843e-10"/>
       </iteration>
-      <iteration number="17" frequency="(mult)" duration="0.012591" slack="0.00200849423911237" dynamicOutput_f_0="0.499737697629015" nObj="32">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019803"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0020296"/>
-        <excitation index="2" objective="0.0020085" objective_weight="0.33333" dynamicOutputTracking_f_2="5.5991e-08"/>
+      <iteration number="17" frequency="(mult)" duration="0.011994" slack="0.00190017483587215" dynamicOutput_f_0="0.500005735743375" nObj="34">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019002"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019002"/>
+        <excitation index="2" objective="0.0019002" objective_weight="0.33333" dynamicOutputTracking_f_2="3.1981e-10"/>
       </iteration>
-      <iteration number="18" frequency="(mult)" duration="0.02554" slack="0.00199691544364614" dynamicOutput_f_0="0.499843082263158" nObj="34">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019794"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0020097"/>
-        <excitation index="2" objective="0.0019969" objective_weight="0.33333" dynamicOutputTracking_f_2="1.7267e-08"/>
+      <iteration number="18" frequency="(mult)" duration="0.011989" slack="0.00189915512169605" dynamicOutput_f_0="0.50000607848812" nObj="36">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0018992"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0018992"/>
+        <excitation index="2" objective="0.0018992" objective_weight="0.33333" dynamicOutputTracking_f_2="3.3263e-10"/>
       </iteration>
-      <iteration number="19" frequency="(mult)" duration="0.024884" slack="0.0019902064184269" dynamicOutput_f_0="0.499940772013759" nObj="36">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019826"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019956"/>
-        <excitation index="2" objective="0.0019902" objective_weight="0.33333" dynamicOutputTracking_f_2="1.0388e-09"/>
+      <iteration number="19" frequency="(mult)" duration="0.0062039" slack="0.00186714352561493" dynamicOutput_f_0="0.499851846031083" nObj="37">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0018532"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.00188"/>
+        <excitation index="2" objective="0.0018671" objective_weight="0.33333" dynamicOutputTracking_f_2="1.797e-08"/>
       </iteration>
-      <iteration number="20" frequency="(mult)" duration="0.02554" slack="0.00198695248891843" dynamicOutput_f_0="0.499980688398333" nObj="38">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019836"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019895"/>
-        <excitation index="2" objective="0.001987" objective_weight="0.33333" dynamicOutputTracking_f_2="6.9279e-11"/>
+      <iteration number="20" frequency="(mult)" duration="0.012166" slack="0.00186706874726481" dynamicOutput_f_0="0.500006715572078" nObj="39">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.001867"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0018671"/>
+        <excitation index="2" objective="0.0018671" objective_weight="0.33333" dynamicOutputTracking_f_2="4.4396e-10"/>
       </iteration>
-      <iteration number="21" frequency="(mult)" duration="0.025719" slack="0.00197384713064412" dynamicOutput_f_0="0.49943832767818" nObj="40">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019154"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0020176"/>
-        <excitation index="2" objective="0.0019738" objective_weight="0.33333" dynamicOutputTracking_f_2="2.8337e-07"/>
+      <iteration number="21" frequency="(mult)" duration="0.012897" slack="0.00185802102342389" dynamicOutput_f_0="0.500006811886591" nObj="41">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.001858"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.001858"/>
+        <excitation index="2" objective="0.001858" objective_weight="0.33333" dynamicOutputTracking_f_2="4.2018e-10"/>
       </iteration>
-      <iteration number="22" frequency="(mult)" duration="0.027939" slack="0.00196253441175323" dynamicOutput_f_0="0.500002346484734" nObj="42">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019615"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019639"/>
-        <excitation index="2" objective="0.0019625" objective_weight="0.33333" dynamicOutputTracking_f_2="1.1845e-09"/>
-      </iteration>
-      <iteration number="23" frequency="(mult)" duration="0.0017229" slack="0.00196253441175323" dynamicOutput_f_0="0.500002346484734" nObj="43">
-        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0019615"/>
-        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0019639"/>
-        <excitation index="2" objective="0.0019625" objective_weight="0.33333" dynamicOutputTracking_f_2="1.1845e-09"/>
+      <iteration number="22" frequency="(mult)" duration="0.0054347" slack="0.00185724986810498" dynamicOutput_f_0="0.50000571841687" nObj="42">
+        <excitation index="0" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_0="0.0018572"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" dynamicOutputTracking_f_1="0.0018573"/>
+        <excitation index="2" objective="0.0018572" objective_weight="0.33333" dynamicOutputTracking_f_2="3.6928e-10"/>
       </iteration>
     </process>
   </optimization>

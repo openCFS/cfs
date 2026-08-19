@@ -1,0 +1,354 @@
+      Major iterations limit               3
+      Superbasics limit             200
+      Verify level              -1
+      Major optimality tolerance  1.00000000E-08
+      Minor iterations limit          100000
+      Iterations limit         1000000
+1
+
+ SNMEMA EXIT 100 -- finished successfully
+ SNMEMA INFO 104 -- memory requirements estimated
+1
+
+ Parameters
+ ==========
+
+ Files
+ -----
+ Solution file..........         0       Old basis file ........         0       Standard input.........         5
+ Insert file............         0       New basis file ........         0       (Printer)..............        15
+ Punch file.............         0       Backup basis file......         0       (Specs file)...........         0
+ Load file..............         0       Dump file..............         0       Standard output........         6
+
+ Frequencies
+ -----------
+ Print frequency........       100       Check frequency........        60       Save new basis map.....       100
+ Summary frequency......       100       Factorization frequency        50       Expand frequency.......     10000
+
+ QP subproblems
+ --------------
+ QPsolver Cholesky......
+ Scale tolerance........     0.900       Minor feasibility tol..  1.00E-06       Iteration limit........   1000000
+ Scale option...........         0       Minor optimality  tol..  5.00E-09       Minor print level......         1
+ Crash tolerance........     0.100       Pivot tolerance........  3.25E-11       New superbasics........        99
+ Crash option...........         3       Elastic weight.........  1.00E+05
+
+ Partial pricing
+ ---------------
+ LP Partial price.......         1       Prtl price section ( A)       200       Prtl price section (-I)         2
+ QP Partial price.......         1       Prtl price section ( A)       200       Prtl price section (-I)         2
+
+ The SQP Method
+ --------------
+ Minimize...............                 Cold start.............                 Proximal Point method..         1
+ Nonlinear objectiv vars       200       Objective Row..........         1       Function precision.....  3.00E-13
+ Unbounded step size....  1.00E+20       Superbasics limit......       200       Difference interval....  5.48E-07
+ Unbounded objective....  1.00E+10       Reduced Hessian dim....       200       Central difference int.  6.70E-05
+ Major step limit.......  2.00E+00       Derivative linesearch..                 Derivative option......         1
+ Major iterations limit.         3       Linesearch tolerance...   0.90000       Verify level...........        -1
+ Minor iterations limit.    100000       Penalty parameter......  0.00E+00       Major Print Level......         1
+ Time limit (secs)...... 9999999.0       Major optimality tol...  1.00E-08
+
+ Hessian Approximation
+ ---------------------
+ Hessian limited-memory.                 Hessian updates........        10       Hessian frequency......  99999999
+                                                                                 Hessian flush..........  99999999
+
+ Nonlinear constraints
+ ---------------------
+ Nonlinear constraints..         1       Major feasibility tol..  1.00E-06       Violation limit........  1.00E+06
+ Nonlinear Jacobian vars       200
+
+ Miscellaneous
+ -------------
+ LU factor tolerance....      3.99       LU singularity tol.....  3.25E-11       Timing level...........         3
+ LU update tolerance....      3.99       LU swap tolerance......  1.22E-04       Debug level............         0
+ LU partial  pivoting...                 eps (machine precision)  2.22E-16       System information.....        No
+                                                                                 Sticky parameters......        No
+1
+
+
+
+
+ Matrix statistics
+ -----------------
+               Total      Normal        Free       Fixed     Bounded
+ Rows              2           1           1           0           0
+ Columns         200           0         200           0           0
+
+ No. of matrix elements                  200     Density      50.000
+ Biggest  constant element        0.0000E+00  (excluding fixed columns,
+ Smallest constant element        0.0000E+00   free rows, and RHS)
+
+ No. of objective coefficients             0
+
+ Nonlinear constraints       1     Linear constraints       1
+ Nonlinear variables       200     Linear variables         0
+ Jacobian  variables       200     Objective variables    200
+ Total constraints           2     Total variables        200
+1
+
+
+
+ The user has defined     400   out of     400   first  derivatives
+1
+
+
+    Itn     QP mult  QP step   rgNorm          NonOpt   QP Objective   +SBS   -SBS    -BS    Pivot     L+U ncp    nS condZHZ
+    100     4.9E+00  1.0E+00  8.9E-16             101 -4.3335264E+02    136                              2        98 2.5E+00
+
+
+   Itns Major Minors    Step   nCon Feasible  Optimal  MeritFunction     L+U BSwap     nS condZHZ Penalty
+    101     0    101              1 (0.0E+00) 6.8E-01  9.5545169E+01       2           99 2.5E+00         _  r  T
+
+    Itn     QP mult  QP step   rgNorm          NonOpt   QP Objective   +SBS   -SBS    -BS    Pivot     L+U ncp    nS condZHZ
+    201     3.0E-03  1.0E+00  8.9E-16                 -1.3142824E+03      2                              2       198 2.3E+00
+
+   Itns Major Minors    Step   nCon Feasible  Optimal  MeritFunction     L+U BSwap     nS condZHZ Penalty
+    201     1    100 8.2E-01      2 (0.0E+00) 1.3E+00  5.6918927E+01       2     1    198 2.3E+00         _  rl T
+    203     2      2 4.5E-02      4 (0.0E+00) 1.2E+00  5.0819254E+01       2          199 2.4E+00         _s
+    204     3      1 2.6E-01      6 (0.0E+00) 6.1E-01  4.4117316E+01       2          199 1.8E+00         _
+1
+
+ SNOPTA EXIT  30 -- resource limit error
+ SNOPTA INFO  32 -- major iteration limit reached
+
+ Problem name                 FIXME
+ No. of iterations                 204   Objective            4.6979303459E+01
+ No. of major iterations             3   Linear    obj. term  0.0000000000E+00
+ Penalty parameter           0.000E+00   Nonlinear obj. term  4.6979303459E+01
+ User function calls (total)         6
+ No. of superbasics                199   No. of basic nonlinears             1
+ No. of degenerate steps             0   Percentage                       0.00
+ Max x                      57 8.9E-01   Max pi                      1 2.3E+01
+ Max Primal infeas           0 0.0E+00   Max Dual infeas            59 3.1E+01
+ Nonlinear constraint violn    0.0E+00
+1
+
+ Name           FIXME                    Objective Value      4.6979303459E+01
+
+ Status         Optimal Soln             Iteration    204    Superbasics   199
+
+ Objective               (Min)
+ RHS
+ Ranges
+ Bounds
+
+ Section 1 - Constraints
+
+  Number  ...Row.. State  ...Value......  Slack Value...  ..Lower Limit.  ..Upper Limit.  .Dual Variable    ..i
+
+     201  r      1    BS          .               .                None            None           .           1
+     202  r      2 N  FR         0.66891        -0.03109           None          0.70000       -22.56211      2
+1
+
+ Section 2 - Variables
+
+  Number  .Column. State  ...Value......  .Obj Gradient.  ..Lower Limit.  ..Upper Limit.  .Dual Variable    m+j
+
+       1  x      1 N SBS         0.00007         0.00000           None            None         -0.00000      3
+       2  x      2 N SBS        -0.00002        -0.00000           None            None          0.00000      4
+       3  x      3 N SBS        -0.02332        -0.09539           None            None         -0.13193      5
+       4  x      4 N SBS        -0.02241         0.75600           None            None          0.75054      6
+       5  x      5 N SBS        -0.06533        -9.49867           None            None         -9.70465      7
+       6  x      6 N SBS        -0.04921        14.46823           None            None         14.33997      8
+       7  x      7 N SBS        -0.10811       -14.56281           None            None        -14.60493      9
+       8  x      8 N SBS         0.02359        16.49627           None            None         16.40542     10
+       9  x      9 N SBS        -0.00697        -0.30872           None            None         -0.27183     11
+      10  x     10 N SBS         0.02684        -1.13856           None            None         -0.97284     12
+      11  x     11 N SBS         0.14691         1.79750           None            None          1.64554     13
+      12  x     12 N SBS         0.22610        -8.20053           None            None         -7.60742     14
+      13  x     13 N SBS         0.52225        -1.39303           None            None         -1.07746     15
+      14  x     14 N SBS         0.32126        -1.60304           None            None         -0.79857     16
+      15  x     15 N SBS         0.16041        -0.58778           None            None         -0.50074     17
+      16  x     16 N SBS         0.09730         5.62248           None            None          5.78546     18
+      17  x     17 N SBS        -0.00335         1.42083           None            None          1.40236     19
+      18  x     18 N SBS         0.00540         4.30817           None            None          4.24273     20
+      19  x     19 N SBS         0.00797        -0.99354           None            None         -0.99108     21
+      20  x     20 N SBS         0.00273         4.32518           None            None          4.26310     22
+      21  x     21 N SBS         0.00066         0.00790           None            None         -0.01261     23
+      22  x     22 N SBS         0.00169         0.03769           None            None         -0.03281     24
+      23  x     23 N SBS        -0.02478         0.44718           None            None          0.40444     25
+      24  x     24 N SBS        -0.06990         0.46696           None            None          0.38322     26
+      25  x     25 N SBS        -0.16109        -5.34386           None            None         -5.73327     27
+      26  x     26 N SBS         0.23488        12.12680           None            None         11.99526     28
+      27  x     27 N SBS        -0.04692        -9.28497           None            None         -9.50692     29
+      28  x     28 N SBS         0.36544        20.55391           None            None         20.03086     30
+      29  x     29 N SBS         0.02946         0.90792           None            None          1.04391     31
+      30  x     30 N SBS        -0.17558         3.55908           None            None          3.18940     32
+      31  x     31 N SBS        -0.08066         0.75613           None            None          1.35706     33
+      32  x     32 N SBS         0.11088         0.95860           None            None          0.35068     34
+      33  x     33 N SBS         0.12231        -1.97663           None            None         -1.67812     35
+      34  x     34 N SBS         0.64553         0.38525           None            None         -0.10760     36
+      35  x     35 N SBS         0.12859        -2.06578           None            None         -2.04904     37
+      36  x     36 N SBS         0.39449         3.15242           None            None          2.94737     38
+      37  x     37 N SBS         0.08010       -15.01967           None            None        -14.94699     39
+      38  x     38 N SBS         0.03480        16.54474           None            None         16.40117     40
+      39  x     39 N SBS         0.50753       -25.40124           None            None        -25.21106     41
+      40  x     40 N SBS        -0.23421        20.19757           None            None         19.93020     42
+      41  x     41 N SBS         0.00408         0.11373           None            None         -0.05460     43
+      42  x     42 N SBS         0.00922         0.06027           None            None         -0.26463     44
+      43  x     43 N SBS        -0.00391        -1.36231           None            None         -1.14020     45
+      44  x     44 N SBS        -0.04348         0.67785           None            None          0.30174     46
+      45  x     45 N SBS         0.02935        -8.36413           None            None         -8.51781     47
+      46  x     46 N SBS         0.02550         4.06814           None            None          4.06264     48
+      47  x     47 N SBS         0.40815        -6.28777           None            None         -6.56127     49
+      48  x     48 N SBS         0.14839         4.96196           None            None          4.38976     50
+      49  x     49 N SBS         0.25799         0.00491           None            None          0.30487     51
+      50  x     50 N SBS        -0.13114         1.16012           None            None          0.03104     52
+      51  x     51 N SBS        -0.09257         1.26953           None            None          1.84226     53
+      52  x     52 N SBS        -0.02539         0.73313           None            None         -0.19494     54
+      53  x     53 N SBS         0.05860         2.79205           None            None          2.30651     55
+      54  x     54 N SBS         0.20586        -1.43579           None            None         -2.05129     56
+      55  x     55 N SBS        -0.57028         2.27396           None            None          1.97789     57
+      56  x     56 N SBS         0.02912         2.22251           None            None          1.79984     58
+      57  x     57 N SBS        -0.89154       -22.43204           None            None        -22.43619     59
+      58  x     58 N SBS        -0.41686        11.00400           None            None         10.88534     60
+      59  x     59 N SBS         0.45369       -31.20803           None            None        -31.10972     61
+      60  x     60 N SBS        -0.40383        -4.85930           None            None         -4.96400     62
+      61  x     61 N SBS         0.00489         0.36883           None            None          0.09776     63
+      62  x     62 N SBS         0.00227        -0.65507           None            None         -0.45519     64
+      63  x     63 N SBS         0.00367        -0.43956           None            None         -0.37438     65
+      64  x     64 N SBS         0.04105        -0.56489           None            None         -0.30960     66
+      65  x     65 N SBS        -0.08648        -3.71154           None            None         -3.77698     67
+      66  x     66 N SBS         0.08014        -1.15655           None            None         -0.62263     68
+      67  x     67 N SBS         0.11763        -2.80439           None            None         -3.19663     69
+      68  x     68 N SBS        -0.08700         0.28136           None            None          0.57076     70
+      69  x     69 N SBS         0.11108        -0.03806           None            None          0.61002     71
+      70  x     70 N SBS        -0.03206        -0.17606           None            None         -0.17559     72
+      71  x     71 N SBS         0.01528         3.19242           None            None          3.72571     73
+      72  x     72 N SBS        -0.09369        -3.60613           None            None         -3.41992     74
+      73  x     73 N SBS         0.46513         5.94407           None            None          5.82581     75
+      74  x     74 N SBS         0.08215        -2.62423           None            None         -2.44782     76
+      75  x     75 N SBS        -0.19412        12.26097           None            None         12.18383     77
+      76  x     76 N SBS         0.42119         0.69202           None            None          0.19157     78
+      77  x     77 N SBS        -0.85185        -3.67139           None            None         -3.69974     79
+      78  x     78 N SBS        -0.24358        -1.64685           None            None         -1.88483     80
+      79  x     79 N SBS         0.02145       -11.44832           None            None        -11.40124     81
+      80  x     80 N SBS        -0.44952        -8.87610           None            None         -9.04351     82
+      81  x     81 N SBS         0.00074         0.10695           None            None          0.04619     83
+      82  x     82 N SBS        -0.00078        -0.23294           None            None         -0.10747     84
+      83  x     83 N SBS         0.00243         0.18949           None            None          0.09538     85
+      84  x     84 N SBS         0.06463        -0.63113           None            None         -0.47361     86
+      85  x     85 N SBS        -0.07405         0.70805           None            None          0.15728     87
+      86  x     86 N SBS         0.13983        -0.73057           None            None         -0.82003     88
+      87  x     87 N SBS        -0.07215         1.25774           None            None          0.34320     89
+      88  x     88 N SBS        -0.05708         1.81804           None            None          1.31045     90
+      89  x     89 N SBS        -0.00041        -0.16183           None            None          0.29871     91
+      90  x     90 N SBS        -0.02604         0.64208           None            None          1.60421     92
+      91  x     91 N SBS         0.01659         0.65679           None            None          0.87074     93
+      92  x     92 N SBS        -0.05104         2.40586           None            None          2.94118     94
+      93  x     93 N SBS         0.19804        -9.02998           None            None         -7.87385     95
+      94  x     94 N SBS         0.19070        18.89347           None            None         17.54918     96
+      95  x     95 N SBS         0.53174        -7.37878           None            None         -6.49455     97
+      96  x     96    BS         0.56476        15.69165           None            None         14.13563     98
+      97  x     97 N SBS         0.46619        -1.19519           None            None         -1.09001     99
+      98  x     98 N SBS         0.20993        -3.12956           None            None         -3.42707    100
+      99  x     99 N SBS         0.12180        -3.36159           None            None         -3.46382    101
+     100  x    100 N SBS        -0.06251        -1.51769           None            None         -1.71138    102
+     101  x    101 N SBS        -0.00092        -0.01650           None            None          0.02228    103
+     102  x    102 N SBS         0.00405         0.06608           None            None         -0.11306    104
+     103  x    103 N SBS        -0.00476        -0.18293           None            None         -0.03697    105
+     104  x    104 N SBS        -0.06136         0.25696           None            None         -0.01451    106
+     105  x    105 N SBS        -0.16473        -0.41522           None            None         -0.46483    107
+     106  x    106 N SBS        -0.00999         0.33310           None            None         -0.06882    108
+     107  x    107 N SBS        -0.13318        -4.81215           None            None         -5.05216    109
+     108  x    108 N SBS        -0.07438         4.26144           None            None          3.92046    110
+     109  x    109 N SBS        -0.05257        -8.83011           None            None         -8.31680    111
+     110  x    110 N SBS        -0.13880        13.60325           None            None         13.56631    112
+     111  x    111 N SBS         0.00322         8.29719           None            None          8.24163    113
+     112  x    112 N SBS         0.05000        12.19577           None            None         11.98136    114
+     113  x    113 N SBS         0.23127         3.55943           None            None          3.79899    115
+     114  x    114 N SBS         0.02747        22.71003           None            None         21.24738    116
+     115  x    115 N SBS         0.14998        -4.21193           None            None         -4.30684    117
+     116  x    116 N SBS         0.00436        14.41513           None            None         12.76148    118
+     117  x    117 N SBS         0.00739         0.97108           None            None          0.92580    119
+     118  x    118 N SBS         0.00727         1.73062           None            None          1.19002    120
+     119  x    119 N SBS         0.00106         0.44481           None            None          0.57404    121
+     120  x    120 N SBS         0.01100        -0.07212           None            None         -0.36739    122
+     121  x    121 N SBS        -0.00087        -0.00914           None            None          0.02177    123
+     122  x    122 N SBS         0.01121        -0.10157           None            None         -0.14748    124
+     123  x    123 N SBS        -0.05904        -0.37094           None            None         -0.06344    125
+     124  x    124 N SBS         0.01455        -0.26125           None            None         -0.01126    126
+     125  x    125 N SBS        -0.38597        -1.41541           None            None         -0.79429    127
+     126  x    126 N SBS         0.23192        -0.49003           None            None         -0.33230    128
+     127  x    127 N SBS        -0.44777        -7.23115           None            None         -6.88470    129
+     128  x    128 N SBS         0.39283         4.54405           None            None          4.69553    130
+     129  x    129 N SBS        -0.15449       -14.42397           None            None        -14.25126    131
+     130  x    130 N SBS         0.08841        14.06705           None            None         14.27645    132
+     131  x    131 N SBS         0.01171        11.62243           None            None         11.38483    133
+     132  x    132 N SBS         0.25167         2.06719           None            None          2.33906    134
+     133  x    133 N SBS         0.47155        12.11615           None            None         11.84457    135
+     134  x    134 N SBS         0.24714         4.15249           None            None          4.35835    136
+     135  x    135 N SBS         0.23240         2.39643           None            None          1.92240    137
+     136  x    136 N SBS        -0.04807         2.58315           None            None          1.94494    138
+     137  x    137 N SBS        -0.02430         1.82019           None            None          2.15126    139
+     138  x    138 N SBS         0.02747         0.72870           None            None         -0.08527    140
+     139  x    139 N SBS        -0.02172         0.83491           None            None          1.37259    141
+     140  x    140 N SBS         0.03981        -1.91658           None            None         -2.10727    142
+     141  x    141 N SBS         0.00061         0.03924           None            None         -0.01647    143
+     142  x    142 N SBS         0.00133        -0.26701           None            None          0.10947    144
+     143  x    143 N SBS         0.00344         0.11429           None            None          0.01711    145
+     144  x    144 N SBS         0.00701        -0.43779           None            None         -0.07401    146
+     145  x    145 N SBS        -0.13014        -0.20220           None            None         -0.28082    147
+     146  x    146 N SBS        -0.00396        -1.18588           None            None         -1.02182    148
+     147  x    147 N SBS         0.10576        -1.58820           None            None         -1.36979    149
+     148  x    148 N SBS         0.19645        -0.85182           None            None         -0.72960    150
+     149  x    149 N SBS         0.18529        -2.04362           None            None         -1.86872    151
+     150  x    150 N SBS         0.28548         0.66108           None            None          0.76477    152
+     151  x    151 N SBS        -0.00112         0.78904           None            None          0.27583    153
+     152  x    152 N SBS         0.09604        -1.16905           None            None         -0.75540    154
+     153  x    153 N SBS         0.04815         0.38944           None            None          0.40279    155
+     154  x    154 N SBS         0.12427        -0.54842           None            None         -0.02190    156
+     155  x    155 N SBS         0.04828        -0.03059           None            None          0.02947    157
+     156  x    156 N SBS        -0.10767        -0.68218           None            None         -0.11878    158
+     157  x    157 N SBS        -0.01075         0.31218           None            None          0.31902    159
+     158  x    158 N SBS        -0.08127        -0.58426           None            None         -0.05188    160
+     159  x    159 N SBS        -0.01124         0.20919           None            None          0.52782    161
+     160  x    160 N SBS         0.00078        -0.93921           None            None         -0.51704    162
+     161  x    161 N SBS         0.00012         0.04866           None            None          0.01899    163
+     162  x    162 N SBS        -0.00020        -0.06898           None            None         -0.03288    164
+     163  x    163 N SBS         0.00606        -1.64037           None            None         -1.97211    165
+     164  x    164 N SBS         0.00181        -2.83414           None            None         -2.86422    166
+     165  x    165 N SBS        -0.00208        -4.20823           None            None         -4.41535    167
+     166  x    166 N SBS        -0.19849        -5.75440           None            None         -5.47515    168
+     167  x    167 N SBS         0.25182        -1.69885           None            None         -1.56288    169
+     168  x    168 N SBS        -0.23028        -3.44780           None            None         -3.10698    170
+     169  x    169 N SBS         0.17299        -0.23413           None            None         -0.15494    171
+     170  x    170 N SBS         0.17784        -0.58432           None            None         -0.52148    172
+     171  x    171 N SBS         0.01418         0.31813           None            None         -0.23436    173
+     172  x    172 N SBS        -0.00070        -0.78657           None            None         -0.46054    174
+     173  x    173 N SBS         0.00255        -0.69448           None            None         -1.03107    175
+     174  x    174 N SBS        -0.00370        -0.25475           None            None          0.04763    176
+     175  x    175 N SBS        -0.05693        -0.66177           None            None         -0.20631    177
+     176  x    176 N SBS        -0.00692         0.37696           None            None          0.53201    178
+     177  x    177 N SBS        -0.00697        -0.07047           None            None          0.10912    179
+     178  x    178 N SBS        -0.00954        -0.10918           None            None          0.26256    180
+     179  x    179 N SBS        -0.00198        -0.00970           None            None          0.05537    181
+     180  x    180 N SBS        -0.00343        -0.05849           None            None          0.07817    182
+     181  x    181 N SBS         0.00003         0.01188           None            None          0.00314    183
+     182  x    182 N SBS        -0.00000        -0.04960           None            None         -0.04567    184
+     183  x    183 N SBS         0.00291        -2.75791           None            None         -2.76495    185
+     184  x    184 N SBS        -0.00120        -4.15007           None            None         -3.96410    186
+     185  x    185 N SBS         0.00250        -4.54452           None            None         -4.46706    187
+     186  x    186 N SBS        -0.06362        -6.07034           None            None         -5.76752    188
+     187  x    187 N SBS        -0.13355         1.17471           None            None          1.14514    189
+     188  x    188 N SBS        -0.08551        -0.11948           None            None         -0.11528    190
+     189  x    189 N SBS        -0.01059         0.48732           None            None          0.57221    191
+     190  x    190 N SBS        -0.00862        -0.16560           None            None         -0.15168    192
+     191  x    191 N SBS         0.00435        -0.61413           None            None         -0.84663    193
+     192  x    192 N SBS        -0.00396        -0.11614           None            None          0.06997    194
+     193  x    193 N SBS         0.00332        -4.07343           None            None         -4.36280    195
+     194  x    194 N SBS        -0.01088         0.02968           None            None          0.46713    196
+     195  x    195 N SBS        -0.01238        -2.25232           None            None         -1.87820    197
+     196  x    196 N SBS        -0.00640         0.11600           None            None          0.32523    198
+     197  x    197 N SBS        -0.00296        -0.17095           None            None         -0.05109    199
+     198  x    198 N SBS        -0.00162        -0.00176           None            None          0.07668    200
+     199  x    199 N SBS        -0.00007        -0.00016           None            None          0.00406    201
+     200  x    200 N SBS        -0.00003        -0.00019           None            None          0.00333    202
+
+ Time for MPS input                             0.00 seconds
+ Time for solving problem                       1.72 seconds
+ Time for solution output                       0.00 seconds
+ Time for constraint functions                  1.70 seconds
+ Time for objective function                    0.00 seconds

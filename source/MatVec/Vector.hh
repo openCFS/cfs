@@ -523,7 +523,10 @@ template <typename T>
     //! This method adds to the entry of the vector at position i the
     //! specified value val.
     void AddToEntry( UInt i, const T &val );
-    
+
+    //! Add val to the value of a vector entry (atomic/thread-safe version)
+    void AddToEntryAtomic( UInt i, const T &val );
+
     //! Return a special part ( real, imag, amplitude, phase) of a vector
     Vector<Double> GetPart( Global::ComplexPart part ) const;
 

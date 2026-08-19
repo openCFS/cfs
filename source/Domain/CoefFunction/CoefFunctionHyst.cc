@@ -31,8 +31,9 @@ namespace CoupledField {
 	DEFINE_LOG(coeffunctionhyst_helper, "coeffunctionhyst_helper")
 	DEFINE_LOG(coeffunctionhyst_deltamat, "coeffunctionhyst_deltamat")
 
-  // forward definition for static member
+  // forward definition for static members
   std::map< std::string, TracedData > CoefFunctionHyst::tracedOperatorData_;
+  std::mutex CoefFunctionHyst::tracedDataMutex_;
 
   void CoefFunctionHyst::ComputeVector(Vector<Double>& outputVector,const LocPointMapped& lpm, int timeLevel, int baseSign,
           std::string vectorName, bool onBoundary, bool usedAsRHSload ){
@@ -12512,18 +12513,23 @@ namespace CoupledField {
        * check if this particular material has already been traced
        */
       TracedData currentMaterial;
-      
-      // search in interal array first > even if forceRetracing is true, we just trace every material just once
-      if(CoefFunctionHyst::tracedOperatorData_.find(tracedData_FILENAME.str()) != CoefFunctionHyst::tracedOperatorData_.end()){
-        std::cout << "++ Material " << material_->GetName() << " has already been traced. Reuse values from internal array." << std::endl;
-        currentMaterial = CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()];
 
-        maxSlope = currentMaterial.maxSlope_;
-        minSlope = currentMaterial.minSlope_;
-        negCoercivity = currentMaterial.negCoercivity_;
-        maxPolarization = currentMaterial.maxPolarization_;
- 
-        return;
+      // search in interal array first > even if forceRetracing is true, we just trace every material just once
+      // Use mutex for thread-safe access to static map during parallel assembly
+      {
+        std::lock_guard<std::mutex> lock(tracedDataMutex_);
+        auto it = CoefFunctionHyst::tracedOperatorData_.find(tracedData_FILENAME.str());
+        if(it != CoefFunctionHyst::tracedOperatorData_.end()){
+          std::cout << "++ Material " << material_->GetName() << " has already been traced. Reuse values from internal array." << std::endl;
+          currentMaterial = it->second;
+
+          maxSlope = currentMaterial.maxSlope_;
+          minSlope = currentMaterial.minSlope_;
+          negCoercivity = currentMaterial.negCoercivity_;
+          maxPolarization = currentMaterial.maxPolarization_;
+
+          return;
+        }
       }
       
       std::fstream tracedData;
@@ -12607,12 +12613,15 @@ namespace CoupledField {
             std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###NegCoercivity### " << negCoercivity << std::endl;
             std::cout << std::scientific<< std::setprecision(precisionDigits+1) << "###MaxPolarization### " << maxPolarization << std::endl;         
 
-            // store for later usage
+            // store for later usage with mutex for thread-safe access
             currentMaterial.maxSlope_ = maxSlope;
             currentMaterial.minSlope_ = minSlope;
             currentMaterial.negCoercivity_ = negCoercivity;
             currentMaterial.maxPolarization_ = maxPolarization;
-            CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
+            {
+              std::lock_guard<std::mutex> lock(tracedDataMutex_);
+              CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
+            }
 
             return;
           }
@@ -13057,12 +13066,15 @@ namespace CoupledField {
       negCoercivity = restrictPrecision(negCoercivity,precisionDigits);
       maxPolarization = restrictPrecision(maxPolarization,precisionDigits);      
 
-      // store for later usage
+      // store for later usage with mutex for thread-safe access
       currentMaterial.maxSlope_ = maxSlope;
       currentMaterial.minSlope_ = minSlope;
       currentMaterial.negCoercivity_ = negCoercivity;
       currentMaterial.maxPolarization_ = maxPolarization;
-      CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
+      {
+        std::lock_guard<std::mutex> lock(tracedDataMutex_);
+        CoefFunctionHyst::tracedOperatorData_[tracedData_FILENAME.str()] = currentMaterial;
+      }
 
       bool testOutput = true;
       if(testOutput){

@@ -1390,6 +1390,8 @@ namespace CoupledField {
 
     //! Buffer for storing the eigenvalues of the system
     SingleVector *eigenValues_;
+    //! eigenValues_ is ours only when allocated by SetupEigenSolver()
+    bool ownsEigenValues_ = false;
 
     //! Buffer for storing the error bounds of the eigenvalues
     SingleVector *eigenValError_;

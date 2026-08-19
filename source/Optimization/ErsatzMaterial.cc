@@ -329,6 +329,8 @@ void ErsatzMaterial::PostInitSecond() {
         pde->ReadRhsExcitation("acoustic", pde->GetDofNames(ACOU_PRESSURE), ResultInfo::SCALAR, context->IsComplex(), ent, coef, geo, output);
 
       // we store the loads in forms of linear forms
+      Assemble* ass = pde->GetAssemble();
+      StdVector<LinearFormContext*> baseForms = ass->GetLinForms();
       for(unsigned int i = 0; i < ent.GetSize(); ++i )
       {
         assert(ent[i]->GetType() == EntityList::NODE_LIST);
@@ -344,17 +346,18 @@ void ErsatzMaterial::PostInitSecond() {
             coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprBinOp(domain->GetMathParser(), coef[i], std::to_string(ent[i]->GetSize()), CoefXpr::OP_DIV));
           } 
         }
-        // TODO: Memory leak, where is this deleted?
         LinearForm* lin = new SingleEntryInt(coef[i]);
         lin->SetName("NodalForceInt");
         LinearFormContext* ctx = new LinearFormContext(lin);
         ctx->SetEntities( ent[i] );
         ctx->SetFeFunction(pde->GetFeFunction(pde->GetNativeSolutionType()));
+        ass->AddLinearForm(ctx); // Assemble owns the context
 
         LOG_DBG2(em) << "PI: o:" << f->IsObjective() << " add output form " << ent[i]->GetName() << " size=" << ent[i]->GetSize();
 
         f->output_forms.Push_back(ctx);
       }
+      ass->GetLinForms() = baseForms; // output forms are no standard rhs
       LOG_DBG2(em) << "PI: size of output_forms: " <<f->output_forms.GetSize() ;
       if(f->output_forms.GetSize() == 0)
         throw Exception("no output optimization targets given");
@@ -1960,6 +1963,7 @@ double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Conditio
     double factor = excite.GetWeightedFactor(f);
     HeatPDE* heat = dynamic_cast<HeatPDE*>(f->ctxt->pde);
     assert(heat != NULL);
+    DesignDependentRHS interfaceRHS(App::HEAT);
     DesignDependentRHS* rhs = NULL;
     if (heat->HasInterfaceDrivenRHS())
     {
@@ -1967,8 +1971,8 @@ double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* c, Conditio
         CalcAndStoreInterfaceDrivenGrad<double>(f,tf);
         interfaceDrivenGradCalc_ = true;
       }
-      rhs = new DesignDependentRHS(App::HEAT);
-      rhs->Init<double>(design);
+      interfaceRHS.Init<double>(design);
+      rhs = &interfaceRHS;
       // f'^Tu de->AddGradient(f, this_value);
       StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
       for (unsigned int id = 0; id < design->data.GetSize(); id++) {
@@ -2989,11 +2993,12 @@ double ErsatzMaterial::CalcStateTrackingAtInterface(Excitation& excite, Function
     double factor = excite.GetWeightedFactor(f);
     HeatPDE* heat = dynamic_cast<HeatPDE*>(f->ctxt->pde);
     assert(heat != NULL);
+    DesignDependentRHS interfaceRHS(App::HEAT);
     DesignDependentRHS* rhs = NULL;
     if (heat->HasInterfaceDrivenRHS())
     {
-      rhs = new DesignDependentRHS(App::HEAT);
-      rhs->Init<double>(design);
+      interfaceRHS.Init<double>(design);
+      rhs = &interfaceRHS;
       StdVector<SingleVector* >& all_u_elem = forward.Get(excite)->elem[App::HEAT];
 
       if (!interfaceDrivenGradCalc_) {

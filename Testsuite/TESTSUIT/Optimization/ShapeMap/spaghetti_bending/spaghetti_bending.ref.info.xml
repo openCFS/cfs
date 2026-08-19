@@ -1,25 +1,39 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="15" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="6">
   <summary>
-    <timer wall-clock="6.655s" wall="6.655" cpu="10.2543" calls="1"/>
+    <timer id="0" wall-clock="0.9504s" wall="0.950397" cpu="0.944874" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="1544.9" peak="1585.9"/>
+    <memory final="115"/>
   </summary>
   <header id="">
-    <environment started="2022-Feb-02 13:59:04" host="motown.mi.uni-erlangen.de"/>
-    <progOpts problem="spaghetti_bending" parameterFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bending/spaghetti_bending.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bending/bulk2d_40_20.mesh" logConfFile="" detailed="no">
-      <cfs version="21.03" name="Frohes Fensterln" build="Release" git_commit="f785483ad615be9ec84ce76303b164c845cd8c5e" git_branch="bolognese_handmade" exe="cfs"/>
-      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    <environment started="14-Aug-26 18:11:24" host="MacBook-Pro"/>
+    <progOpts problem="spaghetti_bending" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bending/spaghetti_bending.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="67e4bc10788597f8f17795904b6257a42269e39b-modified" git_branch="fwein_snopt" compiled="Aug 14 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="40" ny="20" nz="1">
-      <grids>
-        <timer wall-clock="0.014s" wall="0.014" cpu="0.013005" calls="1"/>
-        <grid gridId="default" dimensions="2" elements="800" nodes="861"/>
-      </grids>
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="800" nodes="861">
+          <timer id="5" wall-clock="0.001416s" wall="0.00141629" cpu="0.00104" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="0.000489s" wall="0.000488959" cpu="0.00023" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="0.0005336s" wall="0.000533625" cpu="0.000414" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="0.0001448s" wall="0.000144833" cpu="0.000145" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="0.0001652s" wall="0.000165166" cpu="0.000166" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
+      </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="861" elems="800" isQuadratic="no"/>
       </regions>
@@ -39,17 +53,26 @@
       <namedElements/>
       <globalMathParser dt="0" f="0" nx="40" ny="20" nz="1" step="0" t="0" t0="0"/>
     </domain>
+    <python version="3.14.5 (main, May 10 2026, 10:21:34) [Clang 21.0.0 (clang-2100.0.123.102)]"/>
     <results>
-      <timer wall-clock="0.006s" wall="0.006" cpu="0.008857" calls="35"/>
+      <timer id="39" wall-clock="0.001495s" wall="0.001495" cpu="0.001478" calls="36"/>
     </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001214s" wall="0.00121442" cpu="0.001183" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="7.08e-07s" wall="7.08e-07" cpu="0" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.018s" wall="0.018" cpu="0.037324" calls="1"/>
+        <timer id="16" wall-clock="0.007507s" wall="0.00750663" cpu="0.007146" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -58,10 +81,7 @@
           <region name="mech" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt">
-                <coef value="CoefFunctionOpt"/>
-              </bilinearForm>
-              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="mech">
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -69,8 +89,9 @@
               </bilinearForm>
             </matrixBiLinearForms>
             <rhsLinearForms>
-              <linearForm integrator="NodalForceInt" region="">
+              <linearForm integrator="NodalForceInt">
                 <entities name="load" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -1]"/>
                 <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
               </linearForm>
             </rhsLinearForms>
@@ -95,7 +116,17 @@
           <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
           <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
           <property name="Density" value="(1e-08,0)"/>
-          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+          <property name="Rayleigh_Alpha" value="94.238354829732771"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784384e-06"/>
+          <subtensor type="planeStress">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.098901e+00  3.296703e-01  0.000000e+00
+                 3.296703e-01  1.098901e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
         <feSpaces>
           <mechDisplacement>
@@ -131,48 +162,25 @@
           </sbmBlocks>
         </setup>
         <solver>
-          <cholmod>
-            <header>
-              <parameters>
-                <factorization>
-                  <nmethods default="0"/>
-                  <postorder default="1"/>
-                  <dbound default="0"/>
-                </factorization>
-                <supernodal>
-                  <method default="auto"/>
-                  <switch default="40"/>
-                </supernodal>
-                <output>
-                  <level default="3"/>
-                  <precise default="0"/>
-                </output>
-              </parameters>
-            </header>
+          <directLDL>
             <summary>
               <setup>
-                <timer label="setup_cholmod" wall-clock="0.009s" wall="0.009" cpu="0.031248" calls="4"/>
+                <timer id="29" label="setup_directLDL" wall-clock="0.01296s" wall="0.0129632" cpu="0.012874" calls="6"/>
               </setup>
               <solve>
-                <timer label="solve_cholmod" wall-clock="0s" wall="0" cpu="0.004232" calls="4"/>
+                <timer id="30" label="solve_directLDL" wall-clock="0.001753s" wall="0.00175325" cpu="0.001749" calls="6"/>
               </solve>
             </summary>
-            <process>
-              <setup selected_factorization_method="1" ll_flop_count="2.7746e+06" nz_in_L="59148" nz_in_triA="15236" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
-                <method id="1" lnz="59148" fl="2.7746e+06"/>
-              </setup>
-              <solver/>
-            </process>
-          </cholmod>
+          </directLDL>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="4e-06" calls="4"/>
+                <timer id="31" wall-clock="2.75e-06s" wall="2.75e-06" cpu="4e-06" calls="6"/>
               </precond_Id_setup>
               <precond_Id_run>
-                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+                <timer id="32" wall-clock="0s" wall="0" cpu="0" calls="0"/>
               </precond_Id_run>
             </summary>
           </idPrecond>
@@ -181,51 +189,66 @@
           <solver solutionIsOkay="yes"/>
         </process>
       </mechanic>
-      <graph_setup>
-        <timer wall-clock="0.006s" wall="0.006" cpu="0.024597" calls="1" sub="true"/>
-      </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.003693" calls="1" sub="true"/>
-      </reorder_Metis>
+      <graph nnz="28792">
+        <timer id="25" wall-clock="0.003073s" wall="0.00307296" cpu="0.003267" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="26" wall-clock="0.000173s" wall="0.000173" cpu="0.000313" calls="1" sub="true" parent="25"/>
+        </finalize>
+        <sort>
+          <timer id="27" wall-clock="6.821e-05s" wall="6.8208e-05" cpu="0.00012" calls="1" sub="true" parent="25"/>
+        </sort>
+        <rows number="1680" min="8" max="18" mean="17.138" estimated_row_size="100"/>
+        <reorder type="Metis">
+          <timer id="28" wall-clock="0.002191s" wall="0.00219129" cpu="0.002191" calls="1" sub="true" parent="25"/>
+        </reorder>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.004s" wall="0.004" cpu="0.007065" calls="8"/>
+          <timer id="21" wall-clock="0.003108s" wall="0.00310825" cpu="0.006017" calls="12"/>
+          <matrices>
+            <timer id="22" wall-clock="0.003069s" wall="0.00306896" cpu="0.005971" calls="6" sub="true" parent="21"/>
+          </matrices>
+          <rhs>
+            <timer id="23" wall-clock="2.858e-05s" wall="2.8585e-05" cpu="2.9e-05" calls="6" sub="true" parent="21"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="24" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bending/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bending/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" filtered="yes" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
-        <constraint type="bending" name="bending_(spaghetti)" parameter="0" linear="no" filtered="yes" locality="function_specific" local_size="2" bound_value="0.205" bound="upperBound" design="spaghetti"/>
-        <constraint type="volume" name="volume_(density)" linear="no" filtered="yes" bound_value="0.45" bound="upperBound" design="density"/>
+        <constraint type="bending" name="bending_(spaghetti)" parameter="0" linear="no" access="plain" locality="function_specific" local_size="2" bound_value="0.205" bound="upperBound" design="spaghetti"/>
+        <constraint type="volume" name="volume_(density)" linear="no" access="filtered" bound_value="0.45" bound="upperBound" design="density"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0.799s" wall="0.799" cpu="1.95248" calls="7"/>
+          <timer id="17" wall-clock="0.2532s" wall="0.253216" cpu="0.247893" calls="7"/>
         </setup_design>
-        <features>
+        <features radius="0.25" orientation="rounded">
           <mapping>
-            <timer label="features_map" wall-clock="1.752s" wall="1.752" cpu="1.75406" calls="4" sub="true"/>
+            <timer id="18" label="features_map" wall-clock="0.3114s" wall="0.311385" cpu="0.310331" calls="6" sub="true"/>
           </mapping>
           <gradient>
-            <timer label="features_grad" wall-clock="4.394s" wall="4.394" cpu="6.72379" calls="8" sub="true"/>
+            <timer id="19" label="features_grad" wall-clock="0.3658s" wall="0.365808" cpu="0.365071" calls="12" sub="true"/>
           </gradient>
-        </features>
-        <spaghetti combine="p-norm" radius="0.25">
-          <python file="/home/jgreif/code/cfs/share/python/spaghetti.py" version="3.6.12 (default, Dec 02 2020, 09:44:23) [GCC]">
-            <timer wall-clock="6.441s" wall="6.441" cpu="9.89058" calls="35" sub="true"/>
-            <option key="silent" value="1"/>
-            <option key="order" value="2"/>
-            <option key="p" value="8"/>
-            <option key="gradient_check" value="0"/>
-          </python>
+          <combine type="p-norm"/>
           <boundary type="poly" transition="0.14"/>
-          <mesh n="40 20 1"/>
-          <info_field genericElem="d_compliance_density_by_d_s0_px, d_compliance_density_by_d_s0_py, d_compliance_density_by_d_s0_qx, d_compliance_density_by_d_s0_qy, d_compliance_density_by_d_s0_p, d_compliance_density_by_d_s0_a1, d_compliance_density_by_d_s1_px, d_compliance_density_by_d_s1_py, d_compliance_density_by_d_s1_qx, d_compliance_density_by_d_s1_qy, d_compliance_density_by_d_s1_p, d_compliance_density_by_d_s2_px, d_compliance_density_by_d_s2_py, d_compliance_density_by_d_s2_qx, d_compliance_density_by_d_s2_qy, d_compliance_density_by_d_s2_p, d_compliance_density_by_d_s3_px, d_compliance_density_by_d_s3_py, d_compliance_density_by_d_s3_qx, d_compliance_density_by_d_s3_qy, d_compliance_density_by_d_s3_p, d_compliance_density_by_d_s3_a1, d_volume_(density)_density_by_d_s0_px, d_volume_(density)_density_by_d_s0_py, d_volume_(density)_density_by_d_s0_qx, d_volume_(density)_density_by_d_s0_qy, d_volume_(density)_density_by_d_s0_p, d_volume_(density)_density_by_d_s0_a1, d_volume_(density)_density_by_d_s1_px, d_volume_(density)_density_by_d_s1_py, d_volume_(density)_density_by_d_s1_qx, d_volume_(density)_density_by_d_s1_qy, d_volume_(density)_density_by_d_s1_p, d_volume_(density)_density_by_d_s2_px, d_volume_(density)_density_by_d_s2_py, d_volume_(density)_density_by_d_s2_qx, d_volume_(density)_density_by_d_s2_qy, d_volume_(density)_density_by_d_s2_p, d_volume_(density)_density_by_d_s3_px, d_volume_(density)_density_by_d_s3_py, d_volume_(density)_density_by_d_s3_qx, d_volume_(density)_density_by_d_s3_qy, d_volume_(density)_density_by_d_s3_p, d_volume_(density)_density_by_d_s3_a1"/>
+          <mesh n="[40, 20, 1]"/>
+          <info_field genericElem="d_compliance_density_by_d_s0_px d_compliance_density_by_d_s0_py d_compliance_density_by_d_s0_qx d_compliance_density_by_d_s0_qy d_compliance_density_by_d_s0_p d_compliance_density_by_d_s0_a1 d_compliance_density_by_d_s1_px d_compliance_density_by_d_s1_py d_compliance_density_by_d_s1_qx d_compliance_density_by_d_s1_qy d_compliance_density_by_d_s1_p d_compliance_density_by_d_s2_px d_compliance_density_by_d_s2_py d_compliance_density_by_d_s2_qx d_compliance_density_by_d_s2_qy d_compliance_density_by_d_s2_p d_compliance_density_by_d_s3_px d_compliance_density_by_d_s3_py d_compliance_density_by_d_s3_qx d_compliance_density_by_d_s3_qy d_compliance_density_by_d_s3_p d_compliance_density_by_d_s3_a1 d_volume_(density)_density_by_d_s0_px d_volume_(density)_density_by_d_s0_py d_volume_(density)_density_by_d_s0_qx d_volume_(density)_density_by_d_s0_qy d_volume_(density)_density_by_d_s0_p d_volume_(density)_density_by_d_s0_a1 d_volume_(density)_density_by_d_s1_px d_volume_(density)_density_by_d_s1_py d_volume_(density)_density_by_d_s1_qx d_volume_(density)_density_by_d_s1_qy d_volume_(density)_density_by_d_s1_p d_volume_(density)_density_by_d_s2_px d_volume_(density)_density_by_d_s2_py d_volume_(density)_density_by_d_s2_qx d_volume_(density)_density_by_d_s2_qy d_volume_(density)_density_by_d_s2_p d_volume_(density)_density_by_d_s3_px d_volume_(density)_density_by_d_s3_py d_volume_(density)_density_by_d_s3_qx d_volume_(density)_density_by_d_s3_qy d_volume_(density)_density_by_d_s3_p d_volume_(density)_density_by_d_s3_a1"/>
+        </features>
+        <spaghetti>
+          <python file="/Users/fwein/code/cfs/share/python/spaghetti.py" options="silent=1 order=2 p=8 gradient_check=0">
+            <timer id="20" wall-clock="0.8675s" wall="0.867529" cpu="0.86117" calls="30" sub="true"/>
+          </python>
         </spaghetti>
         <filters use_mat_filt="yes"/>
         <transferFunctions>
@@ -236,75 +259,79 @@
           <noodle id="0" segments="2">
             <px type="node" dof="x" tip="start" lower="0" upper="2"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" lower="0.1" upper="0.2"/>
-            <a type="normal" lower="-0.2" upper="0.2" size="1"/>
+            <a type="normal" lower="-0.200000" upper="0.200000" size="1"/>
           </noodle>
           <noodle id="1" segments="1">
             <px type="node" dof="x" tip="start" lower="0" upper="2"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" fixed="0.15"/>
           </noodle>
           <noodle id="2" segments="1">
             <px type="node" dof="x" tip="start" lower="0" upper="2"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" fixed="0.15"/>
           </noodle>
           <noodle id="3" segments="2">
             <px type="node" dof="x" tip="start" lower="0" upper="2"/>
             <py type="node" dof="y" tip="start" lower="0" upper="1"/>
-            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
-            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <px type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="end" lower="0" upper="1"/>
             <p type="profile" lower="0.1" upper="0.2"/>
-            <a type="normal" lower="-0.2" upper="0.2" size="1"/>
+            <a type="normal" lower="-0.200000" upper="0.200000" size="1"/>
           </noodle>
         </designVariables>
         <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
         <regions>
-          <region name="mech" elements="800" bimaterial="-"/>
+          <region name="mech" elements="800" bimaterial="-" groundmaterial="-"/>
         </regions>
       </designSpace>
       <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
       <excitations>
         <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
       </excitations>
-      <snopt/>
     </header>
     <commit mode="forward" stride="100"/>
     <optimizer>
-      <summary snopt_outputfile="spaghetti_bending.snopt">
-        <snopt>
-          <timer wall-clock="0s" wall="0" cpu="0.001258" calls="25"/>
-        </snopt>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="5" g_evals="4"/>
-      </summary>
+      <snopt>
+        <summary snopt_outputfile="spaghetti_bending.snopt">
+          <snopt>
+            <timer id="34" wall-clock="0.000596s" wall="0.000595955" cpu="0.000591" calls="32"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="7" g_evals="6" majors="1"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall-clock="1.297s" wall="1.297" cpu="1.35975" calls="17"/>
+        <timer id="35" wall-clock="0.2494s" wall="0.249412" cpu="0.249033" calls="26"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.000131" calls="5"/>
+        <timer id="36" wall-clock="3.95e-05s" wall="3.95e-05" cpu="3.9e-05" calls="7"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="2.219s" wall="2.219" cpu="4.5458" calls="4"/>
+        <timer id="37" wall-clock="0.3655s" wall="0.365489" cpu="0.364753" calls="6"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="2.177s" wall="2.177" cpu="2.17941" calls="4"/>
+        <timer id="38" wall-clock="0.0008882s" wall="0.000888207" cpu="0.00089" calls="6"/>
       </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <compliance min="77.277" max="79.565" oscillations="0"/>
+        <volume_density min="0.43792" max="0.43834" oscillations="0"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" duration="2.107" compliance="79.5652903197233" max_abs_bending_spaghetti="0.20917" infeas_count_bending_spaghetti="0" volume_density="0.43791710663049"/>
-      <iteration number="1" duration="1.219" compliance="52550.6110031873" max_abs_bending_spaghetti="0.2007" infeas_count_bending_spaghetti="0" volume_density="0.180900239574263"/>
-      <iteration number="2" duration="1.682" compliance="79.3984544016623" max_abs_bending_spaghetti="0.20916" infeas_count_bending_spaghetti="0" volume_density="0.43794258450872"/>
-      <iteration number="3" duration="1.638" compliance="77.8235711959972" max_abs_bending_spaghetti="0.20906" infeas_count_bending_spaghetti="0" volume_density="0.438220105172265"/>
+      <iteration number="0" duration="0.38235" compliance="79.5652903197691" max_abs_bending_spaghetti="0.20917" infeas_count_bending_spaghetti="0" volume_density="0.43791710663049" nObj="1"/>
+      <iteration number="1" duration="0.56617" compliance="77.277204493626" max_abs_bending_spaghetti="0.20901" infeas_count_bending_spaghetti="0" volume_density="0.438336970102596" nObj="6"/>
     </process>
   </optimization>
 </cfsInfo>

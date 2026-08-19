@@ -76,8 +76,7 @@
    <constraint type="tensorTrace" bound="upperBound" value="1.0" design="mech_trace" linear="true" notation="hill_mandel"/>
 
     <optimizer type="snopt" maxIterations="10">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option name="verify_level" type="integer" value="-1"/>
       </snopt>
     </optimizer>

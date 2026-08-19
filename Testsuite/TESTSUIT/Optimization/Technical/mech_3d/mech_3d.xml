@@ -71,9 +71,7 @@
 
     <constraint type="volume" bound="upperBound" value="0.5" linear="false"/>
 
-    <optimizer type="snopt" maxIterations="10">
-
-    </optimizer>
+    <optimizer type="dumas_mma" maxIterations="8"/>
 
     <ersatzMaterial region="mech" material="mechanic" method="simp">
       <filters>

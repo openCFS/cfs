@@ -9,6 +9,7 @@
 #include <set>
 #include "MagBasePDE.hh"
 #include "Utils/Coil.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField
 {
@@ -31,6 +32,9 @@ namespace CoupledField
     
     //!  Destructor
     virtual ~MagneticPDE();
+
+    //stores the field intensity for energy-based hystersis/nonlinear models
+    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> > nonlinear_field_intensity_coefm_;
     
     //! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
     void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
@@ -128,7 +132,7 @@ namespace CoupledField
     //! the grad-grad-term. We need it for the calculation of the eddy current
     //! density.
     std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
-    
+
   private:
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;

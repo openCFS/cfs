@@ -6,73 +6,78 @@
     <designSpace non_design_vicinity="no"/>
     <design constant="false" enforce_bounds="false" fixed="false" initial=".5" name="density" physical_lower="1e-6" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
     <transferFunction application="mech" type="identity"/>
+    <coordinateSystems>
+      <system name="default"/>
+      <domain min_x="0" max_x="1" min_y="0" max_y="1" min_z="0" max_z="1"/>
+    </coordinateSystems>
+    <optimizationDomain min_x="0" max_x="1" min_y="0" max_y="1" min_z="0" max_z="1"/>
   </header>
-  <set id="13">
-    <shapeParamElement nr="0" type="node" dof="y" shape="0" ref="0" design="0"/>
-    <shapeParamElement nr="1" type="node" dof="y" shape="0" ref="0" design="0.0296812"/>
-    <shapeParamElement nr="2" type="node" dof="y" shape="0" ref="0" design="0.0893624"/>
-    <shapeParamElement nr="3" type="node" dof="y" shape="0" ref="0" design="0.179044"/>
-    <shapeParamElement nr="4" type="node" dof="y" shape="0" ref="0" design="0.238725"/>
-    <shapeParamElement nr="5" type="node" dof="y" shape="0" ref="0" design="0.268406"/>
-    <shapeParamElement nr="6" type="node" dof="y" shape="0" ref="0" design="0.273298"/>
-    <shapeParamElement nr="7" type="node" dof="y" shape="0" ref="0" design="0.289201"/>
-    <shapeParamElement nr="8" type="node" dof="y" shape="0" ref="0" design="0.322475"/>
-    <shapeParamElement nr="9" type="node" dof="y" shape="0" ref="0" design="0.385748"/>
-    <shapeParamElement nr="10" type="node" dof="y" shape="0" ref="0" design="0.479022"/>
-    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.475459"/>
-    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.482728"/>
-    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.483011"/>
-    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.481791"/>
-    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.486927"/>
-    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.491287"/>
-    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.485824"/>
-    <shapeParamElement nr="18" type="node" dof="z" shape="1" ref="0" design="0.495536"/>
-    <shapeParamElement nr="19" type="node" dof="z" shape="1" ref="0" design="0.498685"/>
-    <shapeParamElement nr="20" type="node" dof="z" shape="1" ref="0" design="0.499342"/>
-    <shapeParamElement nr="21" type="node" dof="z" shape="1" ref="0" design="0.495036"/>
-    <shapeParamElement nr="22" type="node" dof="y" shape="2" ref="2" design="1"/>
-    <shapeParamElement nr="23" type="node" dof="y" shape="2" ref="2" design="0.965072"/>
-    <shapeParamElement nr="24" type="node" dof="y" shape="2" ref="2" design="0.900145"/>
-    <shapeParamElement nr="25" type="node" dof="y" shape="2" ref="2" design="0.818061"/>
-    <shapeParamElement nr="26" type="node" dof="y" shape="2" ref="2" design="0.765977"/>
-    <shapeParamElement nr="27" type="node" dof="y" shape="2" ref="2" design="0.743893"/>
-    <shapeParamElement nr="28" type="node" dof="y" shape="2" ref="2" design="0.727078"/>
-    <shapeParamElement nr="29" type="node" dof="y" shape="2" ref="2" design="0.711774"/>
-    <shapeParamElement nr="30" type="node" dof="y" shape="2" ref="2" design="0.672291"/>
-    <shapeParamElement nr="31" type="node" dof="y" shape="2" ref="2" design="0.622385"/>
-    <shapeParamElement nr="32" type="node" dof="y" shape="2" ref="2" design="0.542478"/>
-    <shapeParamElement nr="33" type="node" dof="z" shape="3" ref="2" design="0.467833"/>
-    <shapeParamElement nr="34" type="node" dof="z" shape="3" ref="2" design="0.475451"/>
-    <shapeParamElement nr="35" type="node" dof="z" shape="3" ref="2" design="0.481437"/>
-    <shapeParamElement nr="36" type="node" dof="z" shape="3" ref="2" design="0.484757"/>
-    <shapeParamElement nr="37" type="node" dof="z" shape="3" ref="2" design="0.48578"/>
-    <shapeParamElement nr="38" type="node" dof="z" shape="3" ref="2" design="0.480895"/>
-    <shapeParamElement nr="39" type="node" dof="z" shape="3" ref="2" design="0.492495"/>
-    <shapeParamElement nr="40" type="node" dof="z" shape="3" ref="2" design="0.494984"/>
-    <shapeParamElement nr="41" type="node" dof="z" shape="3" ref="2" design="0.502225"/>
-    <shapeParamElement nr="42" type="node" dof="z" shape="3" ref="2" design="0.490138"/>
-    <shapeParamElement nr="43" type="node" dof="z" shape="3" ref="2" design="0.507083"/>
-    <shapeParamElement nr="44" type="profile" dof="y" shape="4" ref="0" design="0.314887"/>
-    <shapeParamElement nr="45" type="profile" dof="y" shape="4" ref="0" design="0.30299"/>
-    <shapeParamElement nr="46" type="profile" dof="y" shape="4" ref="0" design="0.268437"/>
-    <shapeParamElement nr="47" type="profile" dof="y" shape="4" ref="0" design="0.263884"/>
-    <shapeParamElement nr="48" type="profile" dof="y" shape="4" ref="0" design="0.242054"/>
-    <shapeParamElement nr="49" type="profile" dof="y" shape="4" ref="0" design="0.227324"/>
-    <shapeParamElement nr="50" type="profile" dof="y" shape="4" ref="0" design="0.221142"/>
-    <shapeParamElement nr="51" type="profile" dof="y" shape="4" ref="0" design="0.198053"/>
-    <shapeParamElement nr="52" type="profile" dof="y" shape="4" ref="0" design="0.193983"/>
-    <shapeParamElement nr="53" type="profile" dof="y" shape="4" ref="0" design="0.179359"/>
-    <shapeParamElement nr="54" type="profile" dof="y" shape="4" ref="0" design="0.194734"/>
-    <shapeParamElement nr="55" type="profile" dof="y" shape="5" ref="2" design="0.293759"/>
-    <shapeParamElement nr="56" type="profile" dof="y" shape="5" ref="2" design="0.293392"/>
-    <shapeParamElement nr="57" type="profile" dof="y" shape="5" ref="2" design="0.263025"/>
-    <shapeParamElement nr="58" type="profile" dof="y" shape="5" ref="2" design="0.262657"/>
-    <shapeParamElement nr="59" type="profile" dof="y" shape="5" ref="2" design="0.236513"/>
-    <shapeParamElement nr="60" type="profile" dof="y" shape="5" ref="2" design="0.22956"/>
-    <shapeParamElement nr="61" type="profile" dof="y" shape="5" ref="2" design="0.222008"/>
-    <shapeParamElement nr="62" type="profile" dof="y" shape="5" ref="2" design="0.198029"/>
-    <shapeParamElement nr="63" type="profile" dof="y" shape="5" ref="2" design="0.201932"/>
-    <shapeParamElement nr="64" type="profile" dof="y" shape="5" ref="2" design="0.179116"/>
-    <shapeParamElement nr="65" type="profile" dof="y" shape="5" ref="2" design="0.155001"/>
+  <set id="9">
+    <shapeParamElement nr="0" type="node" dof="y" shape="0" ref="0" design="0.014536383377"/>
+    <shapeParamElement nr="1" type="node" dof="y" shape="0" ref="0" design="0.056774436067"/>
+    <shapeParamElement nr="2" type="node" dof="y" shape="0" ref="0" design="0.11335432814"/>
+    <shapeParamElement nr="3" type="node" dof="y" shape="0" ref="0" design="0.17796337895"/>
+    <shapeParamElement nr="4" type="node" dof="y" shape="0" ref="0" design="0.22828430814"/>
+    <shapeParamElement nr="5" type="node" dof="y" shape="0" ref="0" design="0.25953687388"/>
+    <shapeParamElement nr="6" type="node" dof="y" shape="0" ref="0" design="0.27698590354"/>
+    <shapeParamElement nr="7" type="node" dof="y" shape="0" ref="0" design="0.29942068478"/>
+    <shapeParamElement nr="8" type="node" dof="y" shape="0" ref="0" design="0.33718194344"/>
+    <shapeParamElement nr="9" type="node" dof="y" shape="0" ref="0" design="0.39184262799"/>
+    <shapeParamElement nr="10" type="node" dof="y" shape="0" ref="0" design="0.45817586439"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.49813013544"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.49673914981"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.49503747089"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.4939001363"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.4931399842"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.49355613754"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.49505719802"/>
+    <shapeParamElement nr="18" type="node" dof="z" shape="1" ref="0" design="0.49637561468"/>
+    <shapeParamElement nr="19" type="node" dof="z" shape="1" ref="0" design="0.4971828525"/>
+    <shapeParamElement nr="20" type="node" dof="z" shape="1" ref="0" design="0.49876939481"/>
+    <shapeParamElement nr="21" type="node" dof="z" shape="1" ref="0" design="0.50236136002"/>
+    <shapeParamElement nr="22" type="node" dof="y" shape="2" ref="2" design="0.97113655222"/>
+    <shapeParamElement nr="23" type="node" dof="y" shape="2" ref="2" design="0.93126832433"/>
+    <shapeParamElement nr="24" type="node" dof="y" shape="2" ref="2" design="0.87711013259"/>
+    <shapeParamElement nr="25" type="node" dof="y" shape="2" ref="2" design="0.81511873877"/>
+    <shapeParamElement nr="26" type="node" dof="y" shape="2" ref="2" design="0.76802593147"/>
+    <shapeParamElement nr="27" type="node" dof="y" shape="2" ref="2" design="0.7402072148"/>
+    <shapeParamElement nr="28" type="node" dof="y" shape="2" ref="2" design="0.72648396405"/>
+    <shapeParamElement nr="29" type="node" dof="y" shape="2" ref="2" design="0.70572459464"/>
+    <shapeParamElement nr="30" type="node" dof="y" shape="2" ref="2" design="0.66826945525"/>
+    <shapeParamElement nr="31" type="node" dof="y" shape="2" ref="2" design="0.61357543499"/>
+    <shapeParamElement nr="32" type="node" dof="y" shape="2" ref="2" design="0.54744511632"/>
+    <shapeParamElement nr="33" type="node" dof="z" shape="3" ref="2" design="0.48072819783"/>
+    <shapeParamElement nr="34" type="node" dof="z" shape="3" ref="2" design="0.48545153113"/>
+    <shapeParamElement nr="35" type="node" dof="z" shape="3" ref="2" design="0.48594432178"/>
+    <shapeParamElement nr="36" type="node" dof="z" shape="3" ref="2" design="0.48958577021"/>
+    <shapeParamElement nr="37" type="node" dof="z" shape="3" ref="2" design="0.49400771486"/>
+    <shapeParamElement nr="38" type="node" dof="z" shape="3" ref="2" design="0.49665241892"/>
+    <shapeParamElement nr="39" type="node" dof="z" shape="3" ref="2" design="0.49722308929"/>
+    <shapeParamElement nr="40" type="node" dof="z" shape="3" ref="2" design="0.4969572842"/>
+    <shapeParamElement nr="41" type="node" dof="z" shape="3" ref="2" design="0.49771174515"/>
+    <shapeParamElement nr="42" type="node" dof="z" shape="3" ref="2" design="0.50076154588"/>
+    <shapeParamElement nr="43" type="node" dof="z" shape="3" ref="2" design="0.50649156514"/>
+    <shapeParamElement nr="44" type="profile" shape="4" ref="0" design="0.29276107128"/>
+    <shapeParamElement nr="45" type="profile" shape="4" ref="0" design="0.27804532838"/>
+    <shapeParamElement nr="46" type="profile" shape="4" ref="0" design="0.2627488766"/>
+    <shapeParamElement nr="47" type="profile" shape="4" ref="0" design="0.25079477585"/>
+    <shapeParamElement nr="48" type="profile" shape="4" ref="0" design="0.23718077216"/>
+    <shapeParamElement nr="49" type="profile" shape="4" ref="0" design="0.22582878952"/>
+    <shapeParamElement nr="50" type="profile" shape="4" ref="0" design="0.21823207499"/>
+    <shapeParamElement nr="51" type="profile" shape="4" ref="0" design="0.21094683328"/>
+    <shapeParamElement nr="52" type="profile" shape="4" ref="0" design="0.20365784127"/>
+    <shapeParamElement nr="53" type="profile" shape="4" ref="0" design="0.19216221074"/>
+    <shapeParamElement nr="54" type="profile" shape="4" ref="0" design="0.17581728398"/>
+    <shapeParamElement nr="55" type="profile" shape="5" ref="2" design="0.29210225918"/>
+    <shapeParamElement nr="56" type="profile" shape="5" ref="2" design="0.27875639333"/>
+    <shapeParamElement nr="57" type="profile" shape="5" ref="2" design="0.26152994775"/>
+    <shapeParamElement nr="58" type="profile" shape="5" ref="2" design="0.25529033128"/>
+    <shapeParamElement nr="59" type="profile" shape="5" ref="2" design="0.241649883"/>
+    <shapeParamElement nr="60" type="profile" shape="5" ref="2" design="0.2249065051"/>
+    <shapeParamElement nr="61" type="profile" shape="5" ref="2" design="0.21590902256"/>
+    <shapeParamElement nr="62" type="profile" shape="5" ref="2" design="0.20709067584"/>
+    <shapeParamElement nr="63" type="profile" shape="5" ref="2" design="0.19725616572"/>
+    <shapeParamElement nr="64" type="profile" shape="5" ref="2" design="0.18407026671"/>
+    <shapeParamElement nr="65" type="profile" shape="5" ref="2" design="0.16967421582"/>
   </set>
 </cfsErsatzMaterial>

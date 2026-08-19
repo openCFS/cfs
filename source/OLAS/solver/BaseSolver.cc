@@ -44,6 +44,30 @@ namespace CoupledField {
       sizeof(solverTypeTuples) / sizeof(EnumTuple),
       solverTypeTuples); 
 
+  // ****************************
+  //   CheckDirectPlausibility
+  // ****************************
+  double BaseDirectSolver::CheckDirectPlausibility(double nnz, bool is_complex, double flops, double mb)
+  {
+    // practically only our own directLDL/LU come here, the libraries report their memory. They store
+    // the factor as plain CRS/CCS, hence 4 byte col index + 8 byte data per entry (16 for complex).
+    if(mb == 0.0)
+      mb = nnz * (is_complex ? 20 : 12) / (1024.0 * 1024.0);
+
+    if(!warned_plausibility_ && (mb > 4096.0 || flops > 1e12))
+    {
+      warned_plausibility_ = true;
+      std::stringstream ss;
+      ss << solverType.ToString(GetSolverType()) << " factorization uses about " << (int) mb << " MB";
+      if(flops > 0.0)
+        ss << " and " << (int) (flops / 1e9) << " GFlop";
+      ss << ". Consider an iterative solver.";
+      infoNode_->Get(ParamNode::SUMMARY)->SetWarning(ss.str());
+    }
+
+    return mb;
+  }
+
   // ********************
   //   ComputeThreshold
   // ********************

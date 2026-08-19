@@ -1,23 +1,38 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="42" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="66">
   <summary>
-    <timer wall="0" cpu="0.294474" calls="1"/>
+    <timer id="0" wall-clock="0.1174s" wall="0.117397" cpu="0.122785" calls="1"/>
+    <matrix info="no allocations logged, run cfs with -d (detailed info)"/>
     <!-- memory in MB-->
-    <memory final="106.16" peak="108.16"/>
+    <memory final="51"/>
   </summary>
   <header id="">
-    <environment started="2017-Dec-05 12:55:31" host="eamc061"/>
-    <progOpts problem="mech_coef_ev" parameterFile="/home/fwein/code/cfs-test/TESTSUIT/Optimization/FMO/mech_coef_ev/mech_coef_ev.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="17.11" name="AMGme" build="Release" svn_revision="16105 modified" svn_branch="Fabian_Wein_TopOpt_0415" exe="cfs_openblas_rel"/>
-      <openmp CFS_threads="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    <environment started="15-Aug-26 15:46:38" host="MacBook-Pro"/>
+    <progOpts problem="mech_coef_ev" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/FMO/mech_coef_ev/mech_coef_ev.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="26.08" name="Kaum Konvergenz" build="RELEASE" git_commit="120275b6ab084a6bce66e5bfce43b68d35928299" git_branch="fwein_snopt" compiled="Aug 15 2026" exe="/Users/fwein/code/cfs/release/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="10" ny="7" nz="1">
       <coordinateSystems>
         <system name="default"/>
       </coordinateSystems>
       <grids>
-        <grid gridId="default" dimensions="2" elements="70" nodes="88"/>
+        <grid gridId="default" dimensions="2" elements="70" nodes="88">
+          <timer id="5" wall-clock="0.0005205s" wall="0.000520459" cpu="0.000523" calls="2"/>
+          <readMesh>
+            <timer id="6" wall-clock="4.55e-05s" wall="4.55e-05" cpu="4.6e-05" calls="1" sub="true" parent="5"/>
+          </readMesh>
+          <finishInit>
+            <timer id="7" wall-clock="7.667e-05s" wall="7.6667e-05" cpu="7.6e-05" calls="1" sub="true" parent="5"/>
+          </finishInit>
+          <userDefined>
+            <timer id="8" wall-clock="7.08e-07s" wall="7.08e-07" cpu="0" calls="1" sub="true" parent="7"/>
+          </userDefined>
+          <mapFacesEdges>
+            <timer id="15" label="mapFacesEdges" wall-clock="2.096e-05s" wall="2.0959e-05" cpu="2.3e-05" calls="2" sub="true"/>
+          </mapFacesEdges>
+        </grid>
       </grids>
       <regions>
         <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="88" elems="70" isQuadratic="no"/>
@@ -33,17 +48,31 @@
         <nodes name="west" count="8"/>
       </namedNodes>
       <namedElements/>
-      <globalMathParser dt="0" f="0" nx="10" ny="7" nz="1" step="0" t="0" t0="0"/>
+      <globalMathParser dt="0" f="1671.1" nx="10" ny="7" nz="1" step="0" t="0" t0="0"/>
     </domain>
+    <results>
+      <timer id="39" wall-clock="0.002842s" wall="0.00284154" cpu="0.002819" calls="440"/>
+    </results>
   </header>
-  <calculation>
-    <process/>
-  </calculation>
+  <output>
+    <hdf5>
+      <timer id="2" wall-clock="0.001026s" wall="0.00102625" cpu="0.001034" calls="1"/>
+    </hdf5>
+    <info>
+      <timer id="4" wall-clock="5.42e-07s" wall="5.42e-07" cpu="1e-06" calls="1"/>
+      <calculation>
+        <process/>
+      </calculation>
+    </info>
+  </output>
   <sequenceStep sequence="1">
     <eigenFrequency>
-      <result id="iter:31">
-        <mode nr="1" frequency="1655.33243265674" errorbound="2.0704e-12"/>
-        <mode nr="2" frequency="1655.70102727083" errorbound="2.0907e-12"/>
+      <init_eigenFrequency>
+        <timer id="16" wall-clock="0.006225s" wall="0.00622533" cpu="0.006233" calls="1"/>
+      </init_eigenFrequency>
+      <result id="iter:20">
+        <mode nr="1" frequency="1656.25846529536" errorbound="3.6585e-12"/>
+        <mode nr="2" frequency="1671.12223610252" errorbound="2.5483e-12"/>
       </result>
     </eigenFrequency>
     <PDE>
@@ -52,16 +81,16 @@
           <region name="mech" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="LinElastInt" complex="no" BOp="StrainOperator2D" region="mech">
-                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
-                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
-                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
-              </bilinearForm>
-              <bilinearForm integrator="MassInt" complex="no" region="mech">
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" coef="CoefFunctionOpt" region="mech">
                 <row pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <column pde="mechanic" functionId="0" result="mechDisplacement"/>
                 <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
               </bilinearForm>
             </matrixBiLinearForms>
@@ -72,7 +101,7 @@
           <regionList>
             <region name="mech"/>
           </regionList>
-          <property name="MechanicStiffnessTensor">
+          <property name="Mechanic_Stiffness_Tensor">
             <tensor dim1="6" dim2="6">
               <real>
                  1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
@@ -84,14 +113,21 @@
               </real>
             </tensor>
           </property>
-          <property name="Mechanic_Emodulus" value="1"/>
-          <property name="Mechanic_PoissonRation" value="0.3"/>
-          <property name="Mechanic_Kmodulus" value="(0.83333,0)"/>
-          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
-          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
-          <property name="Loss_TangensDelta" value="0.03"/>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Rayleigh_Alpha" value="94.238354829732771"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784384e-06"/>
+          <subtensor type="planeStrain">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.346154e+00  5.769231e-01  0.000000e+00
+                 5.769231e-01  1.346154e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </subtensor>
         </material>
-        <!-- List of defined Spaces-->
         <feSpaces>
           <mechDisplacement>
             <h1Nodal>
@@ -117,7 +153,6 @@
     <OLAS>
       <mechanic>
         <setup idbcHandling="elimination" staticCondensation="no">
-          <!-- List of registered FeFunctions-->
           <feFunctions totalNumEqns="108" totalNumFreeEqns="108" totalNumDirichlet="0">
             <function id="0" name="mechDisplacement" numEqns="108" lastFreeEqn="108" numDirichlet="0">
               <usedInBlocks>
@@ -125,154 +160,191 @@
               </usedInBlocks>
             </function>
           </feFunctions>
-          <!-- List of SBM-blocks-->
           <sbmBlocks>
             <block id="0" size="108" lastFreeIndex="108"/>
           </sbmBlocks>
-          <!-- List of defined matrices-->
-          <matrices>
-            <!-- Memory is in MByte-->
-            <system totalNumRows="108" totalNumCols="108" totalNumNonZeros="1600" totalFillLevelPerCent="13.717" totalMemory="0.012207">
-              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="108" numCols="108" numNonZeros="1600" fillLevelPerCent="13.717" memory="0.012207" upperBandWidth="105" lowerBandWidth="105" avgBandWidth="51" symCounterPart="no" orderingType="Metis"/>
-            </system>
-            <stiffness totalNumRows="108" totalNumCols="108" totalNumNonZeros="1600" totalFillLevelPerCent="13.717" totalMemory="0.012207">
-              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="108" numCols="108" numNonZeros="1600" fillLevelPerCent="13.717" memory="0.012207" upperBandWidth="105" lowerBandWidth="105" avgBandWidth="0" symCounterPart="no" orderingType="Metis"/>
-            </stiffness>
-            <mass totalNumRows="108" totalNumCols="108" totalNumNonZeros="1600" totalFillLevelPerCent="13.717" totalMemory="0.012207">
-              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="108" numCols="108" numNonZeros="1600" fillLevelPerCent="13.717" memory="0.012207" upperBandWidth="105" lowerBandWidth="105" avgBandWidth="0" symCounterPart="no" orderingType="Metis"/>
-            </mass>
-          </matrices>
         </setup>
         <solve_eigen>
-          <umfpack>
+          <summary>
+            <setup_arpack>
+              <timer id="25" wall-clock="0.002309s" wall="0.00230862" cpu="0.002317" calls="39"/>
+            </setup_arpack>
+            <solve_arpack>
+              <timer id="26" wall-clock="0.007668s" wall="0.00766792" cpu="0.007668" calls="39"/>
+            </solve_arpack>
+          </summary>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
             <summary>
               <setup>
-                <timer label="setup_umfpack" wall="0" cpu="0.000246" calls="1"/>
+                <timer id="112" label="setup_cholmod" wall-clock="4.321e-05s" wall="4.3208e-05" cpu="4.3e-05" calls="2" sub="true" parent="25"/>
               </setup>
               <solve>
-                <timer label="solve_umfpack" wall="0" cpu="0.00114" calls="43"/>
+                <timer id="113" label="solve_cholmod" wall-clock="5.775e-05s" wall="5.775e-05" cpu="6.1e-05" calls="39" sub="true" parent="26"/>
               </solve>
             </summary>
-          </umfpack>
+            <process>
+              <setup fillFactor="1.7775" memoryMB="0.034458" flops="24138" selected_factorization_method="1" memory_usage="36132" memory_inuse="25360" malloc_count="13" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="1518" fl="24138"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
           <idPrecond>
             <summary>
-              <setup>
-                <timer wall="0" cpu="0" calls="0"/>
-              </setup>
-              <precond>
-                <timer wall="0" cpu="0" calls="0"/>
-              </precond>
+              <precond_Id_setup>
+                <timer id="35" wall-clock="2.758e-05s" wall="2.7577e-05" cpu="2.8e-05" calls="78" sub="true" parent="25"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer id="36" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true" parent="26"/>
+              </precond_Id_run>
             </summary>
           </idPrecond>
-          <header frequencies="2" type="LM" shift="0" shiftAndInvert="yes" tol="1e-08" maxIter="5000" arnoldiVectors="4" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="no"/>
-          <arpack analysis_id="iter:31">
-            <timer wall="0" cpu="0.053813" calls="33"/>
-            <rci solve_x="1" solve_B_x="42" matvec_B_x="146" total="190"/>
+          <header frequencies="2" type="LM" shift="(0,0)" computeMode="shift_and_invert" tol="1e-08" maxIter="5000" arnoldiVectors="216" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="no"/>
+          <arpack analysis_id="iter:20">
+            <rci solve_x="1" solve_B_x="38" matvec_B_x="132" total="172"/>
           </arpack>
         </solve_eigen>
       </mechanic>
+      <graph nnz="1600">
+        <timer id="22" wall-clock="0.0002117s" wall="0.00021175" cpu="0.00022" calls="1" sub="true" parent="16"/>
+        <finalize>
+          <timer id="23" wall-clock="2.392e-05s" wall="2.3916e-05" cpu="2.9e-05" calls="1" sub="true" parent="22"/>
+        </finalize>
+        <sort>
+          <timer id="24" wall-clock="1.604e-05s" wall="1.6042e-05" cpu="1.9e-05" calls="1" sub="true" parent="22"/>
+        </sort>
+        <rows number="108" min="8" max="18" mean="14.815" estimated_row_size="100"/>
+      </graph>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall="0" cpu="0.021129" calls="33"/>
+          <timer id="18" wall-clock="0.006408s" wall="0.00640784" cpu="0.012331" calls="39"/>
+          <matrices>
+            <timer id="19" wall-clock="0.006379s" wall="0.006379" cpu="0.0123" calls="39" sub="true" parent="18"/>
+          </matrices>
+          <rhs>
+            <timer id="20" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true" parent="18"/>
+          </rhs>
         </assemble>
       </summary>
     </analysis>
+    <nonlinearConvergence>
+      <evaluateNonlinearity>
+        <timer id="21" wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </evaluateNonlinearity>
+    </nonlinearConvergence>
   </sequenceStep>
-  <optimization haltopt_file="/home/fwein/code/cfs-test/TESTSUIT/Optimization/FMO/mech_coef_ev/HALTOPT">
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/FMO/mech_coef_ev/HALTOPT">
     <header>
-      <objective type="slack" name="slack" linear="yes" filtered="no" task="maximize"/>
+      <objective type="slack" name="slack" linear="yes" access="plain" term="linear" scale="1" task="maximize"/>
       <constraints>
-        <constraint type="eigenfrequency" name="eigenfrequency_1" ev="1" linear="no" filtered="yes" bound_value="slack" bound="lowerBound" design="default"/>
-        <constraint type="eigenfrequency" name="eigenfrequency_2" ev="2" linear="no" filtered="yes" bound_value="slack" bound="lowerBound" design="default"/>
-        <constraint type="volume" name="volume_(mech_trace)" linear="yes" filtered="yes" bound_value="0.5" bound="upperBound" design="mech_trace" notation="hill_mandel"/>
-        <constraint type="tensorTrace" name="tensorTrace_(mech_trace)" parameter="0" linear="yes" filtered="yes" locality="multiple_designs_element" local_size="70" bound_value="1" bound="upperBound" design="mech_trace" notation="hill_mandel"/>
-        <constraint type="volume" name="volume_(mass)" linear="yes" filtered="yes" bound_value="1" bound="equal" design="mass"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_1" ev="1" linear="no" access="physical" bound_value="slack" bound="lowerBound" design="default"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_2" ev="2" linear="no" access="physical" bound_value="slack" bound="lowerBound" design="default"/>
+        <constraint type="volume" name="volume_(mech_trace)" linear="yes" access="filtered" bound_value="0.5" bound="upperBound" design="mech_trace" notation="hill_mandel"/>
+        <constraint type="tensorTrace" name="tensorTrace_(mech_trace)" parameter="0" linear="yes" access="plain" locality="multiple_designs_element" local_size="70" bound_value="1" bound="upperBound" design="mech_trace" notation="hill_mandel"/>
+        <constraint type="volume" name="volume_(mass)" linear="yes" access="filtered" bound_value="1" bound="equal" design="mass"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
-        <gradient_chain_rule>
-          <timer label="gradient_chain_rule" wall="0" cpu="0" calls="0" sub="true"/>
-        </gradient_chain_rule>
+        <setup_design>
+          <timer id="17" wall-clock="0.0003833s" wall="0.000383334" cpu="0.000384" calls="4"/>
+        </setup_design>
+        <filters use_mat_filt="no"/>
         <transferFunctions>
           <transferFunction type="identity" application="no_app" design="default"/>
         </transferFunctions>
-        <designVariables optimizationVariables="281" modelVariables="280" modelElements="70">
+        <designVariables opt_vars="281" field_elems="280" field_fe_elemes="70">
           <design type="mech_11" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
           <design type="mech_22" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
           <design type="mech_33" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
           <design type="mass" upperBound="2" lowerBound="0.5" physicalLowerBound="0.5"/>
           <design type="slack" upperBound="10000" lowerBound="0"/>
         </designVariables>
-        <localElementCache org="0" shadow="0" mat_deriv="6" megabytes="0"/>
+        <localElementCache org="0" shadow="0" mat_deriv="3" megabytes="0"/>
         <regions>
-          <region name="mech" elements="70" bimaterial="-"/>
+          <region name="mech" elements="70" bimaterial="-" groundmaterial="-"/>
         </regions>
+        <designMaterial type="fmo" bias="no"/>
       </designSpace>
       <sequence step="1" complex="yes" harmonic="no" eigenvalue="yes" bloch="no" material="mechanic" homogenization="no"/>
       <excitations>
         <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
       </excitations>
-      <snopt/>
     </header>
     <commit mode="each_forward" stride="999"/>
     <optimizer>
-      <summary snopt_outputfile="mech_coef_ev.snopt">
-        <snopt>
-          <timer wall="0" cpu="0.050285" calls="204"/>
-        </snopt>
-        <snopt_exit exit="0" info="32"/>
-        <evaluations f_evals="33" g_evals="31"/>
-      </summary>
+      <snopt>
+        <summary snopt_outputfile="mech_coef_ev.snopt">
+          <snopt>
+            <timer id="28" wall-clock="0.01752s" wall="0.0175194" cpu="0.017508" calls="180"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="39" g_evals="38" majors="20"/>
+        </summary>
+        <scaling active="no"/>
+      </snopt>
     </optimizer>
     <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
       <eval_objective>
-        <timer wall="0" cpu="0.01223" calls="162"/>
+        <timer id="29" wall-clock="0.002758s" wall="0.00275762" cpu="0.002763" calls="195"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall="0" cpu="0.001092" calls="33"/>
+        <timer id="30" wall-clock="0.0005045s" wall="0.000504499" cpu="0.000508" calls="39"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall="0" cpu="0.000384" calls="31"/>
+        <timer id="31" wall-clock="0.0002055s" wall="0.000205456" cpu="0.000201" calls="38"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall="0" cpu="0.071147" calls="32"/>
+        <timer id="32" wall-clock="0.02171s" wall="0.021707" cpu="0.021672" calls="39"/>
       </eval_grad_constraints>
       <break converged="no"/>
+      <functions>
+        <slack min="1675.8" max="3500" oscillations="8"/>
+        <eigenfrequency_1 min="963.92" max="1656.3" oscillations="6"/>
+        <eigenfrequency_2 min="990.21" max="1678.1" oscillations="7"/>
+        <volume_mech_trace min="0.5" max="0.5" oscillations="7"/>
+        <volume_mass min="1" max="1" oscillations="8"/>
+      </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0" slack="3500" eigenfrequency_1="1393" eigenfrequency_2="1584.4" volume_mech_trace="0.99" max_tensorTrace_mech_trace="0.99" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="1" duration="0" slack="3500" eigenfrequency_1="963.92" eigenfrequency_2="990.21" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.53" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="2" duration="0" slack="3484.1" eigenfrequency_1="976.72" eigenfrequency_2="1003" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.53542" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="3" duration="0" slack="3468.1" eigenfrequency_1="988.25" eigenfrequency_2="1014.4" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.54059" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="4" duration="0" slack="1703.3" eigenfrequency_1="1356.7" eigenfrequency_2="1402.4" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="6" volume_mass="1"/>
-      <iteration number="5" duration="0" slack="1623.5" eigenfrequency_1="1370.8" eigenfrequency_2="1497.8" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="6" volume_mass="1"/>
-      <iteration number="6" duration="0" slack="2001.9" eigenfrequency_1="1397" eigenfrequency_2="1435.9" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="4" volume_mass="1"/>
-      <iteration number="7" duration="0" slack="1692.3" eigenfrequency_1="1445.2" eigenfrequency_2="1554.6" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.96986" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="8" duration="0" slack="1966.7" eigenfrequency_1="1301.4" eigenfrequency_2="1487.7" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="8" volume_mass="1"/>
-      <iteration number="9" duration="0" slack="1785.2" eigenfrequency_1="1538.3" eigenfrequency_2="1601.7" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.84691" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="10" duration="0" slack="1732.3" eigenfrequency_1="1502.8" eigenfrequency_2="1594.3" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.91513" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="11" duration="0" slack="1828.6" eigenfrequency_1="1407.4" eigenfrequency_2="1517.9" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="3" volume_mass="1"/>
-      <iteration number="12" duration="0" slack="1776.4" eigenfrequency_1="1569.2" eigenfrequency_2="1630.1" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.83368" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="13" duration="0" slack="1710.3" eigenfrequency_1="1591.1" eigenfrequency_2="1620.8" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="1" volume_mass="1"/>
-      <iteration number="14" duration="0" slack="1734.2" eigenfrequency_1="1593.2" eigenfrequency_2="1690.2" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" infeas_tensorTrace_mech_trace="2" volume_mass="1"/>
-      <iteration number="15" duration="0" slack="1735.8" eigenfrequency_1="1587.5" eigenfrequency_2="1629.4" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.89171" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="16" duration="0" slack="1734.9" eigenfrequency_1="1619.1" eigenfrequency_2="1690.8" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.91558" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="17" duration="0" slack="1684.4" eigenfrequency_1="1636.2" eigenfrequency_2="1647.2" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.89514" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="18" duration="0" slack="1675.1" eigenfrequency_1="1650.9" eigenfrequency_2="1659.6" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98416" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="19" duration="0" slack="1654.5" eigenfrequency_1="1653.7" eigenfrequency_2="1654.2" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98509" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="20" duration="0" slack="1654.5" eigenfrequency_1="1653.4" eigenfrequency_2="1655.6" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98738" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="21" duration="0" slack="1654.5" eigenfrequency_1="1652.2" eigenfrequency_2="1656.3" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98509" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="22" duration="0" slack="1654.6" eigenfrequency_1="1654" eigenfrequency_2="1655" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98635" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="23" duration="0" slack="1654.6" eigenfrequency_1="1654" eigenfrequency_2="1655" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98678" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="24" duration="0" slack="1654.6" eigenfrequency_1="1653.9" eigenfrequency_2="1655.1" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98582" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="25" duration="0" slack="1654.6" eigenfrequency_1="1654.1" eigenfrequency_2="1654.9" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98646" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="26" duration="0" slack="1654.6" eigenfrequency_1="1654.3" eigenfrequency_2="1654.9" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.9862" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="27" duration="0" slack="1654.6" eigenfrequency_1="1654.3" eigenfrequency_2="1654.8" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98629" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="28" duration="0" slack="1655.4" eigenfrequency_1="1655.2" eigenfrequency_2="1655.3" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.9853" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="29" duration="0" slack="1655.5" eigenfrequency_1="1655.2" eigenfrequency_2="1655.7" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98467" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="30" duration="0" slack="1655.6" eigenfrequency_1="1655.3" eigenfrequency_2="1655.8" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.9837" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
-      <iteration number="31" duration="0" slack="1655.5" eigenfrequency_1="1655.3" eigenfrequency_2="1655.7" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.98414" infeas_tensorTrace_mech_trace="0" volume_mass="1"/>
+      <iteration number="0" duration="0.055292" slack="3500" eigenfrequency_1="963.922050623587" eigenfrequency_2="990.211639000158" volume_mech_trace="0.500000000000004" max_abs_tensorTrace_mech_trace="0.53" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="1"/>
+      <iteration number="1" duration="0.0021249" slack="3499" eigenfrequency_1="964.757996069623" eigenfrequency_2="991.029581683655" volume_mech_trace="0.500000000000004" max_abs_tensorTrace_mech_trace="0.53034" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="2"/>
+      <iteration number="2" duration="0.0016709" slack="3498" eigenfrequency_1="965.587741353034" eigenfrequency_2="991.841443358037" volume_mech_trace="0.500000000000004" max_abs_tensorTrace_mech_trace="0.53068" infeas_count_tensorTrace_mech_trace="0" volume_mass="0.999999999999999" nObj="3"/>
+      <iteration number="3" duration="0.0015904" slack="1738.45006235439" eigenfrequency_1="1250.41253169547" eigenfrequency_2="1269.26874580797" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="19" volume_mass="1" nObj="4"/>
+      <iteration number="4" duration="0.0033862" slack="1820.41189769483" eigenfrequency_1="1367.04473520307" eigenfrequency_2="1379.47125907564" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="15" volume_mass="1" nObj="6"/>
+      <iteration number="5" duration="0.0040554" slack="1842.4759538768" eigenfrequency_1="1385.19102742536" eigenfrequency_2="1415.45564206278" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="2" volume_mass="1" nObj="9"/>
+      <iteration number="6" duration="0.004279" slack="1902.32393128314" eigenfrequency_1="1458.02681815538" eigenfrequency_2="1493.06964209886" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="2" volume_mass="1" nObj="12"/>
+      <iteration number="7" duration="0.0045543" slack="1937.10916606982" eigenfrequency_1="1513.4318091445" eigenfrequency_2="1550.92258315946" volume_mech_trace="0.499999999999996" max_abs_tensorTrace_mech_trace="0.91831" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="15"/>
+      <iteration number="8" duration="0.0044372" slack="1959.02366223848" eigenfrequency_1="1557.95542403253" eigenfrequency_2="1577.85131430715" volume_mech_trace="0.499999999999996" max_abs_tensorTrace_mech_trace="0.92552" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="18"/>
+      <iteration number="9" duration="0.003367" slack="1946.12079969574" eigenfrequency_1="1575.24178005041" eigenfrequency_2="1582.11983808932" volume_mech_trace="0.499999999999997" max_abs_tensorTrace_mech_trace="0.93141" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="20"/>
+      <iteration number="10" duration="0.0037893" slack="1921.8948225344" eigenfrequency_1="1569.51552837706" eigenfrequency_2="1592.92495932767" volume_mech_trace="0.499999999999997" max_abs_tensorTrace_mech_trace="0.95378" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="22"/>
+      <iteration number="11" duration="0.0035842" slack="1928.35661120063" eigenfrequency_1="1581.89834896734" eigenfrequency_2="1625.13987091729" volume_mech_trace="0.499999999999998" max_abs_tensorTrace_mech_trace="0.91432" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="24"/>
+      <iteration number="12" duration="0.0028308" slack="1899.21292731675" eigenfrequency_1="1590.36064211265" eigenfrequency_2="1621.59125386077" volume_mech_trace="0.499999999999998" max_abs_tensorTrace_mech_trace="0.94564" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="26"/>
+      <iteration number="13" duration="0.0034414" slack="1899.1067782455" eigenfrequency_1="1616.8253895964" eigenfrequency_2="1636.51443515919" volume_mech_trace="0.499999999999998" max_abs_tensorTrace_mech_trace="0.96125" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="28"/>
+      <iteration number="14" duration="0.0017668" slack="1730.06466485552" eigenfrequency_1="1587.17217318653" eigenfrequency_2="1625.21681084439" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="2" volume_mass="1" nObj="29"/>
+      <iteration number="15" duration="0.0019091" slack="1695.20620197661" eigenfrequency_1="1632.9705760982" eigenfrequency_2="1652.8389282662" volume_mech_trace="0.5" max_abs_tensorTrace_mech_trace="0.96802" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="30"/>
+      <iteration number="16" duration="0.003159" slack="1703.07534593194" eigenfrequency_1="1644.58975113748" eigenfrequency_2="1670.14054970416" volume_mech_trace="0.5" max_abs_tensorTrace_mech_trace="0.93111" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="32"/>
+      <iteration number="17" duration="0.0019817" slack="1682.63197854403" eigenfrequency_1="1638.62144952542" eigenfrequency_2="1650.92264840523" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="0.99924" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="33"/>
+      <iteration number="18" duration="0.0032362" slack="1689.86048749062" eigenfrequency_1="1643.91914719846" eigenfrequency_2="1670.08563159373" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="0.99671" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="35"/>
+      <iteration number="19" duration="0.0032922" slack="1697.30482440024" eigenfrequency_1="1652.75785996672" eigenfrequency_2="1678.05680776005" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="0.9948" infeas_count_tensorTrace_mech_trace="0" volume_mass="1" nObj="37"/>
+      <iteration number="20" duration="0.0021075" slack="1675.75042813732" eigenfrequency_1="1656.25846529536" eigenfrequency_2="1671.12223610252" volume_mech_trace="0.499999999999999" max_abs_tensorTrace_mech_trace="1" infeas_count_tensorTrace_mech_trace="1" volume_mass="1" nObj="38"/>
     </process>
   </optimization>
 </cfsInfo>

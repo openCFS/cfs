@@ -99,8 +99,7 @@
       <local normalize="true" power="1"/>
     </constraint>
     <optimizer type="snopt" maxIterations="10">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option type="integer" name="verify_level" value="0"/>
       </snopt>
     </optimizer> 

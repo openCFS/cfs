@@ -1,3 +1,4 @@
+#include <cmath>
 #include <fstream>
 
 #include <filesystem>
@@ -314,6 +315,8 @@ namespace CoupledField {
       // Finally compute symbolic factorization
       if(isComplex_) 
       {      
+        // Setup() is called again for every wave vector, drop the previous factorisation
+        umfpack_zi_free_symbolic( &Symbolic );
         umfpack_zi_symbolic (probDim_, probDim_,
                              &Rp[0], &Ri[0], &Rx[0], NULL,
                              &Symbolic, &Control[0], &Info[0]) ;
@@ -358,6 +361,7 @@ namespace CoupledField {
       }
       else 
       {    
+        umfpack_di_free_symbolic( &Symbolic );
         umfpack_di_symbolic (probDim_, probDim_,
                              &Rp[0], &Ri[0], &Rx[0],
                              &Symbolic, &Control[0], &Info[0]) ;
@@ -413,7 +417,8 @@ namespace CoupledField {
 
       if(isComplex_) 
       {      
-        // only factorise (numerical)
+        // only factorise (numerical), drop a previous factorisation first
+        umfpack_zi_free_numeric( &Numeric );
         status = umfpack_zi_numeric (&Rp[0], &Ri[0], &Rx[0], NULL,
                                      Symbolic, &Numeric, &Control[0], &Info[0]);
         if (status < 0)
@@ -449,6 +454,7 @@ namespace CoupledField {
       }
       else 
       {      
+        umfpack_di_free_numeric( &Numeric );
         status = umfpack_di_numeric (&Rp[0], &Ri[0], &Rx[0],
                                      Symbolic, &Numeric, &Control[0], &Info[0]);
         if (status < 0)
@@ -483,6 +489,25 @@ namespace CoupledField {
         }
       }
 
+    }
+
+    // the cost of the factorization in the notation common to all direct solvers
+    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
+    double factor_nnz = Info[UMFPACK_LNZ] + Info[UMFPACK_UNZ];
+    out->Get("fillFactor")->SetValue(factor_nnz / nnz_);
+    double mb = Info[UMFPACK_PEAK_MEMORY] * Info[UMFPACK_SIZE_OF_UNIT] / (1024.0 * 1024.0);
+    out->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, isComplex_, Info[UMFPACK_FLOPS], mb));
+    out->Get("flops")->SetValue(Info[UMFPACK_FLOPS]);
+
+    double rcond = Info[UMFPACK_RCOND]; // reciprocal condition number - small is bad
+    out->Get("rcond")->SetValue(rcond);
+    if(!warnedSingular_ && (std::isnan(rcond) || rcond < 1e-14))
+    {
+      warnedSingular_ = true;
+      std::ostringstream msg; // std::to_string() would print a tiny rcond as 0.000000
+      msg << "umfpack factorized a (nearly) singular matrix with reciprocal condition number " << rcond;
+      infoNode_->Get(ParamNode::SUMMARY)->SetWarning(msg.str());
     }
 
     // Now we were called once, and a factorisation is available

@@ -99,7 +99,7 @@ public:
     }
 
     virtual ~SurfaceNormalStressOperator(){
-      return;
+      delete strainOp_;
     }
 
     virtual void CalcOpMat(Matrix<Double> & bMat,

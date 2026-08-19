@@ -93,8 +93,7 @@
     <constraint type="volume" bound="upperBound" value="0.5" mode="constraint" linear="false"/>
    
     <optimizer type="snopt" maxIterations="50">
-      <!-- nCon is only for compatabiliy of old test cases -->
-      <snopt iteration="nCon">
+      <snopt>
         <option name="major_optimality_tolerance" type="real" value="1e-8"/>
         <option type="integer" name="verify_level" value="-1"/>
       </snopt>

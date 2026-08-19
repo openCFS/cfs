@@ -590,6 +590,9 @@ namespace CoupledField
         * The PtrCoefFct could be CoefFunctionAnalytic */
        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct>> scnd_materials;
 
+       /**  owns what GetScndMaterial() loads, CoefFunction keep raw pointers into it */
+       StdVector<std::shared_ptr<BaseMaterial>> scnd_material_objects;
+
        /** Here we store the actual instance of the PtrCoefFct for the first element of the DR.
         * You shall know if scalar or Matrix and real or complex as the variant can store only one version.
         * Set by SIMP::AddSecondMaterialCache()  

@@ -43,7 +43,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
   assert(this_opt_pn_ != NULL);
 
-  python->Register(this);
+  PythonKernel::Register(this);
 
   PythonKernel::LoadStatus stat = python->LoadPythonModule(this_opt_pn_);
   module = stat.module;
@@ -99,7 +99,7 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
 PythonOptimizer::~PythonOptimizer()
 {
-  python->Register(this, false);
+  PythonKernel::Register(this, true);
   Py_XDECREF(module);
 }
 

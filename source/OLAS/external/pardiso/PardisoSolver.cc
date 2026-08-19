@@ -1,4 +1,5 @@
 #include <fstream>
+#include <type_traits>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -563,12 +564,16 @@ extern "C" {
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
     xml_->GetValue("stats", stats, ParamNode::INSERT);
-    
+
     if(stats)
       iparm_[18] = -1;
     else
       iparm_[18] = 0;
-  
+
+    // always report the entries of the factor, we need them for CheckDirectPlausibility(). In contrast
+    // to the MFLOPs of iparm_[18] this costs nothing.
+    iparm_[17] = -1;
+
     // Setting pivoting strategy for indefinite problems
     iparm_[20] = 1;
 
@@ -761,6 +766,18 @@ extern "C" {
     node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
     node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
     node->Get("numfact/peakMem")->SetValue(iparm_[16]);
+
+    // the cost of the factorization in the notation common to all direct solvers. iparm_[18] holds
+    // the MFLOPs but only when 'stats' was requested, iparm_[17] the entries of the factor.
+    double factor_nnz = iparm_[17];
+    double flops = iparm_[18] > 0 ? 1e6 * iparm_[18] : 0.0;
+    if(factor_nnz > 0.0) // pardiso does not always fill iparm_[17]
+      node->Get("fillFactor")->SetValue(factor_nnz / nnz_);
+    // iparm_[15] is the memory pardiso keeps and iparm_[16] the peak of the numerical factorization
+    double mb = (iparm_[15] + iparm_[16]) / 1024.0;
+    node->Get("memoryMB")->SetValue(CheckDirectPlausibility(factor_nnz, std::is_same<T,Complex>::value, flops, mb));
+    if(flops > 0.0)
+      node->Get("flops")->SetValue(flops);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;

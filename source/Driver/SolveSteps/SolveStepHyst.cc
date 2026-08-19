@@ -234,7 +234,7 @@ namespace CoupledField {
     numIterationsTillUpdateOfJacobian_ = 1;
 
     PtrParamNode currentMethod = NULL;
-    bool evalJacAtMidpointOnly;
+    bool evalJacAtMidpointOnly = false;
     /*
      * Read in fix-point
      */

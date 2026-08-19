@@ -9,4 +9,9 @@ if(USE_CUDA)
   target_link_libraries(ginkgo-olas "$<LINK_GROUP:RESCAN,cudart;cusparse;cublas;curand>")
 endif()
 
+if(CFS_FSANITIZE)
+  # ginkgo's CRTP solver base trips the vptr check within its own headers
+  target_compile_options(ginkgo-olas PRIVATE -fno-sanitize=vptr)
+endif()
+
 add_dependencies(ginkgo-olas cfsdeps)
