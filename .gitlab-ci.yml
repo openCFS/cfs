@@ -1164,7 +1164,6 @@ performance_tests:
   trigger:
     project: openCFS/performance
     branch: main
-    strategy: depend            # wait for and reflect the performance pipeline result
   variables:
     CFS_PROJECT_ID: $CI_PROJECT_ID
     CFS_PIPELINE_ID: $CI_PIPELINE_ID   # this pipeline is still running, so the build is fetched by pipeline id
