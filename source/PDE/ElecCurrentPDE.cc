@@ -450,9 +450,15 @@ namespace CoupledField {
     }
     else
     {
-      // Until now no effective mass formulation in the trapezoidal
-      // integration scheme is implemented!
-      scheme = new Trapezoidal(1.0);
+      if (GetDomain()->GetAdaptiveData()) {
+        std::cout << " [ElecCurrentPDE] Adaptive timestepping: defaulting to BDF2"
+                     " (add <integrationScheme><bdf2/></integrationScheme> to suppress).\n";
+        scheme = new Bdf2();
+      } else {
+        // Until now no effective mass formulation in the trapezoidal
+        // integration scheme is implemented!
+        scheme = new Trapezoidal(1.0);
+      }
     }
 
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0));

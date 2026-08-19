@@ -273,6 +273,10 @@ namespace CoupledField {
 
   void ElecQuasistaticPDE::InitTimeStepping()
   {
+    if (GetDomain()->GetAdaptiveData())
+        EXCEPTION("ElecQuasistaticPDE: adaptive timestepping is only supported for parabolic PDEs. "
+                  "Please remove <adaptiveTimeStepping> from XML or use a fixed deltaT.");
+
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);

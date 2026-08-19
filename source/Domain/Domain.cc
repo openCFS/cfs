@@ -90,6 +90,9 @@
 namespace CoupledField
 {
 
+shared_ptr<AdaptiveTimesteppingData> Domain::GetAdaptiveData() const { return adaptiveData_; }
+void Domain::SetAdaptiveData(shared_ptr<AdaptiveTimesteppingData> d) { adaptiveData_ = d; }
+
 // **************
 //   Construtor
 // **************

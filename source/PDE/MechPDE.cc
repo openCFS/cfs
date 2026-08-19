@@ -2636,6 +2636,17 @@ namespace CoupledField {
       scheme = new Newmark(0.5, 0.25, alpha);
     }
 
+    if (GetDomain()->GetAdaptiveData())
+    {
+      if (nonLin_)
+        EXCEPTION("Adaptive timestepping is not supported for nonlinear MechPDE "
+                  "(incremental update is incompatible with step rejection).");
+      if (scheme->maxDerivOrder_ < 2)
+        EXCEPTION("Adaptive timestepping on MechPDE requires a second-order time scheme: "
+                  "use <integrationScheme><newmark .../> (or omit it for the Newmark default). "
+                  "bdf2, trapezoidal and rk4 cannot integrate the mass term.");
+    }
+
     TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);

@@ -1854,7 +1854,13 @@ void HeatPDE::DefineSolveStep() {
       scheme = GetXmlDefinedScheme(integrationScheme);
     }
     else {
-      scheme = new Trapezoidal(0.5);
+      if (GetDomain()->GetAdaptiveData()) {
+        std::cout << " [HeatPDE] Adaptive timestepping: defaulting to BDF2"
+                     " (add <integrationScheme><bdf2/></integrationScheme> to suppress).\n";
+        scheme = new Bdf2();
+      } else {
+        scheme = new Trapezoidal(0.5);
+      }
     }
 
     if (nonLinTotalFormulation_)

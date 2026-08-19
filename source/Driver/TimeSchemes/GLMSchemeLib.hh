@@ -17,10 +17,7 @@
 
 #include "MatVec/Matrix.hh"
 #include "Domain/Domain.hh"
-
 namespace CoupledField {
-
-class MathParser;
 
 /*! \class GLMScheme
  *    \brief The base class defining all variable necessary to define a GLM
@@ -36,7 +33,19 @@ class MathParser;
  */
 class GLMScheme{
   public:
-  
+
+  Double dtCurrent_      = -1.0;
+  Double dtPrev1_        = -1.0;
+  Double dtPrev2_        = -1.0;
+  Double prev_dtCurrent_ = -1.0;
+  Double prev_dtPrev1_   = -1.0;
+  Double prev_dtPrev2_   = -1.0;
+
+  bool   adaptiveEnabled_ = false;  // adaptive timestepping active (BDF2 or Newmark)
+  Double local_error_  = 0.0;
+  bool   initialized_  = false;
+  bool   coefChanged_  = false;  // true when a0/dt changed; triggers system matrix rebuild
+
   /// Enumeration for each GLM scheme available
   typedef enum{
     TRAPEZOIDAL = 1,
@@ -58,6 +67,10 @@ class GLMScheme{
      * @param deltaT Current timestepsize
      */
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT)=0;
+
+    //! Adaptive: advance dt history one step (called once per attempt from BeginStep).
+    //! Default no-op; BDF2 overrides it (its tableau depends on the step ratio dtCurrent_/dtPrev1_).
+    virtual void AdvanceAdaptiveStep(Double /*newDt*/) {}
 
     /*!
      * Transforms a given BC value according to the current scheme formulation.
@@ -183,7 +196,7 @@ class Trapezoidal : public GLMScheme{
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return TRAPEZOIDAL;
     }
@@ -249,7 +262,7 @@ class Newmark : public GLMScheme{
 
     Newmark(Double gamma,Double beta,Double alpha=0.0);
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return NEWMARK;
     }
@@ -259,6 +272,10 @@ class Newmark : public GLMScheme{
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain);
+
+    Double GetGamma() const { return gamma_; }
+    Double GetBeta()  const { return beta_; }
+    Double GetAlpha() const { return alpha_; }
 
   private:
     /*!parameter for switching between implicit and explicit scheme
@@ -287,7 +304,7 @@ class Bdf2 : public GLMScheme{
 
   Bdf2();
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return BDF2;
     }
@@ -295,6 +312,8 @@ class Bdf2 : public GLMScheme{
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
     virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
 
+    //! \copydoc GLMScheme::AdvanceAdaptiveStep(Double)
+    virtual void AdvanceAdaptiveStep(Double newDt) override;
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
      /// domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
@@ -302,6 +321,7 @@ class Bdf2 : public GLMScheme{
     }
   private:
 
+  Double w_;
 };
 
 
@@ -310,7 +330,7 @@ class RungeKutta4 : public GLMScheme{
 
     RungeKutta4();
 
-    //! \copydoc GLMSchem::GetType
+    //! \copydoc GLMScheme::GetType
     virtual SchemeType GetType() const {
       return RK4;
     }

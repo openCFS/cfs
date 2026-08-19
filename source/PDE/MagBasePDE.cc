@@ -104,23 +104,31 @@ namespace CoupledField
 
   void MagBasePDE::InitTimeStepping()
   {
+    // const-dt BDF2 + NonLinType::INCREMENTAL diverges and Newton stalls on step 1:
+    // a scheme-level incompatibility, independent of adaptive control.
+    if (GetDomain()->GetAdaptiveData() && (nonLin_ || isHysteresis_))
+      EXCEPTION("Adaptive timestepping is not supported for nonlinear magnetic problems: "
+                "BDF2 with incremental nonlinearity diverges (only Trapezoidal works). "
+                "Remove <adaptiveTimeStepping> from your XML, or use a linear material "
+                "(remove <nonLinList> and use constant permeability in the material file).");
+
     // Check if time integration is defined in XML input
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    // Use complete implicit scheme by default
-    GLMScheme* scheme = nullptr;
-    if (integrationScheme)
-    {
-      scheme = GetXmlDefinedScheme(integrationScheme);
-    }
-    else
-    {
-      scheme = new Trapezoidal(1.0);
-    }
+    const bool adaptive = GetDomain()->GetAdaptiveData() != nullptr;
 
-    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else if (adaptive)
+        return new Bdf2();
+      else
+        return new Trapezoidal(1.0);
+    };
+
+    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(makeScheme(), 0, nlType));
     if ( pdename_ == "magneticEdgeAdj" )
       feFunctions_[MAG_POTENTIAL_ADJ]->SetTimeScheme(myScheme);
     else
@@ -137,15 +145,22 @@ namespace CoupledField
             feFunctions_[MAG_POTENTIAL]->GetTimeScheme());            
     assert(mainScheme);
 
+    // The copy ctor shares curScheme_, where the adaptive dt history and LTE state live.
+    // Adaptive therefore needs an independent GLMScheme per field; otherwise copy as before.
+    auto additionalScheme = [&]() -> TimeSchemeGLM* {
+      return adaptive ? new TimeSchemeGLM(makeScheme(), 0, nlType)
+                      : new TimeSchemeGLM(*mainScheme);
+    };
+
     if (hasVoltCoils_)
     {
-      shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(*mainScheme));
+      shared_ptr<BaseTimeScheme> myScheme2(additionalScheme());
       feFunctions_[COIL_CURRENT]->SetTimeScheme(myScheme2);
     }
 
     if (isMixed_)
     {
-      shared_ptr<BaseTimeScheme> myScheme3(new TimeSchemeGLM(*mainScheme));
+      shared_ptr<BaseTimeScheme> myScheme3(additionalScheme());
       feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme3);
     }
   }

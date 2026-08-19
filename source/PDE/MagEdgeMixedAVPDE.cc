@@ -667,6 +667,13 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
     PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
+    if (GetDomain()->GetAdaptiveData() && !integrationScheme)
+      EXCEPTION("Adaptive time-stepping with automatic BDF2 is not supported for MagEdgeMixedAVPDE.\n"
+                "  Reason: this formulation is pseudo-parabolic — the eddy-current mass matrix\n"
+                "  (sigma * dA/dt) is zero in non-conducting regions (air), so the LTE estimator\n"
+                "  cannot reliably distinguish time-integration error from the elliptic solution\n"
+                "  in those regions.  A conductivity-masked error norm would be required.");
+
     auto makeScheme = [&]() -> GLMScheme* {
       if (integrationScheme)
         return GetXmlDefinedScheme(integrationScheme);

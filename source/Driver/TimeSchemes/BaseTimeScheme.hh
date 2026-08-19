@@ -19,7 +19,7 @@
 #include "MatVec/SingleVector.hh"
 
 namespace CoupledField{
-
+class Domain;
 
 class BaseTimeScheme{
 
@@ -55,6 +55,12 @@ class BaseTimeScheme{
     virtual void BeginStep(bool updatePredictor = true, bool storeInitialIterGlmVector=false)=0;
 
     /*!
+     *   Lets a PDE set the domain so TimeSchemeGLM has MathParser access.
+     *   Set by SinglePDE for every registered scheme; needed to control adaptive timestepping.
+     */
+    void SetDomain(Domain* d) { domain_ = d; }
+
+    /*!
      *   Computes the effective RHS based on the GLM vector and preceeding stage solutions
      *   \param[in] actStage The current stage number (used to determine row in GLM tableau)
      *   \param[in] derivId The current derivative i.e. matrix stiffness->derivid = 0, damping->derivId=1 etc.
@@ -66,6 +72,16 @@ class BaseTimeScheme{
     virtual void UpdateStageRHSWithVector(UInt actStage, Integer derivId, SingleVector* rhsVec,
                                  SingleVector* UpdateVector, Double factor, bool forceReset = false)=0;
     
+    /// LTE collection pass: compute and register this field's LTE in atd->fieldLocalErrors_.
+    /// Called for every field before FinishStep() so all errors are known before any
+    /// step-size decision is made.  Default is a no-op (non-adaptive schemes).
+    virtual void FinishStepLTE() {}
+
+    /// Returns true if the scheme coefficients (a0/dt etc.) changed since the last step.
+    /// Used by StdSolveStep to decide whether the system matrix must be rebuilt even when
+    /// no physical matrix (DAMPING, STIFFNESS) was reassembled.
+    virtual bool CoefficientsChanged() const { return false; }
+
     /// Update function called at the end of the solvestep
     virtual void FinishStep()=0;
 
@@ -147,6 +163,9 @@ class BaseTimeScheme{
 
     /// Current time derivative order of the solution
     UInt solOrder_;
+
+    //! Domain, needed for MathParser access in the time scheme (used by adaptive timestepping).
+    Domain* domain_ = nullptr;
 
 
 };

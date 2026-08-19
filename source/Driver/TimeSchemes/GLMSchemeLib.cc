@@ -165,6 +165,23 @@ Newmark::Newmark(Double gamma,Double beta, Double alpha)
 }
 
 void Newmark::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+  // Adaptive: Newmark is one-step, the tableau depends only on the current deltaT (no step
+  // ratio like BDF2); we only track dt changes to trigger the matrix rebuild + refactorization.
+  // coefChanged_ is sticky (cleared on accept in FinishStep): TransformBC re-calls this method
+  // with unchanged dt and must not clear a pending rebuild flag.
+  if(adaptiveEnabled_){
+    if(!initialized_){
+      dtCurrent_ = dtPrev1_ = dtPrev2_ = deltaT;
+      initialized_ = true;
+      coefChanged_ = true;
+    }else if(deltaT != dtCurrent_){
+      dtPrev2_ = dtPrev1_;
+      dtPrev1_ = dtCurrent_;
+      dtCurrent_ = deltaT;
+      coefChanged_ = true;
+    }
+  }
+
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
 
@@ -283,8 +300,6 @@ void Newmark::PrepareStage(UInt i,Double aTime, Domain* domain){
  domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
                                     "t", aTime+(alpha_*curTStepSize_) );
 }
-
-
 //================================================================
 //BDF2 SCHEME
 //================================================================
@@ -298,7 +313,6 @@ Bdf2::Bdf2()
   numSol1stDerivs_ = 1;
   numSol2ndDerivs_ = 0;
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
-
   lastStageIsSolution_ = false;
   usePredictors_ = false;
 
@@ -310,27 +324,50 @@ Bdf2::Bdf2()
 }
 
 void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+  // Stores previous time steps for the error estimation. w_ -> 1 for a constant time step,
+  // where the coefficients revert to the classic fixed-step BDF2 values.
+  if(!initialized_)
+  {
+    dtCurrent_ = deltaT;
+    dtPrev1_ = deltaT;
+    dtPrev2_ = deltaT;
+    initialized_ = true;
+    coefChanged_ = true;
+  }else if(!adaptiveEnabled_)
+  {
+    // Non-adaptive (constant-step) BDF2: per-call shift, a no-op at constant dt.
+    Double oldDt = dtCurrent_;
+    dtPrev2_ = dtPrev1_;
+    dtPrev1_ = dtCurrent_;
+    dtCurrent_ = deltaT;
+    coefChanged_ = (dtCurrent_ != oldDt);
+  }
+
+  // Adaptive BDF2: the dt history is advanced once per step in AdvanceAdaptiveStep(); this
+  // method only (re)computes the tableau, so TransformBC/coupling re-calls leave it untouched.
   curTStepSize_ = deltaT;
   solDerivOrder_ = solDerivOrder;
+  w_ = dtCurrent_/dtPrev1_; // step ratio h_{n+1}/h_n; w_=1 for constant dt -> non-adaptive BDF2
+  double a0 = (1.0 + 2.0*w_) / (1.0 + w_);
 
   switch(solDerivOrder){
   case 1:
     solDerivOrder_ = 1;
-    schemeCoefs_[0][0] = 2*curTStepSize_/3;
-    schemeCoefs_[0][1] = -4/3;
-    schemeCoefs_[0][2] = 1/3;
+    schemeCoefs_[0][0] = dtCurrent_ / a0;
+    schemeCoefs_[0][1] = -(1.0 + w_) / a0;
+    schemeCoefs_[0][2] = w_*w_ / ((1.0 + 2.0*w_));
     schemeCoefs_[0][3] = 0;
     schemeCoefs_[1][0] = 1;
     schemeCoefs_[1][1] = 0;
     schemeCoefs_[1][2] = 0;
     schemeCoefs_[1][3] = 0;
-    schemeCoefs_[2][0] = 2*curTStepSize_/3;
-    schemeCoefs_[2][1] = 4/3;
-    schemeCoefs_[2][2] = -1/3;
+    schemeCoefs_[2][0] = dtCurrent_ / a0;
+    schemeCoefs_[2][1] = (1.0 + w_) / a0;
+    schemeCoefs_[2][2] = -w_*w_ / (1.0 + 2.0*w_);
     schemeCoefs_[2][3] = 0;
     schemeCoefs_[3][0] = 0;
-    schemeCoefs_[3][1] = 0;
-    schemeCoefs_[3][2] = 1;
+    schemeCoefs_[3][1] = 1;   // new_glm[1] = old_glm[0] = y_n → tracks y_{n-1} correctly
+    schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
     schemeCoefs_[4][0] = 1;
     schemeCoefs_[4][1] = 0;
@@ -343,9 +380,9 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[0][1] = 0;
     schemeCoefs_[0][2] = 0;
     schemeCoefs_[0][3] = 0;
-    schemeCoefs_[1][0] = 3/(2*curTStepSize_);
-    schemeCoefs_[1][1] = 2/(curTStepSize_);
-    schemeCoefs_[1][2] = (-0.5/curTStepSize_);
+    schemeCoefs_[1][0] = (1.0 + 2.0 *w_)/ ((1.0 + w_)*dtCurrent_);
+    schemeCoefs_[1][1] =  (1.0 +w_) / dtCurrent_;
+    schemeCoefs_[1][2] = -w_*w_ /((1.0+w_) * dtCurrent_);
     schemeCoefs_[1][3] = 0;
     schemeCoefs_[2][0] = 1;
     schemeCoefs_[2][1] = 0;
@@ -355,12 +392,28 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[3][1] = 1;
     schemeCoefs_[3][2] = 0;
     schemeCoefs_[3][3] = 0;
-    schemeCoefs_[4][0] = 3/(2*curTStepSize_);
-    schemeCoefs_[4][1] = -2/(curTStepSize_);
-    schemeCoefs_[4][2] = (0.5/curTStepSize_);
+    schemeCoefs_[4][0] = (1.0 + 2.0 * w_) / ((1.0 +w_) * dtCurrent_);
+    schemeCoefs_[4][1] = -(1.0 + w_) / dtCurrent_;
+    schemeCoefs_[4][2] = w_*w_ / ((1.0 + w_)* dtCurrent_);
     schemeCoefs_[4][3] = 0;
     break;
   }
+}
+
+void Bdf2::AdvanceAdaptiveStep(Double newDt){
+  // Advance the dt history by exactly one step (called once per fresh adaptive attempt).
+  // coefChanged_ is sticky: set here when the tableau changes, cleared on accept in FinishStep.
+  if(!initialized_){
+    dtCurrent_ = dtPrev1_ = dtPrev2_ = newDt;
+    initialized_ = true;
+    coefChanged_ = true;
+    return;
+  }
+  const Double newW = newDt / dtCurrent_;  // dtCurrent_ becomes the new dtPrev1_
+  coefChanged_ = (newDt != dtCurrent_) || (newW != w_);  // rebuild iff 1/dt scaling or step ratio changed
+  dtPrev2_ = dtPrev1_;
+  dtPrev1_ = dtCurrent_;
+  dtCurrent_ = newDt;  // w_ is recomputed in ComputeCoefficients
 }
 
 

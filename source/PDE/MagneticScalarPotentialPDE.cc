@@ -455,7 +455,13 @@ namespace CoupledField
     }
     else
     {
-      scheme = new Trapezoidal(1.0);
+      if (GetDomain()->GetAdaptiveData()) {
+        std::cout << " [MagneticScalarPotentialPDE] Adaptive timestepping: defaulting to BDF2"
+                     " (add <integrationScheme><bdf2/></integrationScheme> to suppress).\n";
+        scheme = new Bdf2();
+      } else {
+        scheme = new Trapezoidal(1.0);
+      }
     }
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;

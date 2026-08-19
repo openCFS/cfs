@@ -21,8 +21,11 @@
 
 #include "BaseTimeScheme.hh"
 #include "GLMSchemeLib.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField{
+
+class AdaptiveTimesteppingData;
 
 //see below for description
 class TimeSchemeGLM : public BaseTimeScheme{
@@ -34,15 +37,12 @@ class TimeSchemeGLM : public BaseTimeScheme{
       TOTAL
     } NonLinType;
 
-
-
     /*!
      *  Constructor of the GLM scheme
      *  \param[in] type The TimeScheme to be used. Newmark, Trapezoidal, etc.
      *  \param[in] solDerivOrder The time derivative order of the solution to the effective system
      */
     TimeSchemeGLM(GLMScheme::SchemeType type, UInt solDerivOrder=0, TimeSchemeGLM::NonLinType nlType=NONE);
-    
     
     /*!
      * Alternative constructor to directly pass a pre-constructed GLM-scheme
@@ -74,6 +74,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
                                             SingleVector* UpdateVector, Double factor, bool forceReset = false);
 
     /// Update the GLM Vectors according to new solution
+    virtual void FinishStepLTE() override;
     virtual void FinishStep( );
 
     // In the case that we did not converge, we have to reset the glmVec (and the last solution stored to the feFunction in order to start with the correct values in the next sub-iteration
@@ -117,6 +118,16 @@ class TimeSchemeGLM : public BaseTimeScheme{
       return curScheme_->sizeGLMVec_;
     }
 
+    //! Restores dtCurrent_, dtPrev1_, dtPrev2_ from last-accepted snapshots; call on step rejection to keep BDF2 coefficient history consistent for the retry.
+    void reset_dt();
+
+    //! Only adaptive runs clear coefChanged_ (in FinishStep). Without the adaptiveEnabled_
+    //! guard the flag set by the initial ComputeCoefficients() would stay latched for the
+    //! whole fixed-dt run and force a system matrix rebuild in every step.
+    virtual bool CoefficientsChanged() const override {
+      return curScheme_ && curScheme_->adaptiveEnabled_ && curScheme_->coefChanged_;
+    }
+
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
     virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
                                   std::map<FEMatrixType,Double> & matFactors);
@@ -148,6 +159,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
     }
 
   protected:
+    //! Pointer to the MathParser instance; lazily resolved in BeginStep().
+    MathParser * mathparser_ = nullptr;
 
     void InitGLMs();
 
@@ -197,7 +210,32 @@ class TimeSchemeGLM : public BaseTimeScheme{
     ///Store the type of nonlinearity to be considered in the scheme
     NonLinType nLinType_;
 
+    //! Solution history for BDF2 LTE estimation.
+    // prevPrevSol_ = y_{n-2} (glm[1] saved one accepted step ago, before GLM update)
+    // y_{n-1} is read directly from glm[1] (correct after the schemeCoefs_[3] fix).
+    SingleVector* prevPrevSol_ = nullptr;
+
+    //! Step-start backup of glm[avoidUpdateIdx_] for schemes where the stage aliases the
+    //! GLM vector (Newmark): restored on rejection, read as the old solution by the LTE.
+    SingleVector* glmStepStart_ = nullptr;
+
+    int adaptiveStepCount_ = 0;
+
   private:
+
+    void LTELocalErrorEstimation();
+    void LTENewmarkEstimation();
+    bool ComputeAdaptiveStepSize();
+
+    //! Accepted steps needed before the LTE estimator has valid history.
+    //! Newmark: 1 (ü_0 is zero-initialized, no initial-acceleration solve); BDF2: 2 (needs y_{n-2}).
+    int MinStepsForLTE() const {
+      return (curType_ == GLMScheme::NEWMARK) ? 1 : 2;
+    }
+
+    //! Rejection handling: reset_dt() plus undo of the solver's glm overwrite for
+    //! stage-aliasing schemes (Newmark) so the retry starts from clean step-start state.
+    void RestoreRejectedStep();
 
     ///just export the scheme to a file
     void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter){

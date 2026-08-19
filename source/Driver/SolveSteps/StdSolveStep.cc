@@ -553,8 +553,18 @@ namespace CoupledField {
 
 
   void StdSolveStep::InitTimeStepping(){
+    // Adaptive BDF2 + static condensation: unsupported. Fix-L LU-refactor path is
+    // not wired through the condensation branch, and p>=2 spatial accuracy dominates BDF2.
+    if (algsys_->UseStaticCondensation()
+        && PDE_.GetDomain()->GetAdaptiveData() != nullptr) {
+      EXCEPTION("Adaptive timestepping is not supported in combination with "
+                "static condensation. Disable <staticCondensation> in the "
+                "solver setup, or remove <adaptiveTimeStepping> from the "
+                "analysis block.");
+    }
+
     //also initialize vectors for the time stepping scheme
-    
+
     stageRHS_.Resize(feFunctions_.size());
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
@@ -647,6 +657,9 @@ namespace CoupledField {
       algsys_->GetRHSVal(rhsVec_);
 
       // assemble matrices...
+      // Track whether time-scheme coefficients changed (dt changed) so the solver
+      // can be re-factorized even when the sparsity pattern (IsMatrixUpdated) did not change.
+      bool schemeCoefChanged = false;
       // if we want to use static condensation we have to perform the timestepping on element level
       if(algsys_->UseStaticCondensation()){
         matrix_factor_.clear();
@@ -689,7 +702,10 @@ namespace CoupledField {
         // are introduced, since right now only the system matrix is considered
         // for harmonic computations (no splitting in M and K).
 
-        if(assemble_->IsMatrixUpdated()){
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++)
+          if(fncIt->second->GetTimeScheme()->CoefficientsChanged()) schemeCoefChanged = true;
+
+        if(assemble_->IsMatrixUpdated() || schemeCoefChanged){
           //if AMG is used, rebuild auxiliary matrix
           auxSet_ = false;
           // set system matrix to zero initially, as ConstructEffectiveMatrix only sums up the contributions
@@ -730,7 +746,9 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if( assemble_->IsMatrixUpdated() ) {
+      // schemeCoefChanged covers adaptive BDF2: dt change updates a0/dt in the matrix
+      // but does not change the sparsity pattern, so IsMatrixUpdated() stays false.
+      if( assemble_->IsMatrixUpdated() || schemeCoefChanged ) {
 
         // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
         SetupGetRidOfZerosActive();
@@ -783,22 +801,24 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if( useGetRidOfZeros_ && assemble_->IsMatrixUpdated() ) {
+      // Condition must mirror the one that triggered GetRidOfZeros() above.
+      if( useGetRidOfZeros_ && (assemble_->IsMatrixUpdated() || schemeCoefChanged) ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
-      
+
      // Since the entries of solVec_ are pointers to the SingleVector
      // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);
     }
-    //update stage
-    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt){
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end(); ++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
-  
-  
+
+
   void StdSolveStep::StepTransNonLin() {
     /*!
      * Comments added to better understand what's going on. If you find any errors, please correct.
@@ -1144,17 +1164,15 @@ namespace CoupledField {
       }
     }
     
-    //update stage
-    for(fncIt = feFunctions_.begin(); fncIt != feFunctions_.end(); ++fncIt){
-      /*
-       * here we finally compute the new solution vector
-       *  solution_new = solution_old + stage_solutions
-       */
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
+    // FinishStep() computes the new solution vector: solution_new = solution_old + stage_solutions
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
-  
-  
+
+
   void StdSolveStep::StepTransNonLinTotal() {
     
     bool performOneMoreStep;
@@ -1316,10 +1334,11 @@ namespace CoupledField {
       
     } //stages
     
-    //update stage
-    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+    //update stage -- two-phase: collect all field LTEs first, then decide + update GLM
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
+      fncIt->second->GetTimeScheme()->FinishStepLTE();
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt)
       fncIt->second->GetTimeScheme()->FinishStep();
-    }
   }
   /** direct quasi-Newton formlation
    * Solves for one transient time step by using the direct quasi-Newton formulation.

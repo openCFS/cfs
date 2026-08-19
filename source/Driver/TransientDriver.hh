@@ -9,6 +9,7 @@ namespace CoupledField {
 
   //! forward class declarations
   class Timer;
+  class AdaptiveTimesteppingData;
 
   //! Class for transient simulations
   
@@ -66,6 +67,11 @@ namespace CoupledField {
     //! Static method being called in the case of a Ctr-C signal
     static void SignalHandler( int sig);
 
+    //! Reads the adaptive state from atData_ after each solve; true if the step is accepted.
+    //! Implements the retry cap and PI anti-windup.
+    bool adaptTimestep(int retryCount);
+
+
   protected:
 
     //! Read restart information
@@ -95,6 +101,19 @@ namespace CoupledField {
     //! Delta t: increment of the time between two steps
     Double firstdt_;
 
+    //! Current time step size (updated each step when adaptive is on)
+    Double dt_;
+
+    //! Adaptive only: physical end time of the last accepted step; each attempt solves at t = stepStartTime_ + dt_.
+    Double stepStartTime_;
+
+    // =======================================================================
+    //  Adaptive timestepping related data
+    // =======================================================================
+
+    //! True when the <adaptiveTimeStepping> XML block is present.
+    bool adaptiveEnabled_;
+
     // =======================================================================
     //  Restart related data
     // =======================================================================
@@ -117,6 +136,25 @@ namespace CoupledField {
     
     //! Timer for estimating remaining runtime 
     shared_ptr<Timer> timer_;
+
+    //! Target simulation end time, computed as firstdt_ * numstep_; loop exits once actTime_ >= this value.
+    double simulationENDTime_;
+
+    bool simulationEndTimeReached_;
+
+    //! LTE error from the last accepted step; fed to MathParser as prevError for the PI controller's integral term.
+    double prevLTEerror_;
+
+    //! LTE error saved at the first rejection of a retry sequence; fed back to the PI
+    //! controller when toleranceNotReachable is set, to prevent integrator windup.
+    double antiWindupError_;
+
+    //! Cumulative count of all step rejections across the whole simulation run.
+    int totalRetryCount_ = 0;
+
+    //! Shared adaptive timestepping state; null when adaptive is disabled.
+    shared_ptr<AdaptiveTimesteppingData> atData_;
+
 
   };
 
