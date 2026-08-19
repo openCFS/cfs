@@ -17,6 +17,7 @@ import string
 import numpy as np
 import collections
 import glob
+from typing import Optional, Dict
 
 # helper to print a (numpy) array with commas such that the output can be copied as python code
 def nice(array, round_digits = 10):
@@ -83,6 +84,51 @@ def namespace(query):
     return {'mat':'http://www.cfs++.org/material'}
   else:
     return None
+
+
+def add(xml: lxml.etree.ElementTree,
+        path: str,
+        tag: str,
+        attribs: Optional[Dict[str, str]] = None,
+        value: Optional[str] = None,
+        before: Optional[str] = None,
+        after: Optional[str] = None):
+  """Create a new element '<tag>' (with optional attributes and text)
+      as a child of every element matched by 'path'.
+
+  Args:
+    xml: XML object.
+    path: Parent path where to add the tag with namespace.
+    tag: Tag name including namespace.
+    attribs: Dict of attributes. Defaults to None.
+    value: Value for the tag. Defaults to None.
+    before: Insert before the given element (relative ./ or absolute)
+    before: Insert after the given element (relative ./ or absolute)
+  """
+  parents = xml.xpath(path, namespaces=namespace(path))
+  if len(parents) == 0:
+    raise RuntimeError(path + " not found")
+
+  for p in parents:
+    elem = lxml.etree.Element(tag)  # does not inherit namespace, need to pass cfs:tagName
+    if attribs:
+      for k, v in attribs.items():
+        elem.set(k, str(v))
+    if value is not None:
+      elem.text = str(value)
+    if before is not None:
+      ref = p.xpath(before, namespaces=namespace(before))
+      if len(ref) == 0:
+        raise RuntimeError(before + " not found")
+      ref[0].addprevious(elem)
+    elif after is not None:
+      ref = p.xpath(after, namespaces=namespace(after))
+      if len(ref) == 0:
+        raise RuntimeError(after + " not found")
+      ref[0].addnext(elem)
+    else:
+      p.append(elem)
+
 
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file

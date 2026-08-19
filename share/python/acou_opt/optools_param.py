@@ -28,6 +28,12 @@ def apply_evaluate(xml: lxml.etree.ElementTree,
     cfs_utils.replace(xml, '//cfs:sampling', "linear")
 
 
+def apply_em(xml: lxml.etree.ElementTree,
+             file: str,
+             access: str = "physical"):
+    cfs_utils.add(xml, "//cfs:cfsSimulation", "loadErsatzMaterial", attribs={"file": file, "name": access}, before="cfs:optimization")
+
+
 def apply_step(xml: lxml.etree.ElementTree,
                step: float) -> bool:
     """Set the stepsize for projection.

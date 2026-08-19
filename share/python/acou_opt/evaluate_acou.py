@@ -7,7 +7,7 @@ from typing import Optional
 import os
 
 from optools_density import mod_density
-from optools_param import apply_evaluate, apply_step
+from optools_param import apply_evaluate, apply_step, apply_em
 from optools_cfs import enable_anim
 
 
@@ -24,6 +24,13 @@ def evaluate(inpath: str | os.PathLike,
             # handle no beta found
             raise ImportError("You specified beta, but we could not find it in the xml.")
     xml.write(outpath)
+
+
+def add_em(param_path: str | os.PathLike,
+           density_path: str | os.PathLike):
+    xml = cfs_utils.open_xml(param_path)
+    apply_em(xml, str(density_path), access="physical")
+    xml.write(param_path)
 
 
 def threshold(th=0.5, **kwargs):
@@ -96,9 +103,6 @@ if __name__ == "__main__":
         density_path = new_density_path
         print(f"Updated density path after thresholding {density_path}")
 
-    if density_path is not None:
-        cmd += ["-x", density_path.absolute()]
-
     # copy/create eval simulation input file
     param_path = path.with_name(f"{path.name}_eval").with_suffix(".xml")
     param_path.parent.mkdir(parents=True, exist_ok=True)  # create folder if it doesnt exist
@@ -115,6 +119,9 @@ if __name__ == "__main__":
                  param_path,
                  args.flower, args.fupper, args.fnum,
                  args.beta)
+    # add density as loadErsatzMaterial so we can load the physical design
+    if density_path is not None:
+        add_em(param_path, density_path.absolute())
     print(f"Parameter path {param_path}")
     cmd += ["-p", param_path.absolute(), f"{path.name}_eval"]
 
