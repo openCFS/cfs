@@ -23,9 +23,11 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSUPG.hh"
+#include "Domain/CoefFunction/CoefFunctionSUPGDeriv.hh"
 
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/BiLinForms/ADBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
@@ -466,6 +468,59 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
             UpwindingContextStiff2->SetEntities( actSDList, actSDList );
             UpwindingContextStiff2->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc);
             assemble_->AddBiLinearForm( UpwindingContextStiff2 );
+
+            if( nonLinTypes.GetSize() > 0 && nonLinMethod_ == NEWTON ) {
+              PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+              PtrCoefFct nuDeriv = actMat->GetScalCoefFncNonLin(MAG_RELUCTIVITY_DERIV, Global::REAL, magFluxCoef);
+              PtrCoefFct supgDeriv(new CoefFunctionSUPGDeriv(VelocityCoef_, peclet_material_coef, elecScalPotFeFunc));
+              // CoefFunctionSUPGDeriv returns the derivative of the stabilisation factor with respect to the material_coefficient.
+              // The material coefficient is reluctivity/conductivity. Therefore, the derivative of the stabilisation factor (tau_prime) with respect to the magnetic flux density
+              // is reluctivity^\prime / conductivity * supgDeriv. But supgDeriv is again scaled by the conductivity and therefore we just can insert tau_prime
+              PtrCoefFct tauPrime = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, supgDeriv, nuDeriv, CoefXpr::OP_MULT));
+
+              /* ==============================================
+              * SUPG Derivative part 1:
+              * -(v x curl(A'))^T [tau' sigma^2 (grad V_k) (e_B_k)^T] curl(S_A)
+                ============================================== 
+              */
+              PtrCoefFct electricPotentialGradient = GetCoefFct(GRAD_ELEC_POTENTIAL);
+              PtrCoefFct magneticFluxMagnitude = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, magFluxCoef, CoefXpr::OP_NORM));
+              PtrCoefFct magneticFluxUnitVector = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, magFluxCoef, CoefXpr::OP_DIRECTION_VECTOR));
+              PtrCoefFct VComponentDyadicTensor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, electricPotentialGradient, magneticFluxUnitVector, CoefXpr::OP_MULT_TENSOR));
+              PtrCoefFct supgVComponent = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, VComponentDyadicTensor, tauPrime, CoefXpr::OP_MULT));
+
+
+              BiLinearForm* supgVNonLinNewton = NULL;
+              supgVNonLinNewton = new ADBInt<>(new CurlOperatorMag<FeHCurl,3,Double>(),new CurlOperator<FeHCurl,3, Double>(), supgVComponent, -1.0, updatedGeo_);
+              supgVNonLinNewton->SetBCoefFunctionOpA(VelocityCoef_);
+              supgVNonLinNewton->SetName("SUPGDeriv-V-Intergrator-NL-Newton");
+              supgVNonLinNewton->SetNewtonBiLinearForm();
+    
+              BiLinFormContext * supgDerivStiffContext1 = new BiLinFormContext(supgVNonLinNewton, STIFFNESS );
+              supgDerivStiffContext1->SetEntities( actSDList, actSDList );
+              supgDerivStiffContext1->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+              assemble_->AddBiLinearForm( supgDerivStiffContext1 );
+
+              /* ==============================================
+              * SUPG Derivative part 2:
+              * (v x curl(A'))^T [tau' sigma^2 (v x curl(A_k)) (e_B_k)^T] curl(S_A)
+                ============================================== 
+              */
+              PtrCoefFct velocityCrossMagneticFlux = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, VelocityCoef_, magFluxCoef, CoefXpr::OP_CROSS));
+              PtrCoefFct aComponentDyadicTensor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, velocityCrossMagneticFlux, magneticFluxUnitVector, CoefXpr::OP_MULT_TENSOR));
+              PtrCoefFct supgAComponent = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, aComponentDyadicTensor, tauPrime, CoefXpr::OP_MULT));
+
+              BiLinearForm* supgANonLinNewton = NULL;
+              supgANonLinNewton = new ADBInt<>(new CurlOperatorMag<FeHCurl,3,Double>(),new CurlOperator<FeHCurl,3, Double>(), supgAComponent, 1.0, updatedGeo_);
+              supgANonLinNewton->SetBCoefFunctionOpA(VelocityCoef_);
+              supgANonLinNewton->SetName("SUPGDeriv-A-Intergrator-NL-Newton");
+              supgANonLinNewton->SetNewtonBiLinearForm();
+    
+              BiLinFormContext * supgDerivStiffContext2 = new BiLinFormContext(supgANonLinNewton, STIFFNESS );
+              supgDerivStiffContext2->SetEntities( actSDList, actSDList );
+              supgDerivStiffContext2->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+              assemble_->AddBiLinearForm( supgDerivStiffContext2 );
+            }
             break;
           }
           default:

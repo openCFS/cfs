@@ -38,6 +38,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
       
     // UNARY FUNCTIONS
     case OP_NORM:
+    case OP_DIRECTION_VECTOR:
     case OP_SQRT:
     case OP_SQRT_NEGATIVE:
     case OP_TRACE:
@@ -114,6 +115,9 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
       switch( op ) {
         case OP_NORM:
           dim = CoefFunction::SCALAR;
+          break;
+        case OP_DIRECTION_VECTOR:
+          dim = CoefFunction::VECTOR;
           break;
         default:
           dim = CoefFunction::VECTOR;
@@ -832,6 +836,32 @@ void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real,
         real.Resize(sizeA);
         for(UInt i = 0; i < sizeA; ++i){
           ApplyUnaryFunc( real[i], imag[i], aR[i], aI[i], OP_IM );
+        }
+      } else if ( op_ == OP_DIRECTION_VECTOR ) {
+        real.Resize(sizeA);
+        imag.Resize(sizeA);
+        
+        // Build L2 norm string: sqrt( aR_0*aR_0 + aI_0*aI_0 + aR_1*aR_1 + ... )
+        std::string normStr = "sqrt(";
+        for( UInt i = 0; i < sizeA; ++i ) {
+          normStr += "(" + aR[i] + ")*(" + aR[i] + ")";
+          if (isComplex_) {
+            normStr += " + (" + aI[i] + ")*(" + aI[i] + ")";
+          }
+          if (i < sizeA - 1) {
+            normStr += " + ";
+          }
+        }
+        normStr += ")";
+
+        // Build guarded component strings
+        for( UInt i = 0; i < sizeA; ++i ) {
+          real[i] = "( ( " + normStr + " lt 1e-12 ) ? ( 0.0 ) : ( (" + aR[i] + ") / " + normStr + " ) )";
+          if (isComplex_) {
+            imag[i] = "( ( " + normStr + " lt 1e-12 ) ? ( 0.0 ) : ( (" + aI[i] + ") / " + normStr + " ) )";
+          } else {
+            imag[i] = "0.0";
+          }
         }
       } else {
         EXCEPTION("CoefXprUnaryOp::GetVectorXpr This vector valued expression is not implemented yet!");
@@ -1760,6 +1790,8 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
       sizeA = aR.GetSize();
       sizeB = bR.GetSize();
     } else {
+      CoefFunction::GenVecCompNames(aR, aI, aName_, a_);
+      CoefFunction::GenVecCompNames(bR, bI, bName_, b_);
       sizeA = a_->GetVecSize();
       sizeB = b_->GetVecSize();
     }

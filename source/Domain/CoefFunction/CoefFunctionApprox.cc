@@ -310,6 +310,35 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
 }
 
+// ========================================================================
+// CoefFunctionApproxScalDeriv
+// ========================================================================
+
+CoefFunctionApproxScalDeriv::CoefFunctionApproxScalDeriv() : CoefFunction() {
+  dependType_ = CoefFunction::GENERAL;
+  isComplex_ = false;
+  dimType_ = SCALAR;
+}
+
+CoefFunctionApproxScalDeriv::~CoefFunctionApproxScalDeriv() {}
+
+void CoefFunctionApproxScalDeriv::Init(ApproxData * nLinFnc, PtrCoefFct dependCoef) {
+  nLinFnc_ = nLinFnc;
+  dependCoef_ = dependCoef;
+}
+
+void CoefFunctionApproxScalDeriv::GetScalar(Double& coefScalar, const LocPointMapped& lpm) {
+  Vector<Double> elemB;
+  dependCoef_->GetVector(elemB, lpm);
+  Double fieldAbs = elemB.NormL2();
+
+  if(fieldAbs == 0) {
+    coefScalar = 0.0;
+  } else {
+    coefScalar = nLinFnc_->EvaluatePrimeNu(fieldAbs);
+  }
+}
+
 //
 // ========================================================================
 

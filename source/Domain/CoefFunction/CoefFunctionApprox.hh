@@ -259,6 +259,25 @@ private:
 
 
 };
+//! Provide a coefficient for approximated derivative of sample data (strictly scalar)
+class CoefFunctionApproxScalDeriv : public CoefFunction {
+public:
+  //! Constructor
+  CoefFunctionApproxScalDeriv();
+
+  //! Destructor
+  virtual ~CoefFunctionApproxScalDeriv();
+
+  std::string GetName() const override { return "CoefFunctionApproxScalDeriv"; }
+
+  void Init(ApproxData * nLinFnc, PtrCoefFct dependCoef);
+
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm) override;
+
+protected:
+  ApproxData * nLinFnc_;
+  PtrCoefFct dependCoef_;
+};
 
 // ============================================================================
 //! Provide a coefficient for approximated derivative of sample data (scalar)

@@ -126,6 +126,7 @@ public:
     OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
+    OP_DIRECTION_VECTOR,      /*!< Unary operation, returning the direction of a vector with unit magnitude */
     OP_SQRT,                  /*!< Unary square root operation */
 	OP_SQRT_NEGATIVE,		  /*!< Unary square root operation that returns the root with leading negative sign */
     OP_TRACE,                 /*!< Unary trace of tensor operation  */

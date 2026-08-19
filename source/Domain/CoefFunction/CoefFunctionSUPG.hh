@@ -29,6 +29,9 @@ namespace CoupledField {
     //! Constructor
     CoefFunctionSUPG(PtrCoefFct velocityField,  PtrCoefFct materialCoeff, shared_ptr<BaseFeFunction> FeFnc);
 
+    //! Static helper to calculate element dimension in velocity direction
+    static double CalcElementLength(shared_ptr<BaseFeFunction> feFct, const LocPointMapped& lpm, const Vector<Double>& v, int nDim);
+
     //! Destructor
     virtual ~CoefFunctionSUPG(){;}
 

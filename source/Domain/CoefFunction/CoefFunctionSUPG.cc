@@ -44,8 +44,6 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     Vector<double> v;
     // material parameter
     double m = 0.0;
-    // length of the element
-    double lElem;
 
     velField_->GetVector(v,lpm);
     double velNorm = v.NormL2();
@@ -58,32 +56,8 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
       scal = 0.0;
       return;
     }
-
-    // Calculate the dimention of an element in velocity direction
-    // lElem = 2 / Sum((v / velNorm) \dot (\nabla shape_function) )
-    // The idea is that we use projection of the unit length velocity field from global configuration into reference configuration.
-    // So the length of the global unit vector in reference configuration is a reversed length 
-    // in the global configuration of the dimention of the element in the velocity direction. 
-    BaseFE* ptFe = feFct_->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
-    FeH1 *fe = ( static_cast<FeH1*>(ptFe) );
-    Matrix<Double> xiDx;
-    fe->GetGlobDerivShFnc(xiDx, lpm, lpm.shapeMap->GetElem(),1);
-    double denom = 0;
-    for (UInt i=0; i < xiDx.GetNumRows(); ++i){
-      double scalar_product = 0;
-      for (int j=0; j< nDim; ++j){
-        std::cout << std::fixed;
-        scalar_product += v[j]*xiDx[i][j];
-      }
-      denom += abs(scalar_product)/velNorm;
-    }
-    // check if element size in vel direction is zero (with the tolerance epsilon)
-    double epsilonElem = 1e-13; 
-    if (abs(denom) <= epsilonElem){
-      scal = 0.0;
-      return;
-    } 
-    lElem = 2/(denom);    
+    // length of the element
+    double lElem = CalcElementLength(feFct_, lpm, v, nDim);    
 
     // To make it work robustly both for TENSOR and SCALAR material parameters
     switch (matCoeff_->GetDimType())
@@ -144,4 +118,32 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
       vec[i] = std::real(RealDependentVec[i]); 
     }
   }
+
+  double CoefFunctionSUPG::CalcElementLength(shared_ptr<BaseFeFunction> feFct, const LocPointMapped& lpm, const Vector<Double>& v, int nDim) {
+    // Calculate the dimension of an element in velocity direction
+    // lElem = 2 / Sum((v / velNorm) \dot (\nabla shape_function) )
+    // The idea is that we use projection of the unit length velocity field from global configuration into reference configuration.
+    // So the length of the global unit vector in reference configuration is a reversed length 
+    // in the global configuration of the dimension of the element in the velocity direction.
+    BaseFE* ptFe = feFct->GetFeSpace()->GetFe(lpm.ptEl->elemNum);
+    FeH1 *fe = ( static_cast<FeH1*>(ptFe) );
+    Matrix<Double> xiDx;
+    fe->GetGlobDerivShFnc(xiDx, lpm, lpm.shapeMap->GetElem(),1);
+    
+    double velNorm = v.NormL2();
+    double denom = 0;
+    for (UInt i=0; i < xiDx.GetNumRows(); ++i){
+      double scalar_product = 0;
+      for (int j=0; j< nDim; ++j){
+        scalar_product += v[j]*xiDx[i][j];
+      }
+      denom += std::abs(scalar_product)/velNorm;
+    }
+    
+    double epsilonElem = 1e-13; 
+    if (std::abs(denom) <= epsilonElem){
+      return 0.0;
+    } 
+    return 2.0 / denom;    
+}
 }

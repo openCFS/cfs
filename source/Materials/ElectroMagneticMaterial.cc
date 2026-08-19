@@ -839,9 +839,9 @@ namespace CoupledField
         matType != MAG_RELUCTIVITY_DERIV_P4 &&
         matType != MAG_PERMEABILITY_SCALAR &&
         matType != MAG_CORE_LOSS_PER_MASS &&
-        matType != MAG_CONDUCTIVITY_SCALAR) {
-      EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY, MAG_PERMEABILITY_SCALAR and CORE_LOSS!"
-          << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
+        matType != MAG_CONDUCTIVITY_SCALAR &&
+        matType != MAG_RELUCTIVITY_DERIV ) {
+      EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY, MAG_PERMEABILITY_SCALAR, MAG_RELUCTIVITY_DERIV and CORE_LOSS!");
     }
 
     // Ensure that only real-valued parameters are used
@@ -854,7 +854,7 @@ namespace CoupledField
     // TODO: There is so much C&P code, please refactor that!
 
     if( matType == MAG_RELUCTIVITY_SCALAR || matType == MAG_RELUCTIVITY_DERIV_P1 || matType == MAG_RELUCTIVITY_DERIV_P2 || 
-        matType == MAG_RELUCTIVITY_DERIV_P3 || matType == MAG_RELUCTIVITY_DERIV_P4){
+        matType == MAG_RELUCTIVITY_DERIV_P3 || matType == MAG_RELUCTIVITY_DERIV_P4 || matType == MAG_RELUCTIVITY_DERIV) {
       // -----------
       // RELUCTIVITY
       // -----------
@@ -869,14 +869,19 @@ namespace CoupledField
         //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
         if( matNl.approxType == SMOOTH_SPLINES ) {
           InitSmoothSplineApprox(matNl, MAG_PERMEABILITY_SCALAR);
-
           ApproxData * sp = matNl.approxData;
-          // get linear starting value
-          Double startVal = 0.0;
-          this->GetScalar( startVal, matType, Global::REAL );
-          shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
-          coef->Init( startVal, sp, fluxCoef);
-          ret = coef;
+          if (matType == MAG_RELUCTIVITY_DERIV) {
+            shared_ptr<CoefFunctionApproxScalDeriv> coef( new CoefFunctionApproxScalDeriv());
+            coef->Init( sp, fluxCoef); 
+            ret = coef;
+          } else {
+            // get linear starting value
+            Double startVal = 0.0;
+            this->GetScalar( startVal, matType, Global::REAL );
+            shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+            coef->Init( startVal, sp, fluxCoef);
+            ret = coef;
+          }
           
         }
         else if( matNl.approxType == ANALYTIC ) {
@@ -890,8 +895,8 @@ namespace CoupledField
           CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
           PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
-          // get function of B
-          std::string nuStr = matNl.analyticExpr;
+          // get function of B or its derivatives depending on the queried matType
+          std::string nuStr = (matType == MAG_RELUCTIVITY_DERIV) ? matNl.analyticExprDeriv : matNl.analyticExpr;
           std::map<std::string,PtrCoefFct> symbolsNu;
           symbolsNu["B"] = fluxDensAbs;
           ret = CreateAnalyticCoefFct(nuStr, symbolsNu);

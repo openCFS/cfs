@@ -39,6 +39,8 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConversion.hh
   CoefFunctionSUPG.cc
   CoefFunctionSUPG.hh
+  CoefFunctionSUPGDeriv.cc
+  CoefFunctionSUPGDeriv.hh
   CoefFunctionRotation.cc
   CoefFunctionRotation.hh
 )
