@@ -74,7 +74,9 @@ namespace CoupledField
   // this allows to use a logger which was defined already elsewhere
   #define EXTERN_LOG(logger) extern boost::log::sources::severity_logger<int> logger;
 
-  #define IS_LOG_ENABLED(asdf, jkl) false /// TODO: check every occurrence
+  // this allows longer code sections
+  #define IS_LOG_ENABLED(logger, level) \
+    (logger.open_record(boost::log::keywords::severity = ::CoupledField::level_##level))
 
   //! This class manages the output for the different logging streams (only per script)
   class LogConfigurator  

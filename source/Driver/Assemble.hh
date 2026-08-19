@@ -191,9 +191,37 @@ namespace CoupledField {
                           FEMatrixType matrixType,
                           Global::ComplexPart matDataType,
                           Double omega );
-
-    //! Create map for mapping general FEMatrixtype to analysis-specific ones
-    void CreateMatrixMap();
+    
+    //! Determine algebraic matrix type from physical matrix type based on analysis type
+    FEMatrixType DetermineAlgebraicMatrix(FEMatrixType physicalMatrix);
+    
+    //! Apply harmonic frequency-dependent factor to given factor
+    //! \param factor [in,out] Complex factor to modify (multiplied by harmonic factor)
+    //! \param omega Angular frequency (2*pi*f)
+    //! \param physicalMatrix The physical matrix type (STIFFNESS, DAMPING, MASS, etc.)
+    inline void ApplyHarmonicFactor(Complex& factor, Double omega, FEMatrixType physicalMatrix) {
+      switch(physicalMatrix) {
+        case STIFFNESS:
+          // 0th derivative: factor = 1 (no-op)
+          return;
+        case DAMPING:
+          // 1st derivative: d/dt ... jw
+          factor *= Complex(0.0, omega);
+          break;
+        case DAMPING_AUX:
+          // Special term: factor = j/w
+          assert(omega != 0.0);
+          factor *= Complex(0.0, 1.0/omega);
+          break;
+        case MASS:
+          // 2nd derivative: d/dt ... (jw)^2 = -w^2
+          factor *= Complex(-omega*omega, 0.0);
+          break;
+        default:
+          EXCEPTION("ApplyHarmonicFactor: Unknown physical matrix type: " 
+                    << physicalMatrix);
+      }
+    }
     
     //! Perform re-mapping of functionId
     void ReMapFctId( FeFctIdType& fctId );
@@ -206,7 +234,8 @@ namespace CoupledField {
                        bool preventStaticCondensation = false,
                        const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
                        const Double& f = 0,
-                       bool isMultHarmDiag = false);
+                       bool isMultHarmDiag = false,
+                       unsigned int matrixIndex = 1);
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
@@ -216,7 +245,8 @@ namespace CoupledField {
                        bool preventStaticCondensation = false,
                        const StdVector<UInt>& sbmIndices = StdVector<UInt>(),
                        const Double& f = 0,
-                       bool isMultHarmDiag = false);
+                       bool isMultHarmDiag = false,
+                       unsigned int matrixIndex = 1);
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation
@@ -241,9 +271,6 @@ namespace CoupledField {
 
     //! Flag indicating if system was already assembled
     bool isFirstTime_;
-
-    //! Map from general FEMatrixType to analysis specific one
-    std::map<FEMatrixType,FEMatrixType> matrixMap_;
 
     //! List of bilinear integrator contexts
     

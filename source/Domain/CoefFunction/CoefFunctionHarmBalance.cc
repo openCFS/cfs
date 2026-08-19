@@ -341,7 +341,7 @@ template<class T>
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
 
     // Just for the logging output give the index of solution vector to print
-    UInt index = 9;
+    UInt index = 1; // set to something else if you want to see it (make sure it's an existing index ...)
     if (IS_LOG_ENABLED(coeffctharmbalance, dbg3)) {
       freqTimeRes_.PrintTimeResults(index);
     }

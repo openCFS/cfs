@@ -30,6 +30,11 @@ endif()
 # Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CFS_CXX_FLAGS "-std=c++17 -ftemplate-depth-256 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  # map all absolute path to paths relative to the source directory, this way ccache can be independent of source/build directory
+  set(CFS_CXX_FLAGS "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=. ${CFS_CXX_FLAGS}")
+  if(DEBUG OR CFS_PROFILING) # this preserves debug info
+    set(CFS_CXX_FLAGS "-fdebug-prefix-map=${CMAKE_BINARY_DIR}=${CMAKE_SOURCE_DIR} ${CFS_CXX_FLAGS}")
+  endif()
 
   if(USE_CGAL)
     # CGAL seems to require -frounding-math 

@@ -401,7 +401,7 @@ namespace CoupledField{
       // check for damping
       if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
         RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
-        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
+        stiffIntDescr->AddMatrix(DAMPING, actDamp.beta);
       }
 
       feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
@@ -480,7 +480,7 @@ namespace CoupledField{
             // check for damping
             if (dampingList_[volRegion] == RAYLEIGH || dampingList_[volRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[volRegion] == GLOBAL_RAYLEIGH) {
               RaylDampingData &actDamp = (regionRaylDamping_[volRegion]);
-              gravityContext->SetSecDestMat(DAMPING, actDamp.alpha);
+              gravityContext->AddMatrix(DAMPING, actDamp.alpha);
             }
 
             gravityContext->SetEntities( actSDList, actSDList );

@@ -802,15 +802,13 @@ void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateContainer& f
         SinglePDE* pde = context->pde;
         BiLinFormContext* linElastIntCtxt = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde, false);
         BiLinFormContext* linMassIntCtxt = assemble->GetBiLinForm("MassInt", regionId, pde, pde, false);
-        if (linElastIntCtxt->GetSecDestMat() != NOTYPE)
+        if (linElastIntCtxt->GetNumberOfMatrixes() >= 2)
         {
-          parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
-          dampingBeta = parser->Eval(mathParserHandle);
+          dampingBeta = linElastIntCtxt->GetMatrixFactor(2);
         }
-        if (linMassIntCtxt->GetSecDestMat() != NOTYPE)
+        if (linMassIntCtxt->GetNumberOfMatrixes() >= 2)
         {
-          parser->SetExpr(mathParserHandle, linMassIntCtxt->GetSecMatFac());
-          dampingAlpha = parser->Eval(mathParserHandle);
+          dampingAlpha = linMassIntCtxt->GetMatrixFactor(2);
         }
       }
 
@@ -1025,9 +1023,9 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
     assert(pde != NULL);
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    alpha_k = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
+    alpha_k = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde)->GetMatrixFactor(2);
     // now alpha_m
-    alpha_m = assemble->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
+    alpha_m = assemble->GetBiLinForm("MassInt", regionId, pde, pde)->GetMatrixFactor(2);
     assert(alpha_k > 0 && alpha_m > 0&& omega > 0);
     // pamping stuff without omega
     double pamping = design->GetPampingValue(); // 0 if not applicable

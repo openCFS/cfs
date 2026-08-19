@@ -4,6 +4,7 @@ __pycache__
 .pydevproject
 .metadata
 build/
+build
 .DS_Store
 .cproject
 .patch

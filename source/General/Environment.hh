@@ -54,12 +54,15 @@ namespace CoupledField {
   //! conversion from enum types to strings
   template<class TYPE>
   void Enum2String(const TYPE &in, std::string &out);
+  template<class TYPE>
+  std::string Enum2String(const TYPE &in);
 
 
   // Instantiation for all known enum types;
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \
   template<typename TYPE> void String2Enum(const std::string &in, TYPE &out); \
-  template<typename TYPE> void Enum2String(const TYPE &in, std::string &out);
+  template<typename TYPE> void Enum2String(const TYPE &in, std::string &out); \
+  template<typename TYPE> std::string Enum2String(const TYPE &in);
 
   DEFINE_ENUM_CONVERSION(FreqSamplingType)
   DEFINE_ENUM_CONVERSION(CouplingInputType)
