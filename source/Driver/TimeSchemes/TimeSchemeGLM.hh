@@ -57,64 +57,64 @@ class TimeSchemeGLM : public BaseTimeScheme{
     virtual ~TimeSchemeGLM();
 
     //! \copydoc BaseTimeScheme::Init(SingleVector*,Double)
-    virtual void Init(SingleVector* solVec,Double dt);
+    virtual void Init(SingleVector* solVec,Double dt) override;
 
     //! \copydoc BaseTimeScheme::ModifyInit(bool)
-    virtual void ModifyInit(bool extrapolateStatic);
+    virtual void ModifyInit(bool extrapolateStatic) override;
 
     //! \copydoc BaseTimeScheme::BeginStep(bool)
-    virtual void BeginStep(bool updatePredictor=true, bool storeInitialIterGlmVector=false);
+    virtual void BeginStep(bool updatePredictor=true, bool storeInitialIterGlmVector=false) override;
 
     //This function is pretty messy right now and we need to reconsider
     // mainly because of the many if clauses to realize a optional predictor scheme...
     //! \copydoc BaseTimeScheme::ComputeStageRHS(UInt,Integer,SingleVector*,Integer)
-    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1, bool skipIncremental=false);
+    virtual void ComputeStageRHS(UInt actStage, Integer derivId, SingleVector* rhsVec, Integer subIdx=-1, bool skipIncremental=false) override;
 
     virtual void UpdateStageRHSWithVector(UInt actStage, Integer derivId, SingleVector* rhsVec,
-                                            SingleVector* UpdateVector, Double factor, bool forceReset = false);
+                                            SingleVector* UpdateVector, Double factor, bool forceReset = false) override;
 
     /// Update the GLM Vectors according to new solution
     virtual void FinishStepLTE() override;
-    virtual void FinishStep( );
+    virtual void FinishStep( ) override;
 
     // In the case that we did not converge, we have to reset the glmVec (and the last solution stored to the feFunction in order to start with the correct values in the next sub-iteration
     // If the iteration did converge, we simply free some memory by deleting the old glmVec
-    virtual void ProcessGlmVec(bool converged=false);
+    virtual void ProcessGlmVec(bool converged=false) override;
 
     // Triggers the update of the glmVector
-    void ResetGlmVector() {
+    void ResetGlmVector() override {
       resetGlmVector_ = true;
     }
 
     //! \copydoc BaseTimeScheme::SetSolutionTimeDerivOrder(UInt,Double)
-    virtual void SetSolutionTimeDerivOrder(UInt order,Double timeStepSize){
+    virtual void SetSolutionTimeDerivOrder(UInt order,Double timeStepSize) override {
       solOrder_ = order;
       curScheme_->ComputeCoefficients(order,timeStepSize);
     }
 
     //! Obtain number of stages of the scheme
-    UInt GetNumStages(){
+    UInt GetNumStages() override {
       return curScheme_->numStages_;
     }
 
     //! Obtain reference to current stage vector to avoid copying of elements
-    SingleVector * GetStageVector(UInt stage){
+    SingleVector * GetStageVector(UInt stage) override {
       assert(stage < curScheme_->numStages_);
       return stageVector_[stage];
     }
 
     //! Obtain reference to current GLM vector to avoid copying of elements
-    SingleVector* GetGLMVector(UInt numSol){
+    SingleVector* GetGLMVector(UInt numSol) override {
       return glmVector_[numSol];
     }
 
     //! Obtain reference to initial GLM vector to avoid copying of elements
-    SingleVector*  GetInitialIterGLMVector(UInt numSol){
+    SingleVector*  GetInitialIterGLMVector(UInt numSol) override {
       return initialIterGlmVector_[numSol];
     }
 
     //! Obtain the size of the GLM vector
-    UInt GetSizeGLMVector(){
+    UInt GetSizeGLMVector() override {
       return curScheme_->sizeGLMVec_;
     }
 
@@ -130,23 +130,23 @@ class TimeSchemeGLM : public BaseTimeScheme{
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
     virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
-                                  std::map<FEMatrixType,Double> & matFactors);
+                                  std::map<FEMatrixType,Double> & matFactors) override;
 
     //! \copydoc BaseTimeScheme::AdaptBC(Double&,Double,UInt,Integer)
-    virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber){
+    virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber) override {
       transVal = curScheme_->TransformBC(glmVector_,initValue,initDerivOrder, eqnNumber);
     }
 
-    virtual SingleVector* GetTimeDerivative(UInt order);
+    virtual SingleVector* GetTimeDerivative(UInt order) override;
 
-    virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector);
+    virtual void SetTimeDerivVector(UInt order,SingleVector * coefVector) override;
 
     /// Give the timestep the possibility to initialize
-    virtual void InitStage(UInt aStage,Double aTime,Domain* domain){
+    virtual void InitStage(UInt aStage,Double aTime,Domain* domain) override {
       curScheme_->PrepareStage(aStage,aTime, domain);
     };
     
-    bool isIncremental(){
+    bool isIncremental() override {
       if(nLinType_ == INCREMENTAL){
         return true;
       } else {
@@ -154,7 +154,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
       }
     }
     
-    void forceIncremental(){
+    void forceIncremental() override {
       nLinType_ = INCREMENTAL;
     }
 
@@ -238,7 +238,7 @@ class TimeSchemeGLM : public BaseTimeScheme{
     void RestoreRejectedStep();
 
     ///just export the scheme to a file
-    void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter){
+    void ExportGLM(const std::string& pdeName, int feFctId, int curStep, int coupleIter) override {
       std::string fname = "glmExport_" + pdeName + "_feFctId" + std::to_string(feFctId) +  "_step" + std::to_string(curStep) + "_coupleIter" + std::to_string(coupleIter) + ".txt";
       std::fstream myfile(fname,  std::ios::out);
       myfile << "This is the GLM Vector" << std::endl;

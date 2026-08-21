@@ -305,17 +305,17 @@ class Bdf2 : public GLMScheme{
   Bdf2();
 
     //! \copydoc GLMScheme::GetType
-    virtual SchemeType GetType() const {
+    virtual SchemeType GetType() const override {
       return BDF2;
     }
 
     //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
-    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT) override;
 
     //! \copydoc GLMScheme::AdvanceAdaptiveStep(Double)
     virtual void AdvanceAdaptiveStep(Double newDt) override;
 
-    virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
+    virtual void PrepareStage(UInt i,Double aTime, Domain* domain) override {
      /// domain->GetMathParser()->SetValue( MathParser_GLOB_HANDLER,
      ///                                    "t", aTime+(alpha_*curTStepSize_) );
     }

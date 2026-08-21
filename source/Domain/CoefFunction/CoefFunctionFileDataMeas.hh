@@ -41,14 +41,14 @@ public:
   }
 
   /** the node of interest is transported in lpm.pl.number */
-  void GetVector(Vector<Double>& vec, const LocPointMapped& lpm);
+  void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) override;
 
   void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm)  override {
     EXCEPTION("complex fileData not implemented yet");
   }
 
   //! Return size of vector in case coefficient function is a vector
-  UInt GetVecSize() const { return dim_; }
+  UInt GetVecSize() const override { return dim_; }
 
   std::string ToString() const override { return filename_; }
 
