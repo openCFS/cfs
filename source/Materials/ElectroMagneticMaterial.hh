@@ -53,6 +53,12 @@ namespace CoupledField {
     
     //! Calculate full permeability and reluctivity tensors from scalar values
     void ComputeFullMuTensor();
+    
+    //! Initialize smooth spline approximation of nonlinear BH curve
+    void InitSmoothSplineApprox(MatDescriptorNl& matNl, MaterialType matType);
+    
+    // Helper to create analytic compound coefficient functions
+    PtrCoefFct CreateAnalyticCoefFct(std::string exprStr, std::map<std::string, PtrCoefFct>& symbols);
 
     //! CoefFunction for anisotropic material which is passed to its derivative
     //! used to calculate an approximation of the derivative with respect to the angle

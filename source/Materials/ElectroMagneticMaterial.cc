@@ -868,17 +868,7 @@ namespace CoupledField
 
         //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
         if( matNl.approxType == SMOOTH_SPLINES ) {
-          // Check, if smooth spline approximation was already created
-          // and initialized
-          if( !matNl.approxData ) {
-            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY_SCALAR );
-            sp->SetAccuracy( matNl.measAccuracy );
-            sp->SetMaxY( matNl.maxVal );
-            sp->CalcBestParameter();
-            sp->CalcApproximation();
-            sp->Print();
-            matNl.approxData = sp;
-          }
+          InitSmoothSplineApprox(matNl, MAG_PERMEABILITY_SCALAR);
 
           ApproxData * sp = matNl.approxData;
           // get linear starting value
@@ -902,13 +892,9 @@ namespace CoupledField
 
           // get function of B
           std::string nuStr = matNl.analyticExpr;
-          shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
           std::map<std::string,PtrCoefFct> symbolsNu;
           symbolsNu["B"] = fluxDensAbs;
-          nuStr.insert(0,"( ");
-          nuStr.append(" )");
-          nuFnc->SetScalar(nuStr,symbolsNu);
-          ret = nuFnc;
+          ret = CreateAnalyticCoefFct(nuStr, symbolsNu);
         }
       }
       else if( nonlinAnisoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinAnisoParams_.end() ) {
@@ -936,18 +922,7 @@ namespace CoupledField
 
           //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
           if( actNl.approxType == SMOOTH_SPLINES ) {
-            // Check, if smooth spline approximation was already created
-            // and initialized
-            if( !actNl.approxData ) {
-              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
-              sp->SetAccuracy( actNl.measAccuracy );
-              sp->SetMaxY( actNl.maxVal );
-              sp->CalcBestParameter();
-              sp->CalcApproximation();
-              sp->Print();
-              actNl.approxData = sp;
-            }
-
+            InitSmoothSplineApprox(actNl, MAG_PERMEABILITY_SCALAR);
             ApproxData * sp = actNl.approxData;
             // get linear starting value
 
@@ -975,13 +950,8 @@ namespace CoupledField
 
             // get function of B
             std::string nuStr = actNl.analyticExpr;
-            shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
             std::map<std::string,PtrCoefFct> symbolsNu;
             symbolsNu["B"] = fluxDensAbs;
-
-            nuStr.insert(0,"( ");
-            nuStr.append(" )");
-            nuFnc->SetScalar(nuStr,symbolsNu);
 
             //compute an averaged starting value directly from the string
             Double B_init = 0.0;
@@ -992,7 +962,7 @@ namespace CoupledField
             startValAveraged += nuInit / (Double)numCurves;
 
             //store in array
-            approx[i] = nuFnc;
+            approx[i] = CreateAnalyticCoefFct(nuStr, symbolsNu);
           }
         }
         // -------------------------
@@ -1042,18 +1012,7 @@ namespace CoupledField
           
           //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
           if( actNl.approxType == SMOOTH_SPLINES ) {
-            // Check, if smooth spline approximation was already created
-            // and initialized
-            if( !actNl.approxData ) {
-              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
-              sp->SetAccuracy( actNl.measAccuracy );
-              sp->SetMaxY( actNl.maxVal );
-              sp->CalcBestParameter();
-              sp->CalcApproximation();
-              sp->Print();
-              actNl.approxData = sp;
-            }
-
+            InitSmoothSplineApprox(actNl, MAG_PERMEABILITY_SCALAR);
             ApproxData * sp = actNl.approxData;
             // get linear starting value
 
@@ -1081,13 +1040,8 @@ namespace CoupledField
 
             // get function of B
             std::string nuStr = actNl.analyticExpr;
-            shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
             std::map<std::string,PtrCoefFct> symbolsNu;
             symbolsNu["B"] = fluxDensAbs;
-
-            nuStr.insert(0,"( ");
-            nuStr.append(" )");
-            nuFnc->SetScalar(nuStr,symbolsNu);
 
             //compute an averaged starting value directly from the string
             Double B_init = 0.0;
@@ -1098,7 +1052,7 @@ namespace CoupledField
             startValAveraged += nuInit / (Double)numCurves;
 
             //store in array
-            approx[i] = nuFnc;
+            approx[i] = CreateAnalyticCoefFct(nuStr, symbolsNu);
           }
         }
         // -------------------------
@@ -1139,17 +1093,7 @@ namespace CoupledField
       if ( nonlinIsoParams_.find(MAG_CORE_LOSS_PER_MASS) != nonlinIsoParams_.end() ) {
         MatDescriptorNl & matNl = nonlinIsoParams_[MAG_CORE_LOSS_PER_MASS];
         if( matNl.approxType == SMOOTH_SPLINES ) {
-          // Check, if smooth spline approximation was already created
-          // and initialized
-          if( !matNl.approxData ) {
-            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_CORE_LOSS_PER_MASS );
-            sp->SetAccuracy( matNl.measAccuracy );
-            sp->SetMaxY( matNl.maxVal );
-            sp->CalcBestParameter();
-            sp->CalcApproximation();
-            sp->Print();
-            matNl.approxData = sp;
-          }
+          InitSmoothSplineApprox(matNl, MAG_CORE_LOSS_PER_MASS);
           ApproxData * sp = matNl.approxData;
           // get linear starting value
           Double startVal = 0.0;
@@ -1206,13 +1150,9 @@ namespace CoupledField
 
           // get function of H
           std::string muStr = matNl.analyticExpr;
-          shared_ptr<CoefFunctionCompound<Double> > muFnc(new CoefFunctionCompound<Double>(mp_));
           std::map<std::string,PtrCoefFct> symbolsMu;
           symbolsMu["H"] = fluxDensAbs;
-          muStr.insert(0,"( ");
-          muStr.append(" )");
-          muFnc->SetScalar(muStr,symbolsMu);
-          ret = muFnc;
+          ret = CreateAnalyticCoefFct(muStr, symbolsMu);
         }
       }else{
         EXCEPTION("mu(H) in the MagneticScalarPotentialPDE is only implemented for the isotropic case");
@@ -1277,15 +1217,10 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
 
          // get function of S
          std::string nuStr = matNl.analyticExpr;
-         shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
          std::map<std::string,PtrCoefFct> symbolsNu;
          symbolsNu["s"] = mechStrain;
          symbolsNu["S"] = mechStrainAbs;
-
-         nuStr.insert(0,"( ");
-         nuStr.append(" )");
-         nuFnc->SetScalar(nuStr,symbolsNu);
-         return(nuFnc);
+         return(CreateAnalyticCoefFct(nuStr, symbolsNu));
        }
 
      } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinAnisoParams_.end() ) {
@@ -1380,11 +1315,7 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
       else {
         EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4 or MAG_ANHYST_DERIV_P1 - P2");
       }
-      
-      fncStr.insert(0,"( ");
-      fncStr.append(" )");
-      parFnc->SetScalar(fncStr,symbols);
-      ret = parFnc;
+      ret = CreateAnalyticCoefFct(fncStr, symbols);
     } else {
       EXCEPTION("Just ANALYTIC functions are allowed")
     }
@@ -1440,18 +1371,7 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
          MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
 
          if( matNl.approxType == SMOOTH_SPLINES ) {
-
-           //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
-           if( !matNl.approxData ) {
-             SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY_SCALAR );
-             sp->SetAccuracy( matNl.measAccuracy );
-             sp->SetMaxY( matNl.maxVal );
-             sp->CalcBestParameter();
-             sp->CalcApproximation();
-             sp->Print();
-             matNl.approxData = sp;
-           }
-
+           InitSmoothSplineApprox(matNl, MAG_PERMEABILITY_SCALAR);
            //now we need the object "CoefFunctionApproxDeriv", which returns by
            //calling "B^T [ e_B^T * nu' * |B| * e_B] B", so it is a tensor!!
            ApproxData * sp = matNl.approxData;
@@ -1525,17 +1445,7 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
 
            //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
            if( actNl.approxType == SMOOTH_SPLINES ) {
-             // Check, if smooth spline approximation was already created
-             // and initialized
-             if( actNl.approxData == NULL) {
-               SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY_SCALAR );
-               sp->SetAccuracy( actNl.measAccuracy );
-               sp->SetMaxY( actNl.maxVal );
-               sp->CalcBestParameter();
-               sp->CalcApproximation();
-               sp->Print();
-               actNl.approxData = sp;
-             }
+            InitSmoothSplineApprox(actNl, MAG_PERMEABILITY_SCALAR);
              //now we need the object "CoefFunctionApproxDeriv", which returns by
              //calling coef->getScalar( nuPrime, lpm) the derivative of the reluctivity;
              //Please note: In this case, we do not need the tensor (as in the isotropic case),
@@ -1555,16 +1465,9 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
 
              // get function of B
              std::string nuStr = actNl.analyticExprDeriv;
-             shared_ptr<CoefFunctionCompound<Double> > nuFncDeriv(new CoefFunctionCompound<Double>(mp_));
              std::map<std::string,PtrCoefFct> symbolsNu;
              symbolsNu["B"] = fluxDensAbs;
-
-             nuStr.insert(0,"( ");
-             nuStr.append(" )");
-             nuFncDeriv->SetScalar(nuStr,symbolsNu);
-
-             //store in array
-             approx[i] = nuFncDeriv;
+             approx[i] = CreateAnalyticCoefFct(nuStr, symbolsNu);
            }
          }
 
@@ -1615,4 +1518,29 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
        return ret;
      }
 
+    void ElectroMagneticMaterial::InitSmoothSplineApprox(MatDescriptorNl& matNl, MaterialType matType){
+        //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
+        // Check, if smooth spline approximation was already created
+        // and initialized
+        if( matNl.approxData == NULL ) {
+            // Use the passed matType instead of hardcoding MAG_PERMEABILITY_SCALAR
+            SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType );
+            sp->SetAccuracy( matNl.measAccuracy );
+            sp->SetMaxY( matNl.maxVal );
+            sp->CalcBestParameter();
+            sp->CalcApproximation();
+            sp->Print();
+            matNl.approxData = sp;
+        }
+    }
+
+    PtrCoefFct ElectroMagneticMaterial::CreateAnalyticCoefFct(std::string exprStr, std::map<std::string, PtrCoefFct>& symbols) 
+    {
+        shared_ptr<CoefFunctionCompound<Double>> fnc(new CoefFunctionCompound<Double>(mp_));
+        // Wrap the expression in parentheses to enforce correct evaluation order
+        exprStr.insert(0, "( ");
+        exprStr.append(" )");
+        fnc->SetScalar(exprStr, symbols);
+        return fnc;
+    }
 }
