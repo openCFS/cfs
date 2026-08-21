@@ -11,7 +11,7 @@ set(PACKAGE_VER "7.13.0") #
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "704e33348f0ef892c806aa1f480f3ba3") # 7.13.0
 set(PACKAGE_MIRRORS "https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/${PACKAGE_FILE}")  
-set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
@@ -65,6 +65,7 @@ set(DEPS_ARGS
   -DBUILD_TESTING=OFF
   -DSUITESPARSE_USE_64BIT_BLAS:BOOL=OFF
   -DCHOLMOD_GPL:BOOL=ON 
+  -DCHOLMOD_USE_CUDA:BOOL=OFF
   )
 
 # make sure SUITESPARSE does not try to find BLAS/LAPACK
