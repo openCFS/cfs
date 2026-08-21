@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cassert>
 #include <cmath>
 #include <algorithm> // For std::min
 #include <numeric>   // Required for std::accumulate
@@ -982,7 +983,7 @@ namespace CoupledField
   Vector<Double> invEBHysteresis::CalcGradientInternalEnergy(Vector<Double> J)
   {
     // define needed variables
-    Double norm_J, gradient_internal_energy_magnitude;
+    Double norm_J, gradient_internal_energy_magnitude = 0;
     Vector<Double> gradient_internal_energy_direction(2), gradient_internal_energy(2);
 
     // parameter (anhysteretic)
@@ -992,6 +993,7 @@ namespace CoupledField
 
     // calc. magnitude
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0], 2) + std::pow(J[1], 2))), 2) + epsilon);
+    assert(anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable"); // the others are not implemented here
     if (anhyst_formula_ == "tan")
     { // TAN
       gradient_internal_energy_magnitude = A * std::tan((M_PI / 2) * (norm_J / Js));
@@ -1016,7 +1018,7 @@ namespace CoupledField
   Vector<Double> invEBHysteresis::CalcGradientInternalEnergy3D(Vector<Double> J)
   {
     // define needed variables
-    Double norm_J, gradient_internal_energy_magnitude;
+    Double norm_J, gradient_internal_energy_magnitude = 0;
     Vector<Double> gradient_internal_energy_direction(3), gradient_internal_energy(3);
 
     // parameter (anhysteretic)
@@ -1028,6 +1030,7 @@ namespace CoupledField
 
     // calc. magnitude
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0], 2) + std::pow(J[1], 2) + std::pow(J[2], 2))), 2) + epsilon);
+    assert(anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable"); // the others are not implemented here
     if (anhyst_formula_ == "tan")
     { // TAN
       gradient_internal_energy_magnitude = A * std::tan((M_PI / 2) * (norm_J / Js));
@@ -1225,7 +1228,7 @@ namespace CoupledField
     Matrix<Double> hessian(2, 2);
     Matrix<Double> hessian1(2, 2);
     Matrix<Double> hessian2(2, 2);
-    Double norm_J, factor1, factor2, sec_factor;
+    Double norm_J, factor1 = 0, factor2 = 0, sec_factor;
 
     // parameter (anhysteretic)
     double Js = Js_;
@@ -1236,6 +1239,7 @@ namespace CoupledField
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0], 2) + std::pow(J[1], 2))), 2) + epsilon);
 
     // Pre-compute factors for the Hessian of the internal energy
+    assert(anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable"); // the others are not implemented here
     if (anhyst_formula_ == "tan")
     {
       // H_an(|J|) = A * tan(pi/2 * |J| / Js)
@@ -1278,7 +1282,7 @@ namespace CoupledField
     Matrix<Double> hessian(3, 3);
     Matrix<Double> hessian1(3, 3);
     Matrix<Double> hessian2(3, 3);
-    Double norm_J, factor1, factor2, sec_factor;
+    Double norm_J, factor1 = 0, factor2 = 0, sec_factor;
     std::vector<Double> J_lut = J_lut_;
     std::vector<Double> H_lut = H_lut_;
     // parameter (anhysteretic)
@@ -1288,6 +1292,7 @@ namespace CoupledField
 
     // pre-computations for hessian
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0], 2) + std::pow(J[1], 2) + std::pow(J[2], 2))), 2) + epsilon);
+    assert(anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable"); // the others are not implemented here
     if (anhyst_formula_ == "tan")
     {
       // H_an(|J|) = A * tan(pi/2 * |J| / Js)
@@ -1964,7 +1969,8 @@ namespace CoupledField
 
     // NEEDED VARIABLES
     UInt max_iter;
-    Double norm_B_n, B_x_dir, B_y_dir, B_z_dir, tolerance, norm_J, J_sat, J_low, J_high, J_mid, f_mid, f_low, norm_H;
+    Double norm_B_n, B_x_dir, B_y_dir, tolerance, norm_J, J_sat, J_low, J_high, J_mid, f_mid, f_low, norm_H;
+    double B_z_dir = 0; // set and read in the 3D branch only, which the compiler cannot see
     Vector<Double> H_vec(dim_);
 
     // NEEDED QUANTITIES
@@ -2021,7 +2027,7 @@ namespace CoupledField
     f_low = Root_Function_VSM(J_low, norm_B_n);
 
     // iterative bisection start
-    for (int iter_counter = 0; iter_counter < max_iter; iter_counter++)
+    for (unsigned int iter_counter = 0; iter_counter < max_iter; iter_counter++)
     {
       J_mid = (J_low + J_high) / 2;
       f_mid = Root_Function_VSM(J_mid, norm_B_n);
@@ -2213,7 +2219,7 @@ namespace CoupledField
     }
 
     // linear interpolation
-    for (int idx = 0; idx < N - 1; idx++)
+    for (unsigned int idx = 0; idx < N - 1; idx++)
     {
       if (norm_J >= J_lut[idx] && norm_J <= J_lut[idx + 1])
       { // find interval for the interpolation
@@ -2227,6 +2233,7 @@ namespace CoupledField
         return H1 + t * (H2 - H1);
       }
     }
+    EXCEPTION("no interval found for norm_J = " << norm_J << ", is the lookup table sorted?");
   }
 
   Double invEBHysteresis::FiniteDifference1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut)
@@ -2254,7 +2261,7 @@ namespace CoupledField
     }
 
     // Finite Differences
-    for (int idx = 0; idx < N - 1; idx++)
+    for (unsigned int idx = 0; idx < N - 1; idx++)
     {
       if (norm_J >= J_lut[idx] && norm_J <= J_lut[idx + 1])
       { // find interval for the interpolation
@@ -2266,6 +2273,7 @@ namespace CoupledField
         return (H2 - H1) / (J2 - J1);
       }
     }
+    EXCEPTION("no interval found for norm_J = " << norm_J << ", is the lookup table sorted?");
   }
 
   Double invEBHysteresis::IntTrapz1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut)
@@ -2304,7 +2312,7 @@ namespace CoupledField
     linspace_start = J_min;
     linspace_end = std::min(norm_J, J_max);
     linspace_step = (N_sub > 1) ? (linspace_end - linspace_start) / (N_sub - 1) : 0;
-    for (int idx = 0; idx < N_sub; ++idx)
+    for (unsigned int idx = 0; idx < N_sub; ++idx)
     {
       x_vals[idx] = linspace_start + idx * linspace_step;
       H_vals[idx] = LinInterp1D(x_vals[idx], J_lut, H_lut);

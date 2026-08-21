@@ -189,8 +189,6 @@ namespace CoupledField {
         for (partIt = actCoil.parts_.begin(); partIt != actCoil.parts_.end(); partIt++){
           Coil::Part &actPart = *(partIt->second);
           RegionIdType actRegion = partIt->first;
-          BaseMaterial * actSDMat = NULL;
-          actSDMat    = materials_[actRegion];
           shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
           actSDList->SetRegion(actRegion);
           LinearForm* curInt = NULL;
@@ -443,15 +441,9 @@ namespace CoupledField {
     StdVector<std::string> vecDofNames = feFunc->GetResultInfo()->dofNames;
     LinearForm * lin1_pts = NULL; // (h(b),curlA'), only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
     LinearForm * lin2_pts = NULL; // (epsilon A,A'), only in the nonlinear case necessary (PSEUDO TIME STEPPING (pts))
-    LinearForm * lin1_rts = NULL; // (rho curlh,curlN), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin2_rts = NULL; // ((1/delta_t)*b(h)_n,N), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin3_rts = NULL; // ((1/delta_t)*b(h)_{n-1},N), only in the nonlinear case necessary (REAL TIME STEPPING (rts))
-    LinearForm * lin_br = NULL; // (b_r,N), describes linear permanent magnets in the linear/nonlinear case
     RegionIdType actRegion;
-    BaseMaterial * actSDMat = NULL;
 
     bool coefUpdateGeo = true;
-    bool isHystereticMat = false;
 
     Double beta = 1e-6;
     myParam_->GetValue("penaltyFunctionParameter", beta, ParamNode::PASS);
@@ -470,7 +462,6 @@ namespace CoupledField {
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
       // set current region and materials
       actRegion = regions_[iRegion];
-      actSDMat    = materials_[actRegion];
 
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
       std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
@@ -527,7 +518,6 @@ namespace CoupledField {
           // ===============================================================================================
           Double mu_regularize;
           PtrCoefFct epsilon;
-          BaseBDBInt* massInt = NULL;
           // get material coefficient (in this case: artificial conductivity that regularizes the PDE and is defined 
           // as epsilon = regularization parameter*mu;
           materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );

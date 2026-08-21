@@ -73,8 +73,6 @@ namespace CoupledField
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
     std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
     std::map<FEMatrixType,Integer>::iterator matIt;
-    
-    UInt pos = 0;
 
     LOG_DBG3(solvestepeb) << "STARTING SetTransNonLin() =============================================";
     LOG_DBG3(solvestepeb) << "numStages:" << numStages;
@@ -666,10 +664,9 @@ namespace CoupledField
     }
 
     int closest_index = 0;
-    Double closest_to_zero = Energy[0]; // Initialize with the first element
     Double min_distance = std::abs(Energy[0]);
 
-    for (int idx = 1; idx < Energy.size(); ++idx) {
+    for (unsigned int idx = 1; idx < Energy.size(); ++idx) {
       Double distance = std::abs(Energy[idx]);
       if (distance < min_distance) {
         min_distance = distance;

@@ -333,7 +333,7 @@ DEFINE_LOG(smsm, "SMSM")
 
   Vector<Double> Wtot(numRows_);
   Double As_times_Wtot_exp = 0.0; 
-  Double gamma0, gamma1, gamma2, e11, e12, e13, e23, e33, e22, f;
+  Double gamma0, gamma1, e11, e12, e33, e22, f;
   for (UInt i = 0; i < numRows_; ++i) {
     gamma0 = TABgamma_[i][0];
     gamma1 = TABgamma_[i][1];

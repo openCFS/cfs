@@ -155,7 +155,6 @@ DEFINE_LOG(eb, "EBHysteresis")
   Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
     // This method gives the rho_art for the h-form.
-    Double beta = 1; // default value for n
     // SVD approach
     Matrix<Double> dBdH = ComputeTensorialMaterialParameter(HVec, ElemNum);
     double frobeniusNormSq;
@@ -264,7 +263,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     if (!iterationCounterPtr_ && mp_) {
       iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
     }
-    int currentIter = iterationCounterPtr_ ? static_cast<int>(*iterationCounterPtr_) : 0;
+    unsigned int currentIter = iterationCounterPtr_ ? static_cast<unsigned int>(*iterationCounterPtr_) : 0;
 
     // OpenMP fix: Use critical section to ensure only one thread updates iteration state
     #pragma omp critical (EBHysteresis_iteration_update)
@@ -635,9 +634,8 @@ DEFINE_LOG(eb, "EBHysteresis")
   Matrix<Double> EBHysteresis::EvaluateLocalMu(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
     Matrix<Double> mu;
     mu.Resize(dim_,dim_);
-    double offset = 1e-2;
-
-    /* if(dim_ == 2){
+    /* double offset = 1e-2;
+    if(dim_ == 2){
       dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
       dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
     } */
@@ -1666,7 +1664,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     //HrS: magnitude of the converged reversible field ||H_rev_k||
     //Px/Py: accumulated weighted magnetization (sum_k weight[k] * M_k), i.e. total M
     Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, F_prime, F_prime_prime,
-           ux, uy, uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
+           phiNew, HrS, Px, Py;
     Matrix<Double> dM_dHrev(2,2);
     
     
