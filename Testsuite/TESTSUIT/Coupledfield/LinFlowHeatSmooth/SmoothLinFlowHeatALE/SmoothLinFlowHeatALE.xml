@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+
+    <title>SmoothPDE LinFlow Heat ALE Function Test</title>
+
+    <authors>
+      <author>Nikolaus Stoecher</author>
+    </authors>
+
+    <date>2026-08-21</date>
+
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>smooth</keyword>
+      <keyword>heatConduction</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+
+    <references>
+    </references>
+
+    <isVerified>yes</isVerified>
+
+    <description>
+      Coupled function test for SmoothPDE, LinFlowPDE and HeatPDE.
+
+      SmoothPDE generates the rigid grid translation
+
+          u_g,x = 0.1*t
+
+      and therefore the constant grid velocity
+
+          v_g,x = 0.1 m/s
+          v_g,y = 0.0 m/s.
+
+      The same smoothVelocity is supplied to the movingMeshList
+      of both LinFlowPDE and HeatPDE.
+
+      LinFlow and Heat use the identical movingMeshId moveGridID.
+
+      The test exercises the ALE terms of the individual PDEs
+      as well as the ALE terms in LinFlowHeatCoupling.
+    </description>
+
+  </documentation>
+
+
+  <fileFormats>
+
+    <input>
+      <hdf5 fileName="CavityThermoviscous.h5ref"/>
+    </input>
+
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+
+    <materialData file="mat.xml"
+                  format="xml"/>
+
+  </fileFormats>
+
+
+  <domain geometryType="plane">
+
+    <regionList>
+
+      <region name="S_flow"
+              material="FluidMat"/>
+
+    </regionList>
+
+
+    <nodeList>
+
+      <nodes name="temp">
+
+        <list>
+
+          <freeCoord comp="y"
+                     start="0"
+                     stop="0.0005"
+                     inc="0.00001"/>
+
+          <fixedCoord comp="x"
+                      value="0.002"/>
+
+        </list>
+
+      </nodes>
+
+    </nodeList>
+
+  </domain>
+
+
+  <fePolynomialList>
+
+    <Lagrange id="velPolyId">
+      <isoOrder>2</isoOrder>
+    </Lagrange>
+
+    <Lagrange id="presPolyId">
+      <isoOrder>1</isoOrder>
+    </Lagrange>
+
+  </fePolynomialList>
+
+
+  <sequenceStep>
+
+
+    <!-- ========================================================= -->
+    <!-- Transient analysis                                        -->
+    <!-- ========================================================= -->
+
+    <analysis>
+
+      <transient>
+
+        <numSteps>100</numSteps>
+
+        <deltaT>1e-5</deltaT>
+
+        <integrationScheme>
+          <trapezoidal gamma="1.0"/>
+        </integrationScheme>
+
+      </transient>
+
+    </analysis>
+
+
+
+    <pdeList>
+
+
+      <!-- ======================================================= -->
+      <!-- SmoothPDE                                               -->
+      <!-- ======================================================= -->
+
+      <smooth subType="planeStrain">
+
+        <regionList>
+
+          <region name="S_flow"/>
+
+        </regionList>
+
+
+        <bcsAndLoads>
+
+
+          <displacement name="L_left">
+
+            <comp dof="x"
+                  value="0.1*t"/>
+
+          </displacement>
+
+
+          <displacement name="L_right">
+
+            <comp dof="x"
+                  value="0.1*t"/>
+
+          </displacement>
+
+
+          <fix name="L_bottom">
+
+            <comp dof="y"/>
+
+          </fix>
+
+
+          <fix name="L_top">
+
+            <comp dof="y"/>
+
+          </fix>
+
+
+        </bcsAndLoads>
+
+
+        <storeResults>
+
+
+          <nodeResult type="smoothDisplacement">
+
+            <allRegions outputIds="h5"/>
+
+          </nodeResult>
+
+
+          <nodeResult type="smoothVelocity">
+
+            <allRegions outputIds="h5"/>
+
+          </nodeResult>
+
+
+        </storeResults>
+
+
+      </smooth>
+
+
+
+      <!-- ======================================================= -->
+      <!-- LinFlow PDE                                             -->
+      <!-- ======================================================= -->
+
+      <fluidMechLin formulation="compressible"
+                    presPolyId="presPolyId"
+                    velPolyId="velPolyId"
+                    enableGridVelC1="false"
+                    enableGridVelC2="true">
+
+
+        <regionList>
+
+          <region name="S_flow"
+                  movingMeshId="moveGridID"/>
+
+        </regionList>
+
+
+        <presSurfaceList>
+
+          <presSurf name="L_bottom"/>
+
+          <presSurf name="L_top"/>
+
+          <presSurf name="L_right"/>
+
+        </presSurfaceList>
+
+
+        <movingMeshList>
+
+          <movingMesh name="moveGridID">
+
+            <coupling pdeName="smooth">
+
+              <quantity name="smoothVelocity"/>
+
+            </coupling>
+
+          </movingMesh>
+
+        </movingMeshList>
+
+
+        <bcsAndLoads>
+
+
+          <normalTraction name="L_left"
+                          value="1"
+                          volumeRegion="S_flow"/>
+
+
+          <pressure name="L_right"
+                    value="0"/>
+
+
+          <noSlip name="L_top">
+
+            <comp dof="y"/>
+
+          </noSlip>
+
+
+          <noSlip name="L_bottom">
+
+            <comp dof="x"/>
+
+            <comp dof="y"/>
+
+          </noSlip>
+
+
+        </bcsAndLoads>
+
+
+        <storeResults>
+
+
+          <nodeResult type="fluidMechVelocity">
+
+            <allRegions outputIds="h5"/>
+
+          </nodeResult>
+
+
+          <nodeResult type="fluidMechPressure">
+
+            <allRegions outputIds="h5"/>
+
+          </nodeResult>
+
+
+        </storeResults>
+
+
+      </fluidMechLin>
+
+
+
+      <!-- ======================================================= -->
+      <!-- Heat PDE                                                -->
+      <!-- ======================================================= -->
+
+      <heatConduction>
+
+
+        <regionList>
+
+          <region name="S_flow"
+                  movingMeshId="moveGridID"/>
+
+        </regionList>
+
+
+        <movingMeshList>
+
+          <movingMesh name="moveGridID">
+
+            <coupling pdeName="smooth">
+
+              <quantity name="smoothVelocity"/>
+
+            </coupling>
+
+          </movingMesh>
+
+        </movingMeshList>
+
+
+        <bcsAndLoads>
+
+          <temperature name="L_bottom"
+                       value="0"/>
+
+        </bcsAndLoads>
+
+
+        <storeResults>
+
+
+          <nodeResult type="heatTemperature">
+
+            <allRegions outputIds="h5"/>
+
+          </nodeResult>
+
+
+        </storeResults>
+
+
+      </heatConduction>
+
+
+    </pdeList>
+
+
+
+    <!-- ========================================================= -->
+    <!-- Coupling                                                  -->
+    <!-- ========================================================= -->
+
+    <couplingList>
+
+
+      <direct>
+
+        <linFlowHeatDirect symmetric="no">
+
+          <regionList>
+
+            <region name="S_flow"/>
+
+          </regionList>
+
+        </linFlowHeatDirect>
+
+      </direct>
+
+
+      <iterative PDEorder="smooth"
+                 endWithCoupledPDEs="yes">
+
+        <convergence maxNumIters="1"
+                     logging="yes"
+                     stopOnDivergence="no"/>
+
+      </iterative>
+
+
+    </couplingList>
+
+
+
+    <!-- ========================================================= -->
+    <!-- Linear system                                             -->
+    <!-- ========================================================= -->
+
+    <linearSystems>
+
+      <system>
+
+        <solverList>
+
+          <pardiso>
+
+            <IterRefineSteps>10</IterRefineSteps>
+
+          </pardiso>
+
+        </solverList>
+
+      </system>
+
+    </linearSystems>
+
+
+  </sequenceStep>
+
+</cfsSimulation>

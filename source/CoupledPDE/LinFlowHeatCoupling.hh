@@ -30,8 +30,9 @@ class SinglePDE;
 class BiLinearForm;
 
   //! Implements the definition of pairwise linearized flow - heat coupling
-  
+
   //! This class implements the linearized flow - heat coupling
+  //! including the ALE grid-transport coupling terms on moving domains.
   //! Within this object, pde1_ refers to the linear flow PDE,
   //! whereas  pde2_ refers to the heatConduction PDE.
   //! This is fixed in Domian.cc / CreateDirectCoupledPDEs
@@ -57,7 +58,7 @@ class BiLinearForm;
 
     //! Subtype of related mechanical PDE
     std::string subType_;
-    
+
   private:
 
     //! Whether to use a symmetric formulation or not

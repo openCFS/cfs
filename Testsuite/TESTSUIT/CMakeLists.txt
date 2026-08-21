@@ -691,6 +691,14 @@ ENDIF(USE_PARDISO)
 ADD_SUBDIRECTORY(Coupledfield/LinFlowMechSmoothElectrostatic/ElecForceCompressedChamber2D)
 
 #-------------------------------------------------------------------------------
+# Subdirectories for HeatPDE coupled to SmoothPDE cases.
+#-------------------------------------------------------------------------------
+
+IF(USE_PARDISO)
+  ADD_SUBDIRECTORY(Coupledfield/HeatSmooth/SmoothHeatALE)
+ENDIF(USE_PARDISO)
+
+#-------------------------------------------------------------------------------
 # Subdirectories for linearized flow coupled to heat cases.
 #-------------------------------------------------------------------------------
 IF(USE_PARDISO)
@@ -1125,3 +1133,12 @@ if(BUILD_CFSDAT)
     #add_subdirectory(CFSdat/FFT_2D)
   endif(USE_BLAS_LAPACK STREQUAL "MKL")
 endif() # BUILD_CFSDAT
+
+#-------------------------------------------------------------------------------
+# SmoothPDE - LinFlowPDE - HeatPDE ALE function test
+#-------------------------------------------------------------------------------
+
+IF(USE_PARDISO)
+  ADD_SUBDIRECTORY(Coupledfield/LinFlowHeatSmooth/SmoothLinFlowHeatALE)
+ENDIF(USE_PARDISO)
+

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+
+    <title>Transient HeatPDE ALE test with SmoothPDE grid velocity</title>
+
+    <authors>
+      <author>Nikolaus Stoecher</author>
+    </authors>
+
+    <date>2026-08-21</date>
+
+    <keywords>
+      <keyword>heatConduction</keyword>
+      <keyword>smooth</keyword>
+    </keywords>
+
+    <references></references>
+
+    <isVerified>yes</isVerified>
+
+    <description>
+      Function test for the coupling SmoothPDE to HeatPDE.
+
+      SmoothPDE generates a rigid grid translation
+
+          u_g,x = -0.1*t
+
+      and therefore the constant grid velocity
+
+          v_g,x = -0.1 m/s
+          v_g,y =  0.0 m/s.
+
+      smoothVelocity is coupled into the movingMeshList of HeatPDE
+      and activates the ALE transport term
+
+          -rho*c_p*v_g*grad(T).
+
+      The result has been independently verified against an
+      otherwise identical HeatPDE simulation with directly
+      prescribed grid velocity.
+    </description>
+
+  </documentation>
+
+
+  <fileFormats>
+
+    <input>
+      <hdf5 fileName="mesh/mesh.h5"/>
+    </input>
+
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+
+    <materialData file="mat.xml" format="xml"/>
+
+  </fileFormats>
+
+
+  <domain geometryType="plane">
+
+    <regionList>
+      <region name="S_inner" material="iron"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="bottom"/>
+      <surfRegion name="top"/>
+    </surfRegionList>
+
+    <nodeList>
+
+      <nodes name="source">
+        <coord x="0" y="0"/>
+      </nodes>
+
+    </nodeList>
+
+  </domain>
+
+
+  <sequenceStep index="1">
+
+    <analysis>
+
+      <transient>
+
+        <numSteps>10</numSteps>
+
+        <deltaT>0.1</deltaT>
+
+        <!--
+          Backward Euler is used so that the velocity derived
+          from u_g,x = -0.1*t is already exactly -0.1 m/s
+          in the first time step.
+        -->
+        <integrationScheme>
+          <trapezoidal gamma="1.0"/>
+        </integrationScheme>
+
+      </transient>
+
+    </analysis>
+
+
+    <pdeList>
+
+
+      <!-- ======================================================= -->
+      <!-- SmoothPDE                                               -->
+      <!--                                                         -->
+      <!-- u_g,x = -0.1*t                                          -->
+      <!--                                                         -->
+      <!-- therefore                                                -->
+      <!--                                                         -->
+      <!-- v_g,x = -0.1 m/s                                        -->
+      <!-- v_g,y =  0.0 m/s                                        -->
+      <!-- ======================================================= -->
+
+      <smooth subType="planeStrain">
+
+        <regionList>
+          <region name="S_inner"/>
+        </regionList>
+
+
+        <bcsAndLoads>
+
+          <displacement name="left">
+
+            <comp
+              dof="x"
+              value="-0.1*t"/>
+
+          </displacement>
+
+
+          <displacement name="right">
+
+            <comp
+              dof="x"
+              value="-0.1*t"/>
+
+          </displacement>
+
+
+          <fix name="bottom">
+            <comp dof="y"/>
+          </fix>
+
+
+          <fix name="top">
+            <comp dof="y"/>
+          </fix>
+
+        </bcsAndLoads>
+
+
+        <storeResults>
+
+          <nodeResult type="smoothDisplacement">
+            <allRegions/>
+          </nodeResult>
+
+          <nodeResult type="smoothVelocity">
+            <allRegions/>
+          </nodeResult>
+
+        </storeResults>
+
+      </smooth>
+
+
+
+      <!-- ======================================================= -->
+      <!-- HeatPDE                                                 -->
+      <!--                                                         -->
+      <!-- smoothVelocity is used as the ALE grid velocity.         -->
+      <!-- ======================================================= -->
+
+      <heatConduction>
+
+
+        <regionList>
+
+          <region
+            name="S_inner"
+            movingMeshId="gridVelocity"/>
+
+        </regionList>
+
+
+        <movingMeshList>
+
+          <movingMesh name="gridVelocity">
+
+            <coupling pdeName="smooth">
+              <quantity name="smoothVelocity"/>
+            </coupling>
+
+          </movingMesh>
+
+        </movingMeshList>
+
+
+        <bcsAndLoads>
+
+          <heatFlux
+            name="bottom"
+            value="0"/>
+
+          <heatFlux
+            name="top"
+            value="0"/>
+
+          <heatFlux
+            name="right"
+            value="0"/>
+
+          <temperature
+            name="left"
+            value="1"/>
+
+        </bcsAndLoads>
+
+
+        <storeResults>
+
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+
+          <elemResult type="heatFluxDensity">
+            <allRegions/>
+          </elemResult>
+
+        </storeResults>
+
+
+      </heatConduction>
+
+    </pdeList>
+
+
+
+    <!-- ========================================================= -->
+    <!-- Coupling                                                  -->
+    <!--                                                           -->
+    <!-- SmoothPDE must be solved before HeatPDE so that            -->
+    <!-- smoothVelocity is available as moving-mesh velocity.       -->
+    <!-- ========================================================= -->
+
+    <couplingList>
+
+      <iterative PDEorder="smooth;heatConduction">
+
+        <convergence
+          maxNumIters="1"
+          logging="yes"
+          stopOnDivergence="no"/>
+
+      </iterative>
+
+    </couplingList>
+
+
+
+    <linearSystems>
+
+      <system>
+
+        <solutionStrategy>
+
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+
+        </solutionStrategy>
+
+        <solverList>
+          <pardiso/>
+        </solverList>
+
+      </system>
+
+    </linearSystems>
+
+
+  </sequenceStep>
+
+</cfsSimulation>
