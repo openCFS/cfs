@@ -86,6 +86,20 @@ namespace CoupledField
     algsys_ = algsys;
   }
 
+  void Assemble::SetForbidParallelAssembly(bool matrix, bool rhs, const std::string& comment)
+  {
+    assert(matrix || rhs);
+    // one way switch, hence or the flags instead of assigning them
+    forbidParallelMatrixAssembly_ |= matrix;
+    forbidParallelRhsAssembly_ |= rhs;
+
+    // append, such that all reasons show up when there is more than one
+    PtrParamNode pn = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("forbidParallelAssembly", ParamNode::APPEND);
+    pn->Get("matrix")->SetValue(matrix);
+    pn->Get("rhs")->SetValue(rhs);
+    pn->Get("comment")->SetValue(comment);
+  }
+
   void Assemble::SkipElemAssembly(){
     skipElemAssembly_=true;
   }
@@ -534,9 +548,11 @@ namespace CoupledField
       const UInt entityChunk = 32;
       UInt nextEntity = 0;
 
-#pragma omp parallel num_threads(CFS_NUM_THREADS)
+      const unsigned int numThreads = forbidParallelMatrixAssembly_ ? 1 : CFS_NUM_THREADS;
+
+#pragma omp parallel num_threads(numThreads)
       {
-        UInt numT = CFS_NUM_THREADS;
+        unsigned int numT = numThreads;
         UInt aThread = GetThreadNum();
         StdVector<BiLinearForm *> biLinForms(forms.GetSize());
         biLinForms.Init(NULL);
@@ -840,9 +856,11 @@ namespace CoupledField
       UInt size = std::max(firstEntities.GetSize(), secondEntities.GetSize());
 
 #ifdef USE_OPENMP
-#pragma omp parallel num_threads(CFS_NUM_THREADS)
+    const unsigned int numThreads = forbidParallelMatrixAssembly_ ? 1 : CFS_NUM_THREADS;
+
+#pragma omp parallel num_threads(numThreads)
     {
-      UInt numT = CFS_NUM_THREADS;
+      unsigned int numT = numThreads;
       UInt aThread = omp_get_thread_num();
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
 
@@ -1644,9 +1662,11 @@ namespace CoupledField
           };
           StdVector<ElemContrib> elemBuffer(size);
 
-          #pragma omp parallel num_threads(CFS_NUM_THREADS)
+          const unsigned int numThreads = forbidParallelRhsAssembly_ ? 1 : CFS_NUM_THREADS;
+
+          #pragma omp parallel num_threads(numThreads)
           {
-            UInt numT = CFS_NUM_THREADS;
+            unsigned int numT = numThreads;
             UInt aThread = GetThreadNum();
 
             // Clone form per-thread (mutable work buffers are per-clone)

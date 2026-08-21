@@ -127,6 +127,11 @@ namespace CoupledField {
     //Sets a flag to skip element assembly for std matrix case
     void SkipElemAssembly();
 
+    /** Switch off parallel assembly for matrices and/or the right hand side
+     * only true is recognized and set.
+     * @param comment the reason, ends up in the info xml */
+    void SetForbidParallelAssembly(bool matrix, bool rhs, const std::string& comment);
+
     //! Stops the timer in a multiharmonic analysis. It was started in InitMultHarm
     void TimerStop();
 
@@ -309,6 +314,9 @@ namespace CoupledField {
     //! flag indicating if matrices have changed since
     //! last call of AssembleMatrices
     bool matrixUpdated_;
+
+    bool forbidParallelMatrixAssembly_ = false;
+    bool forbidParallelRhsAssembly_ = false;
 
     /** The object is within a ParamNode and deleted there! */
     shared_ptr<Timer> timer_;

@@ -1,6 +1,5 @@
 #include <fstream>
 #include <forward_list>
-#include <mutex>
 #include <boost/tokenizer.hpp>
 #include <iostream>
 
@@ -12,11 +11,6 @@ using std::string;
 
 namespace CoupledField
 {
-
-// Mutex to serialize Python API calls from multiple threads
-// Using mutex instead of GIL to avoid deadlock when main thread holds GIL
-// and worker threads try to acquire it during OpenMP parallel regions
-static std::mutex python_call_mutex;
 
 CoefFunctionPython::CoefFunctionPython(PtrParamNode pn, unsigned int dim) : CoefFunction()
 {
@@ -69,6 +63,8 @@ CoefFunctionPython::~CoefFunctionPython()
 
 PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 {
+  assert(PyGILState_Check());
+
   PyObject* arg = PyTuple_New(1);
 
   if(by_coord_) {
@@ -98,10 +94,6 @@ PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 
 void CoefFunctionPython::GetVector(Vector<double>& vec, const LocPointMapped& lpm)
 {
-  // Serialize Python API calls using mutex instead of GIL
-  // Using mutex avoids deadlock when main thread holds GIL and enters OpenMP region
-  std::lock_guard<std::mutex> lock(python_call_mutex);
-
   PyObject* ret = CallFunction(lpm);
   assert(ret != NULL);
 
@@ -112,10 +104,6 @@ void CoefFunctionPython::GetVector(Vector<double>& vec, const LocPointMapped& lp
 
 void CoefFunctionPython::GetScalar(double& val, const LocPointMapped& lpm)
 {
-  // Serialize Python API calls using mutex instead of GIL
-  // Using mutex avoids deadlock when main thread holds GIL and enters OpenMP region
-  std::lock_guard<std::mutex> lock(python_call_mutex);
-
   PyObject* ret = CallFunction(lpm);
   assert(ret != NULL);
 

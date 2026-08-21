@@ -3246,6 +3246,10 @@ namespace CoupledField {
     {
       unsigned int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
       coef.reset(new CoefFunctionPython(valueNode->Get("python"), mydim));
+      // the python interpreter may only be called from the main thread. This is the only place
+      // where a CoefFunctionPython is created, python can only appear in bcs and loads.
+      assert(assemble_ != nullptr); // set in Init_Stage1() or by DirectCoupledPDE prior to it
+      assemble_->SetForbidParallelAssembly(false, true, "CoefFunctionPython is not thread safe");
       for(unsigned int i = 0; i < numComp; ++i )
         definedDofs.insert(i);
     }
