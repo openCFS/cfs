@@ -43,13 +43,9 @@ endif()
 
 target_link_libraries(cfstest ${TARGET_LL})
 
-# Linux-specific link flags:
-# - librt is needed for glibc <= 2.17
-# - --start-group fixes circular dependencies between static libraries
-#   (e.g., materials->utils for BiLinInterpolate/TriLinInterpolate).
-#   The linker auto-adds --end-group at the end if missing.
+# librt is needed for glibc <= 2.17
 if(NOT APPLE AND NOT WIN32)
-  set(CFS_LINK_FLAGS "-Wl,--start-group -lrt")
+  set(CFS_LINK_FLAGS "-lrt")
 endif()
 
 # Even if we did not compile openCFS itself with OpenMP enabled, we may have

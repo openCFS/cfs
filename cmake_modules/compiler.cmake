@@ -123,11 +123,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
 
   # enable all warnings, then disable the ones we cannot prevent (e.g. from lib includes).
   # better is always changes to code, updateing/patching libs, guarding includes by pragmas
-  set(CFS_SUPPRESSIONS "-Wall -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized")
-  if(debug)
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Werror") # does not allow most warnings -> clang debug pipeline
-  endif()
-  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-address -Wno-error=address -Wno-unused-function ")
+  # warnings are errors in every build, not only in the pipeline. Whatever cannot be fixed in code
+  # needs a -Wno- below, such that it is documented and not silently tolerated
+  set(CFS_SUPPRESSIONS "-Wall -Wuninitialized -Werror")
+  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-address -Wno-unused-function ")
 
   # boost 1.90 needs -Wno-deprecated-declarations
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-truncation -Wno-deprecated-declarations")
@@ -189,7 +188,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
   endif() 
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
-  set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
+  set(CFS_SUPPRESSIONS "-Werror -Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2023)
     # to allow typeid(*fct) we need -Wno-potentially-evaluated-expression
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
@@ -247,6 +246,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
   # silencing all warnings with /w for cfsdeps does not work as cmake sets /W4 which overrides /w
   set(CFSDEPS_CXX_FLAGS "${CFS_CXX_FLAGS} /EHsc ${CFS_SUPPRESSIONS} /wd4310")
+
+  # warnings are errors, as for GNU/Clang above. Set after CFSDEPS_CXX_FLAGS, the libs shall not be affected
+  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} /WX")
 
 endif() # MSVC
 
