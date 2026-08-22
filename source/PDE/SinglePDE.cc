@@ -133,9 +133,7 @@ namespace CoupledField {
     // PDE is not direct coupled
     if(!isDirectCoupled_) 
     {
-      if((needsAlgsys_ || !simState_->HasInput())) 
-        delete algsys_;      
-      
+      delete algsys_;
       delete solveStep_;
       delete assemble_;
     }
@@ -237,12 +235,10 @@ namespace CoupledField {
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
-    if( needsAlgsys_ == true || !simState_->HasInput()) {
-      if ( isDirectCoupled_ == false) {
-        olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
-        algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_, isMultHarm_);
-        solStrat_ = algsys_->GetSolStrategy();
-      }
+    if( isDirectCoupled_ == false) {
+      olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
+      algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_, isMultHarm_);
+      solStrat_ = algsys_->GetSolStrategy();
     }
 
     // =====================================================================
@@ -263,7 +259,7 @@ namespace CoupledField {
     // =====================================================================
 
     // Create new assemble class with according analysistype
-    if( isDirectCoupled_ == false && needsAlgsys_ == true) {
+    if( isDirectCoupled_ == false) {
       assemble_ = new Assemble( algsys_, analysistype_, this->mp_, myInfo_ );
     }
     
@@ -401,7 +397,7 @@ namespace CoupledField {
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( needsAlgsys_ == true && !isDirectCoupled_ )
+    if(!isDirectCoupled_ )
       assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
   }
 

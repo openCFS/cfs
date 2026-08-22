@@ -47,7 +47,6 @@ namespace CoupledField {
     pdematerialclass_(NO_CLASS),
     isIterCoupled_(false),
     diagMass_(false),
-    needsAlgsys_(true),
     analysistype_(BasePDE::NO_ANALYSIS),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
@@ -115,11 +114,6 @@ namespace CoupledField {
     // Trigger writing of info file
     myInfo_->GetRoot()->ToFile("", true );
     
-    // First check if the PDE needs an algebraic system at all
-    if( needsAlgsys_ == false ) {
-      return;
-    }
-
     // defining the graph can be expensive. Most expensive are (ordered by cost):
     // - AlgebraicSys::GraphSetupDone()
     // - Assemble::SetupMatrixGraph()

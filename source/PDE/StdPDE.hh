@@ -440,9 +440,6 @@ namespace CoupledField {
     ResultSet availResults_;
     //!
     
-    //! flag indicating if this PDE needs the algebraic system
-    bool needsAlgsys_;
-    
     AnalysisType analysistype_; //!< analysis type
     UInt dim_;                  //!< space dimension of pde
     bool isaxi_;                //!< true: axisymmetric problem
