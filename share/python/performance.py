@@ -100,7 +100,10 @@ def order(timers, sort_by_id=False):
 ## extracts all timers from info.xml and give back as array of Timer objects
 #@param gap shall a timer added as the last one which contains the gap from the first 
 #           minus the sum of the rest
-def read_info(xml, gap = False, sort_by_id=False):
+#@param what 'timers' (default) or 'memory': selects which metrics to extract
+def read_info(xml, gap = False, sort_by_id=False, what='timers'):
+  if what == 'memory':
+    return read_memory(xml)
   res = []
   all = xml.xpath("//*[contains(local-name(),'timer')]") # some stuff is renamed like snopt_timer
   for node in all:
@@ -115,6 +118,45 @@ def read_info(xml, gap = False, sort_by_id=False):
         wall -= t.wall # hope we stay non-negative :)
         cpu -= t.cpu
     res.append(Timer('not_measured', wall, cpu))
+  return res
+
+
+## extract memory metrics from an info.xml
+# When cfs was run with -d the per-matrix memory breakdown is present under
+# <setup><matrices> and is extracted as one entry per matrix type plus a grand
+# 'total' (MB, using the per-type totalMemory attribute). Without -d (no per-matrix
+# info) the process memory <memory final peak> is returned instead as a fallback
+# (final, peak and total=peak).
+# The entry labelled 'total' is kept first, as has_rel_error() takes the first entry
+# as the total for the relative-share comparison.
+def read_memory(xml):
+  res = []
+
+  # pick the <matrices> node holding the per-matrix breakdown (marked by a child
+  # element carrying totalMemory); other <matrices> nodes only contain timers
+  chosen = [m for m in xml.xpath("//*[local-name()='matrices']")
+            if m.xpath("./*[@totalMemory]")]
+  if chosen:
+    grand = 0.0
+    for typeNode in chosen[0]:
+      total = typeNode.get('totalMemory')
+      if total is None:
+        continue
+      total = float(total) * 1.0 # already in MB
+      grand += total
+      res.append(Timer(typeNode.tag.rsplit('}', 1)[-1], 0.0, total))
+    res.insert(0, Timer('total', 0.0, grand))
+  else:
+    # fallback for non-detailed runs: process memory final/peak
+    mem = xml.xpath("//*[local-name()='memory']")
+    if mem:
+      peak  = mem[0].get('peak')
+      final = mem[0].get('final')
+      peak  = float(peak)  if peak  is not None else 0.0
+      final = float(final) if final is not None else 0.0
+      res.append(Timer('total', 0.0, peak if peak else final))
+      res.append(Timer('final', 0.0, final))
+      res.append(Timer('peak', 0.0, peak))
   return res
 
 ## aggregate the values for each entry with a list of a list of Timer objects
@@ -317,6 +359,68 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
     f.close()
   return 0
 
+
+## write memory metrics extracted from info.xml files.
+# For txt each run is one column, with rows aligned by label (different runs
+# may have different sets of matrix types); for yaml (which feeds 'compare' a single
+# timers list) the first run is written and the number of runs is recorded.
+# @param input_file_path the info.xml files the values were read from
+# @param timers list of lists of Timer records, cpu holds the value in MB
+def write_memory(input_file_path, timers, format='txt', out=sys.stdout):
+  ## ---------------------------- yaml ----------------------------
+  if format == 'yaml':
+    struct = timers[0]
+    data = {'runs': len(timers),
+            'files': [os.path.basename(f) for f in input_file_path],
+            'analysis': {'what': 'memory', 'unit': 'MB', 'mode': None, 'threshold': 0.0},
+            'timers': [{'label': t.label, 'id': t.id, 'parent': t.parent_id, 'sub': t.sub,
+                        'calls': t.cnt, 'wall': t.wall, 'cpu': t.cpu}
+                       for t in struct]}
+    if out is sys.stdout:
+      yaml.dump(data, sys.stdout, default_flow_style=False, sort_keys=False)
+    else:
+      with open(os.path.join(os.getcwd(), out + '.yaml'), 'w') as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+    return 0
+
+  ## ---------------------------- txt ----------------------------
+  if out is not sys.stdout:
+    out = os.path.join(os.getcwd(), out + '.txt')
+  f = open(out, 'w') if out is not sys.stdout else out
+
+  # per-run value map and the union of labels (run0 order first, then new ones)
+  per_run = [{t.label: t.cpu for t in run} for run in timers]
+  labels = []
+  for run in timers:
+    for t in run:
+      if t.label not in labels:
+        labels.append(t.label)
+
+  total0 = max(per_run[0].get('total', 0.0), 1e-3)
+  title = 'MEMORY (MB)'
+  if len(timers) > 1:
+    title += '  (one column per run)'
+  max_label = max(max([len(l) for l in labels]) + 3, len(title) + 1)
+
+  head = title.ljust(max_label)
+  for m in range(len(timers)):
+    head += '  | ' if m == 0 else '  : '
+    head += 'MB_{:d}'.format(m)
+  print(head, file=f)
+
+  for lbl in labels:
+    line = lbl.ljust(max_label) + ':'
+    for m in range(len(timers)):
+      v = per_run[m].get(lbl)
+      line += '  | ' if m == 0 else '  : '
+      line += ' {:8.3f}'.format(v) if v is not None else '       -'
+    line += '  [{:.1%}]'.format(per_run[0].get(lbl, 0.0) / total0).rjust(9)
+    print(line, file=f)
+
+  if f is not sys.stdout:
+    f.close()
+  return 0
+
         
 ## read analysed timers in the yaml format written by write_timers,
 ## either from a yaml file or - if yaml_file is None - from stdin.
@@ -418,22 +522,27 @@ def wall_cpu(args):
   return (False if args.cpu else True, False if args.wall else True)
 
 ## read a list of info.xml files into a list of a list of Timer objects
-def read_infos(files, sort_by_id):
-  return [read_info(open_xml(f), gap=True, sort_by_id=sort_by_id) for f in files]
+def read_infos(files, sort_by_id, what='timers'):
+  return [read_info(open_xml(f), gap=True, sort_by_id=sort_by_id, what=what) for f in files]
   
 ## check if a yaml file is inputed
 def is_yaml(f):
   return os.path.basename(f).lower().endswith(('.yaml', '.yml'))
 
-## 'analyse': read the timers of the given info.xml files, aggregate and output them
+## 'analyse': read the timers (or memory) of the given info.xml files, aggregate and output them
 def cmd_analyse(args):
   # gnuplot can only be written to stdout
   if args.format == 'gnuplot' and args.output != 'stdout':
       main.error("gnuplot format can only be written to stdout, not to a file")
 
   wall, cpu = wall_cpu(args)
-  timers = read_infos(args.info, args.appearance)
+  timers = read_infos(args.info, args.appearance, what=args.what)
   out = sys.stdout if args.output == 'stdout' else args.output
+
+  if args.what == 'memory':
+    if args.format == 'gnuplot':
+      main.error("gnuplot format is not supported for memory metrics")
+    return write_memory(args.info, timers, format=args.format, out=out)
 
   if args.format == 'gnuplot':
     gnuplot(aggregate_timer(timers, args.mode), out=sys.stdout)
@@ -505,11 +614,16 @@ main = argparse.ArgumentParser(prog='performance.py', parents=[display],
   performance.py bracket-*.info.xml --brief --cpu 
   performance.py bracket-*.info.xml --output bracket_analysis --format yaml --mode mean 
   performance.py bracket-*.info.xml --format yaml --mode mean 
+  # memory requires a cfs run with -d for the per-matrix breakdown; without -d
+  # only the process memory final/peak is available.
+  performance.py detail.info.xml --what memory
+  performance.py detail.info.xml --what memory -f yaml | performance.py compare --ref ref_mem.yaml
 
 See 'performance.py compare -h' to compare a run or aggregated runs against a reference instead""")
 main.add_argument('info', help="the info.xml file(s) to analyse, aggregated by --mode", nargs='+', metavar='INFO_XML')
 main.add_argument('-o', '--output', help="default is stdout, otherwise write the desired filename", default='stdout')
 main.add_argument('-f', '--format', help="define the output format, default is txt", choices=('txt', 'yaml', 'gnuplot'), default='txt')
+main.add_argument('--what', help="which metrics to extract, default is timers", choices=('timers', 'memory'), default='timers')
 times = main.add_mutually_exclusive_group() # --wall and --cpu exclude each other
 times.add_argument('--wall', help="show only wall times", action='store_true')
 times.add_argument('--cpu', help="show only cpu times", action='store_true')
