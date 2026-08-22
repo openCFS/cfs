@@ -13,6 +13,4 @@ ADD_TEST(${TEST_NAME}
   -P ${CFS_STANDARD_TEST}
 )
 
-# Jiles-Atherton model is known to be unstable for multi-threading, even if pass, don't trust parallel results
-set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "unstable")
 set_property(TEST ${TEST_NAME} APPEND PROPERTY LABELS "slow")

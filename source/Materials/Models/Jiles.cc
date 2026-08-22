@@ -11,6 +11,7 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Driver/Assemble.hh"
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
@@ -55,11 +56,13 @@ void Jiles::Init(std::map<std::string, double> ParameterMap, UInt numElems,  UIn
     varHandle_="step";
   }
 
-  // JilesAtherton keeps shared per-timestep history (RampUp/saveValues operate on all elements)
-  // transient JA can have wrong numerical results when in parallel, the PrismHyst_MH can be forced to serial
-  // TODO: JA need a refactoring to be truly thread-save
-  if(isMH_ != 1.0 && CFS_NUM_THREADS > 1)
-    WARN("Material model 'JilesAthertonModel' is not thread-safe for transient analysis");
+  // JilesAtherton keeps shared per-timestep history (RampUp/saveValues operate on all elements),
+  // hence transient JA gives wrong numerical results when it is evaluated in parallel. PrismHyst_MH is forced serial
+  // TODO: JA needs a refactoring to be truly thread-safe
+  if(isMH_ != 1.0) 
+    domain->GetBasePDE()->GetAssemble()->SetForbidParallelAssembly(true, true,
+      "JilesAthertonModel is not implemented thread-safe");
+  
     
   Ps_ = ParameterMap["Ps"];
   alpha_ = ParameterMap["alpha"];

@@ -93,8 +93,12 @@ namespace CoupledField
     forbidParallelMatrixAssembly_ |= matrix;
     forbidParallelRhsAssembly_ |= rhs;
 
-    // append, such that all reasons show up when there is more than one
-    PtrParamNode pn = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("forbidParallelAssembly", ParamNode::APPEND);
+    // all reasons show up but each of them only once, we are called per region
+    PtrParamNode in = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble");
+    if(in->HasByVal("forbidParallelAssembly", "comment", comment))
+      return;
+
+    PtrParamNode pn = in->Get("forbidParallelAssembly", ParamNode::APPEND);
     pn->Get("matrix")->SetValue(matrix);
     pn->Get("rhs")->SetValue(rhs);
     pn->Get("comment")->SetValue(comment);
