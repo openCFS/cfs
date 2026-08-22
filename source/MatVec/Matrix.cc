@@ -12,7 +12,6 @@
 #include <boost/type_traits/is_complex.hpp>
 #include <boost/math/special_functions/fpclassify.hpp>
 
-#include "Utils/boost-serialization.hh"
 #include "Utils/ToolsFull.hh"
 #include "Utils/AllocationLog.hh"
 #include "DataInOut/ProgramOptions.hh"
