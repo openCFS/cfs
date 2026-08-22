@@ -2,8 +2,6 @@
 #ifndef FILE_PHYSICAL_CONSTANTS
 #define FILE_PHYSICAL_CONSTANTS
 
-#include <boost/math/constants/constants.hpp>
-
 #include "General/defs.hh"
 
 namespace CoupledField {
@@ -13,7 +11,7 @@ namespace CoupledField {
   namespace PhysicalConstants {
 
     //! Vacuum permeability mu_0 in Vs/(Am)
-    inline const Double MU_ZERO = 4.0 * boost::math::constants::pi<Double>() * 1e-7;
+    inline const Double MU_ZERO = 4.0 * 3.14159265358979323846 * 1e-7;
 
     //! Vacuum reluctivity nu_0 = 1/mu_0 in Am/(Vs)
     inline const Double NU_ZERO = 1.0 / MU_ZERO;

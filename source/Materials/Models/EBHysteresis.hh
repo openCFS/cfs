@@ -136,7 +136,6 @@ namespace CoupledField {
       Double c_pacejka_;
       Double mu0_;
       UInt numS_;
-      Double chi_factor_;
       UInt jacobian_method_;
       //UInt anhyst_type_;
       std::string anhyst_type_;

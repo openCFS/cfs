@@ -437,6 +437,9 @@ DEFINE_LOG(smsm, "SMSM")
   LOG_DBG3(smsm) << "\n\t dMdH_ = " << dMdH_.ToString();
 
   //assemble the macroscopic magnetostrictive strain tensor from the homogenized components
+  // TODO Eval3D sets epsmumoy_[2][2] = eps_33 here, the 2D variant drops the out of plane strain.
+  //      Decide which of the two is right, currently nobody reads epsmumoy_ (see GetEps()).
+  LOG_DBG3(smsm) << "\n\t eps_33 accumulated but dropped in 2D = " << eps_33;
   epsmumoy_.Resize(3,3);
   epsmumoy_[0][0] = eps_11;
   epsmumoy_[0][1] = eps_12;

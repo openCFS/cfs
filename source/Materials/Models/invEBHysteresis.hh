@@ -22,7 +22,6 @@
 
 #include <list>
 
-#include <boost/utility.hpp>
 
 #include "MatVec/Vector.hh"
 #include "Domain/Domain.hh"
@@ -191,7 +190,6 @@ namespace CoupledField {
       std::string approx_type_;
       // ath to the file containing pinning forces (kappa) and weights (omega) for the composite model
       std::string pinning_forces_weight_;
-      UInt ndx_g_;
       // lookup table for the anhysteretic function: J values [T] and corresponding H values [A/m]
       std::vector<Double> J_lut_, H_lut_;
       StdVector<Double> kappa_file_, omega_file_;

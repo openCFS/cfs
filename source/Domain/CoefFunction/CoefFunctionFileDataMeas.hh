@@ -1,31 +1,26 @@
 #ifndef COEFFUNCTIONFILEDATAMEAS_HH_
 #define COEFFUNCTIONFILEDATAMEAS_HH_
 
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
 #include "CoefFunction.hh"
 #include "Domain/Domain.hh"
 
 namespace CoupledField
 {
 
-/** This is a more technical variant of CoefFunctionScatteredData. Here we need to give the values
- *  for the cfs element/node numbers - hence the data needs to match the mesh!
- *  Currently we handle only nodal data (named nodes) for scalar and vector, all real. Extensions shall be easy!
- *  Search for "fileData" in the tests for application examples.
+/** A measured signal over time from a file, the same vector for all points. Used for the Hx/Bx
+ *  components of a <fileData> element, see SinglePDE::SetBCsAndLoads().
  *  The file format is the following:
- *  * ASCII and line based.
+ *  * ASCII and line based, one line per time step in the order of the time steps
  *  * lines starting with hashtag # are ignored
- *  * first value is 1-based node number
- *  * following double values (one for scalar, more for vectors)
- *  * valid separators are space, tab, comma, semicolon and multiples of it and mixing. Hence almost everything
- *  * see also StringParse in testbed.cc  */
-class CoefFunctionFileDataMeas : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionFileDataMeas>
+ *  * first value is the time, followed by dim double values
+ *  * valid separators are space, tab, comma, semicolon and multiples of it and mixing
+ *  The attribute 'missing' of <fileData> has no meaning here, it only applies to the node based
+ *  CoefFunctionFileData. */
+class CoefFunctionFileDataMeas : public CoefFunction
 {
 public:
 
-  /** <fileData> Element, e.g. for mechanic force */
+  /** <fileData> element for the Hx/Bx components of a transient PDE */
   CoefFunctionFileDataMeas(Domain* ptDomain, const std::string& pdename, PtrParamNode pn, int dim);
 
   virtual ~CoefFunctionFileDataMeas() { }
@@ -37,10 +32,10 @@ public:
   }
 
   void GetScalar(Complex& scal, const LocPointMapped& lpm)  override{
-    EXCEPTION("GetScalar not implemented yet");
+    EXCEPTION("GetScalar not supported");
   }
 
-  /** the node of interest is transported in lpm.pl.number */
+  /** the same vector for all points, lpm is not evaluated */
   void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) override;
 
   void GetVector(Vector<Complex>& vec, const LocPointMapped& lpm)  override {
@@ -55,11 +50,10 @@ public:
 
 private:
 
-  /** common init for the constructors */
+  /** common init for the constructor */
   void Init(int dim);
 
-  /** parse the data file. See class description for data structure.
-   * @param input e.g. an open ifstream or something like a strstream for testing */
+  /** parse the data file. See class description for the data structure. */
   void ReadData(std::istream& input, int dim);
 
   //pointer to domain
@@ -73,14 +67,6 @@ private:
   
   //dimension 
   UInt dim_;
-
-  /** how to handle node numbers not given in the file */
-  typedef enum { THROW_EXCEPTION, WARNING_ZERO, ZERO } Missing;
-  Enum<Missing> missing;
-  Missing missing_ = THROW_EXCEPTION;
-
-  /** helper for Missing::WARNING_ZERO */
-  bool warning_issued_ = false;
 
   /** contains the time values of each time step*/
   std::list<double> time_;

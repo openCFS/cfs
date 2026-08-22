@@ -24,7 +24,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
   EBHysteresis::EBHysteresis() : Model(),
                                  numElems_{0},
-                                 Ps_{0}, A_{0}, mu0_{0}, numS_{0}, chi_factor_{0}, jacobian_method_{0},
+                                 Ps_{0}, A_{0}, mu0_{0}, numS_{0}, jacobian_method_{0},
                                  mp_{nullptr}, iterationCounterPtr_{nullptr}, iterTracker4Mu_{0},
                                  isMH_{false}
   {

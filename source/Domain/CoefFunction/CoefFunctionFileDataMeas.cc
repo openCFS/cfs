@@ -1,12 +1,9 @@
 #include <fstream>
-#include <forward_list>
 #include <boost/tokenizer.hpp>
-#include <iostream>
 
 #include "Domain/CoefFunction/CoefFunctionFileDataMeas.hh"
 #include "Utils/ToolsFull.hh"
 #include "Driver/TransientDriver.hh"
-#include "DataInOut/ResultHandler.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 
@@ -24,7 +21,6 @@ CoefFunctionFileDataMeas::CoefFunctionFileDataMeas(Domain* ptDomain, const std::
   pdeName_ = pdename;
   Init(dim);
   filename_ = pn->Get("file")->As<string>();
-  missing_  = missing.Parse(pn->Get("missing")->As<string>());
 
   std::ifstream file(filename_);
   if(!file.good())
@@ -45,7 +41,6 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
     dt       = tDriver->GetDeltaT();
     actTime  = timeStep*dt;
   }
-  //std::cout << "actStep: " << timeStep << "  actTime: " << actTime << std::endl;
 
   //get correct index
   std::list<StdVector<Double> >::iterator iterData = dataH_.begin();
@@ -58,7 +53,6 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
 
   StdVector<Double> dataVec = *iterData;
   Double time = *iterTime;
-  //std::cout << "time: " << time << std::endl;
 
   //check time
   if ( (std::abs(actTime - time)) / std::abs(time) > 1e-10 )
@@ -68,8 +62,6 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
   for ( UInt k=0; k<dataVec.size();k++) {
      vec[k] = dataVec[k];
   }
-
-  //std::cout << "DataVec: " << vec << std::endl;
  }
 
 
@@ -81,12 +73,6 @@ void CoefFunctionFileDataMeas::Init(int dim)
   dimType_ = VECTOR;
   dependType_ = SPACE;
   dim_ = dim;
-
-  // no need to have this static
-  missing.SetName("CoefFunctionFileDataMeas");
-  missing.Add(THROW_EXCEPTION, "exception");
-  missing.Add(WARNING_ZERO, "warning");
-  missing.Add(ZERO, "zero");
 }
 
 void CoefFunctionFileDataMeas::ReadData(std::istream& input, int dim)
@@ -111,9 +97,9 @@ void CoefFunctionFileDataMeas::ReadData(std::istream& input, int dim)
 
     try
     {
-      // the element number
+      // the time value
       if(iter == tokens.end())
-        EXCEPTION("cannot parse number token in line " << line_cnt << " in dataFile " << filename_);
+        EXCEPTION("cannot parse time token in line " << line_cnt << " in dataFile " << filename_);
       time_.push_back(std::stod(*iter));
       iter++;
 
