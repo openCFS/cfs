@@ -44,7 +44,7 @@
       </mechanic>
     </pdeList>
 
-    <linearSystems assembly="deterministic">
+    <linearSystems>
       <system>
         <solutionStrategy>
           <standard>
@@ -56,7 +56,8 @@
                Use practically pardiso or umfpack for 2D -->
           <directLDL/>
         </solverList>
-      </system>
+              <matrixAssembly scheduling="deterministic"/>
+</system>
     </linearSystems>
   </sequenceStep>
   

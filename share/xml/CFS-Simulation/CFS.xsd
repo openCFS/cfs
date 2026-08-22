@@ -195,20 +195,6 @@
                         The tolerance used to decide if an entry is considered zero or non-zero by GetRidOfZeros.
                       </xsd:documentation>
                     </xsd:annotation>
-                  </xsd:attribute> 
-                  <xsd:attribute name="assembly" default="dynamic">
-                    <xsd:annotation>
-                      <xsd:documentation>
-                          "deterministic" disables more efficient perallel assemly of the global FE matrices. 
-                          Only very sensitive problems (bloch2d) benefit from deterministic.
-                      </xsd:documentation>
-                    </xsd:annotation>
-                    <xsd:simpleType>
-                        <xsd:restriction base="xsd:token">
-                          <xsd:enumeration value="dynamic"/>
-                          <xsd:enumeration value="deterministic"/>
-                      </xsd:restriction>
-                    </xsd:simpleType>
                   </xsd:attribute>
                 </xsd:complexType>
               </xsd:element>

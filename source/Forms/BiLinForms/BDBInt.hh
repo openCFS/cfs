@@ -248,6 +248,11 @@ public:
       return isSolDependent_;
     }
 
+    //! \copydoc BiLinearForm::GetDependency
+    virtual CoefFunction::CoefDependType GetDependency() const {
+      return dData_->GetDependency();
+    }
+
     void SetFeSpace( shared_ptr<FeSpace> feSpace ) {
       this->ptFeSpace1_ = feSpace;
       this->ptFeSpace2_ = feSpace;

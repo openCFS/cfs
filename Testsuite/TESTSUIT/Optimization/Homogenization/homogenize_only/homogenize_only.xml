@@ -64,12 +64,13 @@
        </storeResults>
       </mechanic>
     </pdeList>
-    <linearSystems assembly="deterministic">
+    <linearSystems>
       <system>
         <solverList>
           <directLDL/> 
         </solverList>
-      </system>
+              <matrixAssembly scheduling="deterministic"/>
+</system>
     </linearSystems>
   </sequenceStep>
 

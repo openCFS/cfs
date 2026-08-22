@@ -19,7 +19,7 @@
   <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_SystemSpec">
-    <xsd:sequence>
+    <xsd:all>
       
       <!-- Solution Strategy -->
       <xsd:element name="solutionStrategy" minOccurs="0" maxOccurs="1">
@@ -80,7 +80,66 @@
           <xsd:field xpath="@id"/>
         </xsd:unique>
       </xsd:element>
-    </xsd:sequence>
+
+      <!-- Matrix assembly -->
+      <xsd:element name="matrixAssembly" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Defines the assembly options for the linear system.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="method" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>Method to obtain the system matrix. Applies to the dynamic stiffness matrix in harmonic-type analyses.</xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="autoConsolidated">
+                  <xsd:annotation>
+                    <xsd:documentation>Frequency-independent parts in MASS, STIFFNESS and DAMPING, combined into SYSTEM with frequency factors, frequency-dependent parts in SYSTEM_UPDATE (useful for many frequency steps and large constant matrix parts, requires more memory than fullReassembly).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="autoSplit">
+                  <xsd:annotation>
+                    <xsd:documentation>Frequency-independent parts in MASS, STIFFNESS, DAMPING; frequency-dependent parts in corresponding *_UPDATE matrices, then recombined with frequency factors (requires most storage, use autoConsolidated).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="noReassembly">
+                  <xsd:annotation>
+                    <xsd:documentation>Assemble into MASS, STIFFNESS and DAMPING, never reassemble matrices (testing only, only warns if frequency-dependent forms are detected).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="fullReassembly">
+                  <xsd:annotation>
+                    <xsd:documentation>Always reassemble all into SYSTEM applying frequency factors on the element level (minimal storage required).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="scheduling" use="optional" default="dynamic">
+            <xsd:annotation>
+              <xsd:documentation>Parallel assembly scheduling in the assembly loop.</xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="dynamic">
+                  <xsd:annotation>
+                    <xsd:documentation>More efficient parallel (OpenMP chunked) assembly. (default)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="deterministic">
+                  <xsd:annotation>
+                    <xsd:documentation>Disable the parallel optimization for reproducible output. (slower)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:all>
     
     <!-- Unique identifier, refered to by PDEs -->
     <xsd:attribute name="id" type="xsd:token" use="optional" default="default"/>
@@ -125,6 +184,7 @@
     <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="damping_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="system_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="rhs" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="solution" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          

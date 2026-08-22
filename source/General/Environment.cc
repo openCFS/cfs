@@ -916,6 +916,7 @@ namespace CoupledField {
     feMatrixType.Add( MASS_UPDATE, "mass_update" );
     feMatrixType.Add( STIFFNESS_UPDATE, "stiffness_update");
     feMatrixType.Add( DAMPING_UPDATE, "damping_update" );
+    feMatrixType.Add( SYSTEM_UPDATE, "system_update" );
     feMatrixType.Add( SYSTEM_HYSTFREE, "system_hystfree" );
     feMatrixType.Add( SYSTEM_FIXPOINT, "system_fixpoint" );
     feMatrixType.Add( SYSTEM_FD_JACOBIAN, "system_fd_Jacobian" );
@@ -2181,6 +2182,9 @@ namespace CoupledField {
         break;
       case MASS_UPDATE:
         out = "MASS_update";
+        break;
+      case SYSTEM_UPDATE:
+        out = "system_update";
         break;
       case SYSTEM_HYSTFREE:
         out = "system_hystfree";

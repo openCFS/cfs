@@ -129,6 +129,11 @@ class BiLinearForm : public CfsCopyable{
       //! Return if element matrix is solution dependent
       virtual bool IsSolDependent() = 0;
       
+      //! Return dependency type of bilinear form (checks all CoefFunctions)
+      virtual CoefFunction::CoefDependType GetDependency() const {
+        return CoefFunction::CoefDependType::CONSTANT;
+      }
+      
       //! Return if bilinearform uses updated Lagrangian formulation
       bool IsCoordUpdate() { return coordUpdate_; }
       

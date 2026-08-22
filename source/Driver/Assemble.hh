@@ -32,6 +32,21 @@ namespace CoupledField {
 
   public:
 
+    //! Matrix assembly mode for harmonic-type analyses, resolved from the
+    //! per-system <matrixAssembly method> at construction.
+    typedef enum {
+      AUTO_SPLIT,          //!< Frequency-dependent parts in separate *_UPDATE matrices
+      AUTO_CONSOLIDATED,   //!< Frequency-dependent parts consolidated in SYSTEM_UPDATE
+      NO_REASSEMBLY,       //!< Never reassemble (testing mode)
+      FULL_REASSEMBLY      //!< Always reassemble everything into SYSTEM (legacy)
+    } MatrixAssemblyMode;
+
+    //! String/enum conversion registry for MatrixAssemblyMode
+    static Enum<MatrixAssemblyMode> matrixAssemblyMode;
+
+    //! Populate the MatrixAssemblyMode enum registry (call once at startup)
+    static void SetEnums();
+
     //! Constructor
     Assemble( AlgebraicSys* algsys, 
               BasePDE::AnalysisType analysis,
@@ -43,6 +58,11 @@ namespace CoupledField {
     
     //! Explicitly set the algebraic system
     void SetAlgSys(AlgebraicSys * algsys);
+
+    //! Get matrix assembly mode (resolved at construction from the algebraic
+    //! system's <system> node) for harmonic-type analyses. Throws if not
+    //! HARMONIC analysis.
+    MatrixAssemblyMode GetMatrixAssemblyMode() const;
 
     // ======================================================
     //  REGISTRATION METHODS
@@ -197,8 +217,10 @@ namespace CoupledField {
                           Global::ComplexPart matDataType,
                           Double omega );
     
-    //! Determine algebraic matrix type from physical matrix type based on analysis type
-    FEMatrixType DetermineAlgebraicMatrix(FEMatrixType physicalMatrix);
+    //! Set algebraic matrix types for all matrices in BiLinFormContext
+    //! Replaces DetermineAlgebraicMatrix - handles all analysis types
+    //! For HARMONIC: considers matrix assembly mode and frequency dependencies
+    void SetAlgebraicMatrices(BiLinFormContext* biLinContext);
     
     //! Apply harmonic frequency-dependent factor to given factor
     //! \param factor [in,out] Complex factor to modify (multiplied by harmonic factor)
@@ -206,6 +228,13 @@ namespace CoupledField {
     //! \param physicalMatrix The physical matrix type (STIFFNESS, DAMPING, MASS, etc.)
     inline void ApplyHarmonicFactor(Complex& factor, Double omega, FEMatrixType physicalMatrix) {
       switch(physicalMatrix) {
+        case SYSTEM:
+          // A physical SYSTEM matrix carries no additional harmonic (time
+          // derivative) factor. This case is hit by the auxiliary interpolation
+          // system used for IDBC handling/coefficient mapping, whose integrator
+          // is assembled directly into SYSTEM and must not be multiplied by a
+          // frequency-dependent factor. Leave the factor unchanged (no-op).
+          return;
         case STIFFNESS:
           // 0th derivative: factor = 1 (no-op)
           return;
@@ -264,6 +293,14 @@ namespace CoupledField {
 
     //! Pointer to algebraic system
     AlgebraicSys* algsys_;
+
+    //! Matrix assembly mode for harmonic-type analyses, snapshot from the
+    //! owning driver at construction time.
+    MatrixAssemblyMode matrixAssemblyMode_;
+
+    //! Use deterministic (vs. dynamic) parallel assembly scheduling, read from
+    //! the per-system <matrixAssembly scheduling="deterministic"> at construction.
+    bool deterministicScheduling_;
 
     //! Analysistype
     BasePDE::AnalysisType analysisType_;

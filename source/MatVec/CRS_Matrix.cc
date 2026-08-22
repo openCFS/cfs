@@ -1533,17 +1533,23 @@ namespace CoupledField {
   //   Add (another matrix)
   // ************************
   template<typename T>
-  void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
+  template<typename TIn, typename Scalar>
+  void CRS_Matrix<T>::AddFull( Scalar alpha, const CRS_Matrix<TIn>& src ) {
+    // Obtain pointer to data array of other matrix
+    const TIn *data = src.GetDataPointer();
 
-      // Obtain pointer to data array of other matrix
-      const T *data = dynamic_cast<const CRS_Matrix<T>&>(mat).GetDataPointer();
-
-      // We now assume that the matrices have matching
-      // dimensions and sparsity patterns
-      for ( UInt i = 0; i < this->nnz_; i++ ) {
-        data_[i] += alpha * data[i];
-      }
+    // We now assume that the matrices have matching
+    // dimensions and sparsity patterns
+    for ( UInt i = 0; i < this->nnz_; i++ ) {
+      data_[i] += alpha * data[i];
+    }
   }
+
+  template<typename T>
+  void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat ) {
+    AddFull<T>( alpha, dynamic_cast<const CRS_Matrix<T>&>(mat) );
+  }
+
   template<typename T>
   void CRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat ) {
     EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
@@ -1551,58 +1557,47 @@ namespace CoupledField {
 
   template<>
   void CRS_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat ) {
-    EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
+    // Check for entry type of mat
+    BaseMatrix::EntryType eType = mat.GetEntryType();
+    if( eType == BaseMatrix::DOUBLE ) {
+      AddFull<Double>( alpha, dynamic_cast<const CRS_Matrix<Double>&>(mat) );
+    } else {
+      AddFull<Complex>( alpha, dynamic_cast<const CRS_Matrix<Complex>&>(mat) );
+    }
   }
 
   template<>
   void CRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
-
     // Check for entry type of mat
-	BaseMatrix::EntryType eType = mat.GetEntryType();
-
-	if( eType == BaseMatrix::DOUBLE ) {
-	  // Obtain pointer to data array of other matrix
-	  const Double *data = dynamic_cast<const CRS_Matrix<Double>&>(mat).GetDataPointer();
-
-	  // We now assume that the matrices have matching
-	  // dimensions and sparsity patterns
-	  for ( UInt i = 0; i < this->nnz_; i++ ) {
-	    data_[i] += alpha * Complex(data[i], 0.0 );
-	  }
-	} else {
-	  // Obtain pointer to data array of other matrix
-	  const Complex * data = dynamic_cast<const CRS_Matrix<Complex>&>(mat).GetDataPointer();
-
-	  // We now assume that the matrices have matching
-	  // dimensions and sparsity patterns
-	  for ( UInt i = 0; i < this->nnz_; i++ ) {
-	    data_[i] += alpha * data[i];
-	  }
-	}
+    BaseMatrix::EntryType eType = mat.GetEntryType();
+    if( eType == BaseMatrix::DOUBLE ) {
+      AddFull<Double>( alpha, dynamic_cast<const CRS_Matrix<Double>&>(mat) );
+    } else {
+      AddFull<Complex>( alpha, dynamic_cast<const CRS_Matrix<Complex>&>(mat) );
+    }
   }
   
   // ******************************************
   //   Add (another matrix, only index subset)
   // ******************************************
   template<typename T>
-  void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
-                           const std::set<UInt>& rowIndices,
-                           const std::set<UInt>& colIndices ) {
-    // Down-cast input matrix
-    const CRS_Matrix<T>& crsMat = dynamic_cast<const CRS_Matrix<T>&>(mat);
+  template<typename TIn, typename Scalar>
+  void CRS_Matrix<T>::AddIndexed( Scalar alpha, const CRS_Matrix<TIn>& src,
+                                  const std::set<UInt>& rowIndices,
+                                  const std::set<UInt>& colIndices ) {
 
     // Obtain pointer to data array of other matrix
-    const T *data = crsMat.GetDataPointer();
+    const TIn *data = src.GetDataPointer();
 
     // Distinguish 4 cases:
-    // 1) Neither row- nor col-indices are set (i.e. take all incides)
+    // 1) Neither row- nor col-indices are set (i.e. take all indices)
     //    -> use standard Add methods
     // 2) Row and col-indices are set and contain all rows / cols
     //    -> use standard Add methods
     if( (rowIndices.size() == 0 && colIndices.size() == 0) ||
         (rowIndices.size() == this->nrows_ &&
          colIndices.size() == this->ncols_ ) ) {
-      this->Add(alpha, mat);
+      this->AddFull(alpha, src);
       return;
     }
 
@@ -1658,8 +1653,6 @@ namespace CoupledField {
         //  -> or loop over all rows and take into account only
         //     selected columns
         //this is simpler right now we can assume that all matrices have the same graph
-        // Obtain pointer to data array of other matrix
-        const T *data = dynamic_cast<const CRS_Matrix<T>&>(mat).GetDataPointer();
         //another optimization check if data in set is continuous
         std::set<UInt>::iterator starting  = colIndices.begin();
         std::set<UInt>::iterator ending = colIndices.end();
@@ -1671,7 +1664,7 @@ namespace CoupledField {
           // numbered contiguously, so this is the standard situation e.g.
           // when constructing the effective system matrix): no filtering
           // per entry is needed at all
-          this->Add(alpha, mat);
+          this->AddFull(alpha, src);
         }
         else if( (max - min) == (size-1)){
           //data is continuous
@@ -1693,8 +1686,29 @@ namespace CoupledField {
   }
 
   template<typename T>
+  void CRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
+                           const std::set<UInt>& rowIndices,
+                           const std::set<UInt>& colIndices ) {
+    AddIndexed<T>( alpha, dynamic_cast<const CRS_Matrix<T>&>(mat),
+                   rowIndices, colIndices );
+  }
+
+  template<typename T>
   void CRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices ) {
-    EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
+    EXCEPTION("Complex Add with indices is not implemented for CRS_Matrix.");
+  }
+
+  template<>
+  void CRS_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices ) {
+    // Check for entry type of mat
+    BaseMatrix::EntryType eType = mat.GetEntryType();
+    if( eType == BaseMatrix::DOUBLE ) {
+      AddIndexed<Double>( alpha, dynamic_cast<const CRS_Matrix<Double>&>(mat),
+                          rowIndices, colIndices );
+    } else {
+      AddIndexed<Complex>( alpha, dynamic_cast<const CRS_Matrix<Complex>&>(mat),
+                           rowIndices, colIndices );
+    }
   }
 
   // *************

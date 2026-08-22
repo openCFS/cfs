@@ -78,7 +78,7 @@
       </mechanic>
     </pdeList>
     <!-- have deterministic assembly, which improves reproducibility for parallel assembly -->
-    <linearSystems assembly="deterministic">
+    <linearSystems>
       <system>
         <solutionStrategy>
           <standard>
@@ -92,7 +92,8 @@
         <solverList>
           <umfpack/>
         </solverList>
-      </system>
+              <matrixAssembly scheduling="deterministic"/>
+</system>
     </linearSystems>
   </sequenceStep>
 

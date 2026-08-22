@@ -117,7 +117,7 @@ namespace CoupledField
 
   protected:
     
-    //! type of analysis
+    //! Type of analysis
     BasePDE::AnalysisType analysis_;
 
     //! Pointer to parameter node

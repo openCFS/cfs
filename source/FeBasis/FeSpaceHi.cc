@@ -8,6 +8,7 @@
 
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "Driver/Assemble.hh"
+#include "Driver/BaseDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "PDE/SinglePDE.hh"
 #include "Forms/LinForms/LinearForm.hh"
@@ -674,7 +675,13 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
         BiLinearForm *massInt = feFct->GenerateInterpolBilinForm(dim, dofDim, true);
         LinearForm * rhsInt = feFct->GenerateInterpolLinForm(dim, dofDim, coefFct, true);
 
-        BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
+        // The interpolation (projection) integrator is assembled directly into the
+        // SYSTEM matrix, not into a raw base matrix. This is required so that the
+        // auxiliary system used for mapping (inhomogeneous) Dirichlet values onto
+        // the FeSpace is solvable regardless of the harmonic matrix assembly mode:
+        // in the AUTO_*/NO_REASSEMBLY modes the raw STIFFNESS matrix would be kept
+        // separate and SYSTEM left empty, making the projection "0*u = rhs".
+        BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM);
         massInt->SetName("Interpolator");
         massCtx->SetEntities( actList, actList );
         massCtx->SetFeFunctions(feFct, feFct);
@@ -762,8 +769,8 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
     ctx->algSys->InitRHS();
     ctx->assemble->AssembleLinRHS();
 
-
-    // solve system and aquire solution
+    // Solve the auxiliary projection system "M sol = rhs" and store the result.
+    // This gives the nodal/element values of the boundary coefficient function.
     ctx->algSys->Solve(); // analysis_id ctx->infoNode);
     ctx->algSys->GetSolutionVal(*(ctx->sol));
 

@@ -766,6 +766,28 @@ namespace CoupledField {
     static void QuickSort( UInt *const cols, T *const data,
                            const UInt length );
 
+    //! Shared implementation of a scaled addition of a full matrix,
+    //! \f$A = A + \alpha B\f$. The source matrix B may have a different
+    //! scalar type (Double or Complex) than this matrix.
+    //! \param alpha scalar factor
+    //! \param src   source matrix to be added (same sparsity pattern)
+    template<typename TIn, typename Scalar>
+    void AddFull( Scalar alpha, const CRS_Matrix<TIn>& src );
+
+    //! Shared implementation of a scaled addition of a matrix on a
+    //! row/column index subset, \f$A = A + \alpha B\f$. Only those entries
+    //! of B specified by the row / column index sets are added. If a set is
+    //! empty, all rows / columns are considered. The source matrix B may
+    //! have a different scalar type (Double or Complex) than this matrix.
+    //! \param alpha       scalar factor
+    //! \param src         source matrix to be added (same sparsity pattern)
+    //! \param rowIndices  rows to consider (empty = all)
+    //! \param colIndices  columns to consider (empty = all)
+    template<typename TIn, typename Scalar>
+    void AddIndexed( Scalar alpha, const CRS_Matrix<TIn>& src,
+                     const std::set<UInt>& rowIndices,
+                     const std::set<UInt>& colIndices );
+
     //! Auxilliary method for setting up the diagonal index array
 
     //! This auxilliary method uses the existing CRS structure information,

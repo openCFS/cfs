@@ -151,6 +151,11 @@ namespace CoupledField {
       virtual bool IsSolDependent() {
         return (coefScalar_->GetDependency() == CoefFunction::SOLUTION) || (coefScalar_->GetDependency() == CoefFunction::SPACE);
       }
+      
+      //! \copydoc BiLinearForm::GetDependency
+      virtual CoefFunction::CoefDependType GetDependency() const {
+        return coefScalar_->GetDependency();
+      }
             
       //! Set Finite Element Space
       void SetFeSpace( shared_ptr<FeSpace> feSpace ) {

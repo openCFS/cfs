@@ -1529,11 +1529,24 @@ namespace CoupledField
     //    sub-graph that the graph manager stores
     // --------------------------------------------------------------------
     if ( matrixTypes_.size() > 1 ) {
+      // First, collect union of all other matrix types
       for ( fIt = matrixTypes_.begin(); fIt != matrixTypes_.end(); fIt++ ) {
         if ( *fIt != SYSTEM ) {
           feSubMatricesByBlocks_[SYSTEM].insert(
               feSubMatricesByBlocks_[*fIt].begin(),
               feSubMatricesByBlocks_[*fIt].end() );
+        }
+      }
+      // Second, ensure all existing graph blocks are included
+      // (handles cases where some blocks might not be in other matrix types)
+      SubMatrixID sID;
+      for ( UInt i = 0; i < numBlocks_; i++ ) {
+        for ( UInt j = 0; j < numBlocks_; j++ ) {
+          if ( graphManager_->SubGraphExists( i, j ) == true ) {
+            sID.rowInd = i;
+            sID.colInd = j;
+            feSubMatricesByBlocks_[SYSTEM].insert( sID );
+          }
         }
       }
     }
@@ -2227,6 +2240,7 @@ namespace CoupledField
       if(matrixTypes_.find(matrixType) != matrixTypes_.end()){
       //assert(sysMat_[matrixType] != NULL);
         sysMat_[matrixType]->Init();
+        LOG_DBG3(algSys) << "also Initializing auxMat_[" << feMatrixType.ToString(matrixType) << "] for fctId " << fctId << " in IDBC handler";
         idbcHandler_->InitMatrix(matrixType);
       }
     }
@@ -3499,7 +3513,7 @@ namespace CoupledField
       }
     }else{
       for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
-        if ( sysMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+        if ( sysMat_[(*it).first] != NULL  && (*it).second != T(0.0) ) {
           std::map<UInt, std::set<UInt> > dummyFreeSet;
           sys->Add( (*it).second, *sysMat_[(*it).first],
               dummyFreeSet, freeIndPerBlock );

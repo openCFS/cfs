@@ -74,7 +74,7 @@
         </storeResults>
       </mechanic>
     </pdeList>
-    <linearSystems assembly="deterministic">
+    <linearSystems>
       <system>
         <solutionStrategy>
           <standard>
@@ -91,7 +91,8 @@
             <symtol>0.0001</symtol>
           </umfpack>
         </solverList>
-      </system>
+              <matrixAssembly scheduling="deterministic"/>
+</system>
     </linearSystems>
   </sequenceStep>
 

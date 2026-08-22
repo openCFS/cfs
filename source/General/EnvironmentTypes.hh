@@ -641,7 +641,7 @@ namespace CoupledField {
   //! - BACKUP - currently unused? Will be now used to store a copy of the system matrix when we reduce the number of non-zero elements
 
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, DAMPING_AUX, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE,
-    SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, BACKUP, GEOMETRIC_STIFFNESS}
+    SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, BACKUP, GEOMETRIC_STIFFNESS, SYSTEM_UPDATE}
   FEMatrixType;
 
   //! Maximal number of different FE matrix types

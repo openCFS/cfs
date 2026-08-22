@@ -1489,26 +1489,66 @@ namespace CoupledField {
   
   
   void StdSolveStep::StepHarmonicLin() {
+    LOG_DBG2(stdsolvestep) << "StepHarmonicLin: actFreq_ = " << GetActFreq() << ", actStep_ = " << GetActStep();
+
     //Set special RHS Values
-    //std::cout << "Do Apply Loads" << std::endl;
     PDE_.SetRhsValues();
     
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
 
+    // Get matrix assembly mode from the assemble (resolved from the owning
+    // driver at construction; may be Harmonic, InverseSource, MultiSequence, ...)
+    Assemble::MatrixAssemblyMode matrixAssemblyMode = assemble_->GetMatrixAssemblyMode();
+
+    LOG_DBG2(stdsolvestep) << "StepHarmonicLin: matrixAssemblyMode = " << Assemble::matrixAssemblyMode.ToString(matrixAssemblyMode);
+
     assemble_->AssembleMatrices();
+
+    LOG_DBG2(stdsolvestep) << "StepHarmonicLin: After AssembleMatrices, IsMatrixUpdated = " << assemble_->IsMatrixUpdated();
+
+    // Construct effective system matrix for AUTO_SPLIT, AUTO_CONSOLIDATED or
+    // NO_REASSEMBLY mode. In FULL_REASSEMBLY mode, matrices are already
+    // assembled into SYSTEM (with frequency factors applied during assembly).
+    if(matrixAssemblyMode != Assemble::FULL_REASSEMBLY) {
+      // Get angular frequency
+      Double omega = 2.0 * M_PI * GetActFreq();
+      LOG_DBG2(stdsolvestep) << "preparing factors for matrix recombination: omega = " << omega << " (freq = " << GetActFreq() << ")";
+
+      // Set up matrix factors for dynamic stiffness matrix:
+      // SYSTEM = K + j*omega*C - omega^2*M + (j/omega)*C_aux + (frequency-dependent updates)
+      std::map<FEMatrixType, Complex> factors;
+
+      // Always include base matrices - ConstructEffectiveMatrix will skip NULL ones
+      factors[STIFFNESS] = Complex(1.0, 0.0);
+      factors[DAMPING] = Complex(0.0, omega);
+      factors[DAMPING_AUX] = Complex(0.0, 1.0/omega);
+      factors[MASS] = Complex(-omega*omega, 0.0);
+      factors[AUXILIARY] = Complex(1.0, 0.0);
+      if(matrixAssemblyMode == Assemble::AUTO_SPLIT) {
+          factors[STIFFNESS_UPDATE] = factors[STIFFNESS];
+          factors[DAMPING_UPDATE] = factors[DAMPING];
+          factors[MASS_UPDATE] = factors[MASS];
+      }
+      else if (matrixAssemblyMode == Assemble::AUTO_CONSOLIDATED) {
+          factors[SYSTEM_UPDATE] = Complex(1.0, 0.0);
+      }
+
+      // clean the system matrix
+      algsys_->InitMatrix(SYSTEM);
+      // Construct effective matrix
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID, factors);
+    }
+    else {
+      // empty factors for system matrix construction
+      std::map<FEMatrixType, Double> empty;
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID, empty);
+    }
 
     PDE_.SetBCs();
     
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
-
-    // Where should we get the matrix factors from in a harmonic case?
-    // In my opinion this method
-    //if( assemble_->IsMatrixUpdated() ) {
-    std::map<FEMatrixType,Double> empty;
-    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
-    
 
     // Check if the AMG-framework is used (if so, we have
     // to gather some geometry information at this point)
@@ -1526,7 +1566,7 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    if( assemble_->IsMatrixUpdated() ) {
+    if( assemble_->IsMatrixUpdated() || matrixAssemblyMode != Assemble::FULL_REASSEMBLY ) {
       // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
       SetupGetRidOfZerosActive();
       // get rid of unnecessary zeros (if applicable)

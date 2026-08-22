@@ -42,6 +42,18 @@ namespace CoupledField
   DEFINE_LOG(assemble, "assemble")
 
 
+  Enum<Assemble::MatrixAssemblyMode> Assemble::matrixAssemblyMode;
+
+  void Assemble::SetEnums()
+  {
+    matrixAssemblyMode.SetName("Assemble::MatrixAssemblyMode");
+    matrixAssemblyMode.Add(AUTO_SPLIT, "autoSplit");
+    matrixAssemblyMode.Add(AUTO_CONSOLIDATED, "autoConsolidated");
+    matrixAssemblyMode.Add(NO_REASSEMBLY, "noReassembly");
+    matrixAssemblyMode.Add(FULL_REASSEMBLY, "fullReassembly");
+  }
+
+
   Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
                       MathParser* mp,
@@ -59,6 +71,29 @@ namespace CoupledField
     skipElemAssembly_=false;
     timer_ = shared_ptr<Timer>(new Timer());
 
+    // Resolve the matrix assembly mode and the assembly scheduling from the
+    // algebraic system's per-system <matrixAssembly> node. Both attributes are
+    // optional (defaults: autoConsolidated and dynamic).
+    PtrParamNode sys = algsys_ ? algsys_->GetSystemParam() : nullptr;
+    // harmonic analyses default to auto, all others use full_reassembly
+    matrixAssemblyMode_ = (analysisType_ == BasePDE::HARMONIC) ? AUTO_CONSOLIDATED : FULL_REASSEMBLY;
+    deterministicScheduling_ = false; // "dynamic"
+    if(sys != nullptr && sys->Has("matrixAssembly")) {
+      PtrParamNode maNode = sys->Get("matrixAssembly");
+      // scheduling applies to any analysis type / solution strategy
+      std::string scheduling = "dynamic";
+      maNode->GetValue("scheduling", scheduling, ParamNode::PASS);
+      deterministicScheduling_ = (scheduling == "deterministic");
+      // the mode is only honored for harmonic-type analyses (incl. inverse source)
+      if( maNode->Has("method") ) {
+        std::string method;
+        maNode->GetValue("method", method);
+        matrixAssemblyMode_ = matrixAssemblyMode.Parse(method);
+        if(analysisType_ != BasePDE::HARMONIC) { // also inverseSource == HARMONIC
+          EXCEPTION("<matrixAssembly method='" << matrixAssemblyMode.ToString(matrixAssemblyMode_) << "' is set, but not implemented for analysis type '" << BasePDE::analysisType.ToString(analysisType_) << "'; remove the method-attribute from the input XML (or implement it)!");
+        }
+      }
+    }
 
     // Set expression for omega
     mHandle_ = mp->GetNewHandle();
@@ -102,6 +137,12 @@ namespace CoupledField
     pn->Get("matrix")->SetValue(matrix);
     pn->Get("rhs")->SetValue(rhs);
     pn->Get("comment")->SetValue(comment);
+  }
+
+  Assemble::MatrixAssemblyMode Assemble::GetMatrixAssemblyMode() const {
+    // For non-harmonic analyses, throw exception (should not be called)
+    assert(analysisType_ == BasePDE::HARMONIC);
+    return matrixAssemblyMode_;
   }
 
   void Assemble::SkipElemAssembly(){
@@ -202,10 +243,11 @@ namespace CoupledField
 
     // Set algebraic matrix types for all matrices in context
     bool addForm = false;
+    SetAlgebraicMatrices(biLinContext);
+    
     for (unsigned int i = 1; i <= biLinContext->GetNumberOfMatrixes(); i++) {
       FEMatrixType physMat = biLinContext->GetPhysicalMatrixType(i);
-      FEMatrixType algMat = DetermineAlgebraicMatrix(physMat);
-      biLinContext->SetAlgebraicMatrixType(algMat, i);
+      FEMatrixType algMat = biLinContext->GetAlgebraicMatrixType(i);
       
       LOG_DBG(assemble) << "SetAlgebraicMatrixType: physical=" 
                         << Enum2String(physMat) << " -> algebraic=" 
@@ -544,11 +586,10 @@ namespace CoupledField
       if(size > 0)
         matrixUpdated_ = true;
 
-      // by default we assemble in parallel with dynamic scheduling (chunks).
-      // via <linearSystems assembly="deterministic"> this can be disabled. Default is "dynamic"
-      PtrParamNode lsNode = algsys_->GetLinearSystemsParam();
-      assert(!lsNode || !lsNode->Has("assembly") || (lsNode->Get("assembly")->As<string>() == "deterministic" || lsNode->Get("assembly")->As<string>() == "dynamic"));
-      const bool deterministic = (lsNode && lsNode->Has("assembly") && lsNode->Get("assembly")->As<string>() == "deterministic");
+      // assemble in parallel with dynamic chunking by default; the per-system
+      // <matrixAssembly scheduling="deterministic"> selects the deterministic
+      // mode (resolved at construction into deterministicScheduling_).
+      const bool deterministic = deterministicScheduling_;
       const UInt entityChunk = 32;
       UInt nextEntity = 0;
 
@@ -707,8 +748,14 @@ namespace CoupledField
                     // compute scaling factor
                     Complex factor(matrixFactor, 0);
                     if (analysisType_ == BasePDE::HARMONIC) {
-                      FEMatrixType physicalMatrix = actContext.GetPhysicalMatrixType(i);
-                      ApplyHarmonicFactor(factor, omega, physicalMatrix);
+                      // Frequency factors are applied during assembly only to the
+                      // SYSTEM and SYSTEM_UPDATE matrices. All other matrices are
+                      // stored raw and get their frequency factors applied during
+                      // the matrix recombination in the solve step.
+                      if (algebraicMatrix == SYSTEM || algebraicMatrix == SYSTEM_UPDATE) {
+                        FEMatrixType physicalMatrix = actContext.GetPhysicalMatrixType(i);
+                        ApplyHarmonicFactor(factor, omega, physicalMatrix);
+                      }
                     }
                     if (form->IsComplex()) {
                       elemMatrixC_scaled.Resize(elemMatrixC.GetNumRows(), elemMatrixC.GetNumCols());
@@ -2126,100 +2173,190 @@ namespace CoupledField
   }
 
 
-  FEMatrixType Assemble::DetermineAlgebraicMatrix(FEMatrixType physicalMatrix) {
-    LOG_DBG2(assemble) << "Determine where to put physical " << Enum2String(physicalMatrix) << " matrix for " << BasePDE::analysisType.ToString(analysisType_) << " analysis";
+  void Assemble::SetAlgebraicMatrices(BiLinFormContext* biLinContext) {
+    LOG_DBG(assemble) << "SetAlgebraicMatrices for '" << biLinContext->GetIntegrator()->GetName() << "'";
     
-    switch(analysisType_) {
-      case BasePDE::STATIC:
-        switch(physicalMatrix) {
-          case STIFFNESS: return SYSTEM;
-          case STIFFNESS_UPDATE: return SYSTEM;
-          default: return NOTYPE;
-        }
-        
-      case BasePDE::TRANSIENT:
-        switch(physicalMatrix) {
-          case STIFFNESS: return STIFFNESS;
-          case DAMPING: return DAMPING;
-          case MASS: return MASS;
-          case STIFFNESS_UPDATE: return STIFFNESS_UPDATE;
-          case DAMPING_UPDATE: return DAMPING_UPDATE;
-          case MASS_UPDATE: return MASS_UPDATE;
-          default: return NOTYPE;
-        }
+    // Loop over all matrices in the context
+    for (unsigned int i = 1; i <= biLinContext->GetNumberOfMatrixes(); i++) {
+      FEMatrixType physMat = biLinContext->GetPhysicalMatrixType(i);
+      FEMatrixType algMat = NOTYPE;
 
-      case BasePDE::HARMONIC:
-        switch(physicalMatrix) {
-          case STIFFNESS: return SYSTEM;
-          case DAMPING: return SYSTEM;
-          case DAMPING_AUX: return SYSTEM;
-          case MASS: return SYSTEM;
-          case STIFFNESS_UPDATE: return SYSTEM;
-          case DAMPING_UPDATE: return SYSTEM;
-          case MASS_UPDATE: return SYSTEM;
-          default: return NOTYPE;
+      // A matrix that is already declared physical SYSTEM is assembled directly
+      // into the (algebraic) SYSTEM matrix, independent of the harmonic matrix
+      // assembly mode. This is used by the auxiliary interpolation system that
+      // maps (inhomogeneous) Dirichlet values onto the FeSpace: its integrator
+      // must always land in SYSTEM so the projection "M*u = rhs" is solvable,
+      // even in the AUTO_*/NO_REASSEMBLY modes where ordinary raw base matrices
+      // (e.g. STIFFNESS) are kept separate from SYSTEM until recombination.
+      if ( physMat == SYSTEM ) {
+        algMat = SYSTEM;
+      } else if (analysisType_ == BasePDE::STATIC) {
+        switch(physMat) {
+          case STIFFNESS:
+          case STIFFNESS_UPDATE:
+            algMat = SYSTEM;
+            break;
+          default:
+            algMat = NOTYPE;
+            break;
         }
-
-      case BasePDE::MULTIHARMONIC:
-        switch(physicalMatrix) {
-          case STIFFNESS: return SYSTEM;
-          case DAMPING: return SYSTEM;
-          case MASS: return SYSTEM;
-          default: return NOTYPE;
+      } else if (analysisType_ == BasePDE::TRANSIENT) {
+        switch(physMat) {
+          case STIFFNESS: algMat = STIFFNESS; break;
+          case DAMPING: algMat = DAMPING; break;
+          case MASS: algMat = MASS; break;
+          case STIFFNESS_UPDATE: algMat = STIFFNESS_UPDATE; break;
+          case DAMPING_UPDATE: algMat = DAMPING_UPDATE; break;
+          case MASS_UPDATE: algMat = MASS_UPDATE; break;
+          default: algMat = NOTYPE; break;
         }
+      } else if (analysisType_ == BasePDE::HARMONIC) {
+        // Query matrix assembly mode
+        MatrixAssemblyMode mode = GetMatrixAssemblyMode();
+        LOG_DBG2(assemble) << "HARMONIC with mode: " << matrixAssemblyMode.ToString(mode);
 
-      case BasePDE::INVERSESOURCE:
-        switch(physicalMatrix) {
-          case STIFFNESS: return SYSTEM;
-          case DAMPING: return SYSTEM;
-          case MASS: return SYSTEM;
-          default: return NOTYPE;
+        // Check integrator dependency (constant vs frequency-dependent form)
+        CoefFunction::CoefDependType dependency = biLinContext->GetIntegrator()->GetDependency();
+        bool isTimeFreqDependent = (dependency == CoefFunction::TIMEFREQ || dependency == CoefFunction::GENERAL);
+
+        // Check factor dependency
+        bool hasTimeFreqFactor = biLinContext->HasTimeFreqDependentFactor(i);
+
+        if (mode == AUTO_SPLIT || mode == AUTO_CONSOLIDATED) {
+          // In the (re)combination modes, frequency-independent (constant) forms
+          // are stored in the base matrices (raw, no frequency factors applied
+          // during assembly), while frequency-dependent forms go to the UPDATE
+          // matrices. The final SYSTEM matrix is then built by recombination in
+          // the solve step.
+          if (isTimeFreqDependent || hasTimeFreqFactor) {
+            // Redirect to UPDATE matrix based on mode
+            if (mode == AUTO_CONSOLIDATED) {
+              algMat = SYSTEM_UPDATE;
+              LOG_DBG2(assemble) << "  Frequency-dependent: " << Enum2String(physMat) << " -> SYSTEM_UPDATE";
+            } else {
+              // AUTO_SPLIT: redirect to specific UPDATE matrix
+              switch(physMat) {
+                case STIFFNESS:
+                  algMat = STIFFNESS_UPDATE;
+                  LOG_DBG2(assemble) << "  Frequency-dependent: STIFFNESS -> STIFFNESS_UPDATE";
+                  break;
+                case DAMPING:
+                  algMat = DAMPING_UPDATE;
+                  LOG_DBG2(assemble) << "  Frequency-dependent: DAMPING -> DAMPING_UPDATE";
+                  break;
+                case MASS:
+                  algMat = MASS_UPDATE;
+                  LOG_DBG2(assemble) << "  Frequency-dependent: MASS -> MASS_UPDATE";
+                  break;
+                default:
+                  // Keep base matrix for other types
+                  LOG_DBG3(assemble) << "  Frequency-dependent: " << Enum2String(physMat) << " stays in base matrix";
+                  break;
+              }
+            }
+          } else {
+            // Frequency-independent (constant) form -> base matrix
+            switch(physMat) {
+              case STIFFNESS: algMat = STIFFNESS; break;
+              case DAMPING: algMat = DAMPING; break;
+              case DAMPING_AUX: algMat = DAMPING_AUX; break;
+              case MASS: algMat = MASS; break;
+              default:
+                algMat = NOTYPE;
+                break;
+            }
+            LOG_DBG3(assemble) << "  Frequency-independent: " << Enum2String(physMat) << " -> " << Enum2String(algMat);
+          }
+        } else if (mode == NO_REASSEMBLY) {
+          // NO_REASSEMBLY: keep all forms in the base matrices (no redirection).
+          // Frequency-dependent forms won't be reassembled, so results may be
+          // incorrect if such forms are present.
+          switch(physMat) {
+            case STIFFNESS: algMat = STIFFNESS; break;
+            case DAMPING: algMat = DAMPING; break;
+            case DAMPING_AUX: algMat = DAMPING_AUX; break;
+            case MASS: algMat = MASS; break;
+            default:
+              algMat = NOTYPE;
+              break;
+          }
+
+          if (isTimeFreqDependent || hasTimeFreqFactor) {
+            WARN("Matrix assembly mode is 'noReassembly' but frequency-dependent bilinear form '" << biLinContext->GetIntegrator()->GetName() << "' detected. Results may be incorrect.");
+          }
+        } else {
+          // FULL_REASSEMBLY (legacy): all matrices go to SYSTEM, frequency
+          // factors are applied during assembly.
+          switch(physMat) {
+            case STIFFNESS:
+            case DAMPING:
+            case DAMPING_AUX:
+            case MASS:
+            case STIFFNESS_UPDATE:
+            case DAMPING_UPDATE:
+            case MASS_UPDATE:
+              algMat = SYSTEM;
+              break;
+            default:
+              algMat = NOTYPE;
+              break;
+          }
         }
-
-      case BasePDE::EIGENFREQUENCY:
-        switch(physicalMatrix) {
-          case STIFFNESS: return STIFFNESS;
-          case DAMPING: return DAMPING;
-          case MASS: return MASS;
-          case STIFFNESS_UPDATE: return STIFFNESS;
-          case DAMPING_UPDATE: return DAMPING;
-          case MASS_UPDATE: return MASS;
-          default: return NOTYPE;
+      } else if (analysisType_ == BasePDE::MULTIHARMONIC) {
+        switch(physMat) {
+          case STIFFNESS: algMat = SYSTEM; break;
+          case DAMPING: algMat = SYSTEM; break;
+          case MASS: algMat = SYSTEM; break;
+          default: algMat = NOTYPE; break;
         }
-
-      case BasePDE::BUCKLING:
-        switch(physicalMatrix) {
-          case STIFFNESS: return STIFFNESS;
-          case GEOMETRIC_STIFFNESS: return GEOMETRIC_STIFFNESS;
-          default: return NOTYPE;
+      } else if (analysisType_ == BasePDE::INVERSESOURCE) {
+        switch(physMat) {
+          case STIFFNESS: algMat = SYSTEM; break;
+          case DAMPING: algMat = SYSTEM; break;
+          case MASS: algMat = SYSTEM; break;
+          default: algMat = NOTYPE; break;
         }
-
-      case BasePDE::EIGENVALUE:
-        switch(physicalMatrix) {
-          case STIFFNESS: return STIFFNESS;
-          case DAMPING: return DAMPING;
-          case MASS: return MASS;
-          case STIFFNESS_UPDATE: return STIFFNESS;
-          case DAMPING_UPDATE: return DAMPING;
-          case MASS_UPDATE: return MASS;
-          default: return NOTYPE;
+      } else if (analysisType_ == BasePDE::EIGENFREQUENCY) {
+        switch(physMat) {
+          case STIFFNESS: algMat = STIFFNESS; break;
+          case DAMPING: algMat = DAMPING; break;
+          case MASS: algMat = MASS; break;
+          case STIFFNESS_UPDATE: algMat = STIFFNESS; break;
+          case DAMPING_UPDATE: algMat = DAMPING; break;
+          case MASS_UPDATE: algMat = MASS; break;
+          default: algMat = NOTYPE; break;
         }
-
-      case BasePDE::HARMONIC25D:
-        switch(physicalMatrix) {
-          case STIFFNESS: return STIFFNESS;
-          case DAMPING: return DAMPING;
-          case DAMPING_AUX: return DAMPING_AUX;
-          case MASS: return MASS;
-          default: return NOTYPE;
+      } else if (analysisType_ == BasePDE::BUCKLING) {
+        switch(physMat) {
+          case STIFFNESS: algMat = STIFFNESS; break;
+          case GEOMETRIC_STIFFNESS: algMat = GEOMETRIC_STIFFNESS; break;
+          default: algMat = NOTYPE; break;
         }
-
-      case BasePDE::NO_ANALYSIS:
-      case BasePDE::MULTI_SEQUENCE:
+      } else if (analysisType_ == BasePDE::EIGENVALUE) {
+        switch(physMat) {
+          case STIFFNESS: algMat = STIFFNESS; break;
+          case DAMPING: algMat = DAMPING; break;
+          case MASS: algMat = MASS; break;
+          case STIFFNESS_UPDATE: algMat = STIFFNESS; break;
+          case DAMPING_UPDATE: algMat = DAMPING; break;
+          case MASS_UPDATE: algMat = MASS; break;
+          default: algMat = NOTYPE; break;
+        }
+      } else if (analysisType_ == BasePDE::HARMONIC25D) {
+        switch(physMat) {
+          case STIFFNESS: algMat = STIFFNESS; break;
+          case DAMPING: algMat = DAMPING; break;
+          case DAMPING_AUX: algMat = DAMPING_AUX; break;
+          case MASS: algMat = MASS; break;
+          default: algMat = NOTYPE; break;
+        }
+      } else {
         EXCEPTION("Analysis type '" << BasePDE::analysisType.ToString(analysisType_) << "' not handled!");
-        return NOTYPE;
+      }
+      
+      // Set the algebraic matrix type
+      biLinContext->SetAlgebraicMatrixType(algMat, i);
     }
-    return NOTYPE; // unreachable, removes compiler warning
   }
 
   void Assemble::ReMapEquations( StdVector<Integer>&  eqns,

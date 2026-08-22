@@ -64,6 +64,12 @@ namespace CoupledField {
       return solDependent_;
     }
 
+    //! \copydoc BiLinearForm::GetDependency
+    virtual CoefFunction::CoefDependType GetDependency() const {
+      // ABInt typically uses spatial coefficient functions, not time/frequency dependent
+      return CoefFunction::CoefDependType::CONSTANT;
+    }
+
   protected:
 
     //! First differential operator

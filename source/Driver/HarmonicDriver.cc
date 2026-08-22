@@ -78,7 +78,7 @@ namespace CoupledField
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
-    
+
   }
 
   HarmonicDriver::~HarmonicDriver()

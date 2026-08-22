@@ -372,7 +372,7 @@ namespace CoupledField {
     for ( it = factors.begin(); it != factors.end(); it++ ) {
 
       // Check that we have a factor and a FE matrix
-      if ( auxMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+      if ( auxMat_[(*it).first] != NULL  && (*it).second != Double(0.0) ) {
 
         // generate empty set of indices (= all rows)
         std::map<UInt, std::set<UInt> > rowInd;
@@ -388,7 +388,25 @@ namespace CoupledField {
 
   template <typename T>
   void IDBC_Handler<T>::BuildSystemMatrix( const std::map<FEMatrixType, Complex> &factors, std::map<UInt, std::set<UInt> >& colInd ) {
-    EXCEPTION("BuildSystemMatrix not implemented for complex factors");
+
+    SBM_Matrix *sys = auxMat_[SYSTEM];
+
+    std::map<FEMatrixType,Complex>::const_iterator it;
+
+    for ( it = factors.begin(); it != factors.end(); it++ ) {
+
+      // Check that we have a factor and a FE matrix
+      if ( auxMat_[(*it).first] != NULL  && (*it).second != Complex(0.0, 0.0) ) {
+
+        // generate empty set of indices (= all rows)
+        std::map<UInt, std::set<UInt> > rowInd;
+
+        sys->Add( (*it).second , *auxMat_[(*it).first], rowInd, colInd );
+      }
+    }
+
+    // Adapt internal status flags
+    addIDBCPossible_ = true;
   }
 
   // ****************
@@ -407,7 +425,6 @@ namespace CoupledField {
     LOG_DBG3(idbcElim) << "AddIDBCToRHS";
     LOG_DBG3(idbcElim) << "Old IDBC Values: " << vecOldIDBC_->ToString() ;
     LOG_DBG3(idbcElim) << "New IDBC Values: " << vecIDBC_->ToString();
-    LOG_DBG3(idbcElim) << "old RHS: " << rhs->ToString();
 
     auxMat_[SYSTEM]->MultSub( *vecIDBC_, *rhs );
     if(deltaIDBC){
