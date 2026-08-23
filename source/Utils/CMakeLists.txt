@@ -33,7 +33,3 @@ SET(TARGET_LL
 TARGET_LINK_LIBRARIES(utils 
   ${TARGET_LL}
 )
-
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(piezoMicroModelBK.cc PROPERTIES COMPILE_FLAGS -wd279)
-ENDIF()

@@ -150,12 +150,7 @@ option(USE_NANOFLANN "Enable support for nanoflann - KD-Tree nearest neighbor se
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
-# icc has issues with boost asio, so simply disable this rare feature
-if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  set(USE_STREAMING OFF)
-else()
-  set(USE_STREAMING ON)
-endif()    
+set(USE_STREAMING ON)
 if(USE_CUDA)
   find_package(CUDAToolkit)
   if(NOT CUDAToolkit_FOUND)

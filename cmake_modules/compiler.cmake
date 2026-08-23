@@ -126,7 +126,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   # warnings are errors in every build, not only in the pipeline. Whatever cannot be fixed in code
   # needs a -Wno- below, such that it is documented and not silently tolerated
   set(CFS_SUPPRESSIONS "-Wall -Wuninitialized -Werror")
-  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-address -Wno-unused-function ")
+  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas -Wno-comment")
 
   # boost 1.90 needs -Wno-deprecated-declarations
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-truncation -Wno-deprecated-declarations")
@@ -143,7 +143,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-c11-extensions")
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-potentially-evaluated-expression")
     # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-nested-anon-types")
@@ -188,13 +187,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
   endif() 
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
-  set(CFS_SUPPRESSIONS "-Werror -Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2023)
-    # to allow typeid(*fct) we need -Wno-potentially-evaluated-expression
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
-    if(WIN32)
-      set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-variable -Wno-unused-private-field -Wno-microsoft-unqualified-friend -Wno-macro-redefined")
-    endif()
+  set(CFS_SUPPRESSIONS "-Werror -Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment")
+  # to allow typeid(*fct) we need -Wno-potentially-evaluated-expression
+  set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
+  if(WIN32)
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-variable -Wno-unused-private-field -Wno-microsoft-unqualified-friend -Wno-macro-redefined")
   endif()
 endif() # IntelLLVM
 
@@ -252,42 +249,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
 endif() # MSVC
 
-# Check for Intel C++ compiler (classic compiler) - to be depreciated mid 2023
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  #-----------------------------------------------------------------------------
-  # Determine compiler/linker flags according to build type
-  #-----------------------------------------------------------------------------
-  IF(UNIX)
-    IF(DEBUG)
-      SET(CFS_CXX_FLAGS "-std=c++17 -g -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -g ${CFSDEPS_CXX_FLAGS}") 
-    ELSE()
-      # release case
-      SET(CFS_CXX_FLAGS "-std=c++17 -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -w0 ${CFSDEPS_CXX_FLAGS}")
-      SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
-    ENDIF()
-  ELSE()
-    # this is for WINDOWS 10
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++17")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++17")
-    IF(DEBUG)
-      SET(CFS_CXX_FLAGS "/Z7 /W0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "/Z7 ${CFSDEPS_CXX_FLAGS}")
-    ELSE()
-      # release case
-      SET(CFS_CXX_FLAGS "/W0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "/W0 ${CFSDEPS_CXX_FLAGS}")
-      # remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023.
-      SET(CFS_SUPPRESSIONS "/Qdiag-disable1125,654,980,10441")
-    ENDIF()
-  ENDIF()
-
-  IF(UNIX)
-    SET(CFS_SUPPRESSIONS "-wd191,279,654,1125,1170,2259")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-pragmas -Wno-comment")
-  ENDIF()
-endif() # ends classic Intel C++
 
 # Fortran compilers
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" OR CMAKE_Fortran_COMPILER_ID MATCHES "Flang" OR CMAKE_Fortran_COMPILER_ID MATCHES "IntelLLVM")

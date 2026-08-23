@@ -119,8 +119,8 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     if(APPLE AND NOT GFORTAN_LIBGCC_STATIC MATCHES "NOTFOUND")
       list(APPEND CFS_FORTRAN_LIBS "${GFORTAN_LIBGCC_STATIC}")
     endif()
-    # clang complains about -static-libgfortran"
-    if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+    # clang and icx complain about the unused -static-libgfortran, they link the static lib above
+    if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM"))
       list(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
     endif()
   elseif(NOT GFORTRAN_LIBRARY MATCHES "NOTFOUND")
