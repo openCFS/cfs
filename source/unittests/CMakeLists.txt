@@ -1,7 +1,7 @@
 include_directories(
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CFS_BINARY_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(SYSTEM ${CFS_BINARY_DIR}/include)
 
 
 if(MKL_INCLUDE_DIR)

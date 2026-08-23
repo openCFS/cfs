@@ -58,6 +58,10 @@ class BaseVector;
 // ***************
 //   Constructor
 // ***************
+
+// gcc 16.2 false positive for the param_ = param_->Get() and info_ = info_->Get() below
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuninitialized"
 BucklingDriver::BucklingDriver(UInt sequenceStep,
                               bool isPartOfSequence,
                               shared_ptr<SimState> state,
@@ -94,6 +98,7 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
   solver = NULL;
   solverType_ = BaseEigenSolver::NO_EIGENSOLVER;
 }
+#pragma GCC diagnostic pop
 
 BucklingDriver::~BucklingDriver() {
   delete eigenValues;

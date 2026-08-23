@@ -109,7 +109,8 @@ int CapaInterfaceC::ReadUniversalfile(const char *fileName)
   //        Fatal("File '%s' does not exist",fileName);
 
   char fname[1024];
-  strncpy(fname,fileName,sizeof(fname));
+  strncpy(fname,fileName,sizeof(fname)-1);
+  fname[sizeof(fname)-1] = '\0';
   UNV_FILE=fname;
 
   Widget w=0;

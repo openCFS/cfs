@@ -39,6 +39,10 @@ namespace CoupledField {
     // ***************
     //   Constructor
     // ***************
+
+// gcc 16.2 false positive for the param_ = param_->Get() and info_ = info_->Get() below
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuninitialized"
     Harmonic25DDriver::Harmonic25DDriver( UInt sequenceStep, bool isPartOfSequence,
                                           shared_ptr<SimState> state, Domain* domain,
                                           PtrParamNode paramNode, PtrParamNode infoNode)
@@ -62,7 +66,8 @@ namespace CoupledField {
           EXCEPTION("Initializing PDE, 2.5D Harmonic Driver inverse fourier transform not yet implemented!");
         } */
       }
-    
+#pragma GCC diagnostic pop
+
     // ***************
     //   Destructor
     // ***************

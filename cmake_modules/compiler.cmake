@@ -131,8 +131,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   # boost 1.90 needs -Wno-deprecated-declarations
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-truncation -Wno-deprecated-declarations")
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS}  -Wno-stringop-overflow -Wno-array-bounds")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-stringop-overflow -Wno-array-bounds")
   endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)

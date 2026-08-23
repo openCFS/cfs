@@ -1,14 +1,18 @@
 #ifndef GINKGOSOLVER_HH_
 #define GINKGOSOLVER_HH_
 
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-local-typedefs"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #include "ginkgo/ginkgo.hpp"
 #pragma GCC diagnostic pop
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 
 #include "General/Environment.hh"
 #include "OLAS/solver/BaseSolver.hh"

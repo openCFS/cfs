@@ -622,7 +622,8 @@ namespace CoupledField
     Matrix<Double> hessian(2 * numS_, 2 * numS_), negative_hessian(2 * numS_, 2 * numS_); // hessian of magnetic energy wrt J_k, dim: (2*num_pin, 2*num_pin)
     Matrix<Double> delta_J_k(2, numS_); // Newton update step for J_k, dim: (2,num_pin)
     Matrix<Double> eta(2, numS_); // line search step length for J_k update
-    Double phi_der0, phi_der00, tolerance_newton, eps_newton; // line search / Newton parameter
+    double phi_der0, tolerance_newton, eps_newton; // line search / Newton parameter
+    double phi_der00 = 0.0; // gradient of the first Newton step, reference of the relative stopping criterion
     UInt max_newton_iter;                                     // Newton parameter
     Vector<Double> solution_linear_system(2 * numS_); // solution of Newton linear system
     StdVector<Double> J_x_k_sol, J_y_k_sol;
@@ -732,7 +733,8 @@ namespace CoupledField
     Matrix<Double> hessian(3 * numS_, 3 * numS_), negative_hessian(3 * numS_, 3 * numS_); // hessian of magnetic energy wrt J_k, dim: (3*num_pin, 3*num_pin)
     Matrix<Double> delta_J_k(3, numS_); // Newton update step for J_k, dim: (3,num_pin)
     Matrix<Double> eta(3, numS_); // line search step length for J_k update
-    Double phi_der0, phi_der00, tolerance_newton, tolerance_newton_abs, eps_newton, phi_der_old, diff; // line search / Newton parameter
+    double phi_der0, tolerance_newton, tolerance_newton_abs, eps_newton, phi_der_old, diff; // line search / Newton parameter
+    double phi_der00 = 0.0; // gradient of the first Newton step, reference of the relative stopping criterion
     UInt max_newton_iter;                                                                              // Newton parameter
     Vector<Double> solution_linear_system(3 * numS_); // solution of Newton linear system
     StdVector<Double> J_x_k_sol, J_y_k_sol, J_z_k_sol; // solution vectors for one time step

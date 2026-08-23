@@ -5,6 +5,8 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+// gcc >= 15 warns in boost's concept_check.hpp when multi_array instantiates its index checks
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #include <boost/multi_array.hpp>
 #pragma GCC diagnostic pop
 

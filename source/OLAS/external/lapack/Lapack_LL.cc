@@ -126,13 +126,13 @@ namespace CoupledField {
 
       // Are we over-writing an existing factorisation? Check, whether the
       // two indicators agree, if not cry out loud!
-      if ( (facmat_+1) != NULL || amFactorised_ == true ) {
-        if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+      if ( facMat_ != nullptr || amFactorised_ == true ) {
+        if ( facMat_ == nullptr && amFactorised_ == true ) {
+          EXCEPTION( "Lapack_LL: Internal error. facMat_ = nullptr, but "
                      << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          EXCEPTION( "Lapack_LL: Internal error. facmat_ <> NULL, but "
+          EXCEPTION( "Lapack_LL: Internal error. facMat_ <> nullptr, but "
                      << "amFactorised_ = false!" );
         }
       }
@@ -273,13 +273,13 @@ namespace CoupledField {
 
       // Are we over-writing an existing factorisation? Check, whether the
       // two indicators agree, if not cry out loud!
-      if ( (facmat_+1) != NULL || amFactorised_ == true ) {
-        if ( (facmat_+1) == NULL && amFactorised_ == true ) {
-          EXCEPTION( "Lapack_LL: Internal error. facmat_ = NULL, but "
+      if ( facMat_ != nullptr || amFactorised_ == true ) {
+        if ( facMat_ == nullptr && amFactorised_ == true ) {
+          EXCEPTION( "Lapack_LL: Internal error. facMat_ = nullptr, but "
                      << "amFactorised_ = true!" );
         }
         else if ( amFactorised_ == false ) {
-          EXCEPTION("Lapack_LL: Internal error. facmat_ <> NULL, but "
+          EXCEPTION("Lapack_LL: Internal error. facMat_ <> nullptr, but "
                     << "amFactorised_ = false!");
         }
       }
@@ -383,17 +383,17 @@ namespace CoupledField {
 
     // Complain, if no factorisation is available
     // or the two indicators disagree
-    if ( (facmat_+1) == NULL || amFactorised_ == false ) {
-      if ( (facmat_+1) == NULL && amFactorised_ == false ) {
+    if ( facMat_ == nullptr || amFactorised_ == false ) {
+      if ( facMat_ == nullptr && amFactorised_ == false ) {
         EXCEPTION("Lapack_LL: No factorisation is available. Call Setup() "
             << " first");
       }
       else if ( amFactorised_ == false ) {
-        EXCEPTION("Lapack_LL: Internal error. facmat_ <> NULL, but "
+        EXCEPTION("Lapack_LL: Internal error. facMat_ <> nullptr, but "
             << "amFactorised_ = false!");
       }
       else {
-        EXCEPTION("Lapack_LL: Internal error. facmat_ = NULL, but "
+        EXCEPTION("Lapack_LL: Internal error. facMat_ = nullptr, but "
             << "amFactorised_ = true!");
       }
     }

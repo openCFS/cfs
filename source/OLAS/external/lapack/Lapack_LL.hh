@@ -171,14 +171,6 @@ namespace CoupledField {
     //! routine ZPBTRS for the actual work.
     void SolveComplex( const BaseVector &rhs, BaseVector &sol );
 
-    //! Factorised system matrix
-
-    //! This array contains the factorised system matrix. Since the LAPACK
-    //! factorisation routine requires additional super-diagonals (which the
-    //! scaling routines do not expect) we cannot perform the factorisation
-    //! in place, even if the original matrix offered the additional space.
-    Double *facmat_;
-
     //! This attribute keeps track of the length of the facMat_ array.
 
     //! This attribute keeps track of the length of the facMat_ array. If

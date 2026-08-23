@@ -365,10 +365,10 @@ endif()
 # ------------------------------------------------------------------------
 
 # Make sure the compiler can find include files from CFS.
-include_directories(
-  ${BOOST_INCLUDE_DIR} 
-  ${CFS_BINARY_DIR}/include
-  ${CFS_SOURCE_DIR}/source)
+# the cfsdeps headers (boost, hdf5, suitesparse, ...) are installed to the binary dir. They are
+# SYSTEM includes, otherwise their warnings hit our -Werror and force global -Wno- suppressions
+include_directories(SYSTEM ${CFS_BINARY_DIR}/include)
+include_directories(${CFS_SOURCE_DIR}/source)
 
 if(USE_CGAL)
   include_directories(${CGAL_INCLUDE_DIR})
