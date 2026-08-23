@@ -18,7 +18,7 @@ class Timer:
     self.cnt = counter
     self.sub = sub
     self.parent_id = parent_id
-    self.speed = cpu / wall if wall >= 1 else None
+    self.speed = cpu / wall if wall >= 0.02 else None
     self.children = [] # set in order() with parent
     self.parent = None
     self.wall_std = None 
@@ -256,27 +256,28 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
   tag = {'min': 'MIN', 'mean': 'AVG', 'max': 'MAX'}[mode] # all three chars wide to keep the columns aligned
   title = 'TIMER (sec, {})'.format(tag) if meta else 'TIMER (sec)'
   max_label = max(max([len(t.label) for t in timer[0]]) + 3, len(title) + 1) # '*--' prefix; never shorter than the title
-  head = title.ljust(max_label)
+  speed_head = ' : C/W' if not meta else '' # cpu/wall, aggregated runs have none
+  head = title.ljust(max_label) + ':'
+  head += ' cnt :' if cnt else ''
   if brief:
     if not ref:
-      head += ':'
       head += '   WALL' if wall else ''
-      head += ' ~' if wall and cpu else ''
-      head += '   CPU ' if cpu else ''
+      head += ' ~ ' if wall and cpu else ''
+      head += '  CPU  ' if cpu else ''
+      head += speed_head
       for m in range(meta):
         head += '  | ' if m == 0 else '  : '
         head += 'WALL_{:d}'.format(m) if wall else ''
         head += ' ~ ' if wall and cpu else ''
         head += ' CPU_{:d}'.format(m) if cpu else ''
     else:
-      head += ': ' + tag + '_CPU |    REF'
+      head += tag + '_CPU' + speed_head + '  |     REF'
   else:
     if not ref:
-      head += ': cnt :'
-      head += '______WALL_____' if wall else ''
+      head += '______WALL______' if wall else ''
       head += ' ~ ' if wall and cpu else ''
-      head += '______CPU______' if cpu else ''
-#      head += ' : PAR' if not meta else ''
+      head += '______CPU_______' if cpu else ''
+      head += speed_head
       for m in range(meta):
         head += '  |' if m == 0 else '  :'
         head += ' WALL_{:d} '.format(m) if wall else ''
@@ -284,7 +285,7 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
         head += '  CPU_{:d} '.format(m) if cpu else ''
         head += '  '
     else:
-      head += ':  ___' + tag + '_CPU____  |  ___CPU_REF____  '
+      head += '  ___' + tag + '_CPU____' + speed_head + '  |  ___CPU_REF____ '
   print(head, file=f)
 
   total_wall = max(timer[0][0].wall, 1e-3)
@@ -322,8 +323,8 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
       if not brief:
         line += '[{:.1%}]'.format(t.cpu/total_cpu).rjust(9)
 
-    if not meta and t.speed and t.speed >= 1:
-      line += ' : {:.1f}'.format(t.speed)
+    if not meta:
+      line += ' : {:.1f}'.format(t.speed) if t.speed and t.speed >= 1 else ' ' * 6
 
     rel_eps = 0.1
     if not ref:
@@ -353,7 +354,7 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
       line += '  | ' + format_cpu.format(ref[e].cpu)
       if not brief:
         line += ' [{:.1%}]'.format(ref[e].cpu/total_cpu_ref).rjust(9)
-    print(line, file=f)
+    print(line.rstrip(), file=f)
 
   if f is not sys.stdout:  # close written txt file
     f.close()
