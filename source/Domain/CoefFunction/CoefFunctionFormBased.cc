@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include "CoefFunctionFormBased.hh"
 
 
@@ -28,20 +30,23 @@ CoefFunctionFormBased::CoefFunctionFormBased( ) : CoefFunction(){
 }
 
 CoefFunctionFormBased::~CoefFunctionFormBased() {
-  // If openMP is used all the cloned Integrators must be deleted
   #ifdef USE_OPENMP
   if(omp_get_num_threads()!=1){
     std::ostringstream ostr; ostr << "Call from parallel region which is not safe!"; // Cannot except in destructor -> terminate would be generated anyways
     std::terminate();
   }
-  for(UInt i=0;i<forms_.GetNumSlots();++i){
-    auto myForms = forms_.Mine(i);
-    for(auto form : myForms){
+  #endif
+  CoefFunctionFormBased::ClearIntegrators();
+}
+
+void CoefFunctionFormBased::ClearIntegrators() {
+  // AddIntegrator() filled every slot with a clone which we own
+  for(unsigned int i=0;i<forms_.GetNumSlots();++i){
+    std::map<RegionIdType, BaseBDBInt* >& myForms = forms_.Mine(i);
+    for(auto& form : myForms)
       delete form.second;
-    }
     myForms.clear();
   }
-  #endif
 }
 
 void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,  
@@ -59,15 +64,13 @@ void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,
     if( forms.find(region) != forms.end() ) {
       EXCEPTION( "Multiply defined region");
     }
-    //here we check if we are from a single threaded region.
-    //if so, we fill all slots. If not, we just fill the current thread
-#ifdef USE_OPENMP
-    for(UInt i=0;i<forms_.GetNumSlots();++i){
+    // we store our own clone in every slot, the caller keeps the passed integrator
+#ifndef USE_OPENMP
+    assert(forms_.GetNumSlots() == 1); // Mine() ignores the slot index, more slots would leak all but the last clone
+#endif
+    for(unsigned int i=0;i<forms_.GetNumSlots();++i){
       forms_.Mine(i)[region] = form->Clone();
     }
-#else
-    forms_.Mine()[region] = form;
-#endif
   } else {
     WARN("Skipped adding integrator " << form->GetName() << " to " << this->GetName());
   }
@@ -128,7 +131,8 @@ AddBOperator( BaseBOperator* bOp,
       EXCEPTION( "Implementation error: Multiply defined region. Only one integrator can be assigned to a region.");
     }
     
-    bOps_[region] = bOp;
+    // we own a clone, the integrator keeps its own operator
+    bOps_[region].reset( bOp->Clone() );
   } else {
     WARN("Implementation warning: Skipped adding bOp " << bOp->GetName() << " from integrator " << integratorName << " to " << this->GetName());
   }
@@ -267,14 +271,13 @@ template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::AddIntegrato
         EXCEPTION( "All B-operators must have the same vector size");
       }
     }
-    //now we clone each integrator and we already checked if we are in single thread region
-#ifdef USE_OPENMP
-    for(UInt i=0;i<forms_.GetNumSlots();++i){
+    // we store our own clone in every slot, the caller keeps the passed integrator
+#ifndef USE_OPENMP
+    assert(forms_.GetNumSlots() == 1); // Mine() ignores the slot index, more slots would leak all but the last clone
+#endif
+    for(unsigned int i=0;i<forms_.GetNumSlots();++i){
       forms_.Mine(i)[region] = form->Clone();
     }
-#else
-    forms_.Mine()[region] = form;
-#endif
   } else {
     WARN("Skipped adding integrator " << form->GetName() << " to " << this->GetName());
   }

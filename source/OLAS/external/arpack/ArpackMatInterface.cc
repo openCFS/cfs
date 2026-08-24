@@ -153,6 +153,10 @@ namespace CoupledField {
     if (matrixC_ == NULL || shift_ != shift) {
       shift_= (Complex) shift;
 
+      // QuadSetup() is called again for every new shift
+      delete matrixC_; // ReRegister from PatternPool
+      matrixC_ = nullptr;
+
       const StdMatrix & matA = dynamic_cast<const StdMatrix &>(*matrixA_);
       const StdMatrix & matB = dynamic_cast<const StdMatrix &>(*matrixB_);
       const StdMatrix & matD = dynamic_cast<const StdMatrix &>(*matrixD_);

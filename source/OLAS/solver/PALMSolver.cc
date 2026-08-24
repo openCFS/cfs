@@ -199,7 +199,7 @@ namespace CoupledField{
 
     int lwork = 5*t;  // SVD WORKING SPACE
     int info;
-    double *MS = new double(t);
+    double* MS = new double[t];
     double *MU = new double[nr*nc];
     double *MVT = new double[nr*nc];
     double *work = new double[lwork];
@@ -228,15 +228,6 @@ namespace CoupledField{
       dscal(&nc, &tnm, &MVT[i], &t);  // Scale row of vt
     }
 
-    // Construct the low-rank matrix in CSR format.
-    UInt* temp_colptr_E = new UInt[rk];
-    for(int i = 0; i<rk; i++)
-      temp_colptr_E[i] = i*rk;
-
-    UInt* temp_rowptr_F = new UInt[rk];
-    for(int i = 0; i<rk; i++)
-      temp_rowptr_F[i] = i*rk;
-
     E = Matrix<double>(n, rk);
     F = Matrix<double>(rk, n);
 
@@ -245,6 +236,13 @@ namespace CoupledField{
       E.SetEntry(ridx[i],i , MU[i]);
       F.SetEntry(i, cidx[i], MVT[i]);
     }
+
+    delete[] mat;
+    delete[] MS;
+    delete[] MU;
+    delete[] MVT;
+    delete[] work;
+
     LOG_DBG(palm) << "LowRankDcomp: END";
     return;
   }
@@ -271,6 +269,7 @@ namespace CoupledField{
           nm = nm_col[Matr->GetColPointer()[i]];
       }
     }
+    delete[] nm_col;
     return nm;
   }
 
@@ -533,6 +532,7 @@ namespace CoupledField{
       }
     }
 
+    delete[] temp;
     return;
   }
 
@@ -652,6 +652,7 @@ namespace CoupledField{
     }
     //LOG_DBG(palm) << "CalcEigenValues: Mark 6";
     /* Release storage.    */
+    delete[] V;
     delete[] resid;
     delete[] workd;
     delete[] workl;
@@ -715,6 +716,7 @@ namespace CoupledField{
 
     resdone = true;  // Relative residual computed.
 
+    delete[] temp;
   }
 
   void PALMEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex>& mode, bool right)

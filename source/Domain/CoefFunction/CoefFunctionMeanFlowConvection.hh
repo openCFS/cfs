@@ -35,11 +35,11 @@ namespace CoupledField {
     
     //! Constructor for tensor case: scalar * Grad(v0)
     CoefFunctionMeanFlowConvection(PtrCoefFct scalar,
-                                   BaseBOperator* optGrad,
+                                   shared_ptr<BaseBOperator> optGrad,
                                    shared_ptr<BaseFeFunction> feFncV0);
 
     //! Constructor for Vector-case: v0 . Grad(v0)
-    CoefFunctionMeanFlowConvection(BaseBOperator* optGrad,
+    CoefFunctionMeanFlowConvection(shared_ptr<BaseBOperator> optGrad,
                                    shared_ptr<BaseFeFunction> feFncV0);
 
     //! Destructor
@@ -67,7 +67,7 @@ namespace CoupledField {
     //! density
     PtrCoefFct factor_;
 
-    BaseBOperator* bOperator_;
+    shared_ptr<BaseBOperator> bOperator_;
     
     //! Depending FeFunction
     shared_ptr<BaseFeFunction>  feFct_;

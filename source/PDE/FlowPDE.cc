@@ -3,6 +3,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
 #include <fstream>
+#include <memory>
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -364,7 +365,7 @@ namespace CoupledField {
       assemble_->AddBiLinearForm( convectiveContextVv );
 
       if( nonLinMethod_ == NEWTON ) {
-        BaseBOperator* bOpGrad;
+        shared_ptr<BaseBOperator> bOpGrad;
         BaseBOperator* bOpId;
         if( dim_ == 2 )
         bOpId = new IdentityOperator<FeH1,2,2>();
@@ -375,11 +376,11 @@ namespace CoupledField {
         BiLinearForm *convectivevV = NULL;
         PtrCoefFct coeffConvec;
         if( dim_ == 2 ) {
-          bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
+          bOpGrad.reset(new GradientOperator<FeH1,2, 1, Double>());
           coeffConvec.reset(
               new CoefFunctionMeanFlowConvection<Double,2>( density, bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
         } else {
-          bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
+          bOpGrad.reset(new GradientOperator<FeH1,3, 1, Double>());
           coeffConvec.reset(
               new CoefFunctionMeanFlowConvection<Double,3>( density, bOpGrad, feFunctions_[FLUIDMECH_VELOCITY]) );
         }
@@ -479,12 +480,12 @@ namespace CoupledField {
         Double densityVal;
         LocPointMapped map;
         density->GetScalar(densityVal, map);
-        BaseBOperator* bOpGrad;
+        shared_ptr<BaseBOperator> bOpGrad;
         if( dim_ == 2 ) {
-          bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
+          bOpGrad.reset(new GradientOperator<FeH1,2, 1, Double>());
         }
         else {
-          bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
+          bOpGrad.reset(new GradientOperator<FeH1,3, 1, Double>());
         }
 
         PtrCoefFct velCoef = this->GetCoefFct(FLUIDMECH_VELOCITY);
@@ -747,15 +748,12 @@ namespace CoupledField {
       BaseMaterial* actSDMat = it->second;
 
       // 2) pass integrators to functors
-      // eFunc->AddIntegrator(stiffIntVP, region);
-      sigmaFunc->AddIntegrator(
-        GetStiffIntegrator( actSDMat, region, isComplex_ ), 
-        region
-        );
-      strainFunc->AddIntegrator(
-        GetStiffIntegrator( actSDMat, region, isComplex_ ),
-        region
-        );
+      // AddIntegrator() stores a clone, so these integrators are ours only
+      std::unique_ptr<BaseBDBInt> sigmaInt( GetStiffIntegrator( actSDMat, region, isComplex_ ) );
+      sigmaFunc->AddIntegrator( sigmaInt.get(), region );
+
+      std::unique_ptr<BaseBDBInt> strainInt( GetStiffIntegrator( actSDMat, region, isComplex_ ) );
+      strainFunc->AddIntegrator( strainInt.get(), region );
     }
 
   }

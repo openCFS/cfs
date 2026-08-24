@@ -62,6 +62,7 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
 }
 
 template<class TYPE> CoefFunctionMaterialModel<TYPE>::~CoefFunctionMaterialModel() {
+  delete matModel_;
 }
 
 template<class T> void CoefFunctionMaterialModel<T>::InitModel(

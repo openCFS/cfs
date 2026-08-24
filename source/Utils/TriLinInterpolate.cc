@@ -17,7 +17,7 @@ DEFINE_LOG(trilinappx, "trilinappx")
     slices_.Resize(numMeas_);
 
     for (UInt i=0; i<numMeas_; i++) {
-      slices_[i] = new BiLinInterpolate(slicesFiles_[i], matType);
+      slices_[i].reset(new BiLinInterpolate(slicesFiles_[i], matType));
     }
 
   }

@@ -49,7 +49,7 @@ namespace CoupledField {
 
   private:
 
-    StdVector<BiLinInterpolate *> slices_;
+    StdVector<shared_ptr<BiLinInterpolate> > slices_;
     
 
   };

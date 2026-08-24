@@ -242,12 +242,9 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         AUX_phi_phi = new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), constOne, 1.0, updatedGeo_) ;
         AUX_phi_phi->SetName("AUX_phi_phi");
 
-        BiLinFormContext * AUX_phi_phiContext = new BiLinFormContext(AUX_phi_phi, DAMPING_AUX );
-        AUX_phi_phiContext->SetEntities( actSDList, actSDList );
-        AUX_phi_phiContext->SetFeFunctions( elecScalPotFeFunc, elecScalPotFeFunc );
-        //assemble_->AddBiLinearForm( AUX_phi_phiContext );
-        // Add bdb-integrator to global list, needed for gradient evaluation
+        // the integrator is not assembled, it is only needed for the gradient evaluation
         bdbIntsAux1_[actRegion] = AUX_phi_phi;
+        postProcInts_.Push_back(AUX_phi_phi);
 
 
 

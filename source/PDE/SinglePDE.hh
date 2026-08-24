@@ -389,8 +389,8 @@ namespace CoupledField
       //! Vector with local points
       StdVector<LocPoint> locPoints;
 
-      //! Flux values for each point
-      SingleVector* field;
+      //! Flux values for each point, owned by SinglePDE
+      SingleVector* field = nullptr;
     };
     
     //! List of fields to be interpolated
@@ -511,6 +511,12 @@ namespace CoupledField
     //! one unknown (FeFunction) and also need the primary BOperator for that
     //! secondary FeFunction
     std::map<RegionIdType, BaseBDBInt*> bdbIntsAux1_;
+
+    //! Integrators which are only used for postprocessing and never assembled.
+
+    //! The assembled integrators are owned by the BiLinFormContext handed to
+    //! assemble_, these here have no such owner, hence we delete them.
+    StdVector<BaseBDBInt*> postProcInts_;
 
     //! Map for storing the primary mass integrator of the problem
     

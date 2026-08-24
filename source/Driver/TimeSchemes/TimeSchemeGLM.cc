@@ -62,26 +62,30 @@ namespace CoupledField{
   }
   
   TimeSchemeGLM::~TimeSchemeGLM(){
-    for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
-       if(avoidFreeingIdx_.find(i)==avoidFreeingIdx_.end())
-         if( i < glmVector_.GetSize())
-           delete glmVector_[i];
-    }
+    // the vectors alias each other, e.g. the last stage vector is the glm vector entry the
+    // scheme solves for and Update() can swap a stage vector into the glm vector. Therefore we
+    // collect the pointers and delete each of them only once, skipping the external ones.
+    std::set<SingleVector*> owned;
+    for(SingleVector* vec : glmVector_)
+      owned.insert(vec);
+    for(SingleVector* vec : initialIterGlmVector_)
+      owned.insert(vec);
+    for(SingleVector* vec : stageVector_)
+      owned.insert(vec);
+    for(SingleVector* vec : predictors_)
+      owned.insert(vec);
+
+    for(SingleVector* vec : notOwned_)
+      owned.erase(vec);
+    owned.erase(nullptr);
+
+    for(SingleVector* vec : owned)
+      delete vec;
+
     glmVector_.Clear();
-
-    for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
-       if( i < initialIterGlmVector_.GetSize())
-         delete initialIterGlmVector_[i];
-    }
     initialIterGlmVector_.Clear();
-
-    for(UInt i=1;i<curScheme_->numStages_;i++){
-      if((Integer)i!=avoidUpdateIdx_){
-        if( i < stageVector_.GetSize())
-          delete stageVector_[i];
-      }
-    }
     stageVector_.Clear();
+    predictors_.Clear();
 
     std::map<GLMScheme::SchemeType, GLMScheme*>::iterator it = availSchemes.begin();
     while(it != availSchemes.end()){
@@ -93,11 +97,6 @@ namespace CoupledField{
     // a scheme from availSchemes is deleted above, only our own is left
     if(ownsScheme_) delete curScheme_;
     curScheme_ = nullptr;
-    
-    for( UInt i = 0; i < predictors_.GetSize(); ++i ) {
-      delete predictors_[i];
-    }
-    predictors_.Clear();
 
     delete prevPrevSol_; prevPrevSol_ = nullptr;
     delete glmStepStart_; glmStepStart_ = nullptr;
@@ -115,6 +114,7 @@ namespace CoupledField{
     //the fe function vector by definition
     glmVector_.Resize(curScheme_->sizeGLMVec_);
     glmVector_[0] = solVec;
+    notOwned_.insert(solVec); // belongs to the fe function
     for(UInt i=1;i<curScheme_->sizeGLMVec_;i++){
       glmVector_[i] = new Vector<Double>();
       glmVector_[i]->Resize(solVec->GetSize());
@@ -680,7 +680,7 @@ namespace CoupledField{
             //we take care if we solve for this solution order...
             delete glmVector_[curScheme_->numOldSols_];
             glmVector_[curScheme_->numOldSols_] = coefVector;
-            avoidFreeingIdx_.insert(curScheme_->numOldSols_);
+            notOwned_.insert(coefVector);
             if(solOrder_ == 1 && avoidUpdateIdx_ == (Integer)curScheme_->numOldSols_){
               stageVector_[curScheme_->numStages_-1] = coefVector;
             }
@@ -694,8 +694,8 @@ namespace CoupledField{
             //we take care if we solve for this solution order...
             delete glmVector_[curScheme_->numOldSols_+curScheme_->numSol1stDerivs_];
             glmVector_[curScheme_->numOldSols_+curScheme_->numSol1stDerivs_] = coefVector;
-            avoidFreeingIdx_.insert(curScheme_->numOldSols_+curScheme_->numSol1stDerivs_);
-            if(solOrder_ == 1 && avoidUpdateIdx_ == (Integer)(curScheme_->numOldSols_+curScheme_->numSol1stDerivs_)){
+            notOwned_.insert(coefVector);
+            if(solOrder_ == 2 && avoidUpdateIdx_ == (Integer)(curScheme_->numOldSols_+curScheme_->numSol1stDerivs_)){
               stageVector_[curScheme_->numStages_-1] = coefVector;
             }
           }else{

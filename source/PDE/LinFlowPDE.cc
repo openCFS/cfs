@@ -611,24 +611,24 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( convectiveContextVv );
 
         PtrCoefFct rho0GradV0,coeffV0inGradV0;
-        BaseBOperator* gradOp;
+        shared_ptr<BaseBOperator> gradOp;
         if(isComplex_) {
           if (dim_==2){
-            gradOp = new GradientOperator<FeH1,2, 1, Complex>();
+            gradOp.reset(new GradientOperator<FeH1,2, 1, Complex>());
             rho0GradV0.reset( new CoefFunctionMeanFlowConvection<Complex,2>( density, gradOp, meanVelFct ) );
             coeffV0inGradV0.reset( new CoefFunctionMeanFlowConvection<Complex,2>(gradOp, meanVelFct) );
           } else {
-            gradOp = new GradientOperator<FeH1,3, 1, Complex>();
+            gradOp.reset(new GradientOperator<FeH1,3, 1, Complex>());
             rho0GradV0.reset( new CoefFunctionMeanFlowConvection<Complex,3>( density, gradOp, meanVelFct ) );
             coeffV0inGradV0.reset( new CoefFunctionMeanFlowConvection<Complex,3>(gradOp, meanVelFct) );
           }
         } else {
           if (dim_==2){
-            gradOp = new GradientOperator<FeH1,2, 1>();
+            gradOp.reset(new GradientOperator<FeH1,2, 1>());
             rho0GradV0.reset( new CoefFunctionMeanFlowConvection<Double,2>( density, gradOp, meanVelFct ) );
             coeffV0inGradV0.reset( new CoefFunctionMeanFlowConvection<Double,2>(gradOp, meanVelFct) );
           } else {
-            gradOp = new GradientOperator<FeH1,3, 1>();
+            gradOp.reset(new GradientOperator<FeH1,3, 1>());
             rho0GradV0.reset( new CoefFunctionMeanFlowConvection<Double,3>( density, gradOp, meanVelFct ) );
             coeffV0inGradV0.reset( new CoefFunctionMeanFlowConvection<Double,3>(gradOp, meanVelFct) );
           }

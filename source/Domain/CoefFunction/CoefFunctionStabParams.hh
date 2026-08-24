@@ -47,7 +47,7 @@ namespace CoupledField {
     CoefFunctionStabParams(PtrCoefFct density,
                            PtrCoefFct viscosity,
                            PtrCoefFct meanFlow,
-                           BaseBOperator* opt,
+                           shared_ptr<BaseBOperator> opt,
                            shared_ptr<BaseFeFunction > feFnc,
                            StabType type,
                            bool isComplex);
@@ -93,7 +93,7 @@ namespace CoupledField {
     PtrCoefFct meanFlowCoef_;
     
     //! Differential operator to calculate the field value
-    BaseBOperator* bOperator_;
+    shared_ptr<BaseBOperator> bOperator_;
     
     //! Depending FeFunction
     shared_ptr<BaseFeFunction>  feFct_;

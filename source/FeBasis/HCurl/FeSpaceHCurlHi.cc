@@ -214,29 +214,13 @@ namespace CoupledField{
     // default: use no gradients
     useGradients_[region] = false;
 
-    //ToDo: save the information...
-    // QUERY FOR USER PARAMS IS STILL TO COME
-    refElems_[region][Elem::ET_LINE2]  = new FeHCurlHiLine();
-    refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
-    refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
-    refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
-    refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
-    refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
-    refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
-    
-    refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
-    refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
-    refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
-    refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
-    refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
-    refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
-
     // The reference elements might be already set if there is no polyomial list in the xml file, because
     // in this case SetRegionApproximation calls SetDefaultElements, which sets elements for all regions at once.
     // But in the set up of the PDEs SetRegionApproximation is called for each region.
     if(refElems_[region].empty()) {
       //ToDo: save the information...
       // QUERY FOR USER PARAMS IS STILL TO COME
+      refElems_[region][Elem::ET_LINE2]  = new FeHCurlHiLine();
       refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
       refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
       refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();

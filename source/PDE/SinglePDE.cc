@@ -129,6 +129,15 @@ namespace CoupledField {
   // **************
   SinglePDE::~SinglePDE() 
   {
+    // The form based coefficient functions own a clone of the integrator which references the
+    // coefficient function again. Break that cycle, otherwise nothing below is ever released.
+    for(const shared_ptr<CoefFunctionFormBased>& coef : stiffFormCoefs_)
+      coef->ClearIntegrators();
+    for(const shared_ptr<CoefFunctionFormBased>& coef : stiffFormCoefsAux1_)
+      coef->ClearIntegrators();
+    for(const shared_ptr<CoefFunctionFormBased>& coef : massFormCoefs_)
+      coef->ClearIntegrators();
+
     // Delete algebraic system only if
     // PDE is not direct coupled
     if(!isDirectCoupled_) 
@@ -164,6 +173,15 @@ namespace CoupledField {
        entry.first->Finalize();
        delete entry.second;
     }    
+
+    // the sensor vectors are created in ReadSensorArrayResults()
+    for(FieldAtPoints& sensor : sensors_)
+      delete sensor.field;
+    sensors_.Clear();
+
+    for(BaseBDBInt* integrator : postProcInts_)
+      delete integrator;
+    postProcInts_.Clear();
   }
 
 

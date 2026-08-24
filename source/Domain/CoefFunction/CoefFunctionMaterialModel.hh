@@ -95,8 +95,8 @@ protected:
   // Spatial dimension of the problem
   UInt spaceDim_;
   
-  // object for the model
-  Model* matModel_;
+  // object for the model, we own it
+  Model* matModel_ = nullptr;
 
   // modelname
   std::string modelName_ = "none";

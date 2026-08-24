@@ -119,6 +119,10 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     PtrCoefFct impedanceCoef_real_; // Impedance CoefFunction
     PtrCoefFct impedanceCoef_imag_; // Impedance CoefFunction
+
+    // interpolation data the two CoefFunctions above reference for IMP_INTERPOL
+    shared_ptr<ApproxData> impedanceData_real_;
+    shared_ptr<ApproxData> impedanceData_imag_;
 };
 
 

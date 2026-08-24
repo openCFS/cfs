@@ -584,13 +584,11 @@ namespace CoupledField {
           AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constZero,0.0, updatedGeo_);
         }
         AUX_curlcurl->SetName("(0.0*curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
-        BiLinFormContext * AUX_stiffContext = new BiLinFormContext(AUX_curlcurl, STIFFNESS );
-        AUX_stiffContext->SetEntities( actSDList, actSDList );
-        AUX_stiffContext->SetFeFunctions( feFunc, feFunc );
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         // - curlh
         bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,AUX_curlcurl));
+        postProcInts_.Push_back(AUX_curlcurl);
         // ====================================================================
         // AUXILIARY CURL-CURL INTEGRATOR [END]
         // ====================================================================
@@ -772,13 +770,11 @@ namespace CoupledField {
           AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constZero,0.0, updatedGeo_);
         }
         AUX_curlcurl->SetName("(0*curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
-        BiLinFormContext * AUX_stiffContext = new BiLinFormContext(AUX_curlcurl, STIFFNESS );
-        AUX_stiffContext->SetEntities( actSDList, actSDList );
-        AUX_stiffContext->SetFeFunctions( feFunc, feFunc );
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results
         // - curlh
         bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,AUX_curlcurl));
+        postProcInts_.Push_back(AUX_curlcurl);
         // ====================================================================
         // AUXILIARY CURL-CURL INTEGRATOR [END]
         // ====================================================================

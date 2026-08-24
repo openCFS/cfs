@@ -6,6 +6,8 @@
 #ifndef COEF_FUNCTION_FORM_BASED_HH
 #define COEF_FUNCTION_FORM_BASED_HH
 
+#include <memory>
+
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
@@ -43,6 +45,12 @@ public:
 
   //! Set integrator for specific region
   virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
+
+  //! Release the integrators
+  /** AddIntegrator() stores a clone which references this coefficient function again.
+   * The resulting cycle keeps the reference count alive, therefore it has to be broken
+   * explicitly when the owning PDE is destroyed. */
+  virtual void ClearIntegrators();
 
   //! Set name request for specific integrator
   void SetIntegratorName(const std::string& integratorName) {
@@ -94,6 +102,12 @@ public:
   virtual void AddIntegrator( BaseBDBInt* form,  
                               RegionIdType region );
   
+  //! \copydoc CoefFunctionFormBased::ClearIntegrators
+  virtual void ClearIntegrators() {
+    CoefFunctionFormBased::ClearIntegrators();
+    bOps_.clear();
+  }
+
   //! Pass directly a B-operator
   void AddBOperator( BaseBOperator* bOp,
                      RegionIdType region,
@@ -134,7 +148,8 @@ public:
 protected:
 
   //! Differential operator for each region (not thread relevant)
-  std::map<RegionIdType, BaseBOperator* > bOps_;
+  //! We own a clone of the operator passed to AddBOperator()
+  std::map<RegionIdType, std::unique_ptr<BaseBOperator> > bOps_;
  
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;

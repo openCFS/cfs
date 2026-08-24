@@ -205,7 +205,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
     ///Stores for each step if the predictors are calculated
     StdVector<bool> predictorCalculated_;
 
-    std::set<UInt> avoidFreeingIdx_;
+    ///Vectors which are provided from outside, we must not delete them
+    std::set<SingleVector*> notOwned_;
 
     ///Store the type of nonlinearity to be considered in the scheme
     NonLinType nLinType_;

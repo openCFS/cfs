@@ -43,7 +43,7 @@ namespace CoupledField{
   CoefFunctionStabParams::CoefFunctionStabParams(PtrCoefFct density,
                                                  PtrCoefFct viscosity,
                                                  PtrCoefFct meanFlow,
-                                                 BaseBOperator* opt,
+                                                 shared_ptr<BaseBOperator> opt,
                                                  shared_ptr<BaseFeFunction> feFnc,
                                                  StabType type,
                                                  bool isComplex) 

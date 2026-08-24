@@ -8,7 +8,7 @@ DEFINE_LOG(coefMeanFlowConv, "CoefFunctionMeanFlowConvection")
 
   template<typename T, UInt DOFS>
   CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(PtrCoefFct scalarCoef,
-                                                                         BaseBOperator* opt,
+                                                                         shared_ptr<BaseBOperator> opt,
                                                                          shared_ptr<BaseFeFunction> feFnc)
     : CoefFunction(),
       factor_(scalarCoef),
@@ -20,7 +20,7 @@ DEFINE_LOG(coefMeanFlowConv, "CoefFunctionMeanFlowConvection")
   }
 
   template<typename T, UInt DOFS>
-  CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(BaseBOperator* opt, shared_ptr<BaseFeFunction> feFnc)
+  CoefFunctionMeanFlowConvection<T,DOFS>::CoefFunctionMeanFlowConvection(shared_ptr<BaseBOperator> opt, shared_ptr<BaseFeFunction> feFnc)
     : CoefFunction(),
       bOperator_(opt),
       feFct_(feFnc)
