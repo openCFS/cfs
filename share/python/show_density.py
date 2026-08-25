@@ -44,7 +44,7 @@ def density_to_image(filename, set, design, fillval=0.0, color='gray', crop=Fals
       raw = raw.T
       raw = np.flip(raw, axis=0).astype("uint8")
 
-  img = Image.fromarray(raw, 'L')
+  img = Image.fromarray(raw)
   # https://stackoverflow.com/questions/66641432/how-to-create-a-palette-based-png-with-alpha-channel
   if color != 'gray':
     img = img.convert('P')
