@@ -239,7 +239,7 @@ parser.add_argument("--first", help="extract first iteration data instead of def
 parser.add_argument('--failsafe', help="continue on errors", action='store_true')
 parser.add_argument('--skipaborted', help="skip .info.xml files which are aborted", action='store_true')
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
-parser.add_argument("--sum", nargs='+', help="sum the column(s) for the gicen key(s)")
+parser.add_argument("--sum", nargs='+', help="sum the column(s) for the given key(s)")
 args = parser.parse_args()
 
 input = clean_input(args.input, abbort=True) 
