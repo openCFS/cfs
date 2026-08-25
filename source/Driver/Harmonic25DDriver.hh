@@ -131,7 +131,7 @@ class Harmonic25DDriver : public virtual SingleDriver {
     Double freqResolution_;
 
     //! First frequency for which a simulation is performed
-    Double startFreq_ = 0.0;
+    Double startFreq_ = 1e-12;
 
     //! Last frequency for which a simulation is performed
     Double stopFreq_;

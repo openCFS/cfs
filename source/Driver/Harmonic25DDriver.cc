@@ -405,6 +405,10 @@ namespace CoupledField {
 
       if (param_->Has("startFreq")) {
         startFreq_ = param_->Get("startFreq")->MathParse<Double>();
+        // We observed false convergence if startFreq is exactly 0.0 when using iterative solver
+        if (startFreq_ < 1e-12) {
+          startFreq_ = 1e-12;
+        }
       }
       
       assert(freqCutoff_ >= startFreq_ && "Cutoff Frequency must be greater than or equal Start Frequency!");
