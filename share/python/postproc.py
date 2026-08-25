@@ -324,7 +324,12 @@ if args.sum:
   print("#sum " + (sum(list(size.values())) + len(size) - 5) * "-")
   for k in dsum.keys():
     if k in ["wall", "cpu"]:
-      print(f"{k}: {dsum[k] / 3600:.2f}h")
-      continue
+      # for > 1800s we switch into hour display mode
+      if dsum[k] > 1800:
+        print(f"{k}: {dsum[k] / 3600:.2f}h")
+        continue
+      else:
+        print(f"{k}: {dsum[k]:.2f}s")
+        continue
     print(f"{k}: {dsum[k]}")
   print()
