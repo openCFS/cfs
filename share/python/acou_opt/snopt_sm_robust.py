@@ -76,8 +76,9 @@ def solve_robust(name,
                     cfs.constraints.value[:c])
         funcs["nlcon"] = nlconval
         # linear (local) constraints
-        lconval = cfs.constraints.value[c:]
-        funcs["lcon"] = lconval
+        # snopt 7.7 does not need linear constraint values
+        # lconval = cfs.constraints.value[c:]
+        # funcs["lcon"] = lconval
         fail = False
 
         return funcs, fail
