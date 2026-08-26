@@ -127,8 +127,8 @@ def read_info(xml, gap = False, sort_by_id=False, what='timers'):
 # 'total' (MB, using the per-type totalMemory attribute). Without -d (no per-matrix
 # info) the process memory <memory final peak> is returned instead as a fallback
 # (final, peak and total=peak).
-# The entry labelled 'total' is kept first, as has_rel_error() takes the first entry
-# as the total for the relative-share comparison.
+# The entry labelled 'total' is kept first, as write_timers() takes the first entry
+# as the total the percentage column relates to.
 def read_memory(xml):
   res = []
 
@@ -203,10 +203,11 @@ def gnuplot(timer, header=True, out=sys.stdout):
   for t in timer:
     line += str(t.wall) + ' \t' + str(t.cpu) + ' \t'
   print(line, file=out)
-  
+
 ## write timer standard analysis
+# @param eps show the deviation from the reference only above this relative value - default is 10%
 def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, cpu=True,
-                 cnt=False, ref=None, threshold=0.0, mode='min', out=sys.stdout):
+                 cnt=False, ref=None, threshold=0.0, mode='min', eps=0.1, out=sys.stdout):
   ## shared preprocessing: aggregate multiple runs into a single timer set
   if type(timers[0]) == list and len(timers) > 1:
     timer = [aggregate_timer(timers, mode)]
@@ -271,7 +272,7 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
         head += ' ~ ' if wall and cpu else ''
         head += ' CPU_{:d}'.format(m) if cpu else ''
     else:
-      head += tag + '_CPU' + speed_head + '  |     REF'
+      head += tag + '_CPU' + speed_head + '  |     REF' + '    REL DIFF'
   else:
     if not ref:
       head += '______WALL______' if wall else ''
@@ -285,7 +286,7 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
         head += '  CPU_{:d} '.format(m) if cpu else ''
         head += '  '
     else:
-      head += '  ___' + tag + '_CPU____' + speed_head + '  |  ___CPU_REF____ '
+      head += '  ___' + tag + '_CPU____' + speed_head + '  |  ___CPU_REF____ ' + ' ___REL DIFF___'
   print(head, file=f)
 
   total_wall = max(timer[0][0].wall, 1e-3)
@@ -336,8 +337,8 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
           if not brief:
             # show change if influence on total time is > 2% (min only)
             if mode == 'min' and t.wall > total_wall * 0.02:
-              rel_diff = (timers[m][e].wall - t.wall)/t.wall if t.wall != 0.0 else 0.0
-              line += '(+)' if rel_diff > rel_eps else '(-)' if rel_diff < -rel_eps else '   '
+              diff = rel_diff(t.wall, timers[m][e].wall)
+              line += '(+)' if diff > rel_eps else '(-)' if diff < -rel_eps else '   '
             else:
               line += '   '
         line += ' ~ ' if wall and cpu else ''
@@ -346,14 +347,19 @@ def write_timers(input_file_path, timers, format='txt', brief=False, wall=True, 
           if not brief:
             # show change if influence on total time is > 5% (min only)
             if mode == 'min' and t.cpu > total_cpu * 0.03:
-              rel_diff = (timers[m][e].cpu - t.cpu)/t.cpu if t.cpu != 0.0 else 0.0
-              line += '(+)' if rel_diff > rel_eps else '(-)' if rel_diff < -rel_eps else '   '
+              diff = rel_diff(t.cpu, timers[m][e].cpu)
+              line += '(+)' if diff > rel_eps else '(-)' if diff < -rel_eps else '   '
             else:
               line += '   '
     else:
       line += '  | ' + format_cpu.format(ref[e].cpu)
       if not brief:
         line += ' [{:.1%}]'.format(ref[e].cpu/total_cpu_ref).rjust(9)
+      # deviation from the reference, positive means slower - shown only above eps. Read it
+      # against the 'total' row to tell a timer which really behaves differently from one
+      # which just went along with a globally slower or faster run
+      diff = rel_diff(ref[e].cpu, t.cpu)
+      line += '{:+.1%}'.format(diff).rjust(9) if abs(diff) > eps else ' ' * 9
     print(line.rstrip(), file=f)
 
   if f is not sys.stdout:  # close written txt file
@@ -461,15 +467,15 @@ def check_invalid_timers(infos):
       if e.tag != 'timer':
         print("Warning: ignored element '" + str(e.tag) + "': ",info)
 
-# compare two timers
+# check the timers required to pass against the reference, the deviations themselves are
+# shown by the DIFF column of write_timers()
 # @param eps compares relative error against eps (optional, default 10%)
-# @param labels only compare the timers with these labels, None (default) compares all of them
-def has_rel_error(timer_ref, timer, eps=0.1, skip_noise=None, labels=None):
+# @param labels only check the timers with these labels, None (default) checks all of them
+# @return the tuple (slower, checked): slower is True if one of the checked timers is more
+#         than eps slower than the reference, checked holds a (label, deviation) pair for
+#         every timer which took part in the comparison
+def compare_timers(timer_ref, timer, eps=0.1, skip_noise=None, labels=None):
   assert(len(timer_ref) == len(timer))
-
-  # the share is always taken from the total, also when only some timers are compared
-  total_cpu_ref  = max(timer_ref[0].cpu, 1e-3)
-  total_cpu  = max(timer[0].cpu, 1e-3)
 
   if labels:
     # a typo in --timer must not compare nothing and silently report 'times are good'
@@ -477,10 +483,11 @@ def has_rel_error(timer_ref, timer, eps=0.1, skip_noise=None, labels=None):
     unknown = [l for l in labels if l not in known]
     if unknown:
       print(' * error: no timer labelled ' + ', '.join(unknown) + " - known are: " + ', '.join(sorted(known)))
-      return True
+      return True, []
 
   slower = False
-  faster = False
+  checked = []
+  # decides if comparison fails - if timers from --timer are slower
   for time_ref, time in zip(timer_ref, timer):
     if time.label == 'not_measured':
       continue
@@ -491,30 +498,12 @@ def has_rel_error(timer_ref, timer, eps=0.1, skip_noise=None, labels=None):
     if skip_noise and time_ref.cpu < skip_noise and time.cpu < skip_noise:
       continue
 
-    good = time_ref.cpu/total_cpu_ref
-    test = time.cpu/total_cpu
-
-    if time.label == 'total':
-      diff = (total_cpu - total_cpu_ref)/total_cpu_ref
-      if diff > eps:
-        print(' * error: {:s} is {:.0f}% slower relative to reference'.format(time.label, diff*100))
-        slower = True
-      elif diff < -eps:
-        print(' * information: {:s} is {:.0f}% faster relative to reference'.format(time.label, abs(diff)*100))
-      faster = True
-      continue
-
-    diff = (test - good)/good if good != 0.0 else test
+    diff = rel_diff(time_ref.cpu, time.cpu)
+    checked.append((time.label, diff))
     if diff > eps:
-      print(' * error: {:s} is {:.0f}% slower than reference'.format(time.label, diff*100))
       slower = True
-    elif diff < -eps:
-      print(' * information: {:s} is {:.0f}% faster than reference'.format(time.label, abs(diff)*100))
-      faster = True
-  if slower or faster:
-    return slower, faster
 
-  return False, False
+  return slower, checked
 
       
 ## --wall shows only the wall times, --cpu only the cpu times, none of them both
@@ -529,6 +518,12 @@ def read_infos(files, sort_by_id, what='timers'):
 ## check if a yaml file is inputed
 def is_yaml(f):
   return os.path.basename(f).lower().endswith(('.yaml', '.yml'))
+
+## relative deviation of a cpu time from the reference cpu time, positive means slower.
+# This is what the DIFF column shows and what compare_timers() decides upon, hence a timer
+# is reported as failed exactly when the table gives it a positive value above eps
+def rel_diff(cpu_ref, cpu):
+  return (cpu - cpu_ref)/cpu_ref if cpu_ref != 0.0 else 0.0
 
 ## 'analyse': read the timers (or memory) of the given info.xml files, aggregate and output them
 def cmd_analyse(args):
@@ -584,14 +579,43 @@ def cmd_compare(args):
     elif analysis_vars_ref['threshold'] != analysis_vars['threshold']:
       raise Exception('The reference and test runs have used different thresholds during analysis: ref: {}; test: {}'.format(analysis_vars_ref['threshold'], analysis_vars['threshold']))
  
-  # perform comparison
-  slower, faster = has_rel_error(timer_ref, timer, eps=args.eps, skip_noise=args.skip_noise, labels=args.timer)
-  if slower or faster:
-    write_timers([test], [timer], brief=args.brief, wall=False, cpu=True, cnt=False, ref=timer_ref)
-  if slower:
-    return 1
+  # perform comparison - the table shows the deviation of every timer, compare_timers() only
+  # decides whether the timers required to pass are within eps
+  write_timers([test], [timer], brief=args.brief, wall=False, cpu=True, cnt=False, ref=timer_ref,
+                 eps=args.eps)
+  slower, checked = compare_timers(timer_ref, timer, eps=args.eps, skip_noise=args.skip_noise, labels=args.timer)
+
+  if not checked:
+    if slower: # an unknown --timer label, compare_timers() already said which one
+      return 1
+    print(' * warning: no timer was compared, all of them are below --skip-noise of {:g} sec'.format(args.skip_noise))
+    return 0
+
+  # name what was compared, --timer defaults to all timers
+  if args.timer is None:
+    which = 'all timers'
+  elif len(args.timer) == 1:
+    which = 'the timer ' + args.timer[0]
   else:
-    print('++ Compared Timer(s) : {} is/are good. ++'.format((args.timer if args.timer is not None else 'All')))
+    which = 'the timers ' + ', '.join(args.timer)
+
+  # report the timer which came closest to the limit, it is the one the verdict rests on.
+  # Naming it adds nothing when a single label was requested, it can only be that one
+  label, diff = max(checked, key=lambda c: c[1])
+  most = '' if len(checked) == 1 else ' max.'
+  worst = '' if args.timer is not None and len(args.timer) == 1 else ' ({:s})'.format(label)
+  print(' * The cpu time of {:s} has changed by{:s} {:+.1%}{:s}'.format(which, most, diff, worst))
+
+  if slower:
+    # how many of the compared timers are responsible, the ERROR lines above name them
+    failed = len([c for c in checked if c[1] > args.eps])
+    count = '' if len(checked) == 1 else ', {:d} of {:d} compared timers are too slow'.format(failed, len(checked))
+    print(' * This exceeds the limit of +{:.1%}{:s}'.format(args.eps, count))
+    print(' * The comparison failed, a regression has been detected.')
+    return 1
+
+  print(' * This is below the limit of +{:.1%}'.format(args.eps))
+  print(' * The comparison passed and no regression has been detected.')
   return 0
 
 # ----------------------------------------------------------------
@@ -650,12 +674,12 @@ compare.add_argument('test', help=" test run(s): takes either a single info xml 
 compare.add_argument('--ref', help="reference run(s): takes either a single info xml or already aggregated results in the form of a single .yaml file", required=True)
 compare.add_argument('--eps', help="allowed relative deviation from the reference - default is 0.1 = 10%%", type=float, default=0.1)
 compare.add_argument('--skip-noise', '--skip_noise', help="suppress too small times", type=float, default=1e-1, dest='skip_noise')
-compare.add_argument('--timer', help="labels of the timers to compare - default is all of them", nargs='+', metavar='LABEL')
+compare.add_argument('--timer', help="labels of timers required to be below eps to pass - default: all", nargs='+', metavar='LABEL')
 # compare always shows both times and aggregates with 'min', so it has no --wall/--cpu/--mode.
 # cmd_compare() reads them nevertheless, hence they are set here
 compare.set_defaults(func=cmd_compare, wall=False, cpu=False, mode='min')
 
-if __name__ == '__main__':  # guard, such that performance-run.py can import from here
+if __name__ == '__main__':  # guard, such that measure.py can import from here
   argv = sys.argv[1:]
   if 'compare' in argv:
     if argv.index('compare') > 0:
