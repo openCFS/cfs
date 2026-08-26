@@ -548,30 +548,42 @@ namespace CoupledField
       if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
-      // Determine once per form, if it has to be assembled in this call.
+      // Determine once per form, if it has to be assembled in this call - and
+      // into which of its destination matrices. A form can contribute to a
+      // constant base matrix and to a frequency-dependent *_UPDATE matrix at
+      // once, but only the matrices flagged in matReassemble_ were zeroed by
+      // InitMatrix() above; writing into the others would add their
+      // contribution a second time.
       // This avoids re-evaluating the conditions for every entity inside the
       // parallel region below and keeps the shared state (matReassemble_,
       // matrixUpdated_) out of the threaded code.
       StdVector<bool> formActive(forms.GetSize());
+      StdVector< StdVector<bool> > matrixActive(forms.GetSize());
       bool anyActive = false;
 
       for(UInt iForm = 0; iForm < forms.GetSize(); ++iForm)
       {
         BiLinFormContext& actContext = *forms[iForm];
+        const unsigned int numMatrices = actContext.GetNumberOfMatrixes();
 
         // Newton bilinear forms are assembled exclusively in the Newton part
         bool active = (actContext.IsNewtonBiLinearForm() == isNewtonPart);
 
+        // the Newton part runs without InitMatrix(), so it keeps assembling
+        // into every destination of its forms
+        matrixActive[iForm].Resize(numMatrices);
+        matrixActive[iForm].Init(active);
+
         if(active && !isNewtonPart)
         {
-          // check if any matrix the form contributes to needs to be reassembled
+          // check which matrices the form contributes to need to be reassembled
           bool needsReassembly = false;
-          for (unsigned int i = 1; i <= actContext.GetNumberOfMatrixes(); i++) {
+          for (unsigned int i = 1; i <= numMatrices; i++) {
             FEMatrixType destMat = actContext.GetAlgebraicMatrixType(i);
-            if ( matReassemble_[destMat] ) {
+            matrixActive[iForm][i-1] = matReassemble_[destMat];
+            if ( matrixActive[iForm][i-1] ) {
               LOG_DBG2(assemble) << actContext.GetIntegrator()->GetName() << " contributes to (re)assembly of" << Enum2String(destMat);
               needsReassembly = true;
-              break;
             }
           }
           active = needsReassembly;
@@ -740,6 +752,9 @@ namespace CoupledField
 
                 // for performance reasons the nesting of the loops could be changed to (from outer to inner): forms, elements, form-factros
                 for (unsigned int i = 1; i <= actContext.GetNumberOfMatrixes(); i++) { // loop over all factors / matrices defined for a bilinear form
+                  // skip destinations that InitMatrix() did not zero
+                  if( !matrixActive[iForm][i-1] )
+                    continue;
                   FEMatrixType algebraicMatrix = actContext.GetAlgebraicMatrixType(i);
                   Double matrixFactor = actContext.GetMatrixFactor(i);
                   // insert
@@ -1995,24 +2010,48 @@ namespace CoupledField
 
   void Assemble::CheckNonLinearities(bool setall) {
     LOG_DBG2(assemble) << "CheckNonLinearities setall = " << setall;
-    // iterate over all bilinearforms
-    std::set<BiLinFormContext*>::iterator it;
 
+    // The harmonic recombination modes keep the base matrices (STIFFNESS /
+    // DAMPING / DAMPING_AUX / MASS) raw and only re-scale them per frequency in
+    // ConstructEffectiveMatrix(), so they are assembled once, per step only the
+    // *_UPDATE matrices are redone. FULL_REASSEMBLY instead folds the frequency
+    // factors in during assembly, hence everything is redone there.
+    const bool harmonicSelective = (analysisType_ == BasePDE::HARMONIC) && (matrixAssemblyMode_ != FULL_REASSEMBLY);
+
+    // Analysis types that redo every form in every step, regardless of the form
+    // itself. Eigenfrequency is among them because bloch sets the forms multiple
+    // times and has to reassemble each time.
+    const bool reassembleAllForms = setall || analysisType_ == BasePDE::MULTIHARMONIC 
+        || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY 
+        || (analysisType_ == BasePDE::HARMONIC && matrixAssemblyMode_ == FULL_REASSEMBLY);
+
+    // populate matReassemble_ with the algebraic matrix types to redo
     for(BiLinFormContext* actContext : allBiLinForms_) {
-      // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext->IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
-		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
-      {
-        // populate matReassemble_ with algebraic matrix types
-        for (unsigned int i = 1; i <= actContext->GetNumberOfMatrixes(); i++) {
-          FEMatrixType algMat = actContext->GetAlgebraicMatrixType(i);
-          if (algMat != NOTYPE) {
-            LOG_DBG2(assemble) << Enum2String(algMat) <<" will reassemble";
-            matReassemble_[algMat] = true;
-          }
+      const bool reassembleForm = reassembleAllForms || actContext->IsNonLin();
+
+      for (unsigned int i = 1; i <= actContext->GetNumberOfMatrixes(); i++) {
+        const FEMatrixType algMat = actContext->GetAlgebraicMatrixType(i);
+        if( algMat == NOTYPE )
+          continue;
+
+        // SetAlgebraicMatrices() routes frequency-dependent contributions into an
+        // *_UPDATE matrix when the form is registered (SYSTEM_UPDATE for
+        // AUTO_CONSOLIDATED, the per-type ones for AUTO_SPLIT), so the algebraic
+        // type alone already answers "is this frequency dependent?".
+        const bool isFreqUpdate = algMat == SYSTEM_UPDATE || algMat == STIFFNESS_UPDATE || algMat == DAMPING_UPDATE || algMat == MASS_UPDATE;
+
+        // Without a full rebuild only the *_UPDATE matrices are redone, decided
+        // per contribution: a form can have a constant primary and a
+        // frequency-dependent secondary matrix. NO_REASSEMBLY routes nothing to
+        // *_UPDATE, so nothing is redone there.
+        if( reassembleForm || (harmonicSelective && isFreqUpdate) ) {
+          LOG_DBG2(assemble) << Enum2String(algMat) << " will reassemble";
+          matReassemble_[algMat] = true;
         }
       }
     }
+    
+    if( !harmonicSelective ) {
     // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffness integrator)
     // However, due to the secondaryMatrix-mechanism it could happen, that initially only
     // the STIFFNESS matrix is set to reassemble. Due to the secondary matrix factor of
@@ -2048,6 +2087,7 @@ namespace CoupledField
         }
       } // loops over integrators
     } // 3 loops
+    } // !harmonicSelective
     if( IS_LOG_ENABLED( assemble, dbg) ) {
       // Finally print status of matrices
       std::map<FEMatrixType, bool>::const_iterator it2 =  matReassemble_.begin();
