@@ -11,8 +11,8 @@ The codebase of openCFS is large, so it can be hard to find your way around at f
 To help you to get started, we provide the following resources
 * short build instruction in the projects top level [README](README.md),
 * information about [build dependencies for various platforms](share/doc/developer/build-dependencies),
-* [getting started guide](https://gitlab.com/openCFS/cfs/-/wikis/getting-started) in the wiki,
-* introduction to the [git workflow](https://gitlab.com/openCFS/cfs/-/wikis/git-workflow) in the wiki.
+* [getting started guide](https://github.com/openCFS/cfs/wiki/getting-started) in the wiki,
+* introduction to the [git workflow](https://github.com/openCFS/cfs/wiki/git-workflow) in the wiki.
 
 Merge Request Guidelines
 ------------------------
@@ -48,7 +48,7 @@ Merge Request Guidelines
   Change the assignment from yourself to someone else (which will get notified) to hand over!
   
 Bringing your contribution in shape for a merge adhering to the guidelines above can be hard.
-If you're unsure of how to do something please study our guide on [git workflow](https://gitlab.com/openCFS/cfs/-/wikis/git-workflow),
+If you're unsure of how to do something please study our guide on [git workflow](https://github.com/openCFS/cfs/wiki/git-workflow),
 and do not hesitate to ask for further guidance.
 
 Coding Guidelines
@@ -56,7 +56,7 @@ Coding Guidelines
 * __Follow the Style Guide__ by adapting to the existing code.
   The rules are actually quite relaxed.
   In any case: no tabs, use 2 spaces as indentation.
-  For details see https://gitlab.com/openCFS/cfs/-/wikis/StyleGuide.
+  For details see https://github.com/openCFS/cfs/wiki/StyleGuide.
 * __Separate code from cosmetics__. 
   Keep code and cosmetics in separate commits, e.g. do not combine _white space change_ like adjusting line breaks or indentation with _functional change_.
   This makes code review harder!

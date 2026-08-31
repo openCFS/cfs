@@ -1,7 +1,7 @@
 Templates for Visual Studio Code
 ================================
 
-For detailed information visit the [cfs-wiki page on vscode](https://gitlab.com/openCFS/cfs/-/wikis/vscode).
+For detailed information visit the [cfs-wiki page on vscode](https://github.com/openCFS/cfs/wiki/vscode).
 
 In this directory we collect some template files:
 * Launch configuration [launch.json](./launch.json)
